@@ -12,7 +12,7 @@ from open_webui.internal.db import Base, get_async_db_context
 
 
 class LegalDocumentAcceptance(Base):
-    __tablename__ = "legal_document_acceptance"
+    __tablename__ = 'legal_document_acceptance'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)

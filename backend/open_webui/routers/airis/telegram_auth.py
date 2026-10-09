@@ -45,7 +45,7 @@ telegram_action_rate_limiter = RateLimiter(redis_client=get_redis_client(), limi
 
 
 def _get_client_ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    return request.client.host if request.client else 'unknown'
 
 
 def _audit_telegram_auth_event(
@@ -57,20 +57,20 @@ def _audit_telegram_auth_event(
     telegram_id: int | None = None,
 ) -> None:
     ip = _get_client_ip(request)
-    msg = f"telegram_auth action={action} outcome={outcome} ip={ip}"
+    msg = f'telegram_auth action={action} outcome={outcome} ip={ip}'
     if user_id:
-        msg += f" user_id={user_id}"
+        msg += f' user_id={user_id}'
     if telegram_id is not None:
-        msg += f" telegram_id={telegram_id}"
+        msg += f' telegram_id={telegram_id}'
     log.info(msg)
 
 
 async def _enforce_telegram_rate_limit(request: Request, *, action: str) -> None:
     client_ip = _get_client_ip(request)
-    key = f"telegram:{action}:{client_ip}"
-    limiter = telegram_state_rate_limiter if action == "state" else telegram_action_rate_limiter
+    key = f'telegram:{action}:{client_ip}'
+    limiter = telegram_state_rate_limiter if action == 'state' else telegram_action_rate_limiter
     if await asyncio.to_thread(limiter.is_limited, key):
-        _audit_telegram_auth_event(request, action=action, outcome="rate_limited")
+        _audit_telegram_auth_event(request, action=action, outcome='rate_limited')
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=ERROR_MESSAGES.RATE_LIMIT_EXCEEDED,
@@ -88,7 +88,7 @@ class TelegramWidgetPayload(BaseModel):
     photo_url: Optional[str] = None
     query_id: Optional[str] = None
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra='allow')
 
 
 class TelegramAuthForm(BaseModel):
@@ -111,7 +111,7 @@ class SessionUserResponse(Token, UserProfileImageResponse):
     permissions: Optional[dict] = None
 
 
-TELEGRAM_SESSION_STATE_KEY = "telegram_auth_state"
+TELEGRAM_SESSION_STATE_KEY = 'telegram_auth_state'
 TELEGRAM_SESSION_STATE_TTL_SECONDS = 10 * 60
 
 
@@ -126,40 +126,40 @@ def _consume_telegram_state(
     request.session.pop(TELEGRAM_SESSION_STATE_KEY, None)
 
     if not isinstance(state_record, dict):
-        _audit_telegram_auth_event(request, action=action, outcome="invalid_state", user_id=user_id)
+        _audit_telegram_auth_event(request, action=action, outcome='invalid_state', user_id=user_id)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.MALICIOUS)
 
-    if state_record.get("state") != expected_state:
-        _audit_telegram_auth_event(request, action=action, outcome="invalid_state", user_id=user_id)
+    if state_record.get('state') != expected_state:
+        _audit_telegram_auth_event(request, action=action, outcome='invalid_state', user_id=user_id)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.MALICIOUS)
 
-    issued_at = state_record.get("issued_at")
+    issued_at = state_record.get('issued_at')
     if not isinstance(issued_at, int):
-        _audit_telegram_auth_event(request, action=action, outcome="invalid_state", user_id=user_id)
+        _audit_telegram_auth_event(request, action=action, outcome='invalid_state', user_id=user_id)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.MALICIOUS)
 
     if int(time.time()) - issued_at > TELEGRAM_SESSION_STATE_TTL_SECONDS:
-        _audit_telegram_auth_event(request, action=action, outcome="expired_state", user_id=user_id)
+        _audit_telegram_auth_event(request, action=action, outcome='expired_state', user_id=user_id)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.MALICIOUS)
 
 
-@router.get("/telegram/state", response_model=TelegramStateResponse)
+@router.get('/telegram/state', response_model=TelegramStateResponse)
 async def telegram_auth_state(request: Request):
     if not ENABLE_TELEGRAM_AUTH:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND)
-    await _enforce_telegram_rate_limit(request, action="state")
+    await _enforce_telegram_rate_limit(request, action='state')
 
     state = secrets.token_urlsafe(32)
 
     request.session[TELEGRAM_SESSION_STATE_KEY] = {
-        "state": state,
-        "issued_at": int(time.time()),
+        'state': state,
+        'issued_at': int(time.time()),
     }
 
-    return {"state": state}
+    return {'state': state}
 
 
-@router.post("/telegram/signin", response_model=SessionUserResponse)
+@router.post('/telegram/signin', response_model=SessionUserResponse)
 async def telegram_signin(
     request: Request,
     response: Response,
@@ -169,15 +169,15 @@ async def telegram_signin(
     if not ENABLE_TELEGRAM_AUTH:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND)
 
-    bot_token = str(TELEGRAM_BOT_TOKEN or "").strip()
-    if bot_token == "":
+    bot_token = str(TELEGRAM_BOT_TOKEN or '').strip()
+    if bot_token == '':
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Telegram authentication is not configured.",
+            detail='Telegram authentication is not configured.',
         )
 
-    _consume_telegram_state(request, form_data.state, action="signin")
-    await _enforce_telegram_rate_limit(request, action="signin")
+    _consume_telegram_state(request, form_data.state, action='signin')
+    await _enforce_telegram_rate_limit(request, action='signin')
 
     try:
         verified = verify_and_extract_telegram_user(
@@ -186,30 +186,30 @@ async def telegram_signin(
             max_age_seconds=TELEGRAM_AUTH_MAX_AGE_SECONDS,
         )
     except TelegramAuthError:
-        _audit_telegram_auth_event(request, action="signin", outcome="invalid_payload")
+        _audit_telegram_auth_event(request, action='signin', outcome='invalid_payload')
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.MALICIOUS)
 
-    user = await Users.get_user_by_oauth_sub("telegram", verified.sub, db=db)
+    user = await Users.get_user_by_oauth_sub('telegram', verified.sub, db=db)
     if not user:
         _audit_telegram_auth_event(
             request,
-            action="signin",
-            outcome="not_linked",
+            action='signin',
+            outcome='not_linked',
             telegram_id=verified.telegram_id,
         )
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="NOT_LINKED")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='NOT_LINKED')
 
-    expires_delta = parse_duration(str(await Config.get("auth.jwt_expiry") or "4w"))
+    expires_delta = parse_duration(str(await Config.get('auth.jwt_expiry') or '4w'))
     expires_at = None
     if expires_delta:
         expires_at = int(time.time()) + int(expires_delta.total_seconds())
 
-    token = create_token(data={"id": user.id}, expires_delta=expires_delta)
+    token = create_token(data={'id': user.id}, expires_delta=expires_delta)
 
     datetime_expires_at = datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None
 
     response.set_cookie(
-        key="token",
+        key='token',
         value=token,
         expires=datetime_expires_at,
         httponly=True,
@@ -217,30 +217,30 @@ async def telegram_signin(
         secure=WEBUI_AUTH_COOKIE_SECURE,
     )
 
-    user_permissions = await get_permissions(user.id, await Config.get("user.permissions") or {}, db=db)
+    user_permissions = await get_permissions(user.id, await Config.get('user.permissions') or {}, db=db)
 
     _audit_telegram_auth_event(
         request,
-        action="signin",
-        outcome="success",
+        action='signin',
+        outcome='success',
         user_id=user.id,
         telegram_id=verified.telegram_id,
     )
 
     return {
-        "token": token,
-        "token_type": "Bearer",
-        "expires_at": expires_at,
-        "id": user.id,
-        "email": user.email,
-        "name": user.name,
-        "role": user.role,
-        "profile_image_url": user.profile_image_url,
-        "permissions": user_permissions,
+        'token': token,
+        'token_type': 'Bearer',
+        'expires_at': expires_at,
+        'id': user.id,
+        'email': user.email,
+        'name': user.name,
+        'role': user.role,
+        'profile_image_url': user.profile_image_url,
+        'permissions': user_permissions,
     }
 
 
-@router.post("/telegram/signup", response_model=SessionUserResponse)
+@router.post('/telegram/signup', response_model=SessionUserResponse)
 async def telegram_signup(
     request: Request,
     response: Response,
@@ -253,24 +253,24 @@ async def telegram_signup(
     if not ENABLE_TELEGRAM_SIGNUP:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="SIGNUP_DISABLED",
+            detail='SIGNUP_DISABLED',
         )
 
-    bot_token = str(TELEGRAM_BOT_TOKEN or "").strip()
-    if bot_token == "":
+    bot_token = str(TELEGRAM_BOT_TOKEN or '').strip()
+    if bot_token == '':
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Telegram authentication is not configured.",
+            detail='Telegram authentication is not configured.',
         )
 
     if not form_data.terms_accepted or not form_data.privacy_accepted:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You must accept the terms and privacy policy",
+            detail='You must accept the terms and privacy policy',
         )
 
-    _consume_telegram_state(request, form_data.state, action="signup")
-    await _enforce_telegram_rate_limit(request, action="signup")
+    _consume_telegram_state(request, form_data.state, action='signup')
+    await _enforce_telegram_rate_limit(request, action='signup')
 
     try:
         verified = verify_and_extract_telegram_user(
@@ -279,28 +279,28 @@ async def telegram_signup(
             max_age_seconds=TELEGRAM_AUTH_MAX_AGE_SECONDS,
         )
     except TelegramAuthError:
-        _audit_telegram_auth_event(request, action="signup", outcome="invalid_payload")
+        _audit_telegram_auth_event(request, action='signup', outcome='invalid_payload')
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.MALICIOUS)
 
-    existing_user = await Users.get_user_by_oauth_sub("telegram", verified.sub, db=db)
+    existing_user = await Users.get_user_by_oauth_sub('telegram', verified.sub, db=db)
     created_user = False
     if existing_user:
         user = existing_user
     else:
-        email = f"telegram@{verified.telegram_id}.local"
+        email = f'telegram@{verified.telegram_id}.local'
         if await Users.get_user_by_email(email, db=db):
             _audit_telegram_auth_event(
                 request,
-                action="signup",
-                outcome="email_taken",
+                action='signup',
+                outcome='email_taken',
                 telegram_id=verified.telegram_id,
             )
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=ERROR_MESSAGES.EMAIL_TAKEN)
 
         has_users = await Users.has_users(db=db)
-        role = "admin" if not has_users else str(await Config.get("ui.default_user_role") or "pending")
+        role = 'admin' if not has_users else str(await Config.get('ui.default_user_role') or 'pending')
 
-        profile_image_url = verified.photo_url or "/user.png"
+        profile_image_url = verified.photo_url or '/user.png'
         random_password = str(uuid.uuid4())
         hashed = await get_password_hash(random_password)
 
@@ -310,15 +310,15 @@ async def telegram_signup(
             name=verified.display_name,
             profile_image_url=profile_image_url,
             role=role,
-            oauth={"telegram": {"sub": verified.sub}},
+            oauth={'telegram': {'sub': verified.sub}},
             db=db,
         )
 
         if not user:
             _audit_telegram_auth_event(
                 request,
-                action="signup",
-                outcome="create_failed",
+                action='signup',
+                outcome='create_failed',
                 telegram_id=verified.telegram_id,
             )
             raise HTTPException(
@@ -327,30 +327,30 @@ async def telegram_signup(
             )
 
         await apply_default_group_assignment(
-            await Config.get("ui.default_group_id") or "",
+            await Config.get('ui.default_group_id') or '',
             user.id,
             db=db,
         )
         await record_legal_acceptances(
             user_id=user.id,
-            keys=["terms_offer", "privacy_policy"],
+            keys=['terms_offer', 'privacy_policy'],
             request=request,
-            method="telegram_signup",
+            method='telegram_signup',
             db=db,
         )
         created_user = True
 
-    expires_delta = parse_duration(str(await Config.get("auth.jwt_expiry") or "4w"))
+    expires_delta = parse_duration(str(await Config.get('auth.jwt_expiry') or '4w'))
     expires_at = None
     if expires_delta:
         expires_at = int(time.time()) + int(expires_delta.total_seconds())
 
-    token = create_token(data={"id": user.id}, expires_delta=expires_delta)
+    token = create_token(data={'id': user.id}, expires_delta=expires_delta)
 
     datetime_expires_at = datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None
 
     response.set_cookie(
-        key="token",
+        key='token',
         value=token,
         expires=datetime_expires_at,
         httponly=True,
@@ -358,30 +358,30 @@ async def telegram_signup(
         secure=WEBUI_AUTH_COOKIE_SECURE,
     )
 
-    user_permissions = await get_permissions(user.id, await Config.get("user.permissions") or {}, db=db)
+    user_permissions = await get_permissions(user.id, await Config.get('user.permissions') or {}, db=db)
 
     _audit_telegram_auth_event(
         request,
-        action="signup",
-        outcome="success_created" if created_user else "success_existing",
+        action='signup',
+        outcome='success_created' if created_user else 'success_existing',
         user_id=user.id,
         telegram_id=verified.telegram_id,
     )
 
     return {
-        "token": token,
-        "token_type": "Bearer",
-        "expires_at": expires_at,
-        "id": user.id,
-        "email": user.email,
-        "name": user.name,
-        "role": user.role,
-        "profile_image_url": user.profile_image_url,
-        "permissions": user_permissions,
+        'token': token,
+        'token_type': 'Bearer',
+        'expires_at': expires_at,
+        'id': user.id,
+        'email': user.email,
+        'name': user.name,
+        'role': user.role,
+        'profile_image_url': user.profile_image_url,
+        'permissions': user_permissions,
     }
 
 
-@router.post("/telegram/link")
+@router.post('/telegram/link')
 async def telegram_link(
     request: Request,
     form_data: TelegramAuthForm,
@@ -391,20 +391,20 @@ async def telegram_link(
     if not ENABLE_TELEGRAM_AUTH:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_MESSAGES.NOT_FOUND)
 
-    bot_token = str(TELEGRAM_BOT_TOKEN or "").strip()
-    if bot_token == "":
+    bot_token = str(TELEGRAM_BOT_TOKEN or '').strip()
+    if bot_token == '':
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Telegram authentication is not configured.",
+            detail='Telegram authentication is not configured.',
         )
 
     _consume_telegram_state(
         request,
         form_data.state,
-        action="link",
+        action='link',
         user_id=session_user.id,
     )
-    await _enforce_telegram_rate_limit(request, action="link")
+    await _enforce_telegram_rate_limit(request, action='link')
 
     try:
         verified = verify_and_extract_telegram_user(
@@ -415,29 +415,29 @@ async def telegram_link(
     except TelegramAuthError:
         _audit_telegram_auth_event(
             request,
-            action="link",
-            outcome="invalid_payload",
+            action='link',
+            outcome='invalid_payload',
             user_id=session_user.id,
         )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ERROR_MESSAGES.MALICIOUS)
 
-    existing = await Users.get_user_by_oauth_sub("telegram", verified.sub, db=db)
+    existing = await Users.get_user_by_oauth_sub('telegram', verified.sub, db=db)
     if existing and existing.id != session_user.id:
         _audit_telegram_auth_event(
             request,
-            action="link",
-            outcome="already_linked",
+            action='link',
+            outcome='already_linked',
             user_id=session_user.id,
             telegram_id=verified.telegram_id,
         )
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="TELEGRAM_ALREADY_LINKED")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='TELEGRAM_ALREADY_LINKED')
 
-    updated_user = await Users.update_user_oauth_by_id(session_user.id, "telegram", verified.sub, db=db)
+    updated_user = await Users.update_user_oauth_by_id(session_user.id, 'telegram', verified.sub, db=db)
     if not updated_user:
         _audit_telegram_auth_event(
             request,
-            action="link",
-            outcome="update_failed",
+            action='link',
+            outcome='update_failed',
             user_id=session_user.id,
             telegram_id=verified.telegram_id,
         )
@@ -448,16 +448,16 @@ async def telegram_link(
 
     _audit_telegram_auth_event(
         request,
-        action="link",
-        outcome="success",
+        action='link',
+        outcome='success',
         user_id=session_user.id,
         telegram_id=verified.telegram_id,
     )
 
-    return {"status": True}
+    return {'status': True}
 
 
-@router.delete("/telegram/link")
+@router.delete('/telegram/link')
 async def telegram_unlink(
     request: Request,
     form_data: TelegramUnlinkForm,
@@ -469,19 +469,19 @@ async def telegram_unlink(
     _consume_telegram_state(
         request,
         form_data.state,
-        action="unlink",
+        action='unlink',
         user_id=session_user.id,
     )
-    await _enforce_telegram_rate_limit(request, action="unlink")
+    await _enforce_telegram_rate_limit(request, action='unlink')
 
     oauth = dict(session_user.oauth or {})
-    oauth.pop("telegram", None)
-    updated_user = await Users.update_user_by_id(session_user.id, {"oauth": oauth}, db=db)
+    oauth.pop('telegram', None)
+    updated_user = await Users.update_user_by_id(session_user.id, {'oauth': oauth}, db=db)
     if not updated_user:
         _audit_telegram_auth_event(
             request,
-            action="unlink",
-            outcome="update_failed",
+            action='unlink',
+            outcome='update_failed',
             user_id=session_user.id,
         )
         raise HTTPException(
@@ -491,9 +491,9 @@ async def telegram_unlink(
 
     _audit_telegram_auth_event(
         request,
-        action="unlink",
-        outcome="success",
+        action='unlink',
+        outcome='success',
         user_id=session_user.id,
     )
 
-    return {"status": True}
+    return {'status': True}

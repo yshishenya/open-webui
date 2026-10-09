@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class PasswordResetToken(Base):
-    __tablename__ = "password_reset_token"
+    __tablename__ = 'password_reset_token'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False)
@@ -75,12 +75,12 @@ class PasswordResetTokensTable:
         async with get_async_db_context(db) as session:
             reset_token = PasswordResetTokenModel(
                 **{
-                    "id": str(uuid.uuid4()),
-                    "user_id": user_id,
-                    "token": token,
-                    "expires_at": expires_at,
-                    "used": False,
-                    "created_at": int(time.time()),
+                    'id': str(uuid.uuid4()),
+                    'user_id': user_id,
+                    'token': token,
+                    'expires_at': expires_at,
+                    'used': False,
+                    'created_at': int(time.time()),
                 }
             )
             result = PasswordResetToken(**reset_token.model_dump())
@@ -102,7 +102,7 @@ class PasswordResetTokensTable:
                 token_record = result.scalar_one_or_none()
                 return PasswordResetTokenModel.model_validate(token_record) if token_record else None
         except Exception as e:
-            log.error(f"Error getting password reset token: {e}")
+            log.error(f'Error getting password reset token: {e}')
             return None
 
     async def get_tokens_by_user_id(
@@ -124,7 +124,7 @@ class PasswordResetTokensTable:
                 await session.commit()
                 return True
         except Exception as e:
-            log.error(f"Error marking reset token {token_id} as used: {e}")
+            log.error(f'Error marking reset token {token_id} as used: {e}')
             return False
 
     async def delete_token_by_id(self, token_id: str, db: AsyncSession | None = None) -> bool:
@@ -135,7 +135,7 @@ class PasswordResetTokensTable:
                 await session.commit()
                 return True
         except Exception as e:
-            log.error(f"Error deleting reset token {token_id}: {e}")
+            log.error(f'Error deleting reset token {token_id}: {e}')
             return False
 
     async def delete_tokens_by_user_id(self, user_id: str, db: AsyncSession | None = None) -> bool:
@@ -146,7 +146,7 @@ class PasswordResetTokensTable:
                 await session.commit()
                 return True
         except Exception as e:
-            log.error(f"Error deleting reset tokens for user {user_id}: {e}")
+            log.error(f'Error deleting reset tokens for user {user_id}: {e}')
             return False
 
     async def is_token_valid(self, token: str, db: AsyncSession | None = None) -> bool:
@@ -176,7 +176,7 @@ class PasswordResetTokensTable:
                 await session.commit()
                 return result.rowcount or 0
         except Exception as e:
-            log.error(f"Error cleaning up expired password reset tokens: {e}")
+            log.error(f'Error cleaning up expired password reset tokens: {e}')
             return 0
 
 

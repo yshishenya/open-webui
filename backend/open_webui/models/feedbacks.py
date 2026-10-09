@@ -432,6 +432,7 @@ class FeedbackTable:
             ModelHistoryCounts(date=date_str, won=counts['won'], lost=counts['lost'])
             for date_str, counts in sorted(daily_counts.items())
         ]
+
     async def get_feedbacks_by_type(self, type: str, db: Optional[AsyncSession] = None) -> list[FeedbackModel]:
         async with get_async_db_context(db) as db:
             result = await db.execute(select(Feedback).filter_by(type=type).order_by(Feedback.updated_at.desc()))
