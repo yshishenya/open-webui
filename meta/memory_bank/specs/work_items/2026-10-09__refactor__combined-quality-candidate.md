@@ -22,7 +22,7 @@ Sidebar/wallet:34b6e676fe9998e4da80de36a485f66c968c3753 (PR367 remains independe
 - [x] Measure full check/ESLint/Ruff/Black on this combined tree; do not sum independent branch results.
 - [x] Channel modules emit identical JavaScript to integration; sidebar/wallet files match accepted34b6 source. No dependency/config/native-audio changes.
 - [x] Primary21 protected files and production preserved; temporary sources/databases removed after checks.
-- [ ] Commit/push and prove final453+frontend source hashes equal the pre-test snapshot; preserve precise proof and diagnostics for further fixes.
+- [x] Commit/push and prove final453+frontend source hashes equal the pre-test snapshot; preserve precise proof and diagnostics for further fixes.
 - [ ] General quality errors0; clean candidate image, combined browser/native/runtime acceptance, CI, review/merge/deploy/live accepted.
 
 ## Upstream impact
@@ -46,3 +46,5 @@ Production read2026-10-09T05:29:12.483133UTC:source c0ea9dd7823a89e21a8bd58f1e8e
 PR367 remains at34b6e676fe9998e4da80de36a485f66c968c3753. The required connector returned checks[]/jobs[], only skipped CodeRabbit; the reason for missing results is unknown. No new PR/merge/deploy, and historical browser/native acceptance still belongs to34b6. A clean image and new combined browser/native/runtime acceptance remain mandatory before release.
 
 Private evidence: /Users/yshishenya/.codex/private-artifacts/airis-combined-quality-candidate-20261009. Overall onboarding plan198/244; new numbered closures0.
+
+Source assembly/documentation c662f26267fc637f0e742461a34eee8549cf9025 pushed and remote SHA verified. SDD2/3 tasks completed; general quality/image/browser/native/CI/release task remains pending. Final documentation-only commit preserves the same application snapshot.
