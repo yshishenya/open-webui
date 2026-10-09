@@ -18,7 +18,7 @@
 - [x] Parsed source trees are identical after canonicalizing only Optional/List annotations and deleting their now-unused typing import. SQLAlchemy declarations, numeric values, defaults, validators and application control flow are preserved.
 - [x] Full backend tests pass including PostgreSQL-only scenarios in four fresh disposable databases, with zero skips/failures.
 - [x] Frontend tests pass and frontend type/lint diagnostics do not increase; frontend and runtime lockfiles are unchanged.
-- [ ] Record proofs; commit and push source.
+- [x] Record proofs; commit and push source.
 - [ ] Independently accept the general quality gate, PR/CI and release before closing the broader goal.
 
 ## Scope / upstream impact
@@ -42,3 +42,5 @@ Private evidence: /Users/yshishenya/.codex/private-artifacts/airis-billing-model
 - All four PostgreSQL databases and temporary containers removed; storage was tmpfs, with no persistent volume operation. 5063 frontend/runtime dependency boundary files and 21 protected primary files are unchanged.
 - Production read at 2026-10-09T04:18:17 UTC: c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908, healthy, zero restarts; image, environment, configs, mounts and neighboring containers match the previous snapshot. No deployment, SMTP or financial mutation in this block.
 - PR #367 exact head 34b6e676fe9998e4da80de36a485f66c968c3753 still exposes zero checks through the required connector. The cause is not established. This annotation branch has not been merged, deployed or accepted for release.
+
+Source commit: `8c1a46abd84b8346576ad017acb0f7c69eee5b32`, pushed to `codex/refactor/billing-model-annotations`. SDD implementation/checks: 2/3; general quality/PR/release remains pending. The following documentation commit does not change executable application source.

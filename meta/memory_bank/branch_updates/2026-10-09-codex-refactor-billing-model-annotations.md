@@ -3,3 +3,5 @@
   - Owner: Codex
   - Started: 2026-10-09
   - Summary: Incremental G14 quality work; five billing models, exact schema/validation comparison and full tests. Independent general quality/CI/release remains open.
+  - Source: 8c1a46abd84b8346576ad017acb0f7c69eee5b32, committed and pushed.
+  - Checks: backend 1017/1017 with four fresh PostgreSQL databases, frontend 946/946, all 453 Black checks accepted; Ruff 2956 -> 2920 with zero added. Model schemas, 30 input outcomes and 561-path OpenAPI match. General frontend check 2293/108 and ESLint 1020 remain unsuccessful; SDD 2/3, broader release task stays open.
