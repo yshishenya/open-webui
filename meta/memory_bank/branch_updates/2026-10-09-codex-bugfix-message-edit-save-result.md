@@ -1,0 +1,10 @@
+- [ ] **[BUG][G14]** Ожидание результата сохранения сообщения
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**bugfix**message-edit-save-result.md
+  - Owner: Codex
+  - Branch: codex/bugfix/message-edit-save-result
+  - Started: 2026-10-09
+  - Summary: Сохранить черновики до результата API, защитить повтор копии и соседние сообщения.
+  - Tests: Исходное воспроизведение 6/6; полный набор ещё впереди.
+  - Risks: Общий путь редактирования; выпуск и продуктовая приёмка отдельно.
+
+- Проверено:29новых+28существующих=57/57; полныйfrontend1181/135,types1666/103,ESLint970,новых0;compiled6/sparse6/frozen1527/primary21/runtime12. Доставка и выпуск остаются отдельно.

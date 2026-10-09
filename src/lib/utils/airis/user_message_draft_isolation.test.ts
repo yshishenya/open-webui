@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'svelte/compiler';
 import ts from 'typescript';
+import equal from 'fast-deep-equal';
 import { expect, it, vi } from 'vitest';
 import type { ChatHistory, ChatHistoryMessage } from './chat_history';
 
@@ -56,6 +57,8 @@ function setup() {
 		messageId: 'm1',
 		message: original,
 		edit: false,
+		saving: false,
+		chatId: 'chat1',
 		editedContent: '',
 		editedFiles: [] as ChatHistoryMessage['files'],
 		fileIdx: 0,
@@ -68,6 +71,8 @@ function setup() {
 		editMessage: vi.fn(),
 		deleteMessage: vi.fn(),
 		structuredClone,
+		equal: (left: unknown, right: unknown): boolean =>
+			equal(structuredClone(left), structuredClone(right)),
 		_copyToClipboard: vi.fn().mockResolvedValue(true),
 		gotoMessage: vi.fn(),
 		messageIndexEdit: true

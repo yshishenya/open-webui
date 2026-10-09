@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
+vi.mock('$app/environment', () => ({ browser: false, dev: false }));
+vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '', WEBUI_BASE_URL: '' }));
 import { getLastMessageId } from '../src/lib/utils/airis/chat_history';
+import { createMessagesList } from '../src/lib/utils';
 import type {
 	ChatHistory,
 	ChatHistoryMessage,
@@ -62,7 +65,11 @@ const setup = (history = graph()) => {
 	const element = { scrollTop: 0, scrollHeight: 200, clientHeight: 100, scrollIntoView: vi.fn() };
 	const context = {
 		getLastMessageId,
+		createMessagesList,
 		history,
+		structuredClone,
+		pendingCopyIds: new Map<string, string>(),
+		savingMessageIds: new Set<string>(),
 		messages: [] as ChatHistoryMessage[],
 		messagesCount: 8 as number | null,
 		pendingRebuild: null as number | null,
@@ -128,7 +135,7 @@ const setup = (history = graph()) => {
 		showPreviousMessage: (message: ChatHistoryMessage) => Promise<void>;
 		showNextMessage: (message: ChatHistoryMessage) => Promise<void>;
 		rateMessage: (id: string, rating: number) => Promise<void>;
-		editMessage: (id: string, edit: ChatMessageEdit, submit?: boolean) => Promise<void>;
+		editMessage: (id: string, edit: ChatMessageEdit, submit?: boolean) => Promise<boolean>;
 		saveMessage: (id: string, message: ChatHistoryMessage) => Promise<void>;
 		deleteMessage: (id: string) => Promise<void>;
 	};
@@ -298,14 +305,14 @@ it('relinks grandchildren when deleting a message, keeps other branches, and acc
 	expect(context.deleteChatMessageById).toHaveBeenCalledWith('test-token', 'chat', 'c');
 });
 
-it('preserves local edits on a persistence failure and skips unknown message IDs', async () => {
+it('preserves saved history on a persistence failure and skips unknown message IDs', async () => {
 	const { context, actions } = setup();
 	context.$temporaryChatEnabled = false;
 	context.updateChatById.mockRejectedValue(new Error('Network failed'));
 	await expect(actions.editMessage('c', { content: 'Unsaved draft' }, false)).rejects.toThrow(
 		'Network failed'
 	);
-	expect(context.history.messages.c.content).toBe('Unsaved draft');
+	expect(context.history.messages.c.content).toBe('Text c');
 	expect(context.refreshChatList).not.toHaveBeenCalled();
 	await actions.saveMessage('missing', message('missing', null));
 	expect(context.history.messages.missing).toBeUndefined();

@@ -106,7 +106,7 @@
 		id: string,
 		edit: ChatMessageEdit,
 		submit?: boolean
-	) => void | Promise<void>;
+	) => boolean | void | Promise<boolean | void>;
 	export let saveMessage: (id: string, message: ChatHistoryMessage) => void | Promise<void>;
 	export let rateMessage: (id: string, rating: number) => void | Promise<void>;
 	export let actionMessage: (
@@ -161,6 +161,7 @@
 	$: hasResponseContent = Boolean((message.content ?? '').trim() || message.output?.length);
 
 	let edit = false;
+	let saving = false;
 	let editedContent = '';
 	let editedOutput: OutputItem[] | null = null;
 	let editTextAreaElement: HTMLTextAreaElement;
@@ -407,7 +408,8 @@
 		return restoredContent;
 	}
 
-	const editMessageHandler = async () => {
+	const editMessageHandler = async (): Promise<void> => {
+		if (saving) return;
 		edit = true;
 
 		if (message.output?.length) {
@@ -432,38 +434,46 @@
 		}
 	};
 
-	const editMessageConfirmHandler = async () => {
-		if (editedOutput) {
-			editMessage(message.id, { output: editedOutput }, false);
-		} else {
-			// Legacy text edit
-			const messageContent = postprocessAfterEditing(editedContent ?? '');
-			editMessage(message.id, { content: messageContent }, false);
+	const editMessageConfirmHandler = async (submit = false): Promise<void> => {
+		if (saving) return;
+		const id = message.id;
+		const sourceChatId = chatId;
+		const draft = structuredClone({ content: editedContent, output: editedOutput });
+		saving = true;
+		try {
+			const saved = await editMessage(
+				id,
+				draft.output
+					? { output: draft.output }
+					: { content: postprocessAfterEditing(draft.content ?? '') },
+				submit
+			);
+			if (
+				saved !== false &&
+				chatId === sourceChatId &&
+				message.id === id &&
+				equal(draft, { content: editedContent, output: editedOutput })
+			) {
+				edit = false;
+				editedContent = '';
+				editedOutput = null;
+				await tick();
+			}
+		} catch {
+			if (chatId === sourceChatId && message.id === id) {
+				toast.error($i18n.t('Failed to save conversation'));
+			}
+		} finally {
+			saving = false;
 		}
-
-		edit = false;
-		editedContent = '';
-		editedOutput = null;
-
-		await tick();
 	};
 
-	const saveAsCopyHandler = async () => {
-		if (editedOutput) {
-			editMessage(message.id, { output: editedOutput });
-		} else {
-			const messageContent = postprocessAfterEditing(editedContent ?? '');
-			editMessage(message.id, { content: messageContent });
-		}
-
-		edit = false;
-		editedContent = '';
-		editedOutput = null;
-
-		await tick();
+	const saveAsCopyHandler = async (): Promise<void> => {
+		await editMessageConfirmHandler(true);
 	};
 
-	const cancelEditMessage = async () => {
+	const cancelEditMessage = async (): Promise<void> => {
+		if (saving) return;
 		edit = false;
 		editedContent = '';
 		editedOutput = null;
@@ -810,6 +820,7 @@
 									<div>
 										<button
 											id="save-new-message-button"
+											disabled={saving}
 											class="px-2.5 py-1 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 transition rounded-3xl"
 											on:click={() => {
 												saveAsCopyHandler();
@@ -822,6 +833,7 @@
 									<div class="flex space-x-1.5">
 										<button
 											id="close-edit-message-button"
+											disabled={saving}
 											class="px-2.5 py-1 bg-white dark:bg-gray-900 hover:bg-gray-100 text-gray-800 dark:text-gray-100 transition rounded-3xl"
 											on:click={() => {
 												cancelEditMessage();
@@ -832,6 +844,7 @@
 
 										<button
 											id="confirm-edit-message-button"
+											disabled={saving}
 											class="px-2.5 py-1 bg-gray-900 dark:bg-white hover:bg-gray-850 text-gray-100 dark:text-gray-800 transition rounded-3xl"
 											on:click={() => {
 												editMessageConfirmHandler();

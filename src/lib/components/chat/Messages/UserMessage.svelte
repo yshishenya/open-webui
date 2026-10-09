@@ -45,7 +45,7 @@
 		id: string,
 		edit: ChatMessageEdit,
 		submit?: boolean
-	) => void | Promise<void>;
+	) => boolean | void | Promise<boolean | void>;
 	export let deleteMessage: (id: string) => void | Promise<void>;
 
 	export let isFirstMessage: boolean;
@@ -60,6 +60,7 @@
 	let messageIndexEdit = false;
 
 	let edit = false;
+	let saving = false;
 	let editedContent = '';
 	let editedFiles: ChatHistoryMessage['files'] = [];
 
@@ -86,6 +87,7 @@
 	};
 
 	const editMessageHandler = async (): Promise<void> => {
+		if (saving) return;
 		edit = true;
 		editedContent = message?.content ?? '';
 		editedFiles = message.files?.slice();
@@ -105,19 +107,38 @@
 	};
 
 	const editMessageConfirmHandler = async (submit = true): Promise<void> => {
+		if (saving) return;
 		if (!editedContent && (editedFiles ?? []).length === 0) {
 			toast.error($i18n.t('Please enter a message or attach a file.'));
 			return;
 		}
-
-		editMessage(message.id, { content: editedContent, files: editedFiles }, submit);
-
-		edit = false;
-		editedContent = '';
-		editedFiles = [];
+		const id = message.id;
+		const sourceChatId = chatId;
+		const draft = structuredClone({ content: editedContent, files: editedFiles });
+		saving = true;
+		try {
+			const saved = await editMessage(id, draft, submit);
+			if (
+				saved !== false &&
+				chatId === sourceChatId &&
+				message.id === id &&
+				equal(draft, { content: editedContent, files: editedFiles })
+			) {
+				edit = false;
+				editedContent = '';
+				editedFiles = [];
+			}
+		} catch {
+			if (chatId === sourceChatId && message.id === id) {
+				toast.error($i18n.t('Failed to save conversation'));
+			}
+		} finally {
+			saving = false;
+		}
 	};
 
 	const cancelEditMessage = (): void => {
+		if (saving) return;
 		edit = false;
 		editedContent = '';
 		editedFiles = [];
@@ -300,6 +321,7 @@
 						<div>
 							<button
 								id="save-edit-message-button"
+								disabled={saving}
 								class="px-2.5 py-1 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 transition rounded-3xl"
 								on:click={() => {
 									editMessageConfirmHandler(false);
@@ -312,6 +334,7 @@
 						<div class="flex space-x-1.5">
 							<button
 								id="close-edit-message-button"
+								disabled={saving}
 								class="px-2.5 py-1 bg-white dark:bg-gray-900 hover:bg-gray-100 text-gray-800 dark:text-gray-100 transition rounded-3xl"
 								on:click={() => {
 									cancelEditMessage();
@@ -322,6 +345,7 @@
 
 							<button
 								id="confirm-edit-message-button"
+								disabled={saving}
 								class="px-2.5 py-1 bg-gray-900 dark:bg-white hover:bg-gray-850 text-gray-100 dark:text-gray-800 transition rounded-3xl"
 								on:click={() => {
 									editMessageConfirmHandler();
