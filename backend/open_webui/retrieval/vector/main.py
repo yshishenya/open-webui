@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 from pydantic import BaseModel
 
@@ -12,13 +12,13 @@ class VectorItem(BaseModel):
 
 
 class GetResult(BaseModel):
-    ids: Optional[List[List[str]]]
-    documents: Optional[List[List[str]]]
-    metadatas: Optional[List[List[Any]]]
+    ids: List[List[str]] | None
+    documents: List[List[str]] | None
+    metadatas: List[List[Any]] | None
 
 
 class SearchResult(GetResult):
-    distances: Optional[List[List[float | int]]]
+    distances: List[List[float | int]] | None
 
 
 class VectorDBBase(ABC):
@@ -57,9 +57,9 @@ class VectorDBBase(ABC):
         self,
         collection_name: str,
         vectors: List[List[Union[float, int]]],
-        filter: Optional[Dict] = None,
+        filter: Dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """Search for similar vectors in a collection."""
         pass
 
@@ -68,20 +68,20 @@ class VectorDBBase(ABC):
         collection_name: str,
         query: str,
         vectors: List[List[Union[float, int]]],
-        filter: Optional[Dict] = None,
+        filter: Dict | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """Search using a backend-native hybrid keyword/vector implementation when available."""
         return None
 
     @abstractmethod
-    def query(self, collection_name: str, filter: Dict, limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict, limit: int | None = None) -> GetResult | None:
         """Query vectors from a collection using metadata filter."""
         pass
 
     @abstractmethod
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         """Retrieve all vectors from a collection."""
         pass
 
@@ -89,8 +89,8 @@ class VectorDBBase(ABC):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict] = None,
+        ids: List[str] | None = None,
+        filter: Dict | None = None,
     ) -> None:
         """Delete vectors by ID or filter from a collection."""
         pass

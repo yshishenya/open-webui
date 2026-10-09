@@ -3,7 +3,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import boto3
 from open_webui.config import S3_VECTOR_BUCKET_NAME, S3_VECTOR_REGION
@@ -284,9 +284,9 @@ class S3VectorClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[Union[float, int]]],
-        filter: Optional[dict] = None,
+        filter: dict | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """
         Search for similar vectors in a collection using multiple query vectors.
         """
@@ -388,7 +388,7 @@ class S3VectorClient(VectorDBBase):
                     return None
             raise
 
-    def query(self, collection_name: str, filter: Dict, limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict, limit: int | None = None) -> GetResult | None:
         """
         Query vectors from a collection using metadata filter.
         """
@@ -462,7 +462,7 @@ class S3VectorClient(VectorDBBase):
                     return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
             raise
 
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         """
         Retrieve all vectors from a collection.
         """
@@ -559,8 +559,8 @@ class S3VectorClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict] = None,
+        ids: List[str] | None = None,
+        filter: Dict | None = None,
     ) -> None:
         """
         Delete vectors by ID or filter from a collection.

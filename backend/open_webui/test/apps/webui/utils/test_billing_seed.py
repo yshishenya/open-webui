@@ -11,19 +11,19 @@ class TestBillingSeed(AbstractPostgresTest):
         from open_webui.utils.billing_seed import seed_default_rate_cards_if_missing
         from open_webui.utils.rate_card_templates import DEFAULT_RATE_CARD_TEMPLATES
 
-        model_id = "seed-model"
+        model_id = 'seed-model'
 
         model = await Models.insert_new_model(
             ModelForm(
                 id=model_id,
-                name="Seed Model",
+                name='Seed Model',
                 base_model_id=None,
                 meta=ModelMeta(),
                 params=ModelParams(),
                 access_control=None,
                 is_active=True,
             ),
-            user_id="admin",
+            user_id='admin',
         )
         assert model is not None
 
@@ -33,8 +33,8 @@ class TestBillingSeed(AbstractPostgresTest):
         for template in DEFAULT_RATE_CARD_TEMPLATES:
             entry = RateCards.get_rate_card_by_version(
                 model_id,
-                str(template["modality"]),
-                str(template["unit"]),
+                str(template['modality']),
+                str(template['unit']),
                 BILLING_RATE_CARD_VERSION,
             )
             assert entry is not None

@@ -3,7 +3,7 @@ import io
 import json
 import logging
 import os
-from typing import List, Optional
+from typing import List
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element
 
@@ -36,7 +36,7 @@ def search_yandex(
     yandex_search_config: str,
     query: str,
     count: int,
-    filter_list: Optional[List[str]] = None,
+    filter_list: List[str] | None = None,
     user=None,
 ) -> List[SearchResult]:
     try:

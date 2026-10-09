@@ -11,7 +11,7 @@ import math
 import re
 import sys
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from open_webui.config import (
     MARIADB_VECTOR_DB_URL,
@@ -91,7 +91,7 @@ class MariaDBVectorClient(VectorDBBase):
 
     def __init__(
         self,
-        db_url: Optional[str] = None,
+        db_url: str | None = None,
         vector_length: int = VECTOR_LENGTH,
         distance_strategy: str = MARIADB_VECTOR_DISTANCE_STRATEGY,
         index_m: int = MARIADB_VECTOR_INDEX_M,
@@ -381,9 +381,9 @@ class MariaDBVectorClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[float]],
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """
         Perform a vector similarity search.
 
@@ -456,7 +456,7 @@ class MariaDBVectorClient(VectorDBBase):
             log.exception(f'[MARIADB_VECTOR] search() failed: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict[str, Any], limit: int | None = None) -> GetResult | None:
         """
         Retrieve documents by metadata filter (non-vector query).
         """
@@ -481,7 +481,7 @@ class MariaDBVectorClient(VectorDBBase):
                 metadatas = [[_safe_json(r[2]) for r in rows]]
                 return GetResult(ids=ids, documents=documents, metadatas=metadatas)
 
-    def get(self, collection_name: str, limit: Optional[int] = None) -> Optional[GetResult]:
+    def get(self, collection_name: str, limit: int | None = None) -> GetResult | None:
         """
         Retrieve documents in a collection without filtering (optionally limited).
         """
@@ -504,8 +504,8 @@ class MariaDBVectorClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: List[str] | None = None,
+        filter: Dict[str, Any] | None = None,
     ) -> None:
         """
         Delete rows from a collection by id list and/or metadata filter.

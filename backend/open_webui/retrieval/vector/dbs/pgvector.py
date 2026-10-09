@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from open_webui.config import (
     PGVECTOR_CREATE_EXTENSION,
@@ -114,30 +114,26 @@ class PgvectorClient(VectorDBBase):
             # Ensure the pgvector extension is available
             # Use a conditional check to avoid permission issues on Azure PostgreSQL
             if PGVECTOR_CREATE_EXTENSION:
-                self.session.execute(
-                    text("""
+                self.session.execute(text("""
                     DO $$
                     BEGIN
                     IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
                         CREATE EXTENSION IF NOT EXISTS vector;
                     END IF;
                     END $$;
-                """)
-                )
+                """))
 
             if PGVECTOR_PGCRYPTO:
                 # Ensure the pgcrypto extension is available for encryption
                 # Use a conditional check to avoid permission issues on Azure PostgreSQL
-                self.session.execute(
-                    text("""
+                self.session.execute(text("""
                     DO $$
                     BEGIN
                        IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto') THEN
                           CREATE EXTENSION IF NOT EXISTS pgcrypto;
                        END IF;
                     END $$;
-                """)
-                )
+                """))
 
                 if not PGVECTOR_PGCRYPTO_KEY:
                     raise ValueError('PGVECTOR_PGCRYPTO_KEY must be set when PGVECTOR_PGCRYPTO is enabled.')
@@ -168,7 +164,7 @@ class PgvectorClient(VectorDBBase):
             raise
 
     @staticmethod
-    def _extract_index_method(index_def: Optional[str]) -> Optional[str]:
+    def _extract_index_method(index_def: str | None) -> str | None:
         if not index_def:
             return None
         try:
@@ -241,13 +237,11 @@ class PgvectorClient(VectorDBBase):
         if PGVECTOR_PGCRYPTO:
             return
 
-        self.session.execute(
-            text("""
+        self.session.execute(text("""
                 CREATE INDEX IF NOT EXISTS idx_document_chunk_text_search
                 ON document_chunk
                 USING GIN (to_tsvector('simple', coalesce(text, '')));
-                """)
-        )
+                """))
         log.info("Ensured text search index 'idx_document_chunk_text_search'.")
 
     def check_vector_length(self) -> None:
@@ -411,9 +405,9 @@ class PgvectorClient(VectorDBBase):
         self,
         collection_name: str,
         vectors: List[List[float]],
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         try:
             if not vectors:
                 return None
@@ -462,7 +456,9 @@ class PgvectorClient(VectorDBBase):
                                     DocumentChunk.vmetadata,
                                     PGVECTOR_PGCRYPTO_KEY,
                                     JSONB,
-                                )[key].astext.in_([str(v) for v in in_values])
+                                )[
+                                    key
+                                ].astext.in_([str(v) for v in in_values])
                             )
                         else:
                             where_clauses.append(DocumentChunk.vmetadata[key].astext.in_([str(v) for v in in_values]))
@@ -540,10 +536,10 @@ class PgvectorClient(VectorDBBase):
         collection_name: str,
         query: str,
         vectors: List[List[float]],
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Dict[str, Any] | None = None,
         limit: int = 10,
         hybrid_bm25_weight: float = 0.5,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         if PGVECTOR_PGCRYPTO or filter:
             return None
 
@@ -600,7 +596,7 @@ class PgvectorClient(VectorDBBase):
             log.exception(f'Error during hybrid search: {e}')
             return None
 
-    def query(self, collection_name: str, filter: Dict[str, Any], limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: Dict[str, Any], limit: int | None = None) -> GetResult | None:
         try:
             if PGVECTOR_PGCRYPTO:
                 # Build where clause for vmetadata filter
@@ -648,7 +644,7 @@ class PgvectorClient(VectorDBBase):
             log.exception(f'Error during query: {e}')
             return None
 
-    def get(self, collection_name: str, limit: Optional[int] = None) -> Optional[GetResult]:
+    def get(self, collection_name: str, limit: int | None = None) -> GetResult | None:
         try:
             if PGVECTOR_PGCRYPTO:
                 stmt = select(
@@ -686,8 +682,8 @@ class PgvectorClient(VectorDBBase):
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict[str, Any]] = None,
+        ids: List[str] | None = None,
+        filter: Dict[str, Any] | None = None,
     ) -> None:
         try:
             if PGVECTOR_PGCRYPTO:

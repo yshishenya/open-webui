@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-from typing import List, Optional
+from typing import List
 
 import requests
 from fastapi import HTTPException, status
@@ -17,7 +17,7 @@ class DatalabMarkerLoader:
         file_path: str,
         api_key: str,
         api_base_url: str,
-        additional_config: Optional[str] = None,
+        additional_config: str | None = None,
         use_llm: bool = False,
         skip_cache: bool = False,
         force_ocr: bool = False,

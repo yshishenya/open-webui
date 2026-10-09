@@ -2439,10 +2439,7 @@ API_KEYS_ALLOWED_ENDPOINTS = os.getenv('API_KEYS_ALLOWED_ENDPOINTS', os.getenv('
 JWT_EXPIRES_IN = os.getenv('JWT_EXPIRES_IN', '4w')
 
 if JWT_EXPIRES_IN == '-1':
-    log.warning(
-        "⚠️  SECURITY WARNING: JWT_EXPIRES_IN is set to '-1'\n"
-        '    See: https://airis.you/documents\n'
-    )
+    log.warning("⚠️  SECURITY WARNING: JWT_EXPIRES_IN is set to '-1'\n" '    See: https://airis.you/documents\n')
 
 ####################################
 # OAuth config

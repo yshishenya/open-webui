@@ -4,7 +4,6 @@ import difflib
 import json
 import time
 import uuid
-from typing import Optional
 
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.users import UserResponse, Users
@@ -32,10 +31,10 @@ class PromptHistory(Base):
 class PromptHistoryModel(BaseModel):
     id: str
     prompt_id: str
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     snapshot: dict
     user_id: str
-    commit_message: Optional[str] = None
+    commit_message: str | None = None
     created_at: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -44,7 +43,7 @@ class PromptHistoryModel(BaseModel):
 class PromptHistoryResponse(PromptHistoryModel):
     """Response model with user info."""
 
-    user: Optional[UserResponse] = None
+    user: UserResponse | None = None
 
 
 class PromptHistoryTable:
@@ -53,10 +52,10 @@ class PromptHistoryTable:
         prompt_id: str,
         snapshot: dict,
         user_id: str,
-        parent_id: Optional[str] = None,
-        commit_message: Optional[str] = None,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[PromptHistoryModel]:
+        parent_id: str | None = None,
+        commit_message: str | None = None,
+        db: AsyncSession | None = None,
+    ) -> PromptHistoryModel | None:
         """Create a new history entry (commit) for a prompt."""
         async with get_async_db_context(db) as db:
             history = PromptHistory(
@@ -77,7 +76,7 @@ class PromptHistoryTable:
         prompt_id: str,
         limit: int = 50,
         offset: int = 0,
-        db: Optional[AsyncSession] = None,
+        db: AsyncSession | None = None,
     ) -> list[PromptHistoryResponse]:
         """Get all history entries for a prompt, ordered by created_at desc."""
         async with get_async_db_context(db) as db:
@@ -106,8 +105,8 @@ class PromptHistoryTable:
     async def get_history_entry_by_id(
         self,
         history_id: str,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[PromptHistoryModel]:
+        db: AsyncSession | None = None,
+    ) -> PromptHistoryModel | None:
         """Get a specific history entry by ID."""
         async with get_async_db_context(db) as db:
             result = await db.execute(select(PromptHistory).filter(PromptHistory.id == history_id))
@@ -119,8 +118,8 @@ class PromptHistoryTable:
     async def get_latest_history_entry(
         self,
         prompt_id: str,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[PromptHistoryModel]:
+        db: AsyncSession | None = None,
+    ) -> PromptHistoryModel | None:
         """Get the most recent history entry for a prompt."""
         async with get_async_db_context(db) as db:
             result = await db.execute(
@@ -137,7 +136,7 @@ class PromptHistoryTable:
     async def get_history_count(
         self,
         prompt_id: str,
-        db: Optional[AsyncSession] = None,
+        db: AsyncSession | None = None,
     ) -> int:
         """Get the number of history entries for a prompt."""
         async with get_async_db_context(db) as db:
@@ -151,8 +150,8 @@ class PromptHistoryTable:
         from_id: str,
         to_id: str,
         prompt_id: str,
-        db: Optional[AsyncSession] = None,
-    ) -> Optional[dict]:
+        db: AsyncSession | None = None,
+    ) -> dict | None:
         """Compute diff between two history entries."""
         async with get_async_db_context(db) as db:
             # Bind both entries to the authorized prompt; an unbound id reads another prompt's snapshot.
@@ -197,7 +196,7 @@ class PromptHistoryTable:
     async def delete_history_by_prompt_id(
         self,
         prompt_id: str,
-        db: Optional[AsyncSession] = None,
+        db: AsyncSession | None = None,
     ) -> bool:
         """Delete all history entries for a prompt."""
         async with get_async_db_context(db) as db:
@@ -209,7 +208,7 @@ class PromptHistoryTable:
         self,
         history_id: str,
         prompt_id: str,
-        db: Optional[AsyncSession] = None,
+        db: AsyncSession | None = None,
     ) -> bool:
         """Delete a history entry and reparent its children to grandparent."""
         async with get_async_db_context(db) as db:

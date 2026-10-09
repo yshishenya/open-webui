@@ -9,7 +9,6 @@ from typing import (
     AsyncGenerator,
     Dict,
     MutableMapping,
-    Optional,
     cast,
 )
 
@@ -37,17 +36,17 @@ if TYPE_CHECKING:
 class AuditLogEntry:
     # `Metadata` audit level properties
     id: str
-    user: Optional[dict[str, Any]]
+    user: dict[str, Any] | None
     audit_level: str
     verb: str
     request_uri: str
-    user_agent: Optional[str] = None
-    source_ip: Optional[str] = None
+    user_agent: str | None = None
+    source_ip: str | None = None
     # `Request` audit level properties
     request_object: Any = None
     # `Request Response` level
     response_object: Any = None
-    response_status_code: Optional[int] = None
+    response_status_code: int | None = None
 
 
 class AuditLevel(str, Enum):
@@ -73,7 +72,7 @@ class AuditLogger:
         audit_entry: AuditLogEntry,
         *,
         log_level: str = 'INFO',
-        extra: Optional[dict] = None,
+        extra: dict | None = None,
     ):
         entry = asdict(audit_entry)
 
@@ -124,8 +123,8 @@ class AuditLoggingMiddleware:
         self,
         app: ASGI3Application,
         *,
-        excluded_paths: Optional[list[str]] = None,
-        included_paths: Optional[list[str]] = None,
+        excluded_paths: list[str] | None = None,
+        included_paths: list[str] | None = None,
         max_body_size: int = MAX_BODY_LOG_SIZE,
         audit_level: AuditLevel = AuditLevel.NONE,
         audit_get_requests: bool = False,
@@ -133,7 +132,7 @@ class AuditLoggingMiddleware:
         self.app = app
         self.audit_logger = AuditLogger(logger)
 
-        def normalize_paths(paths: Optional[list[str]]) -> list[str]:
+        def normalize_paths(paths: list[str] | None) -> list[str]:
             return [path for path in (path.strip().lstrip('/') for path in paths or []) if path]
 
         self.excluded_paths = normalize_paths(excluded_paths)
@@ -208,7 +207,7 @@ class AuditLoggingMiddleware:
         finally:
             await self._log_audit_entry(request, context)
 
-    async def _get_authenticated_user(self, request: Request) -> Optional[UserModel]:
+    async def _get_authenticated_user(self, request: Request) -> UserModel | None:
         # get_current_user stashes the resolved user on the scope-backed state;
         # reuse it instead of running the full auth pipeline (JWT decode, Redis
         # revocation checks, DB fetch, last-active write) a second time.

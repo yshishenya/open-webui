@@ -6,7 +6,7 @@ Only accessible by administrators for managing billing plans
 import logging
 import time
 import uuid
-from typing import Optional, List, Dict
+from typing import List, Dict
 
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -33,7 +33,7 @@ from open_webui.env import (
 from open_webui.utils.wallet import wallet_service, WalletError
 
 log = logging.getLogger(__name__)
-log.setLevel(SRC_LOG_LEVELS.get("BILLING", logging.INFO))
+log.setLevel(SRC_LOG_LEVELS.get('BILLING', logging.INFO))
 
 router = APIRouter()
 
@@ -44,38 +44,38 @@ router = APIRouter()
 
 
 class CreatePlanRequest(BaseModel):
-    id: Optional[str] = None  # Auto-generate if not provided
+    id: str | None = None  # Auto-generate if not provided
     name: str = Field(..., min_length=1, max_length=100)
-    name_ru: Optional[str] = Field(None, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
-    description_ru: Optional[str] = Field(None, max_length=1000)
+    name_ru: str | None = Field(None, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    description_ru: str | None = Field(None, max_length=1000)
 
     price: float = Field(..., ge=0)  # Price >= 0
-    currency: str = Field(default="RUB", pattern="^(RUB|USD|EUR)$")
-    interval: str = Field(..., pattern="^(day|week|month|year)$")
+    currency: str = Field(default='RUB', pattern='^(RUB|USD|EUR)$')
+    interval: str = Field(..., pattern='^(day|week|month|year)$')
 
-    quotas: Optional[Dict[str, int]] = None
-    features: Optional[List[str]] = None
+    quotas: Dict[str, int] | None = None
+    features: List[str] | None = None
 
     is_active: bool = True
     display_order: int = Field(default=0, ge=0)
 
 
 class UpdatePlanRequest(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    name_ru: Optional[str] = Field(None, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
-    description_ru: Optional[str] = Field(None, max_length=1000)
+    name: str | None = Field(None, min_length=1, max_length=100)
+    name_ru: str | None = Field(None, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    description_ru: str | None = Field(None, max_length=1000)
 
-    price: Optional[float] = Field(None, ge=0)
-    currency: Optional[str] = Field(None, pattern="^(RUB|USD|EUR)$")
-    interval: Optional[str] = Field(None, pattern="^(day|week|month|year)$")
+    price: float | None = Field(None, ge=0)
+    currency: str | None = Field(None, pattern='^(RUB|USD|EUR)$')
+    interval: str | None = Field(None, pattern='^(day|week|month|year)$')
 
-    quotas: Optional[Dict[str, int]] = None
-    features: Optional[List[str]] = None
+    quotas: Dict[str, int] | None = None
+    features: List[str] | None = None
 
-    is_active: Optional[bool] = None
-    display_order: Optional[int] = Field(None, ge=0)
+    is_active: bool | None = None
+    display_order: int | None = Field(None, ge=0)
 
 
 class PlanStatsModel(BaseModel):
@@ -94,19 +94,19 @@ class PlanSubscriberModel(BaseModel):
     user_id: str
     email: str
     name: str
-    profile_image_url: Optional[str] = None
-    role: str = "user"
+    profile_image_url: str | None = None
+    role: str = 'user'
     subscription_status: str
     subscribed_at: int
     current_period_start: int
     current_period_end: int
     # Usage data
     tokens_input_used: int = 0
-    tokens_input_limit: Optional[int] = None
+    tokens_input_limit: int | None = None
     tokens_output_used: int = 0
-    tokens_output_limit: Optional[int] = None
+    tokens_output_limit: int | None = None
     requests_used: int = 0
-    requests_limit: Optional[int] = None
+    requests_limit: int | None = None
 
 
 class PaginatedSubscribersResponse(BaseModel):
@@ -133,8 +133,8 @@ class AdjustUserWalletRequest(BaseModel):
     delta_topup_kopeks: int = 0
     delta_included_kopeks: int = 0
     reason: str = Field(..., min_length=1, max_length=500)
-    idempotency_key: Optional[str] = Field(default=None, max_length=128)
-    reference_id: Optional[str] = Field(default=None, max_length=128)
+    idempotency_key: str | None = Field(default=None, max_length=128)
+    reference_id: str | None = Field(default=None, max_length=128)
 
 
 class AdjustUserWalletResponse(BaseModel):
@@ -153,11 +153,11 @@ class AdjustUserWalletResponse(BaseModel):
 def generate_plan_id(name: str) -> str:
     """Generate a plan ID from name"""
     # Convert to lowercase, replace spaces with underscores
-    base_id = name.lower().replace(" ", "_").replace("-", "_")
+    base_id = name.lower().replace(' ', '_').replace('-', '_')
     # Remove non-alphanumeric characters except underscores
-    base_id = "".join(c for c in base_id if c.isalnum() or c == "_")
+    base_id = ''.join(c for c in base_id if c.isalnum() or c == '_')
     # Add random suffix to ensure uniqueness
-    return f"{base_id}_{str(uuid.uuid4())[:8]}"
+    return f'{base_id}_{str(uuid.uuid4())[:8]}'
 
 
 def validate_plan_update(plan: PlanModel, update_data: Dict[str, object]) -> None:
@@ -166,20 +166,20 @@ def validate_plan_update(plan: PlanModel, update_data: Dict[str, object]) -> Non
     Raises HTTPException if validation fails
     """
     # Check if plan has active subscriptions
-    active_subs = Subscriptions.get_subscriptions_by_plan(plan.id, status="active")
+    active_subs = Subscriptions.get_subscriptions_by_plan(plan.id, status='active')
 
     if len(active_subs) > 0:
         # Has active subscriptions - enforce stricter rules
 
         # Cannot decrease quotas
-        if "quotas" in update_data and update_data["quotas"] is not None:
+        if 'quotas' in update_data and update_data['quotas'] is not None:
             old_quotas = plan.quotas or {}
-            new_quotas = update_data["quotas"]
+            new_quotas = update_data['quotas']
 
             if not isinstance(new_quotas, dict):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="quotas must be an object",
+                    detail='quotas must be an object',
                 )
 
             for key, new_value in new_quotas.items():
@@ -192,7 +192,7 @@ def validate_plan_update(plan: PlanModel, update_data: Dict[str, object]) -> Non
                     )
 
         # Warn about price changes (we allow it but log it)
-        if "price" in update_data and update_data["price"] != plan.price:
+        if 'price' in update_data and update_data['price'] != plan.price:
             log.warning(
                 f"Changing price of plan {plan.id} from {plan.price} to {update_data['price']} "
                 f"while it has {len(active_subs)} active subscriptions"
@@ -206,7 +206,7 @@ def detect_changes(old_plan: PlanModel, new_data: Dict[str, object]) -> Dict[str
     for key, new_value in new_data.items():
         old_value = getattr(old_plan, key, None)
         if old_value != new_value:
-            changes[key] = {"old": old_value, "new": new_value}
+            changes[key] = {'old': old_value, 'new': new_value}
 
     return changes
 
@@ -231,7 +231,7 @@ def _get_user_wallet_summary(user_id: str, ledger_limit: int = 20) -> UserWallet
 ############################
 
 
-@router.get("/plans", response_model=List[PlanStatsModel])
+@router.get('/plans', response_model=List[PlanStatsModel])
 async def get_all_plans_with_stats(admin_user=Depends(get_admin_user)):
     """Get all plans (including inactive) with subscription statistics"""
     try:
@@ -241,18 +241,18 @@ async def get_all_plans_with_stats(admin_user=Depends(get_admin_user)):
         for plan in plans:
             # Get subscription counts
             all_subs = Subscriptions.get_subscriptions_by_plan(plan.id)
-            active_subs = [s for s in all_subs if s.status == "active"]
-            canceled_subs = [s for s in all_subs if s.status == "canceled"]
+            active_subs = [s for s in all_subs if s.status == 'active']
+            canceled_subs = [s for s in all_subs if s.status == 'canceled']
 
             # Calculate MRR (Monthly Recurring Revenue)
             mrr = 0
-            if plan.interval == "month":
+            if plan.interval == 'month':
                 mrr = float(plan.price) * len(active_subs)
-            elif plan.interval == "year":
+            elif plan.interval == 'year':
                 mrr = (float(plan.price) / 12) * len(active_subs)
-            elif plan.interval == "week":
+            elif plan.interval == 'week':
                 mrr = (float(plan.price) * 4.33) * len(active_subs)  # ~4.33 weeks/month
-            elif plan.interval == "day":
+            elif plan.interval == 'day':
                 mrr = (float(plan.price) * 30) * len(active_subs)
 
             result.append(
@@ -270,14 +270,14 @@ async def get_all_plans_with_stats(admin_user=Depends(get_admin_user)):
         return result
 
     except Exception as e:
-        log.exception(f"Error getting plans with stats: {e}")
+        log.exception(f'Error getting plans with stats: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get plans",
+            detail='Failed to get plans',
         )
 
 
-@router.post("/plans", response_model=PlanModel)
+@router.post('/plans', response_model=PlanModel)
 async def create_plan(request: CreatePlanRequest, admin_user=Depends(get_admin_user)):
     """Create a new subscription plan"""
     try:
@@ -295,20 +295,20 @@ async def create_plan(request: CreatePlanRequest, admin_user=Depends(get_admin_u
         # Create plan
         now = int(time.time())
         plan_data = {
-            "id": plan_id,
-            "name": request.name,
-            "name_ru": request.name_ru,
-            "description": request.description,
-            "description_ru": request.description_ru,
-            "price": request.price,
-            "currency": request.currency,
-            "interval": request.interval,
-            "quotas": request.quotas,
-            "features": request.features,
-            "is_active": request.is_active,
-            "display_order": request.display_order,
-            "created_at": now,
-            "updated_at": now,
+            'id': plan_id,
+            'name': request.name,
+            'name_ru': request.name_ru,
+            'description': request.description,
+            'description_ru': request.description_ru,
+            'price': request.price,
+            'currency': request.currency,
+            'interval': request.interval,
+            'quotas': request.quotas,
+            'features': request.features,
+            'is_active': request.is_active,
+            'display_order': request.display_order,
+            'created_at': now,
+            'updated_at': now,
         }
 
         plan = Plans.create_plan(plan_data)
@@ -317,26 +317,26 @@ async def create_plan(request: CreatePlanRequest, admin_user=Depends(get_admin_u
         AuditLogs.create_log(
             user_id=admin_user.id,
             action=AuditAction.PLAN_CREATED,
-            entity_type="plan",
+            entity_type='plan',
             entity_id=plan.id,
             description=f"Created plan '{plan.name}' ({plan.price} {plan.currency}/{plan.interval})",
-            audit_metadata={"plan_data": plan_data},
+            audit_metadata={'plan_data': plan_data},
         )
 
-        log.info(f"Admin {admin_user.email} created plan {plan.id}")
+        log.info(f'Admin {admin_user.email} created plan {plan.id}')
         return plan
 
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error creating plan: {e}")
+        log.exception(f'Error creating plan: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create plan: {str(e)}",
+            detail=f'Failed to create plan: {str(e)}',
         )
 
 
-@router.get("/plans/{plan_id}", response_model=PlanModel)
+@router.get('/plans/{plan_id}', response_model=PlanModel)
 async def get_plan_by_id(plan_id: str, admin_user=Depends(get_admin_user)):
     """Get specific plan by ID (including inactive)"""
     try:
@@ -351,14 +351,14 @@ async def get_plan_by_id(plan_id: str, admin_user=Depends(get_admin_user)):
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error getting plan {plan_id}: {e}")
+        log.exception(f'Error getting plan {plan_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get plan",
+            detail='Failed to get plan',
         )
 
 
-@router.put("/plans/{plan_id}", response_model=PlanModel)
+@router.put('/plans/{plan_id}', response_model=PlanModel)
 async def update_plan(plan_id: str, request: UpdatePlanRequest, admin_user=Depends(get_admin_user)):
     """Update existing plan"""
     try:
@@ -383,33 +383,33 @@ async def update_plan(plan_id: str, request: UpdatePlanRequest, admin_user=Depen
         changes = detect_changes(plan, update_data)
 
         # Update plan
-        update_data["updated_at"] = int(time.time())
+        update_data['updated_at'] = int(time.time())
         updated_plan = Plans.update_plan_by_id(plan_id, update_data)
 
         # Audit log
         AuditLogs.create_log(
             user_id=admin_user.id,
             action=AuditAction.PLAN_UPDATED,
-            entity_type="plan",
+            entity_type='plan',
             entity_id=plan_id,
             description=f"Updated plan '{plan.name}'",
             changes=changes,
         )
 
-        log.info(f"Admin {admin_user.email} updated plan {plan_id}")
+        log.info(f'Admin {admin_user.email} updated plan {plan_id}')
         return updated_plan
 
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error updating plan {plan_id}: {e}")
+        log.exception(f'Error updating plan {plan_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update plan: {str(e)}",
+            detail=f'Failed to update plan: {str(e)}',
         )
 
 
-@router.delete("/plans/{plan_id}")
+@router.delete('/plans/{plan_id}')
 async def delete_plan(plan_id: str, admin_user=Depends(get_admin_user)):
     """
     Delete a plan (only if it has no active subscriptions)
@@ -425,12 +425,12 @@ async def delete_plan(plan_id: str, admin_user=Depends(get_admin_user)):
             )
 
         # Check for active subscriptions
-        active_subs = Subscriptions.get_subscriptions_by_plan(plan_id, status="active")
+        active_subs = Subscriptions.get_subscriptions_by_plan(plan_id, status='active')
         if len(active_subs) > 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot delete plan with {len(active_subs)} active subscriptions. "
-                "Deactivate the plan instead.",
+                detail=f'Cannot delete plan with {len(active_subs)} active subscriptions. '
+                'Deactivate the plan instead.',
             )
 
         # Delete plan
@@ -440,25 +440,25 @@ async def delete_plan(plan_id: str, admin_user=Depends(get_admin_user)):
         AuditLogs.create_log(
             user_id=admin_user.id,
             action=AuditAction.PLAN_DELETED,
-            entity_type="plan",
+            entity_type='plan',
             entity_id=plan_id,
             description=f"Deleted plan '{plan.name}'",
         )
 
-        log.info(f"Admin {admin_user.email} deleted plan {plan_id}")
-        return {"success": True, "message": f"Plan '{plan_id}' deleted"}
+        log.info(f'Admin {admin_user.email} deleted plan {plan_id}')
+        return {'success': True, 'message': f"Plan '{plan_id}' deleted"}
 
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error deleting plan {plan_id}: {e}")
+        log.exception(f'Error deleting plan {plan_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete plan: {str(e)}",
+            detail=f'Failed to delete plan: {str(e)}',
         )
 
 
-@router.patch("/plans/{plan_id}/toggle", response_model=PlanModel)
+@router.patch('/plans/{plan_id}/toggle', response_model=PlanModel)
 async def toggle_plan_active(plan_id: str, admin_user=Depends(get_admin_user)):
     """Toggle plan active/inactive status"""
     try:
@@ -471,14 +471,14 @@ async def toggle_plan_active(plan_id: str, admin_user=Depends(get_admin_user)):
 
         # Toggle status
         new_status = not plan.is_active
-        updated_plan = Plans.update_plan_by_id(plan_id, {"is_active": new_status, "updated_at": int(time.time())})
+        updated_plan = Plans.update_plan_by_id(plan_id, {'is_active': new_status, 'updated_at': int(time.time())})
 
         # Audit log
         action = AuditAction.PLAN_ACTIVATED if new_status else AuditAction.PLAN_DEACTIVATED
         AuditLogs.create_log(
             user_id=admin_user.id,
             action=action,
-            entity_type="plan",
+            entity_type='plan',
             entity_id=plan_id,
             description=f"{'Activated' if new_status else 'Deactivated'} plan '{plan.name}'",
         )
@@ -489,14 +489,14 @@ async def toggle_plan_active(plan_id: str, admin_user=Depends(get_admin_user)):
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error toggling plan {plan_id}: {e}")
+        log.exception(f'Error toggling plan {plan_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to toggle plan: {str(e)}",
+            detail=f'Failed to toggle plan: {str(e)}',
         )
 
 
-@router.post("/plans/{plan_id}/duplicate", response_model=PlanModel)
+@router.post('/plans/{plan_id}/duplicate', response_model=PlanModel)
 async def duplicate_plan(plan_id: str, admin_user=Depends(get_admin_user)):
     """Duplicate an existing plan with a new ID"""
     try:
@@ -509,25 +509,25 @@ async def duplicate_plan(plan_id: str, admin_user=Depends(get_admin_user)):
             )
 
         # Generate new ID
-        new_id = generate_plan_id(f"{source_plan.name}_copy")
+        new_id = generate_plan_id(f'{source_plan.name}_copy')
 
         # Create duplicate
         now = int(time.time())
         plan_data = {
-            "id": new_id,
-            "name": f"{source_plan.name} (Copy)",
-            "name_ru": (f"{source_plan.name_ru} (Копия)" if source_plan.name_ru else None),
-            "description": source_plan.description,
-            "description_ru": source_plan.description_ru,
-            "price": source_plan.price,
-            "currency": source_plan.currency,
-            "interval": source_plan.interval,
-            "quotas": source_plan.quotas,
-            "features": source_plan.features,
-            "is_active": False,  # Start as inactive
-            "display_order": source_plan.display_order + 1,
-            "created_at": now,
-            "updated_at": now,
+            'id': new_id,
+            'name': f'{source_plan.name} (Copy)',
+            'name_ru': (f'{source_plan.name_ru} (Копия)' if source_plan.name_ru else None),
+            'description': source_plan.description,
+            'description_ru': source_plan.description_ru,
+            'price': source_plan.price,
+            'currency': source_plan.currency,
+            'interval': source_plan.interval,
+            'quotas': source_plan.quotas,
+            'features': source_plan.features,
+            'is_active': False,  # Start as inactive
+            'display_order': source_plan.display_order + 1,
+            'created_at': now,
+            'updated_at': now,
         }
 
         new_plan = Plans.create_plan(plan_data)
@@ -536,26 +536,26 @@ async def duplicate_plan(plan_id: str, admin_user=Depends(get_admin_user)):
         AuditLogs.create_log(
             user_id=admin_user.id,
             action=AuditAction.PLAN_DUPLICATED,
-            entity_type="plan",
+            entity_type='plan',
             entity_id=new_plan.id,
             description=f"Duplicated plan '{source_plan.name}' to '{new_plan.name}'",
-            audit_metadata={"source_plan_id": plan_id},
+            audit_metadata={'source_plan_id': plan_id},
         )
 
-        log.info(f"Admin {admin_user.email} duplicated plan {plan_id} to {new_id}")
+        log.info(f'Admin {admin_user.email} duplicated plan {plan_id} to {new_id}')
         return new_plan
 
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error duplicating plan {plan_id}: {e}")
+        log.exception(f'Error duplicating plan {plan_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to duplicate plan: {str(e)}",
+            detail=f'Failed to duplicate plan: {str(e)}',
         )
 
 
-@router.get("/plans/{plan_id}/subscribers", response_model=PaginatedSubscribersResponse)
+@router.get('/plans/{plan_id}/subscribers', response_model=PaginatedSubscribersResponse)
 async def get_plan_subscribers(plan_id: str, page: int = 1, page_size: int = 20, admin_user=Depends(get_admin_user)):
     """Get paginated users subscribed to a plan with usage data"""
     try:
@@ -605,7 +605,7 @@ async def get_plan_subscribers(plan_id: str, page: int = 1, page_size: int = 20,
                     requests_used = 0
 
                     usage_query = (
-                        db.query(Usage.metric, func.sum(Usage.amount).label("total"))
+                        db.query(Usage.metric, func.sum(Usage.amount).label('total'))
                         .filter(
                             Usage.user_id == user.id,
                             Usage.created_at >= sub.current_period_start,
@@ -634,11 +634,11 @@ async def get_plan_subscribers(plan_id: str, page: int = 1, page_size: int = 20,
                             current_period_start=sub.current_period_start,
                             current_period_end=sub.current_period_end,
                             tokens_input_used=tokens_input_used,
-                            tokens_input_limit=quotas.get("tokens_input"),
+                            tokens_input_limit=quotas.get('tokens_input'),
                             tokens_output_used=tokens_output_used,
-                            tokens_output_limit=quotas.get("tokens_output"),
+                            tokens_output_limit=quotas.get('tokens_output'),
                             requests_used=requests_used,
-                            requests_limit=quotas.get("requests"),
+                            requests_limit=quotas.get('requests'),
                         )
                     )
 
@@ -653,14 +653,14 @@ async def get_plan_subscribers(plan_id: str, page: int = 1, page_size: int = 20,
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error getting subscribers for plan {plan_id}: {e}")
+        log.exception(f'Error getting subscribers for plan {plan_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get plan subscribers",
+            detail='Failed to get plan subscribers',
         )
 
 
-@router.get("/users/{user_id}/subscription")
+@router.get('/users/{user_id}/subscription')
 async def get_user_subscription_info(user_id: str, admin_user=Depends(get_admin_user)):
     """Get subscription info for a specific user with usage data"""
     try:
@@ -677,7 +677,7 @@ async def get_user_subscription_info(user_id: str, admin_user=Depends(get_admin_
         # Get user's subscription
         subscription = Subscriptions.get_subscription_by_user_id(user_id)
         if not subscription:
-            return {"user_id": user_id, "subscription": None, "plan": None, "usage": {}}
+            return {'user_id': user_id, 'subscription': None, 'plan': None, 'usage': {}}
 
         # Get plan
         plan = Plans.get_plan_by_id(subscription.plan_id)
@@ -705,30 +705,30 @@ async def get_user_subscription_info(user_id: str, admin_user=Depends(get_admin_
                 limit = quotas.get(metric.value) if quotas else None
 
                 usage[metric.value] = {
-                    "used": used,
-                    "limit": limit,
-                    "remaining": max(0, limit - used) if limit else None,
-                    "percentage": (round((used / limit) * 100, 1) if limit and limit > 0 else None),
+                    'used': used,
+                    'limit': limit,
+                    'remaining': max(0, limit - used) if limit else None,
+                    'percentage': (round((used / limit) * 100, 1) if limit and limit > 0 else None),
                 }
 
         return {
-            "user_id": user_id,
-            "subscription": subscription,
-            "plan": plan,
-            "usage": usage,
+            'user_id': user_id,
+            'subscription': subscription,
+            'plan': plan,
+            'usage': usage,
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error getting subscription for user {user_id}: {e}")
+        log.exception(f'Error getting subscription for user {user_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get user subscription",
+            detail='Failed to get user subscription',
         )
 
 
-@router.get("/users/{user_id}/wallet", response_model=UserWalletSummaryResponse)
+@router.get('/users/{user_id}/wallet', response_model=UserWalletSummaryResponse)
 async def get_user_wallet_summary(
     user_id: str,
     admin_user=Depends(get_admin_user),
@@ -737,7 +737,7 @@ async def get_user_wallet_summary(
     if not ENABLE_BILLING_WALLET:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Billing wallet is disabled",
+            detail='Billing wallet is disabled',
         )
 
     user = await Users.get_user_by_id(user_id)
@@ -755,14 +755,14 @@ async def get_user_wallet_summary(
             detail=str(e),
         )
     except Exception as e:
-        log.exception(f"Error getting wallet summary for user {user_id}: {e}")
+        log.exception(f'Error getting wallet summary for user {user_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get user wallet summary",
+            detail='Failed to get user wallet summary',
         )
 
 
-@router.post("/users/{user_id}/wallet/adjust", response_model=AdjustUserWalletResponse)
+@router.post('/users/{user_id}/wallet/adjust', response_model=AdjustUserWalletResponse)
 async def adjust_user_wallet(
     user_id: str,
     request: AdjustUserWalletRequest,
@@ -772,7 +772,7 @@ async def adjust_user_wallet(
     if not ENABLE_BILLING_WALLET:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Billing wallet is disabled",
+            detail='Billing wallet is disabled',
         )
 
     user = await Users.get_user_by_id(user_id)
@@ -787,14 +787,14 @@ async def adjust_user_wallet(
     if delta_topup == 0 and delta_included == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one balance delta must be non-zero",
+            detail='At least one balance delta must be non-zero',
         )
 
     reason = request.reason.strip()
     if not reason:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="reason is required",
+            detail='reason is required',
         )
 
     wallet_before = wallet_service.get_or_create_wallet(user_id, BILLING_DEFAULT_CURRENCY)
@@ -816,26 +816,26 @@ async def adjust_user_wallet(
         AuditLogs.create_log(
             user_id=admin_user.id,
             action=AuditAction.WALLET_ADJUSTED,
-            entity_type="wallet",
+            entity_type='wallet',
             entity_id=summary.wallet.id,
             description=f"Adjusted wallet for user '{user.email}'",
             changes={
-                "balance_topup_kopeks": {
-                    "old": before_topup,
-                    "new": summary.wallet.balance_topup_kopeks,
+                'balance_topup_kopeks': {
+                    'old': before_topup,
+                    'new': summary.wallet.balance_topup_kopeks,
                 },
-                "balance_included_kopeks": {
-                    "old": before_included,
-                    "new": summary.wallet.balance_included_kopeks,
+                'balance_included_kopeks': {
+                    'old': before_included,
+                    'new': summary.wallet.balance_included_kopeks,
                 },
             },
             audit_metadata={
-                "target_user_id": user.id,
-                "delta_topup_kopeks": delta_topup,
-                "delta_included_kopeks": delta_included,
-                "reason": reason,
-                "ledger_entry_id": ledger_entry.id,
-                "idempotency_key": request.idempotency_key,
+                'target_user_id': user.id,
+                'delta_topup_kopeks': delta_topup,
+                'delta_included_kopeks': delta_included,
+                'reason': reason,
+                'ledger_entry_id': ledger_entry.id,
+                'idempotency_key': request.idempotency_key,
             },
         )
 
@@ -852,10 +852,10 @@ async def adjust_user_wallet(
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error adjusting wallet for user {user_id}: {e}")
+        log.exception(f'Error adjusting wallet for user {user_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to adjust user wallet",
+            detail='Failed to adjust user wallet',
         )
 
 
@@ -866,7 +866,7 @@ class ChangeUserPlanRequest(BaseModel):
     reset_usage: bool = False  # Whether to reset usage counters
 
 
-@router.put("/users/{user_id}/subscription")
+@router.put('/users/{user_id}/subscription')
 async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest, admin_user=Depends(get_admin_user)):
     """Change user's subscription plan (admin only)"""
     try:
@@ -897,10 +897,10 @@ async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest,
 
             # Calculate period based on plan interval
             interval_seconds = {
-                "day": 86400,
-                "week": 604800,
-                "month": 2592000,  # 30 days
-                "year": 31536000,  # 365 days
+                'day': 86400,
+                'week': 604800,
+                'month': 2592000,  # 30 days
+                'year': 31536000,  # 365 days
             }
             period_duration = interval_seconds.get(new_plan.interval, 2592000)
 
@@ -927,23 +927,23 @@ async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest,
                 db.refresh(subscription)
 
                 log.info(
-                    f"Admin {admin_user.email} changed plan for user {user.email}: {old_plan_id} -> {request.plan_id}"
+                    f'Admin {admin_user.email} changed plan for user {user.email}: {old_plan_id} -> {request.plan_id}'
                 )
 
                 # Audit log
                 AuditLogs.create_log(
                     user_id=admin_user.id,
                     action=AuditAction.SUBSCRIPTION_PLAN_CHANGED,
-                    entity_type="subscription",
+                    entity_type='subscription',
                     entity_id=subscription.id,
                     description=(
-                        f"Changed subscription plan for user {user.email} " f"from {old_plan_id} to {request.plan_id}"
+                        f'Changed subscription plan for user {user.email} ' f'from {old_plan_id} to {request.plan_id}'
                     ),
                     audit_metadata={
-                        "target_user_id": user_id,
-                        "old_plan_id": old_plan_id,
-                        "new_plan_id": request.plan_id,
-                        "reset_usage": request.reset_usage,
+                        'target_user_id': user_id,
+                        'old_plan_id': old_plan_id,
+                        'new_plan_id': request.plan_id,
+                        'reset_usage': request.reset_usage,
                     },
                 )
             else:
@@ -963,39 +963,39 @@ async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest,
                 db.refresh(new_subscription)
                 subscription = new_subscription
 
-                log.info(f"Admin {admin_user.email} created subscription for user {user.email}: plan {request.plan_id}")
+                log.info(f'Admin {admin_user.email} created subscription for user {user.email}: plan {request.plan_id}')
 
                 # Audit log
                 AuditLogs.create_log(
                     user_id=admin_user.id,
                     action=AuditAction.SUBSCRIPTION_CREATED,
-                    entity_type="subscription",
+                    entity_type='subscription',
                     entity_id=subscription.id,
-                    description=(f"Created subscription for user {user.email} " f"with plan {request.plan_id}"),
+                    description=(f'Created subscription for user {user.email} ' f'with plan {request.plan_id}'),
                     audit_metadata={
-                        "target_user_id": user_id,
-                        "plan_id": request.plan_id,
+                        'target_user_id': user_id,
+                        'plan_id': request.plan_id,
                     },
                 )
 
             return {
-                "success": True,
-                "subscription": {
-                    "id": subscription.id,
-                    "user_id": subscription.user_id,
-                    "plan_id": subscription.plan_id,
-                    "status": subscription.status,
-                    "current_period_start": subscription.current_period_start,
-                    "current_period_end": subscription.current_period_end,
+                'success': True,
+                'subscription': {
+                    'id': subscription.id,
+                    'user_id': subscription.user_id,
+                    'plan_id': subscription.plan_id,
+                    'status': subscription.status,
+                    'current_period_start': subscription.current_period_start,
+                    'current_period_end': subscription.current_period_end,
                 },
-                "plan": new_plan,
+                'plan': new_plan,
             }
 
     except HTTPException:
         raise
     except Exception as e:
-        log.exception(f"Error changing subscription for user {user_id}: {e}")
+        log.exception(f'Error changing subscription for user {user_id}: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to change user subscription",
+            detail='Failed to change user subscription',
         )

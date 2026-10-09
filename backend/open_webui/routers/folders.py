@@ -4,7 +4,6 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
@@ -375,7 +374,7 @@ async def update_folder_name_by_id(
 
 
 class FolderParentIdForm(BaseModel):
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
 
 
 @router.post('/{id}/update/parent')
@@ -643,7 +642,7 @@ async def mark_folder_chats_read_by_id(
 async def delete_folder_by_id(
     request: Request,
     id: str,
-    delete_contents: Optional[bool] = True,
+    delete_contents: bool | None = True,
     user=Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
 ):
