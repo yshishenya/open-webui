@@ -137,7 +137,7 @@ from open_webui.models.config import Config
 from open_webui.models.functions import Functions
 from open_webui.models.messages import Messages
 from open_webui.models.models import Models
-from open_webui.models.users import Users
+from open_webui.models.users import UserModel, Users
 from open_webui.routers import (
     analytics,
     audio,
@@ -1086,13 +1086,23 @@ async def _set_direct_model(request: Request, model_item: dict, user) -> None:
     request.state.model = model_item
 
 
-@app.post('/api/chat/completions')
-@app.post('/api/v1/chat/completions')  # Experimental: Compatibility with OpenAI API
-async def chat_completion(  # noqa: C901
+@app.post('/api/chat/completions', response_model=None)
+@app.post('/api/v1/chat/completions', response_model=None)
+async def chat_completion(
     request: Request,
-    form_data: dict,
-    user=Depends(get_verified_user),
-):
+    form_data: dict[str, object],
+    user: UserModel = Depends(get_verified_user),
+) -> Response | dict[str, object]:
+    from open_webui.utils.airis.chat_dispatch import dispatch_chat
+
+    return await dispatch_chat(request, form_data, user, _chat_completion)
+
+
+async def _chat_completion(  # noqa: C901
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+) -> Response | dict[str, object]:
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
 
