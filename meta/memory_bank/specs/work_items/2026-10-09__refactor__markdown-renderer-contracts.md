@@ -1,10 +1,10 @@
 # Контракты отображения Markdown
 
 - Type: refactor
-- Status: active
+- Status: source-complete; release-pending
 - Owner: Codex
 - Branch: codex/refactor/markdown-renderer-contracts
-- SDD Spec: meta/sdd/specs/active/airis-markdown-renderer-contracts-2026-10-09-021.json
+- SDD Spec: meta/sdd/specs/completed/airis-markdown-renderer-contracts-2026-10-09-021.json
 - Base: origin/airis_b2c; явная зависимость 27db6dc46b8d5e6ae0b71f47c26a7b866dde095b.
 
 ## Цель и критерии
@@ -15,7 +15,7 @@
 - [x] Один runnable-набор проверяет группировку/CSV/реальные обработчики до и после изменения.
 - [x] Типы Token/Tokens/ComponentProps переиспользованы; новых зависимостей, Any, подавлений и самодельной модели токенов нет.
 - [x] Полный frontend/форматирование/сравнение завершённых диагностик: новых ошибок 0. Backend, primary21 и runtime12 сохранены.
-- [ ] Полная компиляция и замороженные файлы сверены; коммиты отправлены, удалённый SHA и Git-объекты совпадают, SDD исходников завершён.
+- [x] Полная компиляция и замороженные файлы сверены; коммиты отправлены, удалённый SHA и Git-объекты совпадают, SDD исходников завершён.
 - [ ] Общие нулевые проверки, новый backend/E2E одной версии, PR/интеграция/образ/пилот A/B — отдельные открытые условия.
 
 ## Область и Upstream impact
@@ -33,3 +33,7 @@ MarkdownTokens.svelte — существующие типы групп/табл�
 В нативном video удалены три неприменимые iframe-свойства frameborder/referrerpolicy/allowfullscreen; источник, controls и отображение сохраняются. Полный пустой sandbox HTML-iframe записан явной строкой; ограничения не ослабляются и проверены. При невозможности читать iframe document существующая высота сохраняется; null contentWindow/body безопасны. Неиспользуемые Collapsible.dir и HTMLToken.onSourceClick не передаются в DOM: дочерние компоненты не используют restProps.
 
 Общие проверки красные. Ручная браузерная приёмка, preflight, PR/интеграция, новый backend/E2E одной версии и выпуск A/B остаются открытыми; план198/244, цельactive.
+
+## Доставка исходников
+
+Source SHA: `9bbb3060b05b1a13e01ae28133e82d202b5fd09b`. Отправлен в codex/refactor/markdown-renderer-contracts; удалённый SHA и 1524 Git-объекта совпадают. SDD исходников 2/2 завершён; 194 спецификации валидны. PR/интеграция/образ/deploy отсутствуют. План 198/244, цель active.

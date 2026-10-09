@@ -1,6 +1,14 @@
-- [ ] **[REFACTOR][G14][SOURCE]** Контракты отображения Markdown
+- [x] **[REFACTOR][G14][SOURCE]** Контракты отображения Markdown
   - Spec: meta/memory_bank/specs/work_items/2026-10-09__refactor__markdown-renderer-contracts.md
   - Owner: Codex
   - Branch: codex/refactor/markdown-renderer-contracts
   - Started: 2026-10-09
   - Summary: Проверить и сохранить группировку, экспорт таблиц, дочерние токены, нативные обработчики и callback-контракты; уточнить типы без переписывания отображения.
+
+- [x] **[REFACTOR][G14][SOURCE]** Исходники отображения Markdown проверены и отправлены
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09__refactor__markdown-renderer-contracts.md
+  - Owner: Codex
+  - Done: 2026-10-09
+  - Summary: Существующие типы и callbacks сохранены, пустые дочерние токены безопасны; CSV/BOM, группировка, четыре iframe handlers и пустой sandbox проверены. Набор14/14, полный frontend1122/132; типы1741/103, ESLint970, новых диагностик0.
+  - Source: 9bbb3060b05b1a13e01ae28133e82d202b5fd09b; удалённый SHA/1524 Git-объекта совпали, SDD2/2 завершён,194 спецификации валидны. Backend454/primary21/runtime12 сохранены.
+  - Pending: Нулевые общие проверки, preflight, PR/интеграция, свежие backend/E2E, образ/выпуск и настоящие условия A/B; план198/244, цельactive.
