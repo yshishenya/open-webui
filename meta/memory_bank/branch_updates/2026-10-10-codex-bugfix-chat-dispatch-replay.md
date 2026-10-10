@@ -23,3 +23,9 @@
   - Owner: Codex
   - Started: 2026-10-10
   - Summary: Настоящий root handler теряет matching-session запросы другого temporary/local чата. Проверяется общий путь трёх RPC типов и сохранность фильтра уведомлений.
+
+- [x] **[BUG]** Маршрутизация запросов своей сессии принята в исходниках
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__session-rpc-routing.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: 19 исходных отказов; 38 новых адресных, 11 соседних и 1545 общих frontend тестов прошли на 1748 замороженных файлах. Types 1324/87 и ESLint 815 без новых диагностик. Backend 542, protected 21, production и 12 соседей сохранены. Source `69d18dc2dcf7dedfb64b9542d19d834851cad3e0` отправлен; SDD 2/2 закрыта. Общие gates, выпуск и реальная приёмка остаются открытыми.

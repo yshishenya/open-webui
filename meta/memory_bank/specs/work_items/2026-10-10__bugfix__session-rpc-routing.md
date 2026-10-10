@@ -2,10 +2,10 @@
 
 ## Meta
 - Type: bugfix
-- Status: in progress
+- Status: completed (source acceptance; release gates open)
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-session-rpc-routing-2026-10-10-009.json
+- SDD Spec: meta/sdd/specs/completed/airis-session-rpc-routing-2026-10-10-009.json
 
 ## Goal
 Продолжение G14/13.11: execute:tool, execute:python и request:chat:completion, адресованные своей живой сессии, обрабатываются до фильтра временных уведомлений и до запросов состояния окна. Backend уже проверяет принадлежность сессии пользователю перед sio.call. Чужая/отсутствующая сессия не получает исполнения; уведомления другого временного чата скрываются.
@@ -15,7 +15,7 @@
 - [x] Все три RPC типа для своей сессии проходят обычный/current temporary/other temporary/legacy local/background и не зависят от отказа window:isFocused.
 - [x] Чужая и отсутствующая сессия не вызывают исполнение; уведомления другого temporary/local чата не показываются.
 - [x] Публичные договоры tool tuple, Python stdout/stderr/result и direct completion JSON/SSE сохраняются; нет новых вызовов/повторов провайдера.
-- [ ] Frozen full frontend/types/ESLint проверены без новых диагностик; backend/protected/production сохранены; SDD закрывается по фактическим результатам, commit/push подтверждаются отдельно.
+- [x] Frozen full frontend/types/ESLint проверены без новых диагностик; backend/protected/production сохранены; SDD закрывается по фактическим результатам, commit/push подтверждаются отдельно.
 
 ## Upstream impact
 Минимальный перенос существующего session-targeted блока в root layout перед фильтром уведомлений. Ветви исполнителей и wire payload остаются прежними. Существующие контракты и проверка владения сессией на backend сохранены; без зависимостей и новых API.
@@ -29,6 +29,6 @@
 
 1748 файлов сверены до и после каждой общей команды. Сохранены 542 серверных файла, 21 чужой tracked-файл, production и 12 соседей; healthy/restarts = 0. Прежние 1063 серверных теста переиспользованы по идентичному дереву, нового backend прогона нет. Первая адресная проверка исключена из-за отсутствующего переводчика в календарном окружении; первый полный прогон исключён из-за одной новой ошибки типов в тесте отсутствующей сессии. Принят повторный полный прогон после исправления тестового события.
 
-Доказательства: `/Users/yshishenya/.codex/private-artifacts/airis-session-rpc-20261010`. Запись, отправка исходников и закрытие SDD ещё впереди; новый выпуск не выполнялся.
+Доказательства: `/Users/yshishenya/.codex/private-artifacts/airis-session-rpc-20261010`. Исходники `69d18dc2dcf7dedfb64b9542d19d834851cad3e0` записаны и отправлены; SDD 2/2 закрыта. Новый выпуск не выполнялся.
 
 Подтверждены дальнейшие открытые дефекты direct stream: разорванная строка пересылается двумя частями; ошибка чтения после ack вызывает второй callback. Они не изменены в этой партии. Доказательства: next-stream-audit.json.
