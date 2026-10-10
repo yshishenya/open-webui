@@ -35,3 +35,9 @@
   - Owner: Codex
   - Started: 2026-10-10
   - Summary: В настоящем root handler подтверждены разорванная строка и второй callback после ack. Проверяется общий путь API/stream/socket/backend; повторов провайдера и новой зависимости не требуется.
+
+- [x] **[BUG]** Целостность прямого потока ответа принята в исходниках
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__direct-completion-stream.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: 18 исходных отказов; 21 адресная, 49 соседних и 1566 общих frontend проверок прошли на 1749 замороженных файлах. Types 1324/87 и ESLint 815 без новых диагностик. Сохранены backend 542, protected 21, production и 12 соседей. Source `40d5026a4b397e07e94874af6fe9f51e34c01dd1` отправлен; SDD 2/2 закрыта. Общие gates, выпуск и реальная приёмка остаются открытыми. Подтверждён следующий отдельный дефект Python host.
