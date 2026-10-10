@@ -115,7 +115,7 @@
 		>
 			{#if urlCitations.length > 0}
 				<div class="flex -space-x-1 items-center">
-					{#each urlCitations.slice(0, 3) as citation, idx}
+					{#each urlCitations.slice(0, 3) as citation}
 						<img
 							src="https://www.google.com/s2/favicons?sz=32&domain={citation.source.name}"
 							alt="favicon"

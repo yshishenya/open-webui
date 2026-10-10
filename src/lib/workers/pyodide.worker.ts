@@ -304,7 +304,16 @@ async function handleRequest(data: ExecuteRequest | FSRequest): Promise<void> {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function processResult(result: any): any {
+type ProcessedResult =
+	| string
+	| number
+	| boolean
+	| null
+	| undefined
+	| ProcessedResult[]
+	| { [key: string]: ProcessedResult };
+
+function processResult(result: unknown): ProcessedResult {
 	// Catch and always return JSON-safe string representations
 	try {
 		if (result == null) {
@@ -323,16 +332,16 @@ function processResult(result: any): any {
 			// If it's an array, recursively process items
 			return result.map((item) => processResult(item));
 		}
-		if (typeof result.toJs === 'function') {
+		if (typeof (result as { toJs?: () => unknown }).toJs === 'function') {
 			// If it's a Pyodide proxy object (e.g., Pandas DF, Numpy Array), convert to JS and process recursively
-			return processResult(result.toJs());
+			return processResult((result as { toJs: () => unknown }).toJs());
 		}
 		if (typeof result === 'object') {
 			// Convert JS objects to a recursively serialized representation
-			const processedObject: { [key: string]: any } = {};
+			const processedObject: { [key: string]: ProcessedResult } = {};
 			for (const key in result) {
 				if (Object.prototype.hasOwnProperty.call(result, key)) {
-					processedObject[key] = processResult(result[key]);
+					processedObject[key] = processResult((result as Record<string, unknown>)[key]);
 				}
 			}
 			return processedObject;

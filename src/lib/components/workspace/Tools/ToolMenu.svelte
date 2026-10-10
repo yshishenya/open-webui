@@ -4,7 +4,6 @@
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
-	import Pencil from '$lib/components/icons/Pencil.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';

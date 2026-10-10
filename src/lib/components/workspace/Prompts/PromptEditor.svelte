@@ -37,7 +37,6 @@
 	export let onSubmit: (prompt: PromptForm) => Promise<boolean>;
 	export let edit = false;
 	export let prompt: (Omit<PromptForm, 'id'> & { id?: string | null }) | null = null;
-	export let clone = false;
 	export let disabled = false;
 	export let modal = false;
 	export let onCancel: () => void = () => {};
@@ -720,7 +719,7 @@
 
 		{#if history.length > 0}
 			<div class="space-y-0 flex-1 overflow-y-auto" on:scroll={handleHistoryScroll}>
-				{#each history as entry, index}
+				{#each history as entry}
 					<button
 						class="group relative w-full px-1.5 py-1.5 pl-3 text-left transition {selectedHistoryEntry?.id ===
 						entry.id

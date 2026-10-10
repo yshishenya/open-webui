@@ -308,3 +308,9 @@
   - Done: 2026-10-10
   - Tests: Целевые4/4,types692/85,ESLint655; SDD0343/3.
   - Risks: CI50remarks/17changed files и production release pending; план198/244,цельactive.
+
+- [x] **[REFACTOR][FRONTEND]** Обязательные замечания изменённых файлов
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__refactor__required-frontend-lint.md`
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: Scoped lint220/220без диагностик; все50замечаний17файлов сняты. Frontend2083/2083,22compiled pairs,5realhandlers; types690/76 и ESLint605, новых0. Общий долг/выпуск/A/B остаются открытыми.

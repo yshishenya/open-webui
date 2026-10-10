@@ -17,7 +17,7 @@
 
 	export let iframeClassName = 'w-full rounded-2xl';
 
-	export let args = null;
+	export let args: unknown = null;
 
 	export let allowScripts = true;
 	export let allowForms = false;
@@ -100,7 +100,7 @@
 				const { default: alpineCode } = await import('alpinejs/dist/cdn.min.js?raw');
 				const alpineBlob = new Blob([alpineCode], { type: 'text/javascript' });
 				const alpineUrl = URL.createObjectURL(alpineBlob);
-				const alpineTag = `<script src="${alpineUrl}" defer><\/script>`;
+				const alpineTag = `<script src="${alpineUrl}" defer></${'script'}>`;
 				scriptTags.push(alpineTag);
 			} catch (error) {
 				console.error('Error processing Alpine for iframe:', error);
@@ -114,11 +114,11 @@
 			try {
 				// import chartUrl from 'chart.js/auto?url';
 				const { default: Chart } = await import('chart.js/auto');
-				(window as any).Chart = Chart;
+				(window as Window & { Chart?: typeof Chart }).Chart = Chart;
 
 				const chartTag = `<script>
 window.Chart = parent.Chart; // Chart previously assigned on parent
-<\/script>`;
+</${'script'}>`;
 				scriptTags.push(chartTag);
 			} catch (error) {
 				console.error('Error processing Chart.js for iframe:', error);
@@ -193,7 +193,7 @@ window.Chart = parent.Chart; // Chart previously assigned on parent
 
 		// if arguments are provided, inject them into the iframe window
 		if (args && iframe?.contentWindow) {
-			(iframe.contentWindow as any).args = args;
+			(iframe.contentWindow as Window & { args: unknown }).args = args;
 		}
 	};
 
@@ -222,7 +222,7 @@ window.Chart = parent.Chart; // Chart previously assigned on parent
 		{sandbox}
 		{allowFullscreen}
 		on:load={onLoad}
-	/>
+	></iframe>
 {:else if iframeSrc}
 	<iframe
 		bind:this={iframe}
@@ -236,5 +236,5 @@ window.Chart = parent.Chart; // Chart previously assigned on parent
 		referrerpolicy={referrerPolicy}
 		{allowFullscreen}
 		on:load={onLoad}
-	/>
+	></iframe>
 {/if}

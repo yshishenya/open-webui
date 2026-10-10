@@ -129,7 +129,7 @@
 		<sup class="footnote-ref footnote-ref-text" use:sanitizedHtml={token.escapedText}></sup>
 	{:else if token.type === 'citation'}
 		{#if (sourceIds ?? []).length > 0}
-			<SourceToken {id} {token} {sourceIds} onClick={onSourceClick} />
+			<SourceToken {token} {sourceIds} onClick={onSourceClick} />
 		{:else}
 			<TextToken {token} {done} />
 		{/if}

@@ -1251,7 +1251,7 @@
 			{:else if selectedTab === 'admin:analytics'}
 				<AdminAnalytics />
 			{:else if selectedTab === 'admin:integrations'}
-				<AdminIntegrations {saveSettings} />
+				<AdminIntegrations />
 			{:else if selectedTab === 'admin:documents'}
 				<AdminDocuments on:save={adminConfigSaveHandler} />
 			{:else if selectedTab === 'admin:web'}

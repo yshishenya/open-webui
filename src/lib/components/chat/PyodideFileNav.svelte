@@ -374,7 +374,9 @@
 	const onFilesChanged = async () => {
 		try {
 			await sendWorkerMessage({ type: 'fs:sync' });
-		} catch {}
+		} catch (error) {
+			console.error('Python filesystem sync failed:', error);
+		}
 		loadDir(currentPath);
 	};
 
@@ -427,7 +429,7 @@
 	{/if}
 
 	{#if overlay}
-		<div class="absolute inset-0 z-10 pointer-events-none" />
+		<div class="absolute inset-0 z-10 pointer-events-none"></div>
 	{/if}
 
 	<!-- Toolbar (shared with FileNav) -->
@@ -443,7 +445,9 @@
 		onRefresh={async () => {
 			try {
 				await sendWorkerMessage({ type: 'fs:sync' });
-			} catch {}
+			} catch (error) {
+				console.error('Python filesystem sync failed:', error);
+			}
 			if (selectedFile) {
 				const name = selectedFile.split('/').pop() ?? '';
 				openEntry({ name, type: 'file', size: 0 });

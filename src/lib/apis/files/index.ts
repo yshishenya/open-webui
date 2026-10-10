@@ -53,7 +53,7 @@ export const uploadFile = async (
 				.pipeThrough(splitStream('\n'))
 				.getReader();
 
-			while (true) {
+			for (;;) {
 				const { value, done } = await reader.read();
 				if (done) {
 					break;

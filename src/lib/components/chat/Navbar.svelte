@@ -127,7 +127,6 @@
 							{#if shareEnabled && chat && (chat.id || $temporaryChatEnabled)}
 								<Menu
 									{chat}
-									{shareEnabled}
 									{readOnly}
 									{scrollToTop}
 									shareHandler={() => {

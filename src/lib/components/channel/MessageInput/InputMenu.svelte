@@ -1,25 +1,20 @@
 <script lang="ts">
-	import { getContext, onMount, tick } from 'svelte';
-
-	import { config, user, tools as _tools, mobile } from '$lib/stores';
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import DocumentArrowUpSolid from '$lib/components/icons/DocumentArrowUpSolid.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
-	import GlobeAltSolid from '$lib/components/icons/GlobeAltSolid.svelte';
-	import WrenchSolid from '$lib/components/icons/WrenchSolid.svelte';
-	import CameraSolid from '$lib/components/icons/CameraSolid.svelte';
 	import Camera from '$lib/components/icons/Camera.svelte';
 	import Clip from '$lib/components/icons/Clip.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let screenCaptureHandler: Function;
-	export let uploadFilesHandler: Function;
+	export let screenCaptureHandler: () => void | Promise<void>;
+	export let uploadFilesHandler: () => void | Promise<void>;
 
-	export let onClose: Function = () => {};
+	export let onClose: () => void | Promise<void> = () => {};
 
 	let show = false;
 

@@ -62,7 +62,6 @@
 
 <div class="mt-0.5 pb-1.5" id="pinned-notes-list">
 	{#each sortedPinnedNotes as note (note.id)}
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<div
 			class="flex items-center text-gray-800 dark:text-gray-200 cursor-grab relative group rounded-xl px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-900 transition"
 			data-id={note.id}

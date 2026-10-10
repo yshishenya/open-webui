@@ -29,7 +29,6 @@
 	import DropdownSub from '$lib/components/common/DropdownSub.svelte';
 	import Tags from '$lib/components/chat/Tags.svelte';
 	import Clipboard from '$lib/components/icons/Clipboard.svelte';
-	import AdjustmentsHorizontal from '$lib/components/icons/AdjustmentsHorizontal.svelte';
 	import Cube from '$lib/components/icons/Cube.svelte';
 	import Folder from '$lib/components/icons/Folder.svelte';
 	import Share from '$lib/components/icons/Share.svelte';
@@ -40,7 +39,6 @@
 
 	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let shareEnabled: boolean = false;
 	export let readOnly: boolean = false;
 
 	export let shareHandler: () => void | Promise<void>;

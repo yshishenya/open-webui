@@ -383,15 +383,27 @@ export const createNotebookSession = async (
 	return res;
 };
 
+export interface NotebookOutput {
+	output_type: 'stream' | 'execute_result' | 'display_data' | 'error';
+	text?: string[] | string;
+	data?: Record<string, string[] | string>;
+	name?: string;
+	ename?: string;
+	evalue?: string;
+	traceback?: string[];
+}
+
 export const executeNotebookCell = async (
 	baseUrl: string,
 	apiKey: string,
 	sessionId: string,
 	cellIndex: number,
 	source?: string
-): Promise<{ status: string; execution_count?: number; outputs: any[] } | { error: string }> => {
+): Promise<
+	{ status: string; execution_count?: number; outputs: NotebookOutput[] } | { error: string }
+> => {
 	const url = `${baseUrl.replace(/\/$/, '')}/notebooks/${sessionId}/execute`;
-	const body: Record<string, any> = { cell_index: cellIndex };
+	const body: { cell_index: number; source?: string } = { cell_index: cellIndex };
 	if (source !== undefined) body.source = source;
 
 	const res = await fetch(url, {

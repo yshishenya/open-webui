@@ -34,7 +34,6 @@
 		setTerminalServerConnections
 	} from '$lib/apis/configs';
 
-	export let saveSettings: (settings: Record<string, unknown>) => void | Promise<void>;
 	type TerminalConnection = TerminalServerConnection;
 
 	let servers: ToolServerConnection[] | null = null;

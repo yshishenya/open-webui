@@ -10,7 +10,7 @@
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	const i18n = getContext<Readable<I18n>>('i18n');
 
-	import { WEBUI_NAME, config, tools as _tools, user, workspaceActions } from '$lib/stores';
+	import { WEBUI_NAME, tools as _tools, user, workspaceActions } from '$lib/stores';
 
 	import { goto } from '$app/navigation';
 	import {

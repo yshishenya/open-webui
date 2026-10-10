@@ -465,7 +465,6 @@
 			<PromptEditor
 				modal={true}
 				prompt={createPrompt}
-				clone={createPrompt !== null}
 				onSubmit={createPromptHandler}
 				onCancel={() => {
 					closeCreateModal();

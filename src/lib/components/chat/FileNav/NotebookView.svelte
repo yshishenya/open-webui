@@ -8,6 +8,7 @@
 		executeNotebookCell,
 		stopNotebookSession
 	} from '$lib/apis/terminal';
+	import type { NotebookOutput } from '$lib/apis/terminal';
 	import Spinner from '../../common/Spinner.svelte';
 	import Tooltip from '../../common/Tooltip.svelte';
 	import CellEditor from './CellEditor.svelte';
@@ -24,16 +25,6 @@
 		source: string[] | string;
 		outputs?: NotebookOutput[];
 		execution_count?: number | null;
-	}
-
-	interface NotebookOutput {
-		output_type: 'stream' | 'execute_result' | 'display_data' | 'error';
-		text?: string[] | string;
-		data?: Record<string, string[] | string>;
-		name?: string;
-		ename?: string;
-		evalue?: string;
-		traceback?: string[];
 	}
 
 	$: cells = (notebook?.cells as NotebookCell[]) ?? [];
