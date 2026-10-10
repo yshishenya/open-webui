@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import type { SessionUser } from '$lib/stores';
 
 	const i18n = getContext('i18n');
 
@@ -9,14 +10,51 @@
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
-	export let profileImageUrl;
-	export let user = null;
+	export let profileImageUrl: string = '';
+	export let user:
+		| (Pick<SessionUser, 'name' | 'email'> & Partial<Pick<SessionUser, 'id'>>)
+		| null
+		| undefined = null;
 
 	export let imageClassName = 'size-14 md:size-18';
 	export let variant = 'default';
 	export let displayName = '';
 
 	let profileImageInputElement: HTMLInputElement;
+	// Cleanup must see pending work even before a Svelte update is flushed.
+	const photo = {
+		revision: 0,
+		reader: null as FileReader | null,
+		gravatarAbort: null as AbortController | null
+	};
+	let photoUser = user;
+	const cancelPhoto = (): number => {
+		photo.revision += 1;
+		photo.reader?.abort();
+		photo.reader = null;
+		photo.gravatarAbort?.abort();
+		return photo.revision;
+	};
+	$: if (user !== photoUser) {
+		photoUser = user;
+		cancelPhoto();
+	}
+	onDestroy(cancelPhoto);
+	const loadGravatar = async (): Promise<void> => {
+		const email = user?.email;
+		if (!email) return;
+		const revision = cancelPhoto();
+		const controller = new AbortController();
+		photo.gravatarAbort = controller;
+		try {
+			const url = await getGravatarUrl(localStorage.token, email, controller.signal);
+			if (revision === photo.revision && !controller.signal.aborted && user?.email === email)
+				profileImageUrl = url;
+		} catch {
+			if (revision === photo.revision && !controller.signal.aborted)
+				toast.error($i18n.t('Failed to upload file.'));
+		}
+	};
 </script>
 
 <input
@@ -28,55 +66,60 @@
 	on:change={(): void => {
 		const file = profileImageInputElement.files?.[0];
 		profileImageInputElement.value = '';
-		const reader = new FileReader();
-		reader.onload = (): void => {
-			const originalImageUrl = String(reader.result);
-
-			const img = new Image();
-			img.src = originalImageUrl;
-
-			img.onload = function (): void {
-				const canvas = document.createElement('canvas');
-				const ctx = canvas.getContext('2d');
-				if (!ctx) {
-					toast.error($i18n.t('Failed to upload file.'));
-					return;
-				}
-
-				// Calculate the aspect ratio of the image
-				const aspectRatio = img.width / img.height;
-
-				// Calculate the new width and height to fit within 250x250
-				let newWidth, newHeight;
-				if (aspectRatio > 1) {
-					newWidth = 250 * aspectRatio;
-					newHeight = 250;
-				} else {
-					newWidth = 250;
-					newHeight = 250 / aspectRatio;
-				}
-
-				// Set the canvas size
-				canvas.width = 250;
-				canvas.height = 250;
-
-				// Calculate the position to center the image
-				const offsetX = (250 - newWidth) / 2;
-				const offsetY = (250 - newHeight) / 2;
-
-				// Draw the image on the canvas
-				ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
-
-				// Get the base64 representation of the compressed image
-				const compressedSrc = canvas.toDataURL('image/webp', 0.8);
-
-				// Display the compressed image
-				profileImageUrl = compressedSrc;
-			};
+		if (!file) return;
+		const revision = cancelPhoto();
+		const fail = (): void => {
+			if (revision === photo.revision) toast.error($i18n.t('Failed to upload file.'));
 		};
-
-		if (file && ['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(file.type)) {
-			reader.readAsDataURL(file);
+		if (!['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(file.type)) {
+			fail();
+			return;
+		}
+		const currentReader = new FileReader();
+		photo.reader = currentReader;
+		currentReader.onerror = fail;
+		currentReader.onload = (): void => {
+			if (revision !== photo.revision) return;
+			if (typeof currentReader.result !== 'string') {
+				fail();
+				return;
+			}
+			const img = new Image();
+			img.onerror = fail;
+			img.onload = (): void => {
+				if (revision !== photo.revision) return;
+				try {
+					const canvas = document.createElement('canvas');
+					const ctx = canvas.getContext('2d');
+					if (!ctx || !img.width || !img.height) {
+						fail();
+						return;
+					}
+					const aspectRatio = img.width / img.height;
+					let newWidth: number, newHeight: number;
+					if (aspectRatio > 1) {
+						newWidth = 250 * aspectRatio;
+						newHeight = 250;
+					} else {
+						newWidth = 250;
+						newHeight = 250 / aspectRatio;
+					}
+					canvas.width = 250;
+					canvas.height = 250;
+					const offsetX = (250 - newWidth) / 2;
+					const offsetY = (250 - newHeight) / 2;
+					ctx.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+					profileImageUrl = canvas.toDataURL('image/webp', 0.8);
+				} catch {
+					fail();
+				}
+			};
+			img.src = currentReader.result;
+		};
+		try {
+			currentReader.readAsDataURL(file);
+		} catch {
+			fail();
 		}
 	}}
 />
@@ -136,6 +179,7 @@
 					class="text-[0.6875rem] text-gray-500 transition-colors duration-100 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
 					type="button"
 					on:click={async () => {
+						cancelPhoto();
 						profileImageUrl = `${WEBUI_BASE_URL}/user.png`;
 					}}>{$i18n.t('Remove')}</button
 				>
@@ -144,6 +188,7 @@
 					class="text-[0.6875rem] text-gray-500 transition-colors duration-100 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
 					type="button"
 					on:click={async () => {
+						cancelPhoto();
 						if (canvasPixelTest()) {
 							profileImageUrl = generateInitialsImage(user?.name);
 						} else {
@@ -162,11 +207,8 @@
 				<button
 					class="text-[0.6875rem] text-gray-500 transition-colors duration-100 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
 					type="button"
-					on:click={async () => {
-						const url = await getGravatarUrl(localStorage.token, user?.email);
-
-						profileImageUrl = url;
-					}}>{$i18n.t('Gravatar')}</button
+					disabled={!user?.email}
+					on:click={loadGravatar}>{$i18n.t('Gravatar')}</button
 				>
 			</div>
 		</div>
@@ -208,6 +250,7 @@
 				class=" text-xs text-center text-gray-500 rounded-lg py-0.5 opacity-0 group-hover:opacity-100 transition-all"
 				type="button"
 				on:click={async () => {
+					cancelPhoto();
 					profileImageUrl = `${WEBUI_BASE_URL}/user.png`;
 				}}>{$i18n.t('Remove')}</button
 			>
@@ -216,6 +259,7 @@
 				class="rounded-lg py-0.5 text-center text-xs text-gray-600 opacity-0 transition-all group-hover:opacity-100 dark:text-gray-400"
 				type="button"
 				on:click={async () => {
+					cancelPhoto();
 					if (canvasPixelTest()) {
 						profileImageUrl = generateInitialsImage(user?.name);
 					} else {
@@ -234,11 +278,8 @@
 			<button
 				class="rounded-lg py-0.5 text-center text-xs text-gray-600 opacity-0 transition-all group-hover:opacity-100 dark:text-gray-400"
 				type="button"
-				on:click={async () => {
-					const url = await getGravatarUrl(localStorage.token, user?.email);
-
-					profileImageUrl = url;
-				}}>{$i18n.t('Gravatar')}</button
+				disabled={!user?.email}
+				on:click={loadGravatar}>{$i18n.t('Gravatar')}</button
 			>
 		</div>
 	</div>

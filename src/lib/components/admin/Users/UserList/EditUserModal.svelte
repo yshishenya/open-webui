@@ -632,7 +632,7 @@
 											<SensitiveInput
 												class="w-full text-sm bg-transparent outline-hidden"
 												type="password"
-												aria-label={$i18n.t('New Password')}
+												ariaLabel={$i18n.t('New Password')}
 												placeholder={$i18n.t('Enter New Password')}
 												bind:value={_user.password}
 												autocomplete="new-password"

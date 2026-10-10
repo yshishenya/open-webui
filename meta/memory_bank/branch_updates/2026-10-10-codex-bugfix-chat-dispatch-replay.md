@@ -353,3 +353,13 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: DELETE не меняет страницу при отказе, чтение/поиск отменяются; getUsers/requestJSON/GroupMember и Banner/sanitizedHtml переиспользованы. Own17/17,targeted44/44,frontend2141/2141;232lintцели0/0,types593/68,ESLint544,new0. Денежные callbacks/production/чужие21файла/262тома сохранены; release/A/B открыты.
+
+- [x] [BUG] Поле пароля и фотография профиля
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__account-inputs.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Native подпись поля, безопасное завершение/отмена фотографии и Gravatar с сохранением прежнего crop.
+
+  - Done: 2026-10-10 (local source acceptance)
+  - Tests: Одинаковые16новых1passed/15failed→16/16, Canvas2/2, frontend2157/2157;235CI lintцелей0/0,types576/64,ESLint540,new0. AddUser script JS/CSS rules сохранены; backend1064 reused/565хешей; SDD0403/3.
+  - Risks: Полные quality/PR/CI/интеграция/образ/выпуск/A/B открыты; план198/244,цельactive. Production/21чужойфайл/262тома сохранены.

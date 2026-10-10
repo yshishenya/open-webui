@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { createEventDispatcher } from 'svelte';
-	import { onMount, getContext } from 'svelte';
+	import { getContext } from 'svelte';
 	import { addUser } from '$lib/apis/auths';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
@@ -249,7 +249,7 @@
 										class="w-full text-sm bg-transparent disabled:text-gray-500 dark:disabled:text-gray-500 outline-hidden"
 										type="password"
 										bind:value={_user.password}
-										aria-label={$i18n.t('Password')}
+										ariaLabel={$i18n.t('Password')}
 										placeholder={$i18n.t('Enter Your Password')}
 										autocomplete="off"
 										required
@@ -326,18 +326,5 @@
 		/* display: none; <- Crashes Chrome on hover */
 		-webkit-appearance: none;
 		margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
-	}
-
-	.tabs::-webkit-scrollbar {
-		display: none; /* for Chrome, Safari and Opera */
-	}
-
-	.tabs {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
-	}
-
-	input[type='number'] {
-		-moz-appearance: textfield; /* Firefox */
 	}
 </style>

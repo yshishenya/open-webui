@@ -1,6 +1,7 @@
 <script lang="ts">
 	const i18n = getContext('i18n');
 	import { getContext } from 'svelte';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { v4 as uuidv4 } from 'uuid';
 	export let id = `password-input-${uuidv4()}`;
 	export let value: string = '';
@@ -13,7 +14,8 @@
 	export let inputClassName = '';
 	export let showButtonClassName = '';
 	export let screenReader = true;
-	export let autocomplete = 'off';
+	export let autocomplete: HTMLInputAttributes['autocomplete'] = 'off';
+	export let ariaLabel: string | undefined = undefined;
 	export let name: string | undefined = undefined;
 	let className = '';
 	export { className as class };
@@ -43,6 +45,7 @@
 	{/if}
 	<input
 		{id}
+		aria-label={ariaLabel}
 		class={resolvedInputClass}
 		{placeholder}
 		type={type === 'password' && !show ? 'password' : 'text'}
