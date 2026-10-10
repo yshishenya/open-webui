@@ -6,23 +6,23 @@
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import Pencil from '$lib/components/icons/Pencil.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Share from '$lib/components/icons/Share.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
-	import { config, user } from '$lib/stores';
+	import { user } from '$lib/stores';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 
-	export let editHandler: Function;
-	export let shareHandler: Function;
-	export let cloneHandler: Function;
-	export let exportHandler: Function;
-	export let deleteHandler: Function;
-	export let onClose: Function;
+	export let editHandler: () => void | Promise<void>;
+	export let cloneHandler: () => void | Promise<void>;
+	export let exportHandler: () => void | Promise<void>;
+	export let deleteHandler: () => void | Promise<void>;
+	export let onClose: () => void | Promise<void>;
 
 	export let show = false;
 
-	const closeMenu = () => {
+	const closeMenu = (): void => {
 		show = false;
 		onClose();
 	};
@@ -67,20 +67,6 @@
 
 				<div class="flex items-center">{$i18n.t('Edit')}</div>
 			</button>
-
-			{#if $config.features.enable_community_sharing}
-				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
-					draggable="false"
-					on:click={() => {
-						shareHandler();
-						closeMenu();
-					}}
-				>
-					<Share className="size-3.5" />
-					<div class="flex items-center">{$i18n.t('Share')}</div>
-				</button>
-			{/if}
 
 			<button
 				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"

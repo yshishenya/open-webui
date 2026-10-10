@@ -1,4 +1,5 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import { requestJSON } from '$lib/utils/airis/request_json';
 
 export const getAdminDetails = async (token: string) => {
 	let error = null;
@@ -753,32 +754,19 @@ export const deleteAPIKey = async (token: string) => {
 	return res;
 };
 
-export const deleteOAuthSession = async (token: string, provider: string) => {
-	let error = null;
-
-	const res = await fetch(
+export const deleteOAuthSession = async (
+	token: string,
+	provider: string,
+	signal?: AbortSignal
+): Promise<boolean> => {
+	const result = await requestJSON<boolean>(
 		`${WEBUI_API_BASE_URL}/auths/oauth/sessions/${encodeURIComponent(provider)}`,
-		{
-			method: 'DELETE',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`
-			}
-		}
-	)
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		token,
+		undefined,
+		signal,
+		'OAuth disconnect request',
+		'DELETE'
+	);
+	if (result !== true) throw new Error('Failed to disconnect');
+	return result;
 };

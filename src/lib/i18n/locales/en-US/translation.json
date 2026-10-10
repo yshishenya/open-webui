@@ -3365,5 +3365,14 @@
 	"Select a non-empty JSON array of functions.": "Select a non-empty JSON array of functions.",
 	"Invalid function import. Check ids, names, code and metadata.": "Invalid function import. Check ids, names, code and metadata.",
 	"Invalid or duplicate function id.": "Invalid or duplicate function id.",
-	"Invalid function metadata.": "Invalid function metadata."
+	"Invalid function metadata.": "Invalid function metadata.",
+	"Could not load tools. Try again.": "Could not load tools. Try again.",
+	"Failed to delete tool.": "Failed to delete tool.",
+	"Failed to create tool.": "Failed to create tool.",
+	"Imported {{count}} tools before an error. Check the list before retrying.": "Imported {{count}} tools before an error. Check the list before retrying.",
+	"Select a non-empty JSON array of tools.": "Select a non-empty JSON array of tools.",
+	"Invalid tool import. Check ids, names, code and metadata.": "Invalid tool import. Check ids, names, code and metadata.",
+	"Invalid or duplicate tool id.": "Invalid or duplicate tool id.",
+	"Invalid tool metadata.": "Invalid tool metadata.",
+	"Invalid tool access grants.": "Invalid tool access grants."
 }

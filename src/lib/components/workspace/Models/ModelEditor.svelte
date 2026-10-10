@@ -407,7 +407,14 @@
 	};
 
 	onMount(async () => {
-		await tools.set((await getTools(localStorage.token).catch(() => null)) ?? []);
+		await getTools(localStorage.token, voicesAbort.signal)
+			.then((items) => {
+				if (!voicesAbort.signal.aborted) tools.set(items);
+			})
+			.catch(() => {
+				if (!voicesAbort.signal.aborted) toast.error($i18n.t('Could not load tools. Try again.'));
+			});
+		if (voicesAbort.signal.aborted) return;
 		skillsList = (await getSkills(localStorage.token).catch(() => null)) ?? [];
 		if (!$functions) {
 			await getFunctions(localStorage.token, voicesAbort.signal)

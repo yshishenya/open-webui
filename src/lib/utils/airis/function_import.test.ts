@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { parseFunctionImport } from './function_import';
+import { parseFunctionImport, parseCodeImport } from './function_import';
 const item = {
 	id: 'sample',
 	name: 'Sample',
@@ -29,4 +29,41 @@ it('supports Unicode identifiers used by Python rather than restricting to ASCII
 	expect(parseFunctionImport(JSON.stringify([{ ...item, id: 'функция_1' }]))[0].id).toBe(
 		'функция_1'
 	);
+});
+
+it('retains tool metadata and exact absent/null/empty/populated grants', () => {
+	for (const grants of [
+		undefined,
+		null,
+		[],
+		[
+			{
+				id: 'grant',
+				principal_type: 'user',
+				principal_id: 'user',
+				permission: 'write',
+				resource_id: 'sample'
+			}
+		]
+	]) {
+		const original = {
+			...item,
+			...(grants === undefined ? {} : { access_grants: grants }),
+			runtime: 'excluded'
+		};
+		expect(parseCodeImport(JSON.stringify([{ tool: original }]), 'tool')).toEqual([
+			{ ...item, ...(grants === undefined ? {} : { access_grants: grants }) }
+		]);
+	}
+});
+it.each([
+	{},
+	[null],
+	[{ principal_type: ['user'], principal_id: 'user', permission: 'read' }],
+	[{ principal_type: 'user', principal_id: 7, permission: 'read' }],
+	[{ principal_type: 'group', principal_id: 'group', permission: 'owner' }]
+])('rejects invalid tool grants before a write: %j', (grants) => {
+	expect(() =>
+		parseCodeImport(JSON.stringify([{ ...item, access_grants: grants }]), 'tool')
+	).toThrow();
 });

@@ -152,10 +152,9 @@
 				);
 		}
 		if ($tools === null) {
-			tools.set(await getTools(localStorage.token).catch(() => null));
-			if ($tools === null) {
-				toast.error($i18n.t('Could not load tools. Close this section and open it again.'));
-			}
+			await getTools(localStorage.token)
+				.then((items) => tools.set(items))
+				.catch(() => toast.error($i18n.t('Could not load tools. Try again.')));
 		}
 
 		loading = false;

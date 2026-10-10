@@ -203,7 +203,8 @@ class Tools:
 	onChange={async () => {
 		if (edit && id) {
 			try {
-				await updateToolAccessGrants(localStorage.token, id, accessGrants);
+				const res = await updateToolAccessGrants(localStorage.token, id, accessGrants);
+				if (!res) throw new Error($i18n.t('Could not save settings. Try again.'));
 				toast.success($i18n.t('Saved'));
 			} catch (error) {
 				toast.error(`${error}`);

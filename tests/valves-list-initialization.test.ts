@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { transpileModule, ScriptTarget } from 'typescript';
+import { getTools as fetchTools } from '$lib/apis/tools';
 import { getFunctions as fetchFunctions } from '$lib/apis/functions';
 vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
 afterEach(() => {
@@ -13,7 +14,7 @@ type FetchList = () => Promise<Item[] | null>;
 type Factory = (
 	state: State,
 	getFunctions: () => Promise<Item[]>,
-	getTools: FetchList,
+	getTools: () => Promise<Item[]>,
 	toast: { error: (message: string) => void }
 ) => () => Promise<void>;
 
@@ -56,12 +57,21 @@ describe('valves list load recovery', () => {
 		// A malformed functions response must pass through the actual API boundary.
 		vi.stubGlobal(
 			'fetch',
-			async () => new Response(JSON.stringify(await (list === 'functions' ? fetchList : sibling)()))
+			async (url: string) =>
+				new Response(
+					JSON.stringify(
+						await (
+							(url.includes('/functions/') ? list === 'functions' : list === 'tools')
+								? fetchList
+								: sibling
+						)()
+					)
+				)
 		);
 		const init = factory(
 			state,
 			() => fetchFunctions('fixture'),
-			list === 'tools' ? fetchList : sibling,
+			() => fetchTools('fixture'),
 			{ error: (message) => errors.push(message) }
 		);
 		await init();

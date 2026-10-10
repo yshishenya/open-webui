@@ -8,7 +8,7 @@
 	dayjs.extend(relativeTime);
 
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import { WEBUI_NAME, config, tools as _tools, user, workspaceActions } from '$lib/stores';
 
@@ -23,6 +23,11 @@
 		getTools
 	} from '$lib/apis/tools';
 	import { capitalizeFirstLetter } from '$lib/utils';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ToolUserItem } from '$lib/apis/tools';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	import { parseCodeImport } from '$lib/utils/airis/function_import';
 
 	import Tooltip from '../common/Tooltip.svelte';
 	import ConfirmDialog from '../common/ConfirmDialog.svelte';
@@ -46,7 +51,14 @@
 	let loaded = false;
 
 	let toolsImportInputElement: HTMLInputElement;
-	let importFiles;
+	let importFiles: FileList | null = null;
+	let alive = true;
+	const controller = new AbortController();
+	let importing = false;
+	let loading = false;
+	let loadFailed = false;
+	let listVersion = 0;
+	let pendingIds = new Set<string>();
 
 	let showConfirm = false;
 	let query = '';
@@ -54,12 +66,12 @@
 
 	let showManifestModal = false;
 	let showValvesModal = false;
-	let selectedTool = null;
+	let selectedTool: ToolUserItem | null = null;
 
 	let showDeleteConfirm = false;
 
-	let tools = [];
-	let filteredItems = [];
+	let tools: ToolUserItem[] = [];
+	let filteredItems: ToolUserItem[] = [];
 
 	let tagsContainerElement: HTMLDivElement;
 	let viewOption = '';
@@ -87,19 +99,21 @@
 			{
 				id: 'tools-import',
 				label: $i18n.t('Import JSON'),
-				onClick: () => toolsImportInputElement?.click(),
+				onClick: () => {
+					if (!importing) toolsImportInputElement?.click();
+				},
 				visible: $user?.role === 'admin' || $user?.permissions?.workspace?.tools_import
 			},
 			{
 				id: 'tools-export',
 				label: $i18n.t('Export JSON'),
 				onClick: async () => {
-					const _tools = await exportTools(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
+					const _tools = await exportTools(localStorage.token, controller.signal).catch((error) => {
+						if (alive) toast.error(getErrorMessage(error));
 						return null;
 					});
 
-					if (_tools) {
+					if (alive && _tools) {
 						let blob = new Blob([JSON.stringify(_tools)], {
 							type: 'application/json'
 						});
@@ -111,7 +125,7 @@
 		]);
 	}
 
-	const handleSearchInput = () => {
+	const handleSearchInput = (): void => {
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			setFilteredItems();
@@ -127,7 +141,7 @@
 		setFilteredItems();
 	}
 
-	const setFilteredItems = () => {
+	const setFilteredItems = (): void => {
 		const filtered = tools.filter((t) => {
 			if (query === '' && viewOption === '') return true;
 			const lowerQuery = query.toLowerCase();
@@ -153,7 +167,7 @@
 		});
 	};
 
-	const setSortKey = (key: string) => {
+	const setSortKey = (key: string): void => {
 		if (sortKey === key) {
 			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -162,45 +176,23 @@
 		}
 	};
 
-	const openTool = (tool) => {
+	const openTool = (tool: ToolUserItem): void => {
 		goto(`/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`);
 	};
 
-	const shouldIgnoreRowClick = (target: EventTarget | null) => {
+	const shouldIgnoreRowClick = (target: EventTarget | null): boolean => {
 		return target instanceof Element && !!target.closest('button, a, input, [role="menu"]');
 	};
 
-	const shareHandler = async (tool) => {
-		const item = await getToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		toast.success($i18n.t('Redirecting you to Airis Community'));
-
-		const url = '#';
-
-		const tab = await window.open(`${url}/tools/create`, '_blank');
-
-		const messageHandler = (event) => {
-			if (event.origin !== url) return;
-			if (event.data === 'loaded') {
-				tab.postMessage(JSON.stringify(item), '*');
-				window.removeEventListener('message', messageHandler);
+	const cloneHandler = async (tool: ToolUserItem): Promise<void> => {
+		const _tool = await getToolById(localStorage.token, tool.id, controller.signal).catch(
+			(error) => {
+				if (alive) toast.error(getErrorMessage(error));
+				return null;
 			}
-		};
+		);
 
-		window.addEventListener('message', messageHandler, false);
-		console.log(item);
-	};
-
-	const cloneHandler = async (tool) => {
-		const _tool = await getToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (_tool) {
+		if (alive && _tool) {
 			sessionStorage.tool = JSON.stringify({
 				..._tool,
 				id: `${_tool.id}_clone`,
@@ -210,13 +202,15 @@
 		}
 	};
 
-	const exportHandler = async (tool) => {
-		const _tool = await getToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+	const exportHandler = async (tool: ToolUserItem): Promise<void> => {
+		const _tool = await getToolById(localStorage.token, tool.id, controller.signal).catch(
+			(error) => {
+				if (alive) toast.error(getErrorMessage(error));
+				return null;
+			}
+		);
 
-		if (_tool) {
+		if (alive && _tool) {
 			let blob = new Blob([JSON.stringify([_tool])], {
 				type: 'application/json'
 			});
@@ -224,57 +218,110 @@
 		}
 	};
 
-	const deleteHandler = async (tool) => {
-		const res = await deleteToolById(localStorage.token, tool.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+	const deleteHandler = async (tool: ToolUserItem | null): Promise<void> => {
+		if (!alive || !tool || pendingIds.has(tool.id)) return;
+		pendingIds = new Set(pendingIds).add(tool.id);
+		try {
+			if (!(await deleteToolById(localStorage.token, tool.id, controller.signal)))
+				throw new Error($i18n.t('Failed to delete tool.'));
+			if (!alive) return;
+			tools = tools.filter((t) => t.id !== tool.id);
 			toast.success($i18n.t('Tool deleted successfully'));
 			await init();
+		} catch (error) {
+			if (alive) toast.error(getErrorMessage(error));
+		} finally {
+			pendingIds = new Set([...pendingIds].filter((id) => id !== tool.id));
+		}
+	};
+	const init = async (): Promise<void> => {
+		if (!alive) return;
+		const version = ++listVersion;
+		loading = true;
+		loadFailed = false;
+		try {
+			const [next, catalog] = await Promise.all([
+				getToolList(localStorage.token, controller.signal),
+				getTools(localStorage.token, controller.signal)
+			]);
+			if (alive && version === listVersion) {
+				tools = next;
+				_tools.set(catalog);
+			}
+		} catch (error) {
+			if (alive && version === listVersion) {
+				loadFailed = true;
+				toast.error(getErrorMessage(error));
+			}
+		} finally {
+			if (alive && version === listVersion) {
+				loading = false;
+				loaded = true;
+			}
+		}
+	};
+	const clearImport = (): void => {
+		importFiles = null;
+		if (toolsImportInputElement) toolsImportInputElement.value = '';
+	};
+	const importHandler = async (): Promise<void> => {
+		const file = importFiles?.[0];
+		if (!alive || importing || !file) return;
+		importing = true;
+		let created = 0;
+		try {
+			const payloads = parseCodeImport(await file.text(), 'tool');
+			for (const payload of payloads) {
+				if (!alive) return;
+				const res = await createNewTool(localStorage.token, payload, controller.signal);
+				if (!res) throw new Error($i18n.t('Failed to create tool.'));
+				created++;
+			}
+			if (alive) toast.success($i18n.t('Tool imported successfully'));
+		} catch (error) {
+			if (alive)
+				toast.error(
+					created
+						? $i18n.t('Imported {{count}} tools before an error. Check the list before retrying.', {
+								count: created
+							}) +
+								' ' +
+								getErrorMessage(error)
+						: $i18n.t(getErrorMessage(error))
+				);
+		} finally {
+			if (alive) {
+				clearImport();
+				if (created) await init();
+			}
+			importing = false;
 		}
 	};
 
-	const init = async () => {
-		tools = await getToolList(localStorage.token);
-		_tools.set(await getTools(localStorage.token));
-	};
-
-	onMount(async () => {
+	onMount(() => {
 		viewOption = localStorage?.workspaceViewOption || '';
-		await init();
-		loaded = true;
-
-		const onKeyDown = (event) => {
-			if (event.key === 'Shift') {
-				shiftKey = true;
-			}
+		void init();
+		const onKeyDown = (event: KeyboardEvent): void => {
+			if (event.key === 'Shift') shiftKey = true;
 		};
-
-		const onKeyUp = (event) => {
-			if (event.key === 'Shift') {
-				shiftKey = false;
-			}
+		const onKeyUp = (event: KeyboardEvent): void => {
+			if (event.key === 'Shift') shiftKey = false;
 		};
-
-		const onBlur = () => {
+		const onBlur = (): void => {
 			shiftKey = false;
 		};
-
 		window.addEventListener('keydown', onKeyDown);
 		window.addEventListener('keyup', onKeyUp);
 		window.addEventListener('blur', onBlur);
-
 		return () => {
-			clearTimeout(searchDebounceTimer);
 			window.removeEventListener('keydown', onKeyDown);
 			window.removeEventListener('keyup', onKeyUp);
 			window.removeEventListener('blur', onBlur);
 		};
 	});
-
 	onDestroy(() => {
+		alive = false;
+		controller.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 </script>
@@ -300,6 +347,14 @@
 />
 
 {#if loaded}
+	{#if loadFailed}
+		<div role="alert" class="py-2 text-sm">
+			{$i18n.t('Could not load tools. Try again.')}
+			<button type="button" class="underline" disabled={loading} on:click={init}
+				>{$i18n.t('Retry')}</button
+			>
+		</div>
+	{/if}
 	<input
 		id="documents-import-input"
 		bind:this={toolsImportInputElement}
@@ -308,7 +363,6 @@
 		accept=".json"
 		hidden
 		on:change={() => {
-			console.log(importFiles);
 			showConfirm = true;
 		}}
 	/>
@@ -500,6 +554,7 @@
 												class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition dark:text-gray-500"
 												type="button"
 												aria-label={$i18n.t('Delete')}
+												disabled={pendingIds.has(tool.id)}
 												on:click={(e) => {
 													e.preventDefault();
 													e.stopPropagation();
@@ -567,9 +622,6 @@
 											editHandler={() => {
 												goto(`/workspace/tools/edit?id=${encodeURIComponent(tool.id)}`);
 											}}
-											shareHandler={() => {
-												shareHandler(tool);
-											}}
 											cloneHandler={() => {
 												cloneHandler(tool);
 											}}
@@ -604,7 +656,7 @@
 					{/each}
 				</div>
 			</div>
-		{:else}
+		{:else if !loadFailed}
 			<div class="flex w-full flex-col items-center justify-center py-16 pb-24">
 				<div class="max-w-sm text-center text-gray-900 dark:text-gray-100">
 					<div class="mb-1.5 text-sm">{$i18n.t('No tools found')}</div>
@@ -616,7 +668,6 @@
 		{/if}
 	</div>
 
-
 	<DeleteConfirmDialog
 		bind:show={showDeleteConfirm}
 		title={$i18n.t('Delete tool?')}
@@ -625,37 +676,14 @@
 		}}
 	>
 		<div class=" text-sm text-gray-500 truncate">
-			{$i18n.t('This will delete')} <span class="  font-normal">{selectedTool.name}</span>.
+			{$i18n.t('This will delete')} <span class="  font-normal">{selectedTool?.name ?? ''}</span>.
 		</div>
 	</DeleteConfirmDialog>
 
 	<ValvesModal bind:show={showValvesModal} type="tool" id={selectedTool?.id ?? null} />
 	<ManifestModal bind:show={showManifestModal} manifest={selectedTool?.meta?.manifest ?? {}} />
 
-	<ConfirmDialog
-		bind:show={showConfirm}
-		on:confirm={() => {
-			const reader = new FileReader();
-			reader.onload = async (event) => {
-				const _tools = JSON.parse(event.target.result);
-				console.log(_tools);
-
-				for (const tool of _tools) {
-					const res = await createNewTool(localStorage.token, tool).catch((error) => {
-						toast.error(`${error}`);
-						return null;
-					});
-				}
-
-				toast.success($i18n.t('Tool imported successfully'));
-				await init();
-				importFiles = null;
-				toolsImportInputElement.value = '';
-			};
-
-			reader.readAsText(importFiles[0]);
-		}}
-	>
+	<ConfirmDialog bind:show={showConfirm} on:confirm={importHandler}>
 		<div class="text-sm text-gray-500">
 			<div class=" bg-yellow-500/20 text-yellow-700 dark:text-yellow-200 rounded-lg px-4 py-3">
 				<div>{$i18n.t('Please carefully review the following warnings:')}</div>

@@ -71,7 +71,9 @@
 		tools = {};
 		skills = {};
 		if ($_tools === null) {
-			_tools.set(await getTools(localStorage.token).catch(() => null));
+			await getTools(localStorage.token)
+				.then((items) => _tools.set(items))
+				.catch(() => toast.error($i18n.t('Could not load tools. Try again.')));
 		}
 
 		if ($_tools) {
@@ -83,10 +85,6 @@
 				};
 				return a;
 			}, {});
-		}
-
-		if ($_tools === null) {
-			toast.error($i18n.t('Could not load tools. Close and reopen the menu to retry.'));
 		}
 
 		if ($toolServers) {
@@ -448,12 +446,20 @@
 													await deleteOAuthSession(localStorage.token, provider);
 													toast.success($i18n.t('OAuth session disconnected'));
 
-													// Refresh tools to update authenticated state
-													_tools.set(await getTools(localStorage.token));
+													// The accepted disconnect must survive a catalog refresh failure.
 													selectedToolIds = selectedToolIds.filter((id) => id !== toolId);
+													_tools.update(
+														(items) =>
+															items?.map((item) =>
+																item.id === toolId ? { ...item, authenticated: false } : item
+															) ?? null
+													);
+													await getTools(localStorage.token)
+														.then((items) => _tools.set(items))
+														.catch(() => toast.error($i18n.t('Could not load tools. Try again.')));
 													await init();
-												} catch (err) {
-													toast.error(err ?? $i18n.t('Failed to disconnect'));
+												} catch {
+													toast.error($i18n.t('Failed to disconnect'));
 												}
 											}}
 										>

@@ -1,15 +1,19 @@
 import type { FunctionForm } from '$lib/apis/functions';
+import type { ToolAccessGrantInput } from '$lib/apis/tools';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	value !== null && typeof value === 'object' && !Array.isArray(value);
 
-export const parseFunctionImport = (text: string): FunctionForm[] => {
+export const parseCodeImport = (
+	text: string,
+	kind: 'function' | 'tool'
+): (FunctionForm & { access_grants?: ToolAccessGrantInput[] | null })[] => {
 	const entries: unknown = JSON.parse(text);
 	if (!Array.isArray(entries) || entries.length === 0)
-		throw new Error('Select a non-empty JSON array of functions.');
+		throw new Error(`Select a non-empty JSON array of ${kind}s.`);
 	const ids = new Set<string>();
-	return entries.map((entry: unknown): FunctionForm => {
-		const value = isRecord(entry) && 'function' in entry ? entry.function : entry;
+	return entries.map((entry: unknown) => {
+		const value = isRecord(entry) && kind in entry ? entry[kind] : entry;
 		if (
 			!isRecord(value) ||
 			typeof value.id !== 'string' ||
@@ -17,7 +21,7 @@ export const parseFunctionImport = (text: string): FunctionForm[] => {
 			typeof value.content !== 'string' ||
 			!isRecord(value.meta)
 		) {
-			throw new Error('Invalid function import. Check ids, names, code and metadata.');
+			throw new Error(`Invalid ${kind} import. Check ids, names, code and metadata.`);
 		}
 		// Python uses normalized identifier rules; the server remains authoritative for its Unicode version.
 		const identifier = /^[_\p{ID_Start}][_\p{ID_Continue}]*$/u;
@@ -26,16 +30,45 @@ export const parseFunctionImport = (text: string): FunctionForm[] => {
 			!identifier.test(value.id.normalize('NFKC')) ||
 			ids.has(value.id.toLowerCase())
 		) {
-			throw new Error('Invalid or duplicate function id.');
+			throw new Error(`Invalid or duplicate ${kind} id.`);
 		}
 		const { description, manifest } = value.meta;
 		if (
 			(description !== undefined && description !== null && typeof description !== 'string') ||
 			(manifest !== undefined && manifest !== null && !isRecord(manifest))
 		) {
-			throw new Error('Invalid function metadata.');
+			throw new Error(`Invalid ${kind} metadata.`);
+		}
+		let grants: ToolAccessGrantInput[] | null | undefined;
+		if (kind === 'tool' && value.access_grants !== undefined) {
+			if (value.access_grants === null) grants = null;
+			else {
+				if (!Array.isArray(value.access_grants)) throw new Error('Invalid tool access grants.');
+				grants = value.access_grants.map((grant: unknown): ToolAccessGrantInput => {
+					if (
+						!isRecord(grant) ||
+						(grant.id !== undefined && typeof grant.id !== 'string') ||
+						(grant.principal_type !== 'user' &&
+							grant.principal_type !== 'group' &&
+							grant.principal_type !== 'anyone') ||
+						typeof grant.principal_id !== 'string' ||
+						(grant.permission !== 'read' && grant.permission !== 'write')
+					)
+						throw new Error('Invalid tool access grants.');
+					return grant as ToolAccessGrantInput;
+				});
+			}
 		}
 		ids.add(value.id.toLowerCase());
-		return { id: value.id, name: value.name, content: value.content, meta: value.meta };
+		return {
+			id: value.id,
+			name: value.name,
+			content: value.content,
+			meta: value.meta,
+			...(grants === undefined ? {} : { access_grants: grants })
+		};
 	});
 };
+
+export const parseFunctionImport = (text: string): FunctionForm[] =>
+	parseCodeImport(text, 'function');
