@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-functions-catalog-errors-2026-10-10-020",
+  "title": "Airis Functions Catalog Errors",
+  "generated": "2026-10-10T04:30:21.172158Z",
+  "last_updated": "2026-10-10T04:45:15.078257Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__functions-catalog-errors.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T04:31:06.701343Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T04:45:15.077788Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Functions Catalog Errors",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce catalog refusal and all caller failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T04:32:28.578790Z",
+        "journaled_at": "2026-10-10T04:32:28.581306Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce catalog refusal and all caller failures",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T04:32:28.578604Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T04:32:28.580022Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse request helper and preserve store on failure",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T04:34:04.534761Z",
+        "journaled_at": "2026-10-10T04:34:04.536885Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse request helper and preserve store on failure",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T04:34:04.534590Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T04:34:04.535705Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frozen tests diagnostics browser and pushed source",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T04:45:14.562215Z",
+        "journaled_at": "2026-10-10T04:45:14.564318Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify frozen tests diagnostics browser and pushed source",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T04:45:14.562053Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T04:45:14.563144Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T04:32:28.580013Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce catalog refusal and all caller failures",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:32:28.581300Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce catalog refusal and all caller failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:34:04.535700Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse request helper and preserve store on failure",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:34:04.536879Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse request helper and preserve store on failure",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T04:45:14.563139Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frozen tests diagnostics browser and pushed source",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:45:14.564314Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frozen tests diagnostics browser and pushed source",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

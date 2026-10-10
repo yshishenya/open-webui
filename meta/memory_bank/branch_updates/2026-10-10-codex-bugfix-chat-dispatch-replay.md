@@ -133,3 +133,12 @@
   - Tests: 29 initial failures +1 native-array failure;focused133/133,full1815/1815/162files,browser15/15,console0/0. Types1140/85→1127/85,ESLint762,новых0. Backend542/protected21/production12соседей сохранены.
   - Source: `4554df21c7887b185dce632e793fdef88d7da4eb`,remote/frozen1763blobs verified,SDD3/3,220specs;whole types/lint/CI/PR/production и A/B pending;план198/244,цельactive.
   - Done: 2026-10-10 (исходники приняты, интеграция ожидается)
+
+- [x] **[BUG]** Function catalog rejects refusals without clearing cached state
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__bugfix__functions-catalog-errors.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-10
+  - Summary: Seven original callers traced; shared requestJSON rejects network/JSON/container failure, cached state preserved, existing admin/editor cancellation reused, redundant admin prefetch removed. Runtime/remote `7d2d026674dcf289248380aab03846432b12928e`.
+  - Tests: final full1835/1835,163 files; focused106/106 extracted; browser15/15,console0/0. Types1127/85 and ESLint762;new0. SDD3/3;preservation and5612 frozen Git blobs verified. Own proof cleanup only;262 other volumes preserved.
+  - Risks: Local source acceptance; broader type/lint/backend gates, PR/CI/integration/clean build/deploy and real A/B criteria remain pending. No editor/Tools lifecycle or full-root claim.
