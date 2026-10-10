@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
@@ -26,7 +28,7 @@
 	import FolderPlaceholder from './Placeholder/FolderPlaceholder.svelte';
 	import FolderTitle from './Placeholder/FolderTitle.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	export let createMessagePair: ComponentProps<MessageInput>['createMessagePair'];
 	export let stopResponse: ComponentProps<MessageInput>['stopResponse'];
@@ -36,15 +38,15 @@
 	export let atSelectedModel: Model | undefined;
 	export let selectedModels: string[];
 
-	export let history;
+	export let history: ComponentProps<MessageInput>['history'];
 
 	export let prompt = '';
 	export let files: ComponentProps<MessageInput>['files'] = [];
 	export let messageInput: MessageInput | null = null;
 
-	export let selectedToolIds = [];
-	export let selectedSkillIds = [];
-	export let selectedFilterIds = [];
+	export let selectedToolIds: string[] = [];
+	export let selectedSkillIds: string[] = [];
+	export let selectedFilterIds: string[] = [];
 	export let pendingOAuthTools: NonNullable<ComponentProps<MessageInput>['pendingOAuthTools']> = [];
 
 	export let showCommands = false;
@@ -58,11 +60,9 @@
 	export let onChange: ComponentProps<MessageInput>['onChange'] = () => {};
 	export let onWebSearchToggle: ComponentProps<MessageInput>['onWebSearchToggle'] = () => {};
 
-	export let toolServers = [];
-
 	export let dragged = false;
 
-	let models = [];
+	let models: (Model | undefined)[] = [];
 	let selectedModelIdx = 0;
 
 	$: if (selectedModels.length > 0) {
@@ -133,7 +133,7 @@
 											alt=""
 											draggable="false"
 											on:error={(e) => {
-												e.currentTarget.src = '/favicon.png';
+												(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 											}}
 										/>
 									</button>
@@ -230,7 +230,6 @@
 						bind:showCommands
 						bind:dragged
 						{pendingOAuthTools}
-						{toolServers}
 						{stopResponse}
 						{createMessagePair}
 						placeholder={$i18n.t('How can I help you today?')}

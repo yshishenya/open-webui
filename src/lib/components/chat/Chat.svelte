@@ -4746,7 +4746,6 @@
 									bind:showCommands
 									bind:dragged
 									{pendingOAuthTools}
-									toolServers={$toolServers}
 									{stopResponse}
 									{createMessagePair}
 									{onSelect}
