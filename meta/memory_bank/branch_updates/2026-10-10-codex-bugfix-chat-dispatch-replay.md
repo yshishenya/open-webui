@@ -330,3 +330,14 @@
   - Done: 2026-10-10
   - Tests: Четыре целевые проверки; frontend2087/2087; актуальные222lintцели0/0; types687/74,ESLint586,новых0. Navbar compiled совпал; Notebook CSS/11callbacks сохранены. SDD0363/3.
   - Risks: Общий долг качества/PR/CI/выпуск/A/B открыты; production/чужие данные сохранены. Дополнительные19замечаний callers из предыдущей записи сняты этим блоком.
+
+
+- [x] **[BUG][FRONTEND]** Отказ и отмена тестового чата
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__playground-response.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Проверить зависший loading и отмену обоих playground handlers; переиспользовать controller/finally и существующие типы, без повторов POST.
+
+  - Done: 2026-10-10
+  - Tests: Исходные handlers2/15 → 17/17, реальный DOM1/1, целевые44/44; frontend2105/2105;226lintцелей0/0; types654/68,ESLint556,новых0 после исправления optionalmessages и полного повторного прогона. ChildJS2/CSS4/callbacks4 сохранены после заявленного unused removal. SDD0373/3.
+  - Risks: Общий долг/CI/интеграция/production/A/B открыты; план198/244 и цельactive. Production/21чужойфайл/262тома сохранены.

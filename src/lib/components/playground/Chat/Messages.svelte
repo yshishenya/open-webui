@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { onMount, getContext } from 'svelte';
+	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 	import Message from './Message.svelte';
 
-	const i18n = getContext('i18n');
-
-	export let messages = [];
+	export let messages: Required<Pick<ChatHistoryMessage, 'role' | 'content'>>[] = [];
 </script>
 
 <div class="py-3 space-y-3">

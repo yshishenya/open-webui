@@ -2,28 +2,30 @@
 	import { toast } from 'svelte-sonner';
 
 	import { goto } from '$app/navigation';
-	import { onMount, tick, getContext } from 'svelte';
+	import { onMount, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
-	import { WEBUI_NAME, config, user, models, settings, showSidebar } from '$lib/stores';
+	import { config, user, models, settings } from '$lib/stores';
 	import { chatCompletion } from '$lib/apis/openai';
 
 	import { splitStream } from '$lib/utils';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	let loaded = false;
 	let text = '';
 
 	let selectedModelId = '';
 
 	let loading = false;
 	let stopResponseFlag = false;
+	let responseController: AbortController | null = null;
 
 	let textCompletionAreaElement: HTMLTextAreaElement;
 
-	const scrollToBottom = () => {
+	const scrollToBottom = (): void => {
 		const element = textCompletionAreaElement;
 
 		if (element) {
@@ -31,13 +33,17 @@
 		}
 	};
 
-	const stopResponse = () => {
+	const stopResponse = (): void => {
 		stopResponseFlag = true;
-		console.log('stopResponse');
+		responseController?.abort('User: Stop Response');
 	};
 
-	const textCompletionHandler = async () => {
+	const textCompletionHandler = async (): Promise<void> => {
 		const model = $models.find((model) => model.id === selectedModelId);
+		if (!model) {
+			selectedModelId = '';
+			return;
+		}
 
 		const [res, controller] = await chatCompletion(
 			localStorage.token,
@@ -51,16 +57,18 @@
 					}
 				]
 			},
-			`${WEBUI_BASE_URL}/api`
+			`${WEBUI_BASE_URL}/api`,
+			responseController ?? undefined
 		);
+		if (!res?.ok || !res.body) throw new Error('Playground response unavailable.');
 
-		if (res && res.ok) {
-			const reader = res.body
-				.pipeThrough(new TextDecoderStream())
-				.pipeThrough(splitStream('\n'))
-				.getReader();
+		const reader = res.body
+			.pipeThrough(new TextDecoderStream())
+			.pipeThrough(splitStream('\n'))
+			.getReader();
 
-			while (true) {
+		try {
+			for (;;) {
 				const { value, done } = await reader.read();
 				if (done || stopResponseFlag) {
 					if (stopResponseFlag) {
@@ -70,36 +78,45 @@
 				}
 
 				try {
-					let lines = value.split('\n');
+					const lines = value.split('\n');
 
 					for (const line of lines) {
 						if (line !== '') {
-							if (line.includes('[DONE]')) {
-								console.log('done');
-							} else {
-								let data = JSON.parse(line.replace(/^data: /, ''));
-								console.log(data);
-
-								text += data.choices[0].delta.content ?? '';
-							}
+							if (line.trim() === 'data: [DONE]') return;
+							const data: { choices?: { delta?: { content?: unknown } }[] } = JSON.parse(
+								line.replace(/^data: /, '')
+							);
+							const content = data.choices?.[0]?.delta?.content;
+							if (typeof content === 'string') text += content;
 						}
 					}
-				} catch (error) {
-					console.log(error);
+				} catch {
+					console.error('Invalid playground stream event.');
 				}
 
 				scrollToBottom();
 			}
+		} finally {
+			controller.abort();
+			reader.releaseLock();
 		}
 	};
 
-	const submitHandler = async () => {
-		if (selectedModelId) {
-			loading = true;
+	const submitHandler = async (): Promise<void> => {
+		if (!selectedModelId || loading) return;
+		loading = true;
+		responseController = new AbortController();
+		try {
 			await textCompletionHandler();
-
+		} catch {
+			if (!stopResponseFlag) {
+				console.error('Playground completion failed.');
+				toast.error($i18n.t('Something went wrong :/'));
+			}
+		} finally {
 			loading = false;
 			stopResponseFlag = false;
+			responseController = null;
 		}
 	};
 
@@ -115,7 +132,6 @@
 		} else {
 			selectedModelId = '';
 		}
-		loaded = true;
 	});
 </script>
 
@@ -134,7 +150,7 @@
 							class="w-full h-full p-3 bg-transparent border border-gray-100/30 dark:border-gray-850/30 outline-hidden resize-none rounded-lg text-sm"
 							bind:value={text}
 							placeholder={$i18n.t("You're a helpful assistant.")}
-						/>
+						></textarea>
 					</div>
 				</div>
 			</div>
@@ -177,14 +193,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	.scrollbar-hidden::-webkit-scrollbar {
-		display: none; /* for Chrome, Safari and Opera */
-	}
-
-	.scrollbar-hidden {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
-	}
-</style>

@@ -123,9 +123,9 @@ export const verifyOpenAIConnection = (
 export const chatCompletion = async (
 	token: string = '',
 	body: object,
-	url: string = `${WEBUI_BASE_URL}/api`
+	url: string = `${WEBUI_BASE_URL}/api`,
+	controller: AbortController = new AbortController()
 ): Promise<[Response | null, AbortController]> => {
-	const controller = new AbortController();
 	let error = null;
 
 	const res = await fetch(`${url}/chat/completions`, {
