@@ -7,8 +7,8 @@
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	dayjs.extend(relativeTime);
 
-	import { onMount, getContext } from 'svelte';
-	const i18n = getContext('i18n');
+	import { onMount, onDestroy, getContext } from 'svelte';
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	import {
 		deleteFeedbackById,
@@ -17,10 +17,11 @@
 		getFeedbackModelIds
 	} from '$lib/apis/evaluations';
 
+	import type { FeedbackItem, FeedbackRecord } from '$lib/apis/evaluations';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Download from '$lib/components/icons/Download.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
-	import CloudArrowUp from '$lib/components/icons/CloudArrowUp.svelte';
 	import Pagination from '$lib/components/common/Pagination.svelte';
 	import FeedbackMenu from './FeedbackMenu.svelte';
 	import FeedbackModal from './FeedbackModal.svelte';
@@ -30,15 +31,15 @@
 
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import { adminFeedbackCount, config } from '$lib/stores';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import { adminFeedbackCount } from '$lib/stores';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Select from '$lib/components/common/Select.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
 
 	let page = 1;
-	let items = null;
-	let total = null;
+	let items: FeedbackItem[] | null = null;
+	let total: number | null = null;
 
 	let orderBy: string = 'updated_at';
 	let direction: 'asc' | 'desc' = 'desc';
@@ -46,7 +47,7 @@
 	let selectedModelId: string = '';
 	let modelIds: string[] = [];
 
-	const setSortKey = (key) => {
+	const setSortKey = (key: string): void => {
 		if (orderBy === key) {
 			direction = direction === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -56,14 +57,14 @@
 	};
 
 	let showFeedbackModal = false;
-	let selectedFeedback = null;
+	let selectedFeedback: FeedbackItem | null = null;
 
-	const openFeedbackModal = (feedback) => {
+	const openFeedbackModal = (feedback: FeedbackItem): void => {
 		showFeedbackModal = true;
 		selectedFeedback = feedback;
 	};
 
-	const closeFeedbackModal = () => {
+	const closeFeedbackModal = (): void => {
 		showFeedbackModal = false;
 		selectedFeedback = null;
 	};
@@ -74,26 +75,26 @@
 	//
 	//////////////////////
 
-	const getFeedbacks = async () => {
+	let listAbort: AbortController | null = null;
+	const getFeedbacks = async (): Promise<void> => {
+		listAbort?.abort();
+		const controller = new AbortController();
+		listAbort = controller;
 		try {
 			const res = await getFeedbackItems(
 				localStorage.token,
 				orderBy,
 				direction,
 				page,
-				selectedModelId
-			).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			if (res) {
-				items = res.items;
-				total = res.total;
-				adminFeedbackCount.set(total);
-			}
-		} catch (err) {
-			console.error(err);
+				selectedModelId,
+				controller.signal
+			);
+			if (controller.signal.aborted) return;
+			items = res.items;
+			total = res.total;
+			adminFeedbackCount.set(total);
+		} catch {
+			if (!controller.signal.aborted) toast.error($i18n.t('Something went wrong :('));
 		}
 	};
 
@@ -101,18 +102,21 @@
 		getFeedbacks();
 	}
 
-	const loadModelIds = async () => {
+	const modelsAbort = new AbortController();
+	const loadModelIds = async (): Promise<void> => {
 		try {
-			const res = await getFeedbackModelIds(localStorage.token);
-			if (res) {
-				modelIds = res;
-			}
-		} catch (err) {
-			console.error(err);
+			const res = await getFeedbackModelIds(localStorage.token, modelsAbort.signal);
+			if (!modelsAbort.signal.aborted) modelIds = res;
+		} catch {
+			if (!modelsAbort.signal.aborted) toast.error($i18n.t('Something went wrong :('));
 		}
 	};
+	onDestroy(() => {
+		listAbort?.abort();
+		modelsAbort.abort();
+	});
 
-	const deleteFeedbackHandler = async (feedbackId: string) => {
+	const deleteFeedbackHandler = async (feedbackId: string): Promise<void> => {
 		const response = await deleteFeedbackById(localStorage.token, feedbackId).catch((err) => {
 			toast.error(err);
 			return null;
@@ -124,40 +128,13 @@
 		}
 	};
 
-	const shareHandler = async () => {
-		toast.success($i18n.t('Redirecting you to Airis Community'));
-
-		// remove snapshot from feedbacks
-		const feedbacksToShare = feedbacks.map((f) => {
-			const { snapshot, user, ...rest } = f;
-			return rest;
-		});
-		console.log(feedbacksToShare);
-
-		const url = '#';
-		const tab = await window.open(`${url}/leaderboard`, '_blank');
-
-		// Define the event handler function
-		const messageHandler = (event) => {
-			if (event.origin !== url) return;
-			if (event.data === 'loaded') {
-				tab.postMessage(JSON.stringify(feedbacksToShare), '*');
-
-				// Remove the event listener after handling the message
-				window.removeEventListener('message', messageHandler);
-			}
-		};
-
-		window.addEventListener('message', messageHandler, false);
-	};
-
-	const feedbacksToCsv = (feedbacks) => {
-		const rows = feedbacks.map((f) => {
+	const feedbacksToCsv = (feedbacks: FeedbackRecord[]): string => {
+		const rows: Record<string, string | number>[] = feedbacks.map((f) => {
 			const { data, ...rest } = f;
 			return {
 				id: rest.id,
 				user_id: rest.user_id,
-				chat_id: data?.chat_id ?? '',
+				chat_id: rest.meta?.chat_id ?? data?.chat_id ?? '',
 				model_id: data?.model_id ?? '',
 				sibling_model_ids: (data?.sibling_model_ids ?? []).join(';'),
 				rating: data?.rating ?? '',
@@ -171,9 +148,9 @@
 		if (rows.length === 0) return '';
 
 		const headers = Object.keys(rows[0]);
-		const escape = (val) => {
+		const escape = (val: string | number): string => {
 			const s = String(val ?? '');
-			return s.includes(',') || s.includes('"') || s.includes('\n')
+			return s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')
 				? `"${s.replace(/"/g, '""')}"`
 				: s;
 		};
@@ -183,13 +160,11 @@
 		);
 	};
 
-	const exportHandler = async (format: 'json' | 'csv' = 'json') => {
-		const _feedbacks = await exportAllFeedbacks(localStorage.token, selectedModelId).catch(
-			(err) => {
-				toast.error(err);
-				return null;
-			}
-		);
+	const exportHandler = async (format: 'json' | 'csv' = 'json'): Promise<void> => {
+		const _feedbacks = await exportAllFeedbacks(localStorage.token, selectedModelId).catch(() => {
+			toast.error($i18n.t('Something went wrong :('));
+			return null;
+		});
 
 		if (_feedbacks) {
 			if (format === 'csv') {
@@ -319,11 +294,11 @@
 							<th
 								scope="col"
 								class="px-2.5 py-2 font-normal cursor-pointer select-none w-3"
-								on:click={() => setSortKey('user')}
+								on:click={() => setSortKey('username')}
 							>
 								<div class="flex gap-1.5 items-center justify-end">
 									{$i18n.t('User')}
-									{#if orderBy === 'user'}
+									{#if orderBy === 'username'}
 										<span class="font-normal">
 											{#if direction === 'asc'}
 												<ChevronUp className="size-2" />
@@ -423,11 +398,11 @@
 							>
 								<td class=" py-0.5 text-right font-normal">
 									<div class="flex justify-center">
-										<Tooltip content={feedback?.user?.name}>
+										<Tooltip content={feedback.user?.name ?? ''}>
 											<div class="shrink-0">
 												<img
-													src={`${WEBUI_API_BASE_URL}/users/${feedback.user.id}/profile/image`}
-													alt={feedback?.user?.name}
+													src={`${WEBUI_API_BASE_URL}/users/${feedback.user?.id ?? feedback.user_id}/profile/image`}
+													alt={feedback.user?.name ?? ''}
 													class="size-5 rounded-full object-cover shrink-0"
 												/>
 											</div>
@@ -439,7 +414,7 @@
 									<div class="flex flex-col items-start gap-0.5 h-full">
 										<div class="flex flex-col h-full">
 											{#if feedback.data?.sibling_model_ids}
-												<Tooltip content={feedback.data?.model_id} placement="top-start">
+												<Tooltip content={feedback.data?.model_id ?? ''} placement="top-start">
 													<div
 														class="font-normal text-gray-600 dark:text-gray-400 flex-1 line-clamp-1"
 													>
@@ -463,7 +438,7 @@
 													</div>
 												</Tooltip>
 											{:else}
-												<Tooltip content={feedback.data?.model_id} placement="top-start">
+												<Tooltip content={feedback.data?.model_id ?? ''} placement="top-start">
 													<div
 														class="text-sm font-normal text-gray-600 dark:text-gray-400 flex-1 py-1.5 line-clamp-1"
 													>
@@ -475,19 +450,17 @@
 									</div>
 								</td>
 
-								{#if feedback?.data?.rating}
-									<td class="px-3 py-1 text-right font-normal text-gray-900 dark:text-white w-max">
-										<div class=" flex justify-end">
-											{#if feedback?.data?.rating.toString() === '1'}
-												<Badge type="info" content={$i18n.t('Won')} />
-											{:else if feedback?.data?.rating.toString() === '0'}
-												<Badge type="muted" content={$i18n.t('Draw')} />
-											{:else if feedback?.data?.rating.toString() === '-1'}
-												<Badge type="error" content={$i18n.t('Lost')} />
-											{/if}
-										</div>
-									</td>
-								{/if}
+								<td class="px-3 py-1 text-right font-normal text-gray-900 dark:text-white w-max">
+									<div class=" flex justify-end">
+										{#if feedback.data?.rating?.toString() === '1'}
+											<Badge type="info" content={$i18n.t('Won')} />
+										{:else if feedback.data?.rating?.toString() === '0'}
+											<Badge type="muted" content={$i18n.t('Draw')} />
+										{:else if feedback.data?.rating?.toString() === '-1'}
+											<Badge type="error" content={$i18n.t('Lost')} />
+										{/if}
+									</div>
+								</td>
 
 								<td class=" px-3 py-1 text-right font-normal">
 									{dayjs(feedback.updated_at * 1000).fromNow()}
@@ -495,7 +468,7 @@
 
 								<td class=" px-3 py-1 text-right font-normal" on:click={(e) => e.stopPropagation()}>
 									<FeedbackMenu
-										on:delete={(e) => {
+										on:delete={() => {
 											deleteFeedbackHandler(feedback.id);
 										}}
 									>

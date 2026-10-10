@@ -1,42 +1,57 @@
 <script lang="ts">
 	import Modal from '$lib/components/common/Modal.svelte';
-	import { getContext } from 'svelte';
-	const i18n = getContext('i18n');
+	import { getContext, onDestroy } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { FeedbackItem, FeedbackRecord } from '$lib/apis/evaluations';
+	const i18n = getContext<Writable<I18n>>('i18n');
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import { getFeedbackById } from '$lib/apis/evaluations';
 	import { toast } from 'svelte-sonner';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
 	export let show = false;
-	export let selectedFeedback = null;
+	export let selectedFeedback: FeedbackItem | null = null;
 
 	export let onClose: () => void = () => {};
 
 	let loaded = false;
 
-	let feedbackData = null;
+	let feedbackData: FeedbackRecord | null = null;
 
-	const close = () => {
+	const close = (): void => {
 		show = false;
 		onClose();
 	};
 
-	const init = async () => {
+	let detailsAbort: AbortController | null = null;
+	const cancelLoad = (): void => {
+		detailsAbort?.abort();
+	};
+	const init = async (): Promise<void> => {
+		detailsAbort?.abort();
+		const controller = new AbortController();
+		detailsAbort = controller;
 		loaded = false;
 		feedbackData = null;
-		if (selectedFeedback) {
-			feedbackData = await getFeedbackById(localStorage.token, selectedFeedback.id).catch((err) => {
-				return null;
-			});
-
-			console.log('Feedback Data:', selectedFeedback, feedbackData);
+		const id = selectedFeedback?.id;
+		if (!id) return;
+		try {
+			const res = await getFeedbackById(localStorage.token, id, controller.signal);
+			if (!controller.signal.aborted && show && selectedFeedback?.id === id) feedbackData = res;
+		} catch {
+			if (!controller.signal.aborted && show && selectedFeedback?.id === id)
+				toast.error($i18n.t('Something went wrong :('));
+		} finally {
+			if (!controller.signal.aborted && show && selectedFeedback?.id === id) loaded = true;
 		}
-		loaded = true;
 	};
-
-	$: if (show) {
+	$: if (show && selectedFeedback) {
 		init();
+	} else {
+		cancelLoad();
 	}
+	onDestroy(cancelLoad);
 </script>
 
 <Modal size="sm" bind:show>
@@ -74,25 +89,28 @@
 
 						{#if feedbackData}
 							{@const messageId = feedbackData?.meta?.message_id}
-							{@const messages = feedbackData?.snapshot?.chat?.chat?.history.messages}
+							{@const messages = feedbackData.snapshot?.chat?.chat?.history?.messages ?? {}}
 
-							{#if messages[messages[messageId]?.parentId]}
+							{@const response = messageId ? messages[messageId] : undefined}
+							{@const prompt = response?.parentId ? messages[response.parentId] : undefined}
+
+							{#if prompt}
 								<div class="flex flex-col w-full mb-2">
 									<div class="mb-1 text-xs text-gray-500">{$i18n.t('Prompt')}</div>
 
 									<div class="flex-1 text-xs whitespace-pre-line break-words">
-										<span>{messages[messages[messageId]?.parentId]?.content || '-'}</span>
+										<span>{prompt.content || '-'}</span>
 									</div>
 								</div>
 							{/if}
 
-							{#if messages[messageId]}
+							{#if response}
 								<div class="flex flex-col w-full mb-2">
 									<div class="mb-1 text-xs text-gray-500">{$i18n.t('Response')}</div>
 									<div
 										class="flex-1 text-xs whitespace-pre-line break-words max-h-32 overflow-y-auto"
 									>
-										<span>{messages[messageId]?.content || '-'}</span>
+										<span>{response.content || '-'}</span>
 									</div>
 								</div>
 							{/if}
@@ -102,7 +120,11 @@
 							<div class=" mb-1 text-xs text-gray-500">{$i18n.t('Rating')}</div>
 
 							<div class="flex-1 text-xs">
-								<span>{selectedFeedback?.data?.details?.rating ?? '-'}</span>
+								<span
+									>{selectedFeedback?.data?.details?.rating ??
+										selectedFeedback?.data?.rating ??
+										'-'}</span
+								>
 							</div>
 						</div>
 						<div class="flex flex-col w-full mb-2">
