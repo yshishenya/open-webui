@@ -1025,7 +1025,11 @@
 				tools.set(await getTools(localStorage.token));
 			}
 			if (!$functions) {
-				functions.set(await getFunctions(localStorage.token));
+				await getFunctions(localStorage.token)
+					.then((items) => functions.set(items))
+					.catch(() =>
+						toast.error($i18n.t('Could not load functions. Close this section and open it again.'))
+					);
 			}
 			if (!$skills) {
 				skills.set(await getSkills(localStorage.token));

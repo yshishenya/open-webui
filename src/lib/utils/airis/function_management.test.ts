@@ -192,6 +192,17 @@ it('contains a refresh refusal after an accepted delete', async () => {
 	expect(r.api.items()).toEqual([]);
 	expect(r.errors).toHaveLength(1);
 });
+it('contains a catalog refusal after an accepted delete without clearing either store', async () => {
+	const r = rig();
+	r.api.setItems([{ ...item }]);
+	r.context.getFunctions.mockRejectedValue(Error('catalog refused'));
+	await expect(r.api.remove(item)).resolves.toBeUndefined();
+	expect(r.remove).toHaveBeenCalledTimes(1);
+	expect(r.api.items()).toEqual([]);
+	expect(r.context._functions.set).not.toHaveBeenCalled();
+	expect(r.context.models.set).not.toHaveBeenCalled();
+	expect(r.errors).toEqual(['catalog refused']);
+});
 it('never reports complete success after a refused import', async () => {
 	const r = rig();
 	r.create.mockRejectedValue(Error('save refused'));

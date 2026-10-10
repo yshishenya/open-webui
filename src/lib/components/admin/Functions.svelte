@@ -200,7 +200,7 @@
 		const version = ++refreshVersion;
 		try {
 			const [nextFunctions, nextModels] = await Promise.all([
-				getFunctions(localStorage.token),
+				getFunctions(localStorage.token, controller.signal),
 				getModels(
 					localStorage.token,
 					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null),

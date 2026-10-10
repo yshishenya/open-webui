@@ -410,7 +410,15 @@
 		await tools.set((await getTools(localStorage.token).catch(() => null)) ?? []);
 		skillsList = (await getSkills(localStorage.token).catch(() => null)) ?? [];
 		if (!$functions) {
-			await functions.set(await getFunctions(localStorage.token));
+			await getFunctions(localStorage.token, voicesAbort.signal)
+				.then((items) => {
+					if (!voicesAbort.signal.aborted) functions.set(items);
+				})
+				.catch(() => {
+					if (!voicesAbort.signal.aborted)
+						toast.error($i18n.t('Could not load functions. Close this section and open it again.'));
+				});
+			if (voicesAbort.signal.aborted) return;
 		}
 		if (suggestionTags.length === 0) {
 			await loadSuggestionTags();

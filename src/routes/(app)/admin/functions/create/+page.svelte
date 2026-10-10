@@ -46,7 +46,9 @@
 
 		if (res) {
 			toast.success($i18n.t('Function created successfully'));
-			functions.set(await getFunctions(localStorage.token));
+			await getFunctions(localStorage.token)
+				.then((items) => functions.set(items))
+				.catch(() => toast.error($i18n.t('Failed to refresh functions. Reload the page.')));
 			models.set(
 				await getModels(
 					localStorage.token,

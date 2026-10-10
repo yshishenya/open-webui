@@ -1,25 +1,20 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
-	import { config, functions } from '$lib/stores';
+	import { config } from '$lib/stores';
 	import { goto } from '$app/navigation';
 
-	import { getFunctions } from '$lib/apis/functions';
 	import Functions from '$lib/components/admin/Functions.svelte';
+	let enabled = false;
 
-	onMount(async () => {
+	onMount(() => {
 		if (!$config?.features?.enable_plugins) {
-			await goto('/admin', { replaceState: true });
+			void goto('/admin', { replaceState: true });
 			return;
 		}
-
-		await Promise.all([
-			(async () => {
-				functions.set(await getFunctions(localStorage.token));
-			})()
-		]);
+		enabled = true;
 	});
 </script>
 
-{#if $functions !== null}
+{#if enabled}
 	<Functions />
 {/if}

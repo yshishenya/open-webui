@@ -145,10 +145,11 @@
 		loading = true;
 
 		if ($functions === null) {
-			functions.set(await getFunctions(localStorage.token).catch(() => null));
-			if ($functions === null) {
-				toast.error($i18n.t('Could not load functions. Close this section and open it again.'));
-			}
+			await getFunctions(localStorage.token)
+				.then((items) => functions.set(items))
+				.catch(() =>
+					toast.error($i18n.t('Could not load functions. Close this section and open it again.'))
+				);
 		}
 		if ($tools === null) {
 			tools.set(await getTools(localStorage.token).catch(() => null));
