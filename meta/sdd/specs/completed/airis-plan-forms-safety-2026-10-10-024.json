@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-plan-forms-safety-2026-10-10-024",
+  "title": "Airis Plan Forms Safety",
+  "generated": "2026-10-10T12:51:07.145741Z",
+  "last_updated": "2026-10-10T13:07:22.115654Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__billing-plan-forms.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T12:52:28.494144Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T13:07:22.115373Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Plan Forms Safety",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce quota contract and nullable editor failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T12:54:23.277792Z",
+        "journaled_at": "2026-10-10T12:54:23.279481Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Apply minimal form and request contract fixes",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:04:43.486367Z",
+        "journaled_at": "2026-10-10T13:04:43.488297Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify source checks and record acceptance limits",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:07:21.679724Z",
+        "journaled_at": "2026-10-10T13:07:21.681663Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce quota contract and nullable editor failures",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T12:54:23.277648Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T12:54:23.278517Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Apply minimal form and request contract fixes",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:04:43.486197Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:04:43.487160Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify source checks and record acceptance limits",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:07:21.679546Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:07:21.680570Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T12:54:23.278513Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce quota contract and nullable editor failures",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T12:54:23.279476Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce quota contract and nullable editor failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:04:43.487155Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Apply minimal form and request contract fixes",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:04:43.488293Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Apply minimal form and request contract fixes",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T13:07:21.680563Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify source checks and record acceptance limits",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:07:21.681659Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify source checks and record acceptance limits",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

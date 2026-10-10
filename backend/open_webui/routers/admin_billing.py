@@ -53,7 +53,7 @@ class CreatePlanRequest(BaseModel):
     currency: str = Field(default='RUB', pattern='^(RUB|USD|EUR)$')
     interval: str = Field(..., pattern='^(day|week|month|year)$')
 
-    quotas: dict[str, int] | None = None
+    quotas: dict[str, int | None] | None = None
     features: list[str] | None = None
 
     is_active: bool = True
@@ -70,7 +70,7 @@ class UpdatePlanRequest(BaseModel):
     currency: str | None = Field(None, pattern='^(RUB|USD|EUR)$')
     interval: str | None = Field(None, pattern='^(day|week|month|year)$')
 
-    quotas: dict[str, int] | None = None
+    quotas: dict[str, int | None] | None = None
     features: list[str] | None = None
 
     is_active: bool | None = None

@@ -186,3 +186,10 @@
   - Preservation: 5618 frozen source blobs, backend 542, primary 21, production
     healthy/restarts 0 and 12 neighbors unchanged; all 262 volumes preserved.
   - Runtime: fcca5208491f40223da33a9e7daecb60b2a30337; plan 198/244, 46 open, goal active.
+
+- [x] [BUG] Billing plan forms: source acceptance; release gates pending
+  Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__billing-plan-forms.md
+  Owner: Codex
+  Started: 2026-10-10
+  Done: 2026-10-10
+  Summary: 2024 frontend, 12 focused, 7 PostgreSQL, 1064 backend, 8 browser; preserve subscriber guards and record whole quality/thread-warning limits.
