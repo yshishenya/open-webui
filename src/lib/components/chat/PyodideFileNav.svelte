@@ -90,8 +90,6 @@
 		navigatingHistory = false;
 	};
 
-	let _reqId = 0;
-
 	const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'avif']);
 	const isImage = (path: string) => IMAGE_EXTS.has(path.split('.').pop()?.toLowerCase() ?? '');
 
@@ -106,24 +104,66 @@
 		return worker;
 	}
 
-	function sendWorkerMessage(msg: any): Promise<any> {
-		const worker = ensureWorker();
-		const id = `fs-${++_reqId}`;
-		return new Promise((resolve, reject) => {
-			const timeout = setTimeout(() => {
-				worker.removeEventListener('message', handler);
-				reject('Timeout');
-			}, 30000);
+	type FSRequest = {
+		type: string;
+		path?: string;
+		dir?: string;
+		files?: { name: string; data: ArrayBuffer }[];
+	};
+	type FSReply = {
+		id: string;
+		type?: string;
+		entries?: FileEntry[];
+		data?: ArrayBuffer;
+		success?: boolean;
+		error?: string;
+		stderr?: string;
+	};
 
-			function handler(event: MessageEvent) {
-				if (event.data?.id !== id) return;
+	function sendWorkerMessage(msg: FSRequest): Promise<FSReply> {
+		return new Promise((resolve, reject) => {
+			const worker = ensureWorker();
+			const id = `fs-${crypto.randomUUID()}`;
+			const cleanup = (): void => {
 				clearTimeout(timeout);
 				worker.removeEventListener('message', handler);
-				resolve(event.data);
+				worker.removeEventListener('error', onError);
+			};
+			function onError(): void {
+				cleanup();
+				reject(new Error('Python worker failed.'));
 			}
-
+			function handler(event: MessageEvent<FSReply>): void {
+				if (event.data?.id !== id) return;
+				const data = event.data;
+				cleanup();
+				if (
+					data.error ||
+					data.stderr ||
+					data.success === false ||
+					data.type !== msg.type ||
+					(msg.type === 'fs:list'
+						? !Array.isArray(data.entries)
+						: msg.type === 'fs:read'
+							? !(data.data instanceof ArrayBuffer)
+							: data.success !== true)
+				) {
+					reject(new Error('Python filesystem request failed.'));
+				} else {
+					resolve(data);
+				}
+			}
+			const timeout = setTimeout(() => {
+				cleanup();
+				reject(new Error('Timeout'));
+			}, 30000);
 			worker.addEventListener('message', handler);
-			worker.postMessage({ ...msg, id });
+			worker.addEventListener('error', onError);
+			try {
+				worker.postMessage({ ...msg, id });
+			} catch {
+				onError();
+			}
 		});
 	}
 
@@ -184,6 +224,7 @@
 
 		try {
 			const res = await sendWorkerMessage({ type: 'fs:read', path: filePath });
+			if (!res.data) throw new Error('File content unavailable.');
 			if (res.error) {
 				fileContent = `Error: ${res.error}`;
 			} else if (isImage(filePath)) {

@@ -300,13 +300,80 @@
 		return worker;
 	};
 
+	/**
+	 * @param {string} id
+	 * @param {string} code
+	 * @param {((output: {stdout: unknown, stderr: unknown, result: unknown}) => void) | undefined} cb
+	 * @param {{id?: string, filename?: string, name?: string}[]} files
+	 * @returns {Promise<void>}
+	 */
 	const executePythonAsWorker = async (id, code, cb, files = []) => {
-		let result = null;
-		let stdout = null;
-		let stderr = null;
+		let settled = false;
+		let submitted = false;
+		/** @type {Worker | null} */
+		let worker = null;
+		const controller = new AbortController();
+		/** @param {{stdout: unknown, stderr: unknown, result: unknown}} output
+		 * @returns {void} */
+		const finish = (output) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeoutId);
+			controller.abort();
+			worker?.removeEventListener('message', onMessage);
+			worker?.removeEventListener('error', onError);
+			let response;
+			try {
+				response = JSON.parse(
+					JSON.stringify(output, (_key, value) =>
+						typeof value === 'bigint' ? value.toString() : value
+					)
+				);
+			} catch {
+				response = { stdout: null, stderr: 'Invalid Python worker response.', result: null };
+			}
+			try {
+				cb?.(response);
+			} catch {
+				console.warn('Failed to deliver Python execution response.');
+			}
+		};
+		/** @returns {void} */
+		const stopWorker = () => {
+			if (!worker) return;
+			if ($pyodideWorker === worker) pyodideWorker.set(null);
+			worker.terminate();
+		};
+		/** @param {MessageEvent<unknown>} event
+		 * @returns {void} */
+		const onMessage = (event) => {
+			if (settled || !submitted || !event.data || typeof event.data !== 'object') return;
+			const data = /** @type {Record<string, unknown>} */ (event.data);
+			if (data.id !== id || (typeof data.type === 'string' && data.type.startsWith('fs:'))) return;
+			if (!['stdout', 'stderr', 'result', 'error'].some((key) => key in data)) {
+				finish({ stdout: null, stderr: 'Invalid Python worker response.', result: null });
+				return;
+			}
+			finish({
+				stdout: data.stdout ?? null,
+				stderr: data.stderr ?? data.error ?? null,
+				result: data.result ?? null
+			});
+		};
+		/** @returns {void} */
+		const onError = () => {
+			if (settled) return;
+			finish({ stdout: null, stderr: 'Python worker failed.', result: null });
+			stopWorker();
+		};
+		const timeoutId = setTimeout(() => {
+			if (settled) return;
+			finish({ stdout: null, stderr: 'Execution Time Limit Exceeded', result: null });
+			// Preparation has not used the shared runtime yet.
+			if (submitted) stopWorker();
+		}, 60000);
 
-		let executing = true;
-		let packages = [
+		const packages = [
 			/\bimport\s+requests\b|\bfrom\s+requests\b/.test(code) ? 'requests' : null,
 			/\bimport\s+bs4\b|\bfrom\s+bs4\b/.test(code) ? 'beautifulsoup4' : null,
 			/\bimport\s+numpy\b|\bfrom\s+numpy\b/.test(code) ? 'numpy' : null,
@@ -321,123 +388,33 @@
 			/\bimport\s+tiktoken\b|\bfrom\s+tiktoken\b/.test(code) ? 'tiktoken' : null,
 			/\bimport\s+pytz\b|\bfrom\s+pytz\b/.test(code) ? 'pytz' : null
 		].filter(Boolean);
-
-		const worker = getOrCreateWorker();
-
-		// Fetch file content from the server and prepare for the worker
-		let filePayloads = [];
-		if (files && files.length > 0) {
+		try {
+			worker = getOrCreateWorker();
+			worker.addEventListener('message', onMessage);
+			worker.addEventListener('error', onError);
+			/** @type {{name: string, data: ArrayBuffer}[]} */
+			const filePayloads = [];
 			for (const file of files) {
-				try {
-					const fileId = file?.id;
-					const fileName = file?.filename || file?.name || 'file';
-					if (fileId) {
-						const content = await getFileContentById(fileId);
-						if (content) {
-							filePayloads.push({ name: fileName, data: content });
-						}
-					}
-				} catch (e) {
-					console.error('Failed to fetch file for Pyodide:', e);
-				}
+				if (!file?.id) throw new Error('Selected file unavailable.');
+				const content = await getFileContentById(file.id, controller.signal);
+				if (settled) return;
+				filePayloads.push({ name: file.filename || file.name || 'file', data: content });
 			}
+			submitted = true;
+			worker.postMessage({
+				type: 'execute',
+				id,
+				code,
+				packages,
+				files: filePayloads.length ? filePayloads : undefined
+			});
+		} catch {
+			finish({
+				stdout: null,
+				stderr: 'Failed to prepare or start Python execution.',
+				result: null
+			});
 		}
-
-		worker.postMessage({
-			type: 'execute',
-			id: id,
-			code: code,
-			packages: packages,
-			files: filePayloads.length > 0 ? filePayloads : undefined
-		});
-
-		// Timeout for this specific execution (not the worker itself)
-		let timeoutId = setTimeout(() => {
-			if (executing) {
-				executing = false;
-				stderr = 'Execution Time Limit Exceeded';
-
-				// Terminate and recreate the worker on timeout
-				worker.terminate();
-				pyodideWorker.set(null);
-
-				if (cb) {
-					cb(
-						JSON.parse(
-							JSON.stringify(
-								{
-									stdout: stdout,
-									stderr: stderr,
-									result: result
-								},
-								(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-							)
-						)
-					);
-				}
-			}
-		}, 60000);
-
-		// Use addEventListener so multiple concurrent executions don't clobber each other
-		const onMessage = (event) => {
-			const { id: eventId, ...data } = event.data;
-			// Only handle responses for this execution ID
-			if (eventId !== id) return;
-			// Ignore FS responses (they use a type field)
-			if (data.type && data.type.startsWith('fs:')) return;
-
-			console.log('pyodideWorker.onmessage', event);
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', onMessage);
-			worker.removeEventListener('error', onError);
-
-			if (data['stdout']) stdout = data['stdout'];
-			if (data['stderr']) stderr = data['stderr'];
-			if (data['result']) result = data['result'];
-
-			if (cb) {
-				cb(
-					JSON.parse(
-						JSON.stringify(
-							{
-								stdout: stdout,
-								stderr: stderr,
-								result: result
-							},
-							(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-						)
-					)
-				);
-			}
-
-			executing = false;
-		};
-
-		const onError = (event) => {
-			console.log('pyodideWorker.onerror', event);
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', onMessage);
-			worker.removeEventListener('error', onError);
-
-			if (cb) {
-				cb(
-					JSON.parse(
-						JSON.stringify(
-							{
-								stdout: stdout,
-								stderr: stderr,
-								result: result
-							},
-							(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-						)
-					)
-				);
-			}
-			executing = false;
-		};
-
-		worker.addEventListener('message', onMessage);
-		worker.addEventListener('error', onError);
 	};
 
 	/** @param {string | undefined} serverUrl */

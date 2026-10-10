@@ -312,32 +312,18 @@ export const updateFileDataContentById = async (token: string, id: string, conte
 	return res;
 };
 
-export const getFileContentById = async (id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/files/${id}/content`, {
+export const getFileContentById = async (
+	id: string,
+	signal?: AbortSignal
+): Promise<ArrayBuffer> => {
+	const response = await fetch(`${WEBUI_API_BASE_URL}/files/${id}/content`, {
 		method: 'GET',
-		headers: {
-			Accept: 'application/json'
-		},
-		credentials: 'include'
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return await res.arrayBuffer();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		headers: { Accept: 'application/json' },
+		credentials: 'include',
+		signal: signal ?? AbortSignal.timeout(60000)
+	});
+	if (!response.ok) throw new Error('Failed to load file content.');
+	return await response.arrayBuffer();
 };
 
 export const renameFileById = async (token: string, id: string, filename: string) => {

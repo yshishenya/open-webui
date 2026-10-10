@@ -271,6 +271,14 @@ export class PyodideSandboxHost {
 		}
 	}
 
+	dispatchEvent(event: Event): boolean {
+		if (event.type === 'error') {
+			this.onerror?.(event);
+			for (const listener of [...this.errorListeners]) listener(event);
+		}
+		return !event.defaultPrevented;
+	}
+
 	terminate() {
 		window.removeEventListener('message', this.onWindowMessage);
 		this.iframe.removeEventListener('load', this.onIframeLoad);
