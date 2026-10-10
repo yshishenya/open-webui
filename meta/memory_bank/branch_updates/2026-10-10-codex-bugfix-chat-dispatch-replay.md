@@ -298,3 +298,13 @@
   - Done: 2026-10-10
   - Tests: types698/85,ESLint673; общие gates остаются открытыми.
   - Risks: Production release pending; план198/244,цельactive.
+
+
+- [x] **[REFACTOR]** Типы обработчиков меню вложений
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__refactor__input-menu-types.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Выбор/native file callbacks сохранены; compiled код совпал после unused import removal. Frontend2078/2078,новых диагностик0.
+  - Done: 2026-10-10
+  - Tests: Целевые4/4,types692/85,ESLint655; SDD0343/3.
+  - Risks: CI50remarks/17changed files и production release pending; план198/244,цельactive.
