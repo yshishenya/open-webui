@@ -1,39 +1,43 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
+	import type { ChatHistory } from '$lib/utils/airis/chat_history';
 	import { settings } from '$lib/stores';
 
 	import MultiResponseMessages from './MultiResponseMessages.svelte';
 	import ResponseMessage from './ResponseMessage.svelte';
 	import UserMessage from './UserMessage.svelte';
 
-	export let chatId;
-	export let selectedModels = [];
+	type ResponseProps = ComponentProps<typeof ResponseMessage>;
+	type MultiResponseProps = ComponentProps<typeof MultiResponseMessages>;
+	export let chatId: string;
+	export let selectedModels: string[] = [];
 	export let idx = 0;
 
-	export let history;
-	export let messageId;
+	export let history: ChatHistory;
+	export let messageId: string;
 
-	export let user;
+	export let user: ComponentProps<typeof UserMessage>['user'];
 
 	export let setInputText: (text: string) => void = () => {};
-	export let gotoMessage;
-	export let showPreviousMessage;
-	export let showNextMessage;
-	export let updateChat;
+	export let gotoMessage: ComponentProps<typeof UserMessage>['gotoMessage'];
+	export let showPreviousMessage: ResponseProps['showPreviousMessage'];
+	export let showNextMessage: ResponseProps['showNextMessage'];
+	export let updateChat: ResponseProps['updateChat'];
 
-	export let editMessage;
-	export let saveMessage;
-	export let deleteMessage;
-	export let rateMessage;
-	export let actionMessage;
-	export let submitMessage;
+	export let editMessage: ResponseProps['editMessage'];
+	export let saveMessage: ResponseProps['saveMessage'];
+	export let deleteMessage: ResponseProps['deleteMessage'];
+	export let rateMessage: ResponseProps['rateMessage'];
+	export let actionMessage: ResponseProps['actionMessage'];
+	export let submitMessage: ResponseProps['submitMessage'];
 
-	export let regenerateResponse;
-	export let continueResponse;
-	export let mergeResponses;
+	export let regenerateResponse: ResponseProps['regenerateResponse'];
+	export let continueResponse: ResponseProps['continueResponse'];
+	export let mergeResponses: MultiResponseProps['mergeResponses'];
 
-	export let addMessages;
+	export let addMessages: ResponseProps['addMessages'];
 	export let forkHandler: ((messageId?: string | null) => void | Promise<void>) | null = null;
-	export let triggerScroll;
+	export let triggerScroll: MultiResponseProps['triggerScroll'];
 	export let readOnly = false;
 	export let allowDelete = true;
 	export let compactPreview = false;
@@ -61,7 +65,7 @@
 				{messageId}
 				isFirstMessage={idx === 0}
 				siblings={history.messages[messageId].parentId !== null
-					? (history.messages[history.messages[messageId].parentId]?.childrenIds ?? [])
+					? (history.messages[history.messages[messageId].parentId!]?.childrenIds ?? [])
 					: (Object.values(history.messages)
 							.filter((message) => message.parentId === null)
 							.map((message) => message.id) ?? [])}
@@ -76,14 +80,14 @@
 				{editCodeBlock}
 				{topPadding}
 			/>
-		{:else if (history.messages[history.messages[messageId].parentId]?.models?.length ?? 1) === 1}
+		{:else if (history.messages[history.messages[messageId].parentId!]?.models?.length ?? 1) === 1}
 			<ResponseMessage
 				{chatId}
 				{history}
 				{messageId}
 				{selectedModels}
 				isLastMessage={messageId === history.currentId}
-				siblings={history.messages[history.messages[messageId].parentId]?.childrenIds ?? []}
+				siblings={history.messages[history.messages[messageId].parentId!]?.childrenIds ?? []}
 				{setInputText}
 				{gotoMessage}
 				{showPreviousMessage}

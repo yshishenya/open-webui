@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChatCodeExecution } from '$lib/utils/airis/chat_history';
 	import { getContext } from 'svelte';
 	import CodeBlock from './CodeBlock.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -8,7 +9,7 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
-	export let codeExecution = null;
+	export let codeExecution: ChatCodeExecution | null | undefined = null;
 </script>
 
 <Modal size="lg" bind:show>

@@ -227,3 +227,16 @@
   - Preservation: Production/12 прежних соседей/21 чужой файл/262 тома сохранены;
     внешний новый terminal-container не меняли; свои браузер/HTTP/сборка убраны.
   - Risks: Общие quality/PR/CI/выпуск и реальные критерии остаются открытыми.
+
+- [x] **[REFACTOR]** Типы компонентов сообщений, оценок и выполнения кода
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__refactor__response-leaf-types.md`
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Переиспользовать существующие контракты и подтвердить идентичный JS/CSS.
+
+  - Done: 2026-10-10 (исходники; выпуск ожидает общих проверок)
+  - Tests: Пять compiledJS/CSS идентичны,frontend2048/2048;
+    types891/85→834/85,ESLint710→710,новых0;SDD0283/3.
+  - Preservation: Backend543/1064reused,production13соседей/healthy/restarts0,
+    21чужой файл/262тома сохранены,новыхтомов0.
+  - Risks: Общие quality/выпуск и реальные A/Bкритерии открыты;план198/244.

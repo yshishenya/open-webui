@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
+	import type { Model } from '$lib/stores';
+	import type { ChatHistoryMessage, ChatAnnotation } from '$lib/utils/airis/chat_history';
 	import { toast } from 'svelte-sonner';
 
 	import { createEventDispatcher, onMount, getContext } from 'svelte';
@@ -9,9 +12,11 @@
 
 	const i18n = getContext('i18n');
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{
+		save: Pick<ChatAnnotation, 'reason' | 'comment' | 'tags' | 'details'>;
+	}>();
 
-	export let message;
+	export let message: ChatHistoryMessage;
 	export let show = false;
 
 	let LIKE_REASONS = [
@@ -34,14 +39,14 @@
 		'other'
 	];
 
-	let tags = [];
+	let tags: NonNullable<ComponentProps<typeof Tags>['tags']> = [];
 
-	let reasons = [];
-	let selectedReason = null;
+	let reasons: string[] = [];
+	let selectedReason: string | null = null;
 	let comment = '';
 
-	let detailedRating = null;
-	let selectedModel = null;
+	let detailedRating: number | null = null;
+	let selectedModel: Model | null | undefined = null;
 
 	$: if (message?.annotation?.rating === 1) {
 		reasons = LIKE_REASONS;
@@ -53,7 +58,7 @@
 		init();
 	}
 
-	const init = () => {
+	const init = (): void => {
 		if (!selectedReason) {
 			selectedReason = message?.annotation?.reason ?? '';
 		}
@@ -82,7 +87,7 @@
 		}
 	});
 
-	const saveHandler = () => {
+	const saveHandler = (): void => {
 		console.log('saveHandler');
 		// if (!selectedReason) {
 		// 	toast.error($i18n.t('Please select a reason'));

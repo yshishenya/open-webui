@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick, getContext } from 'svelte';
+	import { onMount, tick, getContext, type ComponentProps } from 'svelte';
 
 	import { mobile, models, settings } from '$lib/stores';
 
@@ -15,11 +15,7 @@
 	import type { Writable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
 	import { getLastMessageId } from '$lib/utils/airis/chat_history';
-	import type {
-		ChatHistory,
-		ChatHistoryMessage,
-		ChatMessageEdit
-	} from '$lib/utils/airis/chat_history';
+	import type { ChatHistory, ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 	const i18n = getContext<Writable<I18n>>('i18n');
 
 	export let chatId: string;
@@ -35,11 +31,7 @@
 
 	export let setInputText: (text: string) => void = () => {};
 	export let updateChat: () => void | Promise<void>;
-	export let editMessage: (
-		id: string,
-		edit: ChatMessageEdit,
-		submit?: boolean
-	) => void | Promise<void>;
+	export let editMessage: ComponentProps<typeof ResponseMessage>['editMessage'];
 	export let saveMessage: (id: string, message: ChatHistoryMessage) => void | Promise<void>;
 	export let rateMessage: (id: string, rating: number) => void | Promise<void>;
 	export let actionMessage: (
