@@ -159,3 +159,17 @@
   - Summary: Existing requestJSON/parser reused; explicit refusals, validated partial import, accepted delete/OAuth state, no duplicate writes or late lifecycle publication. Runtime `881e145b077981b53f11a2fb73c37189a45a7eea` pushed.
   - Tests: Frozen full1888/1888,focused100/100,browser18/18,console0/0;types1098/85,ESLint754,new0;backend542/primary21/production12neighbors preserved. SDD3/3completed.
   - Risks: Source acceptance only; broader quality, PR/CI/integration/build/deploy and real A/B criteria remain open. Plan198/244,goalactive.
+
+- [ ] **[BUG]** Skills API/management refuse safely
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__skills-management-safety.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Trace actual server contracts and consumers; reproduce swallowed errors, late events, partial import and toggle/delete state before fixing shared causes.
+
+- [x] **[BUG]** Skills API/management — source accepted
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__skills-management-safety.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: Existing requestJSON/grant parser reused; validated full imports, preserved Markdown, contained refusals/partial acceptance, duplicate operations and late events. Editor loading/inactive state/metadata preserved. Runtime `3ac78da26bf0f9d38d41a71e310024d6f5ca097d` pushed.
+  - Tests: Frozen full 1958/1958, focused 142/142, browser 23/23, console 0/0; types 1059/85, ESLint 742, new 0; backend 542/primary 21/production 12 neighbors preserved. SDD 3/3 complete.
+  - Risks: Source acceptance only; global quality, PR/CI/integration/build/deploy and real A/B criteria pending. Plan 198/244, goal active.
