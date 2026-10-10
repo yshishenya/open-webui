@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-sidebar-actions-safety-2026-10-10-026",
+  "title": "Airis Sidebar Actions Safety",
+  "generated": "2026-10-10T13:36:20.626840Z",
+  "last_updated": "2026-10-10T13:44:03.233184Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 0.5,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__sidebar-actions-safety.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T13:37:20.684130Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T13:44:03.232859Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Sidebar Actions Safety",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce failed title action and inspect all callers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:39:07.194507Z",
+        "journaled_at": "2026-10-10T13:39:07.196261Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Type existing sidebar actions and recover failed generation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:41:21.150016Z",
+        "journaled_at": "2026-10-10T13:41:21.151823Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Accept frontend checks and preserve working data",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:44:02.770048Z",
+        "journaled_at": "2026-10-10T13:44:02.772119Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce failed title action and inspect all callers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:39:07.194364Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:39:07.195237Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Type existing sidebar actions and recover failed generation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:41:21.149862Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:41:21.150784Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept frontend checks and preserve working data",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:44:02.769883Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:44:02.770924Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T13:39:07.195232Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce failed title action and inspect all callers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:39:07.196256Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce failed title action and inspect all callers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:41:21.150780Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Type existing sidebar actions and recover failed generation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:41:21.151819Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Type existing sidebar actions and recover failed generation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T13:44:02.770919Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept frontend checks and preserve working data",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:44:02.772111Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Accept frontend checks and preserve working data",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

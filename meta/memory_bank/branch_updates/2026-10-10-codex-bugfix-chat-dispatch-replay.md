@@ -200,3 +200,13 @@
   Started: 2026-10-10
   Done: 2026-10-10
   Summary: Native calls 23/23 completed; strict backend 1064/0 thread errors; SQLite/PostgreSQL 38 each. App unchanged; release criteria remain open.
+
+- [x] **[BUG]** Действия со списком чатов и папок
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__bugfix__sidebar-actions-safety.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Started: 2026-10-10
+  - Done: 2026-10-10
+  - Summary: Генерация ожидает сохранение, снимает занятость при отказе, не дублирует запрос; уточнены существующие типы/DOM и массивы детей.
+  - Tests: Целевые23/23; frontend2037/2037; types939/85 и ESLint723, новых0; backend1064 переиспользован после сверки543файлов.
+  - Risks: Общие проверки качества/выпуск ещё открыты; новых зависимостей/миграций нет.

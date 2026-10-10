@@ -242,7 +242,7 @@
 		initFolders();
 	}
 
-	const initFolders = async () => {
+	const initFolders = async (): Promise<void> => {
 		if ($config?.features?.enable_folders === false) {
 			return;
 		}
@@ -273,9 +273,10 @@
 				}
 
 				// Initialize childrenIds array if it doesn't exist and add the current folder id
-				folders[folder.parent_id].childrenIds = folders[folder.parent_id].childrenIds
-					? [...folders[folder.parent_id].childrenIds, folder.id]
-					: [folder.id];
+				folders[folder.parent_id].childrenIds = [
+					...(folders[folder.parent_id].childrenIds ?? []),
+					folder.id
+				];
 
 				// Sort the children by updated_at field
 				folders[folder.parent_id].childrenIds?.sort((a, b) => {
@@ -299,9 +300,9 @@
 		// Build parent-child relationships for shared folders
 		for (const sf of sharedFolders) {
 			if (folders[sf.id]?.shared && sf.parent_id && folders[sf.parent_id]) {
-				folders[sf.parent_id].childrenIds = folders[sf.parent_id].childrenIds
-					? [...new Set([...folders[sf.parent_id].childrenIds, sf.id])]
-					: [sf.id];
+				folders[sf.parent_id].childrenIds = [
+					...new Set([...(folders[sf.parent_id].childrenIds ?? []), sf.id])
+				];
 			}
 		}
 	};

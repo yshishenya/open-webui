@@ -36,6 +36,34 @@ const events = (): {
 	removeEventListener: ReturnType<typeof vi.fn>;
 } => ({ addEventListener: vi.fn(), removeEventListener: vi.fn() });
 
+it('folder children remain sorted and shared children are deduplicated', async () => {
+	const context = {
+		$config: { features: { enable_folders: true } },
+		localStorage: { token: 'fixture' },
+		newFolderId: null,
+		folders: {},
+		sharedFolders: [],
+		_folders: { set: vi.fn() },
+		toast: { error: vi.fn() },
+		getFolders: vi.fn().mockResolvedValue([
+			{ id: 'first', parent_id: 'parent', updated_at: 1 },
+			{ id: 'second', parent_id: 'parent', updated_at: 2 },
+			{ id: 'root', parent_id: null, updated_at: 0 }
+		]),
+		getSharedFolders: vi.fn().mockResolvedValue([
+			{ id: 'shared', parent_id: 'parent' },
+			{ id: 'shared', parent_id: 'parent' }
+		])
+	};
+	await (evaluate(actionSource('initFolders'), context) as () => Promise<void>)();
+	expect(context.folders).toMatchObject({
+		parent: { childrenIds: ['second', 'first', 'shared'] },
+		root: { parent_id: null },
+		shared: { shared: true }
+	});
+	expect(context.toast.error).not.toHaveBeenCalled();
+});
+
 it('repeated sidebar mounts synchronously release all component resources', () => {
 	const mount = parsed.statements.find(
 		(s) =>
