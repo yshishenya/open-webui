@@ -105,3 +105,9 @@
   - Owner: Codex
   - Started: 2026-10-10
   - Summary: Отложенный save отклоняется без catch; таймер не освобождается. У VirtualList неверный height и отсутствующий rowHeight; пять callers изучены.
+
+- [x] [BUG] Выбор эмодзи — исходники приняты и отправлены.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__emoji-preference-safety.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: Runtime `878e48231bd8037ea6266455dcb175d6742e69a1`,1758 Git blobs;13/1700 тестов,браузер8/8,types1183/86,ESLint780,новых0. SDD2/2,217валидных;пустые собственные тома удалены. План198/244 и производственный допуск открыты.

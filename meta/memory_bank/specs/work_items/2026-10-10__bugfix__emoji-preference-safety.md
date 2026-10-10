@@ -2,10 +2,10 @@
 
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: source accepted; release pending
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-emoji-preference-safety-2026-10-10-016.json
+- SDD Spec: meta/sdd/specs/completed/airis-emoji-preference-safety-2026-10-10-016.json
 
 ## Goal / Acceptance Criteria
 Продолжение общего допуска G14 / 13.11, конечная цель A/B сохраняется.
@@ -14,7 +14,8 @@
 - [x] Удаление компонента освобождает таймер и отправляет последнюю ожидающую запись, если сессия прежняя; поздний отказ не обращается к интерфейсу.
 - [x] Одновременно не выполняется более одного запроса данного компонента; быстрый следующий выбор сохраняется после текущего, даже при отказе.
 - [x] Поиск и группировка строго типизированы; VirtualList соответствует действительному договору, без Any/подавлений/зависимостей.
-- [ ] Docker адресные/общие проверки не дают новых диагностик, сохранность подтверждена; source отправлен, SDD закрыта, приёмка синхронизирована.
+- [x] Docker адресные/общие проверки без новых диагностик, сохранность подтверждена; source отправлен, SDD закрыта.
+- Частная приёмка синхронизируется по CAS после отправки документации.
 
 ## Implementation / callers
 EmojiPicker используется в UserStatusModal, FolderTitle, FormattingButtons и дважды в Channel/Messages/Message. Они принимают string|null; выбор должен срабатывать немедленно независимо от сохранения недавних. Backend заменяет ui целиком, поэтому сохраняется полный снимок текущих Settings. Scope очереди ограничен компонентом; конкуренция других вкладок не объявляется решённой.
@@ -34,3 +35,5 @@ EmojiPicker: типы существующих JSON словарей и стро
 
 ## Final frozen results
 1700/1700 frontend,158 файлов;13/13 адресных выделены из общего JSON,failed/pending/todo0. Types1212/86→1183/86;ESLint780→780;новых диагностик0,изменённые файлы без diagnostic errors. 1758 frozen файлов,backend542/protected21/production12соседей сохранены;1063 backend проверки переиспользованы. Production2026-10-10T02:28:20.386097+00:00 healthy/restarts0,revisionc0ea9dd7823a89e21a8bd58f1e8eef6fe930b908. Общие gates всё ещё красные,новый выпуск не выполнялся.
+
+Runtime source/remote: `878e48231bd8037ea6266455dcb175d6742e69a1`.1758 Git blobs совпали; SDD2/2 закрыта,217 tracked SDD валидны. Свои процессы закрыты;два пустых собственных тома проверены read-only и удалены без force/prune.
