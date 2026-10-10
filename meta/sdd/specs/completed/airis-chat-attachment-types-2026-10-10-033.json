@@ -1,0 +1,199 @@
+{
+  "spec_id": "airis-chat-attachment-types-2026-10-10-033",
+  "title": "Airis Chat Attachment Types",
+  "generated": "2026-10-10T15:40:47.900044Z",
+  "last_updated": "2026-10-10T15:49:59.944554Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__chat-attachment-menu.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T15:42:32.843394Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T15:49:59.944264Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Chat Attachment Types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace attachment APIs and callers; reproduce missing legacy filename",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:43:32.955920Z",
+        "journaled_at": "2026-10-10T15:43:32.958068Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse existing record types and stored filename fallback",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:45:04.537725Z",
+        "journaled_at": "2026-10-10T15:45:04.540093Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify mounted menus, compiled changes and complete frontend checks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:49:59.495139Z",
+        "journaled_at": "2026-10-10T15:49:59.497290Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace APIs and reproduce legacy file name",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:43:32.955702Z",
+        "needs_journaling": false,
+        "status_note": "Actual mounted baseline: 2 passed / 1 failed, missing legacy.pdf label; API and all callers traced",
+        "journaled_at": "2026-10-10T15:43:32.956828Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse record types and filename fallback",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:45:04.537535Z",
+        "needs_journaling": false,
+        "status_note": "Mounted checks 3/3; emitted API unchanged; three component diffs limited to declared fallback and unused bindings",
+        "journaled_at": "2026-10-10T15:45:04.538879Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify focused and complete frontend checks",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:49:59.494953Z",
+        "needs_journaling": false,
+        "status_note": "2077 frontend passed; mounted3/3; one actual browser scenario with4 selections; types727->698, ESLint681->673, no new diagnostics; preservation accepted",
+        "journaled_at": "2026-10-10T15:49:59.496043Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T15:43:32.956823Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace APIs and reproduce legacy file name",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual mounted baseline: 2 passed / 1 failed, missing legacy.pdf label; API and all callers traced",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:43:32.957998Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace attachment APIs and callers; reproduce missing legacy filename",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:45:04.538874Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse record types and filename fallback",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Mounted checks 3/3; emitted API unchanged; three component diffs limited to declared fallback and unused bindings",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:45:04.540089Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse existing record types and stored filename fallback",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T15:49:59.496036Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify focused and complete frontend checks",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: 2077 frontend passed; mounted3/3; one actual browser scenario with4 selections; types727->698, ESLint681->673, no new diagnostics; preservation accepted",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:49:59.497286Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify mounted menus, compiled changes and complete frontend checks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

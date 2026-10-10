@@ -288,3 +288,13 @@
   - Done: 2026-10-10
   - Tests: 3/3 целевых до/после, 2074/2074 общих; 4 compiled JS/CSS идентичны; types727/85, ESLint681, новых замечаний0.
   - Release: Общие проверки качества и критерии A/B остаются открытыми.
+
+
+- [x] **[BUG][TYPES]** Выбор вложений и имена старых файлов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__chat-attachment-menu.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Старые файлы используют filename; существующие record types переиспользованы. Mounted3/3,frontend2077/2077,браузер1сценарий/4выбора; новых диагностик0.
+  - Done: 2026-10-10
+  - Tests: types698/85,ESLint673; общие gates остаются открытыми.
+  - Risks: Production release pending; план198/244,цельactive.

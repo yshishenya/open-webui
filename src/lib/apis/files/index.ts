@@ -1,5 +1,6 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { splitStream } from '$lib/utils';
+import type { KnowledgeFile } from '$lib/utils/airis/knowledge-types';
 
 export const uploadFile = async (
 	token: string,
@@ -185,7 +186,7 @@ export const searchFiles = async (
 	skip: number = 0,
 	limit: number = 50,
 	content: boolean = false
-) => {
+): Promise<KnowledgeFile[]> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
