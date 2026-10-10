@@ -126,8 +126,10 @@
   - Source: `9b1ef88dbee6ec2585250a7049ad0044506bb2bd` pushed and verified;production revision c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908 healthy/restarts0. Общие types/lint,PR/CI/production и A/B ещё не приняты;план198/244,цельactive.
   - Done: 2026-10-10 (приёмка исходников; интеграция ожидается)
 
-- [ ] [BUG] Загрузка и сохранение общих/личных настроек инструментов и функций.
+- [x] [BUG] Настройки инструментов и функций — принято в исходниках.
   - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__valves-modal-safety.md
   - Owner: Codex
-  - Started: 2026-10-10
-  - Summary: Изучены общий ValvesModal,3callers,12valveAPI,shared request/array helpers и серверные договоры; проверяются сохранность черновика, stale selection и явный повтор.
+  - Summary: Черновик и 4 режима сохраняются,12API отменяются/имеют25sbody deadline. Late load/schema/save отбрасываются;явный повтор,edit lock,server response и пустые array сохранены.
+  - Tests: 29 initial failures +1 native-array failure;focused133/133,full1815/1815/162files,browser15/15,console0/0. Types1140/85→1127/85,ESLint762,новых0. Backend542/protected21/production12соседей сохранены.
+  - Source: `4554df21c7887b185dce632e793fdef88d7da4eb`,remote/frozen1763blobs verified,SDD3/3,220specs;whole types/lint/CI/PR/production и A/B pending;план198/244,цельactive.
+  - Done: 2026-10-10 (исходники приняты, интеграция ожидается)

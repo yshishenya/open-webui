@@ -2,10 +2,10 @@
 
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: source-accepted
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-valves-modal-safety-2026-10-10-019.json
+- SDD Spec: meta/sdd/specs/completed/airis-valves-modal-safety-2026-10-10-019.json
 
 ## Goal / Acceptance Criteria
 Продолжение общих frontend условий G14/13.11. Финальная цель A/B сохраняется.
@@ -14,7 +14,7 @@
 - [x] Закрытие/destroy/смена id/type/userValves отменяют запрос и отбрасывают прежний ответ; загрузка имеет завершение и явный повтор после отказа, без неявного POST retry.
 - [x] Все 12 admin/user valve adapters используют общую проверку values/spec, optional AbortSignal, ограничение 25 секунд и явные сетевые ошибки; прежние HTTP error/null/body/auth договоры сохранены.
 - [x] Повторный submit и редактирование во время сохранения заблокированы; события save/close соответствуют результатам, базовая доступность сохранена.
-- [ ] Frozen Docker/frontend/type/lint/browser проверки без новых диагностик; сохранность, SDD, source push и частные документы подтверждены.
+- [x] Frozen Docker/frontend/type/lint/browser проверки без новых диагностик; сохранность, SDD, source push и частные документы подтверждены.
 
 ## Scope / upstream impact
 Общий workspace/common/ValvesModal, одна native required-граница в common/Valves (2 прямых потребителя), 6 admin и 6 user valve adapters в tools/functions, существующий fork-owned userValves request helper. Не вводить зависимостей/Any/подавлений. GetFunctions/CRUD/редакторы и chat Controls Valves не объявлять исправленными этой партией; прямые callers и helper consumers изучены. Backend/access policy не меняются. HTTP отказы становятся безопасным Error со status; приватный detail не показывается и не журналируется.
@@ -33,3 +33,5 @@
 
 ## Limits and remaining release gates
 Abort cannot reverse an already accepted server-side settings write. HTTP errors expose status rather than private detail; scalar required remains unchanged; server schema/minItems still enforce values. GetFunctions, remaining CRUD/API/editors and other chat Controls lifecycle are outside this work item. Whole-repo types/lint remain red; PR/CI/integration/clean build/production and real A/B criteria remain pending. Plan198/244,46open,goalactive.
+
+Runtime source `4554df21c7887b185dce632e793fdef88d7da4eb` pushed,remote and1763frozenGitblobs verified. SDD3/3 completed,220tracked specs valid;integration/production remain pending.
