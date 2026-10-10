@@ -291,12 +291,12 @@
 		sessionStorage.tool = JSON.stringify({
 			...tool
 		});
-		goto('/workspace/tools/create');
+		return goto('/workspace/tools/create');
 	}}
-	loadUrlHandler={async (url) => {
-		return await loadToolByUrl(localStorage.token, url);
+	loadUrlHandler={async (url: string, signal?: AbortSignal) => {
+		return await loadToolByUrl(localStorage.token, url, signal);
 	}}
-	successMessage={$i18n.t('Tool imported successfully')}
+	successMessage={$i18n.t('Source loaded for review in the editor')}
 />
 
 {#if loaded}

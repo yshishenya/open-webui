@@ -117,3 +117,9 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: Runtime a31bffdcd6cb92efcc493a9219f0792b05fd6006,1761 Git blobs;35/1735 тестов,браузер9/9,types1148/86,ESLint769,новых0. SDD3/3,218валидных;свои пустые тома удалены. План198/244,production/финальная цель открыты.
+
+- [ ] [BUG] Импорт по ссылке и завершение Modal без поздних действий.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__source-import-modal-safety.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Изучены два ImportModal callers/URL API и общий Modal; воспроизводятся зависшее ожидание, поздний переход и утечки обработчиков. План198/244,финальная цельactive.

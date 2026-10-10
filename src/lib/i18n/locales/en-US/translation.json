@@ -1,4 +1,6 @@
 {
+	"Invalid source response": "The URL returned an invalid source. Check the URL and try again.",
+	"Source loaded for review in the editor": "Source loaded for review in the editor",
 	"Could not load settings. Try again.": "Could not load settings. Try again.",
 	"Could not save settings. Try again.": "Could not save settings. Try again.",
 	"Could not load tools. Close and reopen the menu to retry.": "Could not load tools. Close and reopen the menu to retry.",

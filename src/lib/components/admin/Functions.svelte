@@ -367,14 +367,14 @@
 
 <ImportModal
 	bind:show={showImportModal}
-	loadUrlHandler={async (url: string) => {
-		return await loadFunctionByUrl(localStorage.token, url, controller.signal);
+	loadUrlHandler={async (url: string, signal?: AbortSignal) => {
+		return await loadFunctionByUrl(localStorage.token, url, signal);
 	}}
 	onImport={(func: { name: string; content: string }) => {
 		sessionStorage.function = JSON.stringify({
 			...func
 		});
-		goto('/admin/functions/create');
+		return goto('/admin/functions/create');
 	}}
 />
 
