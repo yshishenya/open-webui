@@ -1,0 +1,167 @@
+{
+  "spec_id": "airis-python-runtime-queue-2026-10-10-012",
+  "title": "Airis Python Runtime Queue",
+  "generated": "2026-10-10T00:46:31.249096Z",
+  "last_updated": "2026-10-10T01:07:52.480935Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__python-runtime-queue.md",
+    "status": "active",
+    "activated_date": "2026-10-10T00:47:21.289234Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Python Runtime Queue",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434\u0435\u043d\u0438\u0435 \u0434\u0432\u0443\u0445 \u0440\u0435\u0436\u0438\u043c\u043e\u0432 \u0438 \u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0445 \u043e\u0442\u043a\u0430\u0437\u043e\u0432",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T01:07:52.227546Z",
+        "journaled_at": "2026-10-10T01:07:52.229782Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "\u041f\u043e\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0438 \u044f\u0432\u043d\u044b\u0435 \u043e\u0448\u0438\u0431\u043a\u0438",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T01:07:52.478853Z",
+        "journaled_at": "2026-10-10T01:07:52.480904Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "\u041e\u0431\u0449\u0438\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0430 \u0438\u0441\u0445\u043e\u0434\u043d\u0438\u043a\u043e\u0432",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u0433\u043e\u043d\u043a\u0443 \u0438 \u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0435 \u043e\u0442\u043a\u0430\u0437\u044b \u0432 \u043e\u0431\u043e\u0438\u0445 \u043d\u0430\u0441\u0442\u043e\u044f\u0449\u0438\u0445 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430\u0445",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T01:07:52.227335Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T01:07:52.228523Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "\u0418\u0441\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u044f\u0432\u043d\u044b\u0435 \u043e\u0442\u043a\u0430\u0437\u044b \u0438 \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044e \u0444\u0430\u0439\u043b\u043e\u0432",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T01:07:52.478639Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T01:07:52.479739Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0438\u0441\u0445\u043e\u0434\u043d\u0438\u043a\u0438 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u043d\u043e\u0441\u0442\u044c, \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0438 \u0437\u0430\u043a\u0440\u044b\u0442\u044c SDD",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T01:07:52.228513Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u0433\u043e\u043d\u043a\u0443 \u0438 \u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0435 \u043e\u0442\u043a\u0430\u0437\u044b \u0432 \u043e\u0431\u043e\u0438\u0445 \u043d\u0430\u0441\u0442\u043e\u044f\u0449\u0438\u0445 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430\u0445",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T01:07:52.229777Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434\u0435\u043d\u0438\u0435 \u0434\u0432\u0443\u0445 \u0440\u0435\u0436\u0438\u043c\u043e\u0432 \u0438 \u0444\u0430\u0439\u043b\u043e\u0432\u044b\u0445 \u043e\u0442\u043a\u0430\u0437\u043e\u0432",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T01:07:52.479734Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0418\u0441\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u044f\u0432\u043d\u044b\u0435 \u043e\u0442\u043a\u0430\u0437\u044b \u0438 \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044e \u0444\u0430\u0439\u043b\u043e\u0432",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T01:07:52.480898Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u041f\u043e\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0438 \u044f\u0432\u043d\u044b\u0435 \u043e\u0448\u0438\u0431\u043a\u0438",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

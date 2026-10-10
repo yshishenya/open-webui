@@ -13,7 +13,7 @@ const sandboxScript = String.raw`
 		parent.postMessage(message, '*', transfer || []);
 	}
 
-	async function loadRuntime(packages) {
+	async function loadRuntime() {
 		stdout = null;
 		stderr = null;
 		pyodide = await loadPyodide({
@@ -27,12 +27,16 @@ const sandboxScript = String.raw`
 			packages: ['micropip']
 		});
 		pyodide.FS.mkdirTree('/mnt/uploads');
-		await pyodide.pyimport('micropip').install(packages || []);
 	}
 
 	async function ensureRuntime(packages) {
-		if (!pyodideReady) pyodideReady = loadRuntime(packages || []);
-		await pyodideReady;
+		if (!pyodideReady) pyodideReady = loadRuntime();
+		try {
+			await pyodideReady;
+		} catch (error) {
+			pyodideReady = null;
+			throw error;
+		}
 		if (packages && packages.length > 0) {
 			await pyodide.pyimport('micropip').install(packages);
 		}
@@ -47,43 +51,37 @@ const sandboxScript = String.raw`
 	}
 
 	function upload(files, dir) {
+		if (!Array.isArray(files)) throw new Error('Invalid Python file payload.');
 		dir = dir || '/mnt/uploads';
 		ensureDir(dir);
 		for (const file of files || []) {
+			if (!file || typeof file.name !== 'string' || !(file.data instanceof ArrayBuffer))
+				throw new Error('Invalid Python file payload.');
 			pyodide.FS.writeFile(dir + '/' + file.name, new Uint8Array(file.data));
 		}
 	}
 
 	function list(path) {
-		const entries = [];
-		try {
-			const names = pyodide.FS.readdir(path).filter(function (name) {
-				return name !== '.' && name !== '..';
-			});
-			for (const name of names) {
-				try {
-					const stat = pyodide.FS.stat(path + '/' + name);
-					const isDir = pyodide.FS.isDir(stat.mode);
-					entries.push({ name: name, type: isDir ? 'directory' : 'file', size: isDir ? 0 : stat.size });
-				} catch {}
-			}
-		} catch {}
-		return entries;
+		return pyodide.FS.readdir(path).filter(function (name) {
+			return name !== '.' && name !== '..';
+		}).map(function (name) {
+			const stat = pyodide.FS.stat(path + '/' + name);
+			const isDir = pyodide.FS.isDir(stat.mode);
+			return { name: name, type: isDir ? 'directory' : 'file', size: isDir ? 0 : stat.size };
+		});
 	}
 
 	function remove(path) {
-		try {
-			const stat = pyodide.FS.stat(path);
-			if (!pyodide.FS.isDir(stat.mode)) {
-				pyodide.FS.unlink(path);
-				return;
-			}
-			const names = pyodide.FS.readdir(path).filter(function (name) {
-				return name !== '.' && name !== '..';
-			});
-			for (const name of names) remove(path + '/' + name);
-			pyodide.FS.rmdir(path);
-		} catch {}
+		const stat = pyodide.FS.stat(path);
+		if (!pyodide.FS.isDir(stat.mode)) {
+			pyodide.FS.unlink(path);
+			return;
+		}
+		const names = pyodide.FS.readdir(path).filter(function (name) {
+			return name !== '.' && name !== '..';
+		});
+		for (const name of names) remove(path + '/' + name);
+		pyodide.FS.rmdir(path);
 	}
 
 	function clean(value) {
@@ -142,16 +140,29 @@ const sandboxScript = String.raw`
 		post({ id: id, result: result, stdout: stdout, stderr: stderr });
 	}
 
-	window.addEventListener('message', async function (event) {
-		if (event.source !== parent) return;
-		const data = event.data || {};
+	// ponytail: the interpreter has shared globals, so messages use one queue.
+	let requestQueue = Promise.resolve();
+	window.addEventListener('message', function (event) {
+		if (event.source !== parent || !event.data || typeof event.data.id !== 'string') return;
+		requestQueue = requestQueue.then(function () { return handleRequest(event.data); });
+		return requestQueue;
+	});
+
+	async function handleRequest(data) {
 		const id = data.id;
 		try {
 			if (!data.type || data.type === 'execute') {
+				if (typeof data.code !== 'string' || (data.packages && (!Array.isArray(data.packages) || data.packages.some(function (name) { return typeof name !== 'string'; }))))
+					throw new Error('Invalid Python execution request.');
+				if (data.files && !Array.isArray(data.files)) throw new Error('Invalid Python file payload.');
 				await ensureRuntime(data.packages || []);
 				await execute(id, data.code, data.files);
 				return;
 			}
+			if (!['fs:upload', 'fs:list', 'fs:read', 'fs:delete', 'fs:mkdir', 'fs:sync'].includes(data.type))
+				throw new Error('Invalid Python filesystem request.');
+			if (data.type !== 'fs:upload' && data.type !== 'fs:sync' && typeof data.path !== 'string')
+				throw new Error('Invalid Python filesystem path.');
 			await ensureRuntime();
 			switch (data.type) {
 				case 'fs:upload':
@@ -161,14 +172,11 @@ const sandboxScript = String.raw`
 				case 'fs:list':
 					post({ id: id, type: data.type, entries: list(data.path) });
 					break;
-				case 'fs:read':
-					try {
-						const buffer = pyodide.FS.readFile(data.path).buffer;
-						post({ id: id, type: data.type, data: buffer }, [buffer]);
-					} catch (error) {
-						post({ id: id, type: data.type, error: error && error.message ? error.message : String(error) });
-					}
+				case 'fs:read': {
+					const buffer = pyodide.FS.readFile(data.path).slice().buffer;
+					post({ id: id, type: data.type, data: buffer }, [buffer]);
 					break;
+				}
 				case 'fs:delete':
 					remove(data.path);
 					post({ id: id, type: data.type, success: true });
@@ -182,9 +190,11 @@ const sandboxScript = String.raw`
 					break;
 			}
 		} catch (error) {
-			post({ id: id, stderr: error && error.message ? error.message : String(error) });
+			if (!data.type || data.type === 'execute')
+				post({ id: id, stdout: null, stderr: 'Python execution request failed.', result: null });
+			else post({ id: id, type: data.type, success: false, error: 'Python filesystem request failed.' });
 		}
-	});
+	}
 })();
 `;
 

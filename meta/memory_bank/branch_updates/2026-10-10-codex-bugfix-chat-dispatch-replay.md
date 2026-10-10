@@ -47,3 +47,9 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: 23 исходных отказа; 34 адресных и 1600 общих тестов проходят. Types1322/87 и ESLint813 без новых диагностик; исходники отправлены, SDD3/3 закрыта. Production/12 соседей/21 чужой файл сохранены; выпуск, runtime concurrency и конечные gates открыты.
+
+- [ ] **[BUG][PYTHON]** Последовательное выполнение общих Python runtime
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__python-runtime-queue.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: В обоих обработчиках воспроизведён чужой stdout; проверяются queue, bootstrap и файловые отказы. Конечные gates открыты.

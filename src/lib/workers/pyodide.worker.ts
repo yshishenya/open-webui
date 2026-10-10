@@ -19,7 +19,7 @@ declare global {
 
 let pyodideReady: Promise<void> | null = null;
 
-async function loadPyodideAndPackages(packages: string[] = []) {
+async function loadPyodideAndPackages(): Promise<void> {
 	self.stdout = null;
 	self.stderr = null;
 	self.result = null;
@@ -27,8 +27,6 @@ async function loadPyodideAndPackages(packages: string[] = []) {
 	self.pyodide = await loadPyodide({
 		indexURL: '/pyodide/',
 		stdout: (text) => {
-			console.log('Python output:', text);
-
 			if (self.stdout) {
 				self.stdout += `${text}\n`;
 			} else {
@@ -36,7 +34,6 @@ async function loadPyodideAndPackages(packages: string[] = []) {
 			}
 		},
 		stderr: (text) => {
-			console.log('An error occurred:', text);
 			if (self.stderr) {
 				self.stderr += `${text}\n`;
 			} else {
@@ -49,18 +46,14 @@ async function loadPyodideAndPackages(packages: string[] = []) {
 	// Create the upload directory and mount IDBFS for persistence
 	const uploadDir = '/mnt/uploads';
 	self.pyodide.FS.mkdirTree(uploadDir);
-	self.pyodide.FS.mount(self.pyodide.FS.filesystems.IDBFS, {}, '/mnt');
+	// Pyodide documents FS.filesystems; the bundled Emscripten declaration omits it.
+	const fs = self.pyodide.FS as typeof self.pyodide.FS & {
+		filesystems: { IDBFS: Parameters<typeof self.pyodide.FS.mount>[0] };
+	};
+	fs.mount(fs.filesystems.IDBFS, {}, '/mnt');
 
 	// Load persisted files from IndexedDB
-	await new Promise<void>((resolve) => {
-		(self.pyodide.FS as any).syncfs(true, (err: Error | null) => {
-			if (err) {
-				console.error('Error syncing from IndexedDB:', err);
-			}
-			// Always resolve — missing data is fine on first run
-			resolve();
-		});
-	});
+	await syncFS(true);
 
 	// Ensure /mnt/uploads still exists after sync (first-time init)
 	try {
@@ -68,20 +61,22 @@ async function loadPyodideAndPackages(packages: string[] = []) {
 	} catch {
 		self.pyodide.FS.mkdirTree(uploadDir);
 	}
-
-	const micropip = self.pyodide.pyimport('micropip');
-	await micropip.install(packages);
 }
 
 /**
  * Ensure Pyodide is loaded. On the first call, loads and installs packages.
  * Subsequent calls reuse the already-loaded instance (persistent worker).
  */
-async function ensurePyodide(packages: string[] = []) {
+async function ensurePyodide(packages: string[] = []): Promise<void> {
 	if (!pyodideReady) {
-		pyodideReady = loadPyodideAndPackages(packages);
+		pyodideReady = loadPyodideAndPackages();
 	}
-	await pyodideReady;
+	try {
+		await pyodideReady;
+	} catch (error: unknown) {
+		pyodideReady = null;
+		throw error;
+	}
 
 	// Install any additional packages not loaded on init
 	if (packages.length > 0 && self.pyodide) {
@@ -90,17 +85,13 @@ async function ensurePyodide(packages: string[] = []) {
 	}
 }
 
-/**
- * Persist the in-memory FS to IndexedDB (fire-and-forget with logging).
- */
-function persistFS() {
-	if (!self.pyodide) return;
-	(self.pyodide.FS as any).syncfs(false, (err: Error | null) => {
-		if (err) {
-			console.error('Error syncing to IndexedDB:', err);
-		} else {
-			console.log('Successfully synced to IndexedDB.');
-		}
+/** Finish the selected IndexedDB sync before responding or accepting another operation. */
+async function syncFS(populate: boolean): Promise<void> {
+	await new Promise<void>((resolve, reject) => {
+		self.pyodide.FS.syncfs(populate, (error: unknown): void => {
+			if (error) reject(new Error('Python filesystem synchronization failed.'));
+			else resolve();
+		});
 	});
 }
 
@@ -108,7 +99,8 @@ function persistFS() {
 // FS operations
 // ---------------------------------------------------------------------------
 
-function fsUploadFiles(files: { name: string; data: ArrayBuffer }[], dir = '/mnt/uploads') {
+function fsUploadFiles(files: { name: string; data: ArrayBuffer }[], dir = '/mnt/uploads'): void {
+	if (!Array.isArray(files)) throw new Error('Invalid Python file payload.');
 	try {
 		self.pyodide.FS.stat(dir);
 	} catch {
@@ -116,57 +108,42 @@ function fsUploadFiles(files: { name: string; data: ArrayBuffer }[], dir = '/mnt
 	}
 
 	for (const file of files) {
+		if (!file || typeof file.name !== 'string' || !(file.data instanceof ArrayBuffer))
+			throw new Error('Invalid Python file payload.');
 		self.pyodide.FS.writeFile(`${dir}/${file.name}`, new Uint8Array(file.data));
 	}
 }
 
-function fsList(path: string) {
-	const entries: { name: string; type: 'file' | 'directory'; size: number }[] = [];
-	try {
-		const items = self.pyodide.FS.readdir(path).filter((n: string) => n !== '.' && n !== '..');
-		for (const name of items) {
-			try {
-				const stat = self.pyodide.FS.stat(`${path}/${name}`);
-				const isDir = self.pyodide.FS.isDir(stat.mode);
-				entries.push({
-					name,
-					type: isDir ? 'directory' : 'file',
-					size: isDir ? 0 : stat.size
-				});
-			} catch {
-				// skip inaccessible entries
-			}
-		}
-	} catch {
-		// directory doesn't exist
-	}
-	return entries;
+function fsList(path: string): { name: string; type: 'file' | 'directory'; size: number }[] {
+	return self.pyodide.FS.readdir(path)
+		.filter((name: string) => name !== '.' && name !== '..')
+		.map((name: string) => {
+			const stat = self.pyodide.FS.stat(`${path}/${name}`);
+			const isDir = self.pyodide.FS.isDir(stat.mode);
+			return { name, type: isDir ? 'directory' : 'file', size: isDir ? 0 : stat.size };
+		});
 }
 
 function fsRead(path: string): ArrayBuffer {
-	const data: Uint8Array = (self.pyodide.FS as any).readFile(path) as Uint8Array;
-	return data.buffer as ArrayBuffer;
+	const data = self.pyodide.FS.readFile(path);
+	return data.slice().buffer as ArrayBuffer;
 }
 
-function fsDelete(path: string) {
-	try {
-		const stat = self.pyodide.FS.stat(path);
-		if (self.pyodide.FS.isDir(stat.mode)) {
-			// Recursively delete directory contents
-			const items = self.pyodide.FS.readdir(path).filter((n: string) => n !== '.' && n !== '..');
-			for (const item of items) {
-				fsDelete(`${path}/${item}`);
-			}
-			self.pyodide.FS.rmdir(path);
-		} else {
-			self.pyodide.FS.unlink(path);
+function fsDelete(path: string): void {
+	const stat = self.pyodide.FS.stat(path);
+	if (self.pyodide.FS.isDir(stat.mode)) {
+		for (const item of self.pyodide.FS.readdir(path).filter(
+			(name: string) => name !== '.' && name !== '..'
+		)) {
+			fsDelete(`${path}/${item}`);
 		}
-	} catch {
-		// already gone
+		self.pyodide.FS.rmdir(path);
+	} else {
+		self.pyodide.FS.unlink(path);
 	}
 }
 
-function fsMkdir(path: string) {
+function fsMkdir(path: string): void {
 	self.pyodide.FS.mkdirTree(path);
 }
 
@@ -178,7 +155,7 @@ async function executeCode(
 	id: string,
 	code: string,
 	files?: { name: string; data: ArrayBuffer }[]
-) {
+): Promise<void> {
 	self.stdout = null;
 	self.stderr = null;
 	self.result = null;
@@ -186,7 +163,6 @@ async function executeCode(
 	// Upload any accompanying files before execution
 	if (files && files.length > 0) {
 		fsUploadFiles(files);
-		persistFS();
 	}
 
 	try {
@@ -223,15 +199,11 @@ matplotlib.pyplot.show = show`);
 
 		// Safely process and recursively serialize the result
 		self.result = processResult(self.result);
-
-		console.log('Python result:', self.result);
-
-		// Persist any files the code may have written
-		persistFS();
 	} catch (error: unknown) {
 		self.stderr = error instanceof Error ? error.message : String(error);
 	}
 
+	await syncFS(false);
 	self.postMessage({ id, result: self.result, stdout: self.stdout, stderr: self.stderr });
 }
 
@@ -239,87 +211,94 @@ matplotlib.pyplot.show = show`);
 // Message handler
 // ---------------------------------------------------------------------------
 
-self.onmessage = async (event) => {
-	const data = event.data;
-	const { id, type } = data;
-
-	// Backward compatibility: messages without a `type` field are execute requests
-	if (!type || type === 'execute') {
-		const { code, files, ...context } = data;
-
-		// Copy context keys (packages, etc.) into worker scope
-		for (const key of Object.keys(context)) {
-			if (key !== 'id' && key !== 'type') {
-				self[key] = context[key];
-			}
-		}
-
-		await ensurePyodide(self.packages);
-		await executeCode(id, code, files);
-		return;
-	}
-
-	// FS operations require Pyodide to be loaded
-	await ensurePyodide();
-
-	switch (type) {
-		case 'fs:upload': {
-			const { files, dir } = data;
-			fsUploadFiles(files, dir);
-			persistFS();
-			self.postMessage({ id, type: 'fs:upload', success: true });
-			break;
-		}
-
-		case 'fs:list': {
-			const entries = fsList(data.path);
-			self.postMessage({ id, type: 'fs:list', entries });
-			break;
-		}
-
-		case 'fs:read': {
-			try {
-				const buffer = fsRead(data.path);
-				self.postMessage({ id, type: 'fs:read', data: buffer }, { transfer: [buffer] });
-			} catch (err: unknown) {
-				self.postMessage({
-					id,
-					type: 'fs:read',
-					error: err instanceof Error ? err.message : String(err)
-				});
-			}
-			break;
-		}
-
-		case 'fs:delete': {
-			fsDelete(data.path);
-			persistFS();
-			self.postMessage({ id, type: 'fs:delete', success: true });
-			break;
-		}
-
-		case 'fs:mkdir': {
-			fsMkdir(data.path);
-			persistFS();
-			self.postMessage({ id, type: 'fs:mkdir', success: true });
-			break;
-		}
-
-		case 'fs:sync': {
-			// Re-read from IndexedDB into memory to pick up externally written files
-			(self.pyodide.FS as any).syncfs(true, (err: Error | null) => {
-				if (err) {
-					console.error('Error syncing from IndexedDB:', err);
-				}
-				self.postMessage({ id, type: 'fs:sync', success: !err });
-			});
-			break;
-		}
-
-		default:
-			console.warn('Unknown message type:', type);
-	}
+type ExecuteRequest = {
+	id: string;
+	type?: 'execute';
+	code: string;
+	packages?: string[];
+	files?: { name: string; data: ArrayBuffer }[];
 };
+type FSRequest =
+	| { id: string; type: 'fs:upload'; files: { name: string; data: ArrayBuffer }[]; dir?: string }
+	| { id: string; type: 'fs:list' | 'fs:read' | 'fs:delete' | 'fs:mkdir'; path: string }
+	| { id: string; type: 'fs:sync' };
+
+// ponytail: one interpreter and filesystem, so all requests share one queue.
+// Use separate runtimes only if parallel Python execution becomes a requirement.
+let requestQueue = Promise.resolve();
+self.onmessage = (event: MessageEvent<ExecuteRequest | FSRequest>): Promise<void> => {
+	const data = event.data;
+	if (!data || typeof data.id !== 'string') return Promise.resolve();
+	requestQueue = requestQueue.then(() => handleRequest(data));
+	return requestQueue;
+};
+
+async function handleRequest(data: ExecuteRequest | FSRequest): Promise<void> {
+	const { id, type } = data;
+	try {
+		// Legacy code block and formatter requests have no type.
+		if (type === undefined || type === 'execute') {
+			if (
+				typeof data.code !== 'string' ||
+				(data.packages &&
+					(!Array.isArray(data.packages) || data.packages.some((name) => typeof name !== 'string')))
+			)
+				throw new Error('Invalid Python execution request.');
+			if (data.files && !Array.isArray(data.files)) throw new Error('Invalid Python file payload.');
+			await ensurePyodide(data.packages ?? []);
+			await executeCode(id, data.code, data.files);
+			return;
+		}
+		if (!['fs:upload', 'fs:list', 'fs:read', 'fs:delete', 'fs:mkdir', 'fs:sync'].includes(type))
+			throw new Error('Invalid Python filesystem request.');
+		if (
+			type !== 'fs:upload' &&
+			type !== 'fs:sync' &&
+			(!('path' in data) || typeof data.path !== 'string')
+		)
+			throw new Error('Invalid Python filesystem path.');
+		await ensurePyodide();
+		switch (type) {
+			case 'fs:upload':
+				fsUploadFiles(data.files, data.dir);
+				await syncFS(false);
+				self.postMessage({ id, type, success: true });
+				break;
+			case 'fs:list':
+				self.postMessage({ id, type, entries: fsList(data.path) });
+				break;
+			case 'fs:read': {
+				const buffer = fsRead(data.path);
+				self.postMessage({ id, type, data: buffer }, { transfer: [buffer] });
+				break;
+			}
+			case 'fs:delete':
+				fsDelete(data.path);
+				await syncFS(false);
+				self.postMessage({ id, type, success: true });
+				break;
+			case 'fs:mkdir':
+				fsMkdir(data.path);
+				await syncFS(false);
+				self.postMessage({ id, type, success: true });
+				break;
+			case 'fs:sync':
+				await syncFS(true);
+				self.postMessage({ id, type, success: true });
+		}
+	} catch {
+		if (type === undefined || type === 'execute') {
+			self.postMessage({
+				id,
+				stdout: null,
+				stderr: 'Python execution request failed.',
+				result: null
+			});
+		} else {
+			self.postMessage({ id, type, success: false, error: 'Python filesystem request failed.' });
+		}
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
