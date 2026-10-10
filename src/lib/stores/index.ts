@@ -1,3 +1,4 @@
+import type { CitationEmbed } from '$lib/utils/airis/citations';
 import type { NoteListItem } from '$lib/utils/airis/notes';
 import type { ChannelListItem } from '$lib/utils/airis/channel-types';
 import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
@@ -156,7 +157,7 @@ export const selectedTerminalId: Writable<string | null> = writable(null);
 export const artifactCode = writable(null);
 export const artifactContents: Writable<ArtifactContent[] | null> = writable(null);
 
-export const embed = writable(null);
+export const embed: Writable<CitationEmbed | null> = writable(null);
 
 export const temporaryChatEnabled = writable(false);
 

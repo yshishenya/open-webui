@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-citation-integrity-2026-10-10-027",
+  "title": "Airis Citation Integrity",
+  "generated": "2026-10-10T13:51:14.992675Z",
+  "last_updated": "2026-10-10T14:13:25.738647Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__citation-integrity.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T13:51:15.241732Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T14:13:25.738386Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Citation Integrity",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce incorrect source labels and lost per-document alignment",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:54:28.055438Z",
+        "journaled_at": "2026-10-10T13:54:28.057583Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse a shared citation boundary across rendering and modals",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:04:21.283703Z",
+        "journaled_at": "2026-10-10T14:04:21.286095Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frontend gates and preserve data",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:13:25.308880Z",
+        "journaled_at": "2026-10-10T14:13:25.310871Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce incorrect source labels and lost per-document alignment",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:54:28.055260Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:54:28.056442Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse a shared citation boundary across rendering and modals",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:04:21.283473Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:04:21.284844Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify frontend gates and preserve data",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:13:25.308735Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:13:25.309722Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T13:54:28.056437Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce incorrect source labels and lost per-document alignment",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:54:28.057578Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce incorrect source labels and lost per-document alignment",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:04:21.284838Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse a shared citation boundary across rendering and modals",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:04:21.286090Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse a shared citation boundary across rendering and modals",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T14:13:25.309717Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frontend gates and preserve data",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:13:25.310867Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frontend gates and preserve data",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

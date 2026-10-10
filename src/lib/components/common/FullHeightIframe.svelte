@@ -30,7 +30,7 @@
 		'strict-origin-when-cross-origin';
 	export let allowFullscreen = true;
 
-	export let payload = null; // payload to send into the iframe on request
+	export let payload: unknown = null; // payload to send into the iframe on request
 
 	let iframe: HTMLIFrameElement | null = null;
 	let iframeSrc: string | null = null;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import { groupCitations, type Citation } from '$lib/utils/airis/citations';
 	import { embed, showControls, showEmbeds } from '$lib/stores';
 
 	import CitationModal from './Citations/CitationModal.svelte';
@@ -9,70 +10,49 @@
 	export let id = '';
 	export let chatId = '';
 
-	export let sources = [];
+	export let sources: unknown[] | null | undefined = [];
 	export let readOnly = false;
 
-	let citations = [];
+	let citations: Citation[] = [];
 	let showPercentage = false;
 	let showRelevance = true;
-
-	let citationModal = null;
 
 	let showCitations = false;
 	let showCitationModal = false;
 
-	let selectedCitation: any = null;
+	let selectedCitation: Citation | null = null;
 
-	export const showSourceModal = (sourceId) => {
-		let index;
-		let suffix = null;
+	export const showSourceModal = (sourceId: string | number): void => {
+		const index = (typeof sourceId === 'string' ? Number(sourceId.split('#')[0]) : sourceId) - 1;
+		const citation = Number.isInteger(index) ? citations[index] : undefined;
+		if (!citation) return;
 
-		if (typeof sourceId === 'string') {
-			const output = sourceId.split('#');
-			index = parseInt(output[0]) - 1;
-
-			if (output.length > 1) {
-				suffix = output[1];
+		const embedUrl = citation.source.embed_url;
+		if (embedUrl) {
+			if (readOnly) {
+				window.open(embedUrl, '_blank', 'noopener,noreferrer');
+			} else {
+				showControls.set(true);
+				showEmbeds.set(true);
+				embed.set({
+					url: embedUrl,
+					title: citation.source.name || 'Embedded Content',
+					source: citation,
+					chatId,
+					messageId: id,
+					sourceId: String(sourceId)
+				});
 			}
 		} else {
-			index = sourceId - 1;
-		}
-
-		if (citations[index]) {
-			console.log('Showing citation modal for:', citations[index]);
-
-			if (citations[index]?.source?.embed_url) {
-				const embedUrl = citations[index].source.embed_url;
-				if (embedUrl) {
-					if (readOnly) {
-						// Open in new tab if readOnly
-						window.open(embedUrl, '_blank');
-						return;
-					} else {
-						showControls.set(true);
-						showEmbeds.set(true);
-						embed.set({
-							url: embedUrl,
-							title: citations[index]?.source?.name || 'Embedded Content',
-							source: citations[index],
-							chatId: chatId,
-							messageId: id,
-							sourceId: sourceId
-						});
-					}
-				} else {
-					selectedCitation = citations[index];
-					showCitationModal = true;
-				}
-			} else {
-				selectedCitation = citations[index];
-				showCitationModal = true;
-			}
+			selectedCitation = citation;
+			showCitationModal = true;
 		}
 	};
 
-	function calculateShowRelevance(sources: any[]) {
-		const distances = sources.flatMap((citation) => citation.distances ?? []);
+	function calculateShowRelevance(sources: Citation[]): boolean {
+		const distances = sources
+			.flatMap((citation) => citation.distances)
+			.filter((d): d is number => d !== undefined);
 		const inRange = distances.filter((d) => d !== undefined && d >= -1 && d <= 1).length;
 		const outOfRange = distances.filter((d) => d !== undefined && (d < -1 || d > 1)).length;
 
@@ -90,62 +70,24 @@
 		return true;
 	}
 
-	function shouldShowPercentage(sources: any[]) {
-		const distances = sources.flatMap((citation) => citation.distances ?? []);
+	function shouldShowPercentage(sources: Citation[]): boolean {
+		const distances = sources
+			.flatMap((citation) => citation.distances)
+			.filter((d): d is number => d !== undefined);
 		return distances.every((d) => d !== undefined && d >= -1 && d <= 1);
 	}
 
 	$: {
-		citations = sources.reduce((acc, source) => {
-			if (Object.keys(source).length === 0) {
-				return acc;
-			}
-
-			source?.document?.forEach((document, index) => {
-				const metadata = source?.metadata?.[index];
-				const distance = source?.distances?.[index];
-
-				// Within the same citation there could be multiple documents
-				const id = metadata?.source ?? source?.source?.id ?? 'N/A';
-				let _source = source?.source;
-
-				if (metadata?.name) {
-					_source = { ..._source, name: metadata.name };
-				}
-
-				if (id.startsWith('http://') || id.startsWith('https://')) {
-					_source = { ..._source, name: id, url: id };
-				}
-
-				const existingSource = acc.find((item) => item.id === id);
-
-				if (existingSource) {
-					existingSource.document.push(document);
-					existingSource.metadata.push(metadata);
-					if (distance !== undefined) existingSource.distances.push(distance);
-				} else {
-					acc.push({
-						id: id,
-						source: _source,
-						document: [document],
-						metadata: metadata ? [metadata] : [],
-						distances: distance !== undefined ? [distance] : []
-					});
-				}
-			});
-
-			return acc;
-		}, []);
-		console.log('citations', citations);
+		citations = groupCitations(sources);
 
 		showRelevance = calculateShowRelevance(citations);
 		showPercentage = shouldShowPercentage(citations);
 	}
 
-	const decodeString = (str: string) => {
+	const decodeString = (str: string): string => {
 		try {
 			return decodeURIComponent(str);
-		} catch (e) {
+		} catch {
 			return str;
 		}
 	};
@@ -179,7 +121,8 @@
 							alt="favicon"
 							class="size-4 rounded-full shrink-0 border border-white dark:border-gray-850 bg-white dark:bg-gray-900"
 							on:error={(e) => {
-								e.target.src = '/favicon.png';
+								if (e.currentTarget instanceof HTMLImageElement)
+									e.currentTarget.src = '/favicon.png';
 							}}
 						/>
 					{/each}

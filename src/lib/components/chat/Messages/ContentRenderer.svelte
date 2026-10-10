@@ -14,6 +14,7 @@
 	} from '$lib/stores';
 	import FloatingButtons from '../ContentRenderer/FloatingButtons.svelte';
 	import { replaceOutsideCode } from '$lib/utils';
+	import { groupCitations } from '$lib/utils/airis/citations';
 
 	/**
 	 * Extracts all top-level <details>...</details> blocks from content,
@@ -98,29 +99,19 @@
 	let contentContainerElement;
 	let floatingButtonsElement;
 
+	/** @type {string[]} */
 	let sourceIds = [];
 	$: getSourceIds(sources);
 
+	/** @param {unknown} sources @returns {void} */
 	const getSourceIds = (sources) => {
-		const result = [];
-		for (const source of sources ?? []) {
-			for (let index = 0; index < (source.document ?? []).length; index++) {
-				if (model?.info?.meta?.capabilities?.citations == false) {
-					result.push('N/A');
-					continue;
-				}
-				const metadata = source.metadata?.[index];
-				const id = metadata?.source ?? 'N/A';
-				if (metadata?.name) {
-					result.push(metadata.name);
-				} else if (id.startsWith('http://') || id.startsWith('https://')) {
-					result.push(id);
-				} else {
-					result.push(source?.source?.name ?? id);
-				}
-			}
-		}
-		sourceIds = [...new Set(result)];
+		const citations = groupCitations(sources);
+		sourceIds =
+			model?.info?.meta?.capabilities?.citations === false
+				? citations.length
+					? ['N/A']
+					: []
+				: citations.map((citation) => citation.source.name);
 	};
 
 	/** @param {string} messageContent */
