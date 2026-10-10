@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ChatHistory } from '$lib/utils/airis/chat_history';
 
 	import {
-		WEBUI_NAME,
 		banners,
 		chatId,
 		config,
@@ -15,7 +16,6 @@
 		user
 	} from '$lib/stores';
 
-	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
@@ -23,9 +23,7 @@
 	import Tooltip from '../common/Tooltip.svelte';
 	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
-	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
 
-	import PencilSquare from '../icons/PencilSquare.svelte';
 	import Banner from '../common/Banner.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 
@@ -38,23 +36,22 @@
 	import Knobs from '../icons/Knobs.svelte';
 	import { isTemporaryChatId } from '$lib/utils/chatId';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let initNewChat: Function;
+	export let initNewChat: () => void | Promise<void>;
 	export let readOnly: boolean = false;
 	export let shareEnabled: boolean = false;
-	export let scrollTop = 0;
 	export let scrollToTop: (() => void) | null = null;
 
 	export let chat;
-	export let history;
+	export let history: Pick<ChatHistory, 'currentId'>;
 	export let title = '';
-	export let onSaveTempChat: () => {};
+	export let onSaveTempChat: () => void | Promise<void>;
 	export let archiveChatHandler: (id: string) => void;
 	export let deleteChatHandler: (id: string) => void;
 	export let moveChatHandler: (id: string, folderId: string) => void;
 
-	let closedBannerIds = [];
+	let closedBannerIds: string[] = [];
 
 	const getDismissedBannerIds = (): string[] => {
 		try {
@@ -65,7 +62,6 @@
 	};
 
 	let showShareChatModal = false;
-	let showDownloadChatModal = false;
 </script>
 
 <ShareChatModal bind:show={showShareChatModal} chatId={$chatId} />
@@ -77,7 +73,7 @@
 		initNewChat();
 	}}
 	aria-label="New Chat"
-/>
+></button>
 
 <nav
 	class="sticky top-0 z-30 w-full {$mobile

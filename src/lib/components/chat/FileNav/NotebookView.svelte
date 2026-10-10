@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { getContext, onMount, onDestroy } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { marked } from 'marked';
-	import DOMPurify from 'dompurify';
-	import { highlightCode } from '$lib/utils/codeHighlight';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 	import {
 		createNotebookSession,
 		executeNotebookCell,
@@ -13,7 +14,7 @@
 	import Tooltip from '../../common/Tooltip.svelte';
 	import CellEditor from './CellEditor.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let notebook: Record<string, unknown>;
 	export let filePath: string = '';
@@ -64,10 +65,10 @@
 	}
 
 	// ── Markdown / output helpers ────────────────────────────────────────
-	const renderMarkdown = (src: string): string =>
-		DOMPurify.sanitize(marked.parse(src, { async: false }) as string);
+	const renderMarkdown = (src: string): string => marked.parse(src, { async: false }) as string;
 
-	const stripAnsi = (s: string): string => s.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+	const stripAnsi = (s: string): string =>
+		s.replace(new RegExp(String.fromCharCode(27) + '\\[[0-9;]*[a-zA-Z]', 'g'), '');
 
 	const getOutputImages = (output: NotebookOutput): string[] => {
 		if (!output.data) return [];
@@ -83,7 +84,7 @@
 
 	const getOutputHtml = (output: NotebookOutput): string | null => {
 		if (!output.data?.['text/html']) return null;
-		return DOMPurify.sanitize(toStr(output.data['text/html']));
+		return toStr(output.data['text/html']);
 	};
 
 	const getOutputText = (output: NotebookOutput): string | null => {
@@ -116,8 +117,6 @@
 	let kernelError: string | null = null;
 	let runningCell: number | null = null;
 	let runAllActive = false;
-
-	const canExecute = baseUrl && apiKey && filePath;
 
 	const startSession = async (): Promise<boolean> => {
 		if (!baseUrl || !apiKey || !filePath) return false;
@@ -280,15 +279,13 @@
 						}}
 					></textarea>
 				{:else}
-					<!-- svelte-ignore a11y-click-events-have-key-events -->
 					<div
 						class="nb-markdown prose dark:prose-invert max-w-full text-sm cursor-text"
 						role="textbox"
 						tabindex="0"
 						on:dblclick={() => startEditing(i)}
-					>
-						{@html renderMarkdown(toStr(cell.source))}
-					</div>
+						use:sanitizedHtml={renderMarkdown(toStr(cell.source))}
+					></div>
 				{/if}
 			{:else if cell.cell_type === 'code'}
 				<div class="nb-code-wrap">
@@ -338,7 +335,6 @@
 								on:cancel={() => cancelEditing(i)}
 							/>
 						{:else}
-							<!-- svelte-ignore a11y-click-events-have-key-events -->
 							<div
 								class="nb-code-source-clickable"
 								role="textbox"
@@ -346,9 +342,10 @@
 								on:dblclick={() => startEditing(i)}
 							>
 								{#if highlightedCells[i]}
-									<div class="nb-code-source shiki-preview">
-										{@html highlightedCells[i]}
-									</div>
+									<div
+										class="nb-code-source shiki-preview"
+										use:sanitizedHtml={highlightedCells[i]}
+									></div>
 								{:else}
 									<pre class="nb-code-source-raw">{toStr(cell.source)}</pre>
 								{/if}
@@ -367,7 +364,7 @@
 										{@const images = getOutputImages(output)}
 										{@const text = getOutputText(output)}
 										{#if html}
-											<div class="nb-output-html">{@html html}</div>
+											<div class="nb-output-html" use:sanitizedHtml={html}></div>
 										{/if}
 										{#each images as src}
 											<img {src} alt="Output" class="nb-output-img" />

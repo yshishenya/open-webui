@@ -320,3 +320,13 @@
   - Owner: Codex
   - Started: 2026-10-10
   - Summary: После commit реальный список222цели;19прежних замечаний в NotebookView/Navbar теперь блокируют changed-file CI. Первоначальные50замечаний17файлов сняты; полный CI не принят.
+
+- [x] **[REFACTOR][CI]** Блокнот и верхняя панель чата
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__refactor__notebook-navbar.md`
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Снять19оставшихся замечаний двух caller targets; переиспользовать existing HTML action и сохранить реальное поведение.
+
+  - Done: 2026-10-10
+  - Tests: Четыре целевые проверки; frontend2087/2087; актуальные222lintцели0/0; types687/74,ESLint586,новых0. Navbar compiled совпал; Notebook CSS/11callbacks сохранены. SDD0363/3.
+  - Risks: Общий долг качества/PR/CI/выпуск/A/B открыты; production/чужие данные сохранены. Дополнительные19замечаний callers из предыдущей записи сняты этим блоком.

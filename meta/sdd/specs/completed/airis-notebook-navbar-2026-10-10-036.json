@@ -1,0 +1,199 @@
+{
+  "spec_id": "airis-notebook-navbar-2026-10-10-036",
+  "title": "airis-notebook-navbar",
+  "generated": "2026-10-10T16:36:04.081596Z",
+  "last_updated": "2026-10-10T16:52:51.941699Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__refactor__notebook-navbar.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T16:36:04.666044Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T16:52:51.941393Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-notebook-navbar",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace rendering and navbar callers; establish baseline tests",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T16:43:42.080861Z",
+        "journaled_at": "2026-10-10T16:43:42.082991Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse HTML action and remove unused code",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T16:46:01.224040Z",
+        "journaled_at": "2026-10-10T16:46:01.226007Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify DOM, all changed-file targets and full frontend",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T16:52:51.532147Z",
+        "journaled_at": "2026-10-10T16:52:51.534209Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace rendering and navbar callers; establish baseline tests",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T16:43:42.080698Z",
+        "needs_journaling": false,
+        "status_note": "Both actual flows traced; final identical mounted tests baseline3/1, only prepared highlighter sanitation fails; after4/4",
+        "journaled_at": "2026-10-10T16:43:42.081760Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse HTML action and remove unused code",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T16:46:01.223885Z",
+        "needs_journaling": false,
+        "status_note": "Mounted4/4 after; actual222 lint targets zero; Navbar emitted equivalent; notebook CSS and11 business callbacks unchanged",
+        "journaled_at": "2026-10-10T16:46:01.224933Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify DOM, all changed-file targets and full frontend",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T16:52:51.531964Z",
+        "needs_journaling": false,
+        "status_note": "Frontend2087/2087; targeted4/4; changed-file lint222/0; types687/74, ESLint586, new0; preserved21files/262volumes/12neighbors; release pending",
+        "journaled_at": "2026-10-10T16:52:51.533075Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T16:43:42.081755Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace rendering and navbar callers; establish baseline tests",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Both actual flows traced; final identical mounted tests baseline3/1, only prepared highlighter sanitation fails; after4/4",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:43:42.082985Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace rendering and navbar callers; establish baseline tests",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:46:01.224929Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse HTML action and remove unused code",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Mounted4/4 after; actual222 lint targets zero; Navbar emitted equivalent; notebook CSS and11 business callbacks unchanged",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:46:01.226003Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse HTML action and remove unused code",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T16:52:51.533070Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify DOM, all changed-file targets and full frontend",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Frontend2087/2087; targeted4/4; changed-file lint222/0; types687/74, ESLint586, new0; preserved21files/262volumes/12neighbors; release pending",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:52:51.534205Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify DOM, all changed-file targets and full frontend",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
