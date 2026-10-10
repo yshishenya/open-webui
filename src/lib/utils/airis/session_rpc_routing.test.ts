@@ -20,9 +20,23 @@ const statement = ast.statements.find(
 		s.declarationList.declarations.some((d) => d.name.getText(ast) === 'chatEventHandler')
 );
 if (!statement) throw new Error('Actual chat event handler not found');
-const script = ts.transpileModule(statement.getText(ast) + '\nchatEventHandler', {
-	compilerOptions: { target: ts.ScriptTarget.ES2022 }
-}).outputText;
+const utilities = readFileSync('src/lib/utils/index.ts', 'utf8');
+const utilityAst = ts.createSourceFile('utils.ts', utilities, ts.ScriptTarget.Latest, true);
+const split = utilityAst.statements.find(
+	(node) =>
+		ts.isVariableStatement(node) &&
+		node.declarationList.declarations.some((d) => d.name.getText(utilityAst) === 'splitStream')
+);
+if (!split) throw new Error('Actual splitStream not found');
+const script = ts.transpileModule(
+	split.getText(utilityAst).replace('export ', '') +
+		'\n' +
+		statement.getText(ast) +
+		'\nchatEventHandler',
+	{
+		compilerOptions: { target: ts.ScriptTarget.ES2022 }
+	}
+).outputText;
 const setup = (background = false, extra: Record<string, unknown> = {}) => {
 	const callback = vi.fn();
 	const python = vi.fn((_id: string, _code: string, cb: (v: unknown) => void) =>
@@ -49,6 +63,8 @@ const setup = (background = false, extra: Record<string, unknown> = {}) => {
 		executeTool: tool,
 		chatCompletion: completion,
 		TextDecoder,
+		TextDecoderStream,
+		TransformStream,
 		$settings: {
 			directConnections: {
 				OPENAI_API_BASE_URLS: ['https://fixture.invalid'],

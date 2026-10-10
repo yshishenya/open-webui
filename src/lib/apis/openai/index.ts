@@ -137,7 +137,7 @@ export const chatCompletion = async (
 		},
 		body: JSON.stringify(body)
 	}).catch((err) => {
-		console.error(err);
+		console.error('Chat completion request failed.');
 		error = err;
 		return null;
 	});

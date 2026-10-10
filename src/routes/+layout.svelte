@@ -70,7 +70,8 @@
 		cleanText,
 		displayFileHandler,
 		getUserTimezone,
-		removeAllDetails
+		removeAllDetails,
+		splitStream
 	} from '$lib/utils';
 	import { isPublicMarketingRoute } from '$lib/utils/airis/public_routes';
 
@@ -526,83 +527,68 @@
 				return;
 			} else if (type === 'request:chat:completion') {
 				const { channel, form_data, model } = data;
-
+				const responseSocket = $socket;
+				let acknowledged = false;
 				try {
-					const directConnections = $settings?.directConnections ?? {};
-
-					if (directConnections) {
-						const urlIdx = model?.urlIdx;
-
-						const OPENAI_API_URL = directConnections.OPENAI_API_BASE_URLS[urlIdx];
-						const OPENAI_API_KEY = directConnections.OPENAI_API_KEYS[urlIdx];
-						const API_CONFIG = directConnections.OPENAI_API_CONFIGS[urlIdx];
-
-						try {
-							if (API_CONFIG?.prefix_id) {
-								const prefixId = API_CONFIG.prefix_id;
-								form_data['model'] = form_data['model'].replace(`${prefixId}.`, ``);
-							}
-
-							const [res] = await chatCompletion(OPENAI_API_KEY, form_data, OPENAI_API_URL);
-
-							if (res) {
-								// raise if the response is not ok
-								if (!res.ok) {
-									throw await res.json();
-								}
-
-								if (form_data?.stream ?? false) {
-									cb({
-										status: true
-									});
-
-									// res will either be SSE or JSON
-									const reader = res.body.getReader();
-									const decoder = new TextDecoder();
-
-									const processStream = async () => {
-										let streamDone = false;
-										while (!streamDone) {
-											// Read data chunks from the response stream
-											const { done, value } = await reader.read();
-											streamDone = done;
-											if (done) {
-												break;
-											}
-
-											// Decode the received chunk
-											const chunk = decoder.decode(value, { stream: true });
-
-											// Process lines within the chunk
-											const lines = chunk.split('\n').filter((line) => line.trim() !== '');
-
-											for (const line of lines) {
-												$socket?.emit(channel, line);
-											}
-										}
-									};
-
-									// Process the stream in the background
-									await processStream();
-								} else {
-									const data = await res.json();
-									cb(data);
-								}
-							} else {
-								throw new Error('An error occurred while fetching the completion');
-							}
-						} catch (error) {
-							console.error('chatCompletion', error);
-							cb(error);
-						}
+					const directConnections = $settings?.directConnections;
+					const urlIdx = model?.urlIdx;
+					const apiUrl = directConnections?.OPENAI_API_BASE_URLS?.[urlIdx];
+					if (typeof apiUrl !== 'string' || !apiUrl.trim())
+						throw new Error('Direct completion URL missing.');
+					const apiConfig = directConnections?.OPENAI_API_CONFIGS?.[urlIdx];
+					const requestBody = { ...form_data };
+					if (apiConfig?.prefix_id) {
+						requestBody.model = requestBody.model.replace(`${apiConfig.prefix_id}.`, '');
 					}
-				} catch (error) {
-					console.error('chatCompletion', error);
-					cb(error);
+					const [res] = await chatCompletion(
+						directConnections?.OPENAI_API_KEYS?.[urlIdx],
+						requestBody,
+						apiUrl
+					);
+					if (responseSocket.id !== data.session_id) {
+						await res?.body?.cancel();
+						return;
+					}
+					if (!res?.ok) throw new Error('Direct completion failed.');
+					if (requestBody.stream) {
+						const reader = res.body
+							?.pipeThrough(new TextDecoderStream())
+							.pipeThrough(splitStream('\n'))
+							.getReader();
+						if (!reader) throw new Error('Direct completion body missing.');
+						acknowledged = true;
+						cb({ status: true });
+						let streamDone = false;
+						try {
+							while (!streamDone) {
+								const { done, value } = await reader.read();
+								streamDone = done;
+								if (responseSocket.id !== data.session_id) {
+									await reader.cancel();
+									break;
+								}
+								if (done) break;
+								if (value.trim()) responseSocket.emit(channel, value);
+							}
+						} finally {
+							reader.releaseLock();
+						}
+					} else {
+						const completion = await res.json();
+						if (responseSocket.id !== data.session_id) return;
+						acknowledged = true;
+						cb(completion);
+					}
+				} catch {
+					if (responseSocket.id !== data.session_id) return;
+					// Request and provider errors can contain keys or private content.
+					const failure = { error: 'Direct completion failed.' };
+					console.error('Direct completion failed.');
+					if (acknowledged) responseSocket.emit(channel, failure);
+					else cb(failure);
 				} finally {
-					$socket.emit(channel, {
-						done: true
-					});
+					if (responseSocket.id === data.session_id)
+						responseSocket.emit(channel, { done: true });
 				}
 				return;
 			}
