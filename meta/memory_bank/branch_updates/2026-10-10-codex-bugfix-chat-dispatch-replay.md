@@ -59,3 +59,9 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: 18исходных отказов;21адресная/69соседних/1621общая проверка;1751замороженный файл. Types1321/87,ESLint809,новых0. 17реальных браузерных сценариев приняты;2дополнительных Blackformatter провалены из-за click. Source `b390771760f595a9030e7d9b0a46d4b6a7184285` отправлен;SDD3/3 закрыта. Конечные gates открыты.
+
+- [ ] **[BUG][PYTHON]** Сохранение зависимостей подготовленных Pythonпакетов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__python-prepared-packages.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Подтверждён missingclick в обоих режимах;исправляется общий prepare-путь без обновленияruntime.

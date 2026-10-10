@@ -1,0 +1,168 @@
+{
+  "spec_id": "airis-python-prepared-packages-2026-10-10-013",
+  "title": "Airis Python Prepared Package Graph",
+  "generated": "2026-10-10T01:13:14.616456Z",
+  "last_updated": "2026-10-10T01:28:14.642657Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__python-prepared-packages.md",
+    "status": "active",
+    "activated_date": "2026-10-10T01:15:29.208895Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Python Prepared Package Graph",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u043f\u043e\u0442\u0435\u0440\u044e \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 \u0438 \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 freeze",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T01:15:29.434853Z",
+        "journaled_at": "2026-10-10T01:15:29.436715Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0440\u0430\u0437\u0440\u0435\u0448\u0451\u043d\u043d\u044b\u0439 \u0433\u0440\u0430\u0444 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0435 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0435 wheels",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T01:28:14.639552Z",
+        "journaled_at": "2026-10-10T01:28:14.642627Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043d\u0430\u0441\u0442\u043e\u044f\u0449\u0438\u0435 \u043f\u0430\u043a\u0435\u0442\u044b, \u0438\u0441\u0445\u043e\u0434\u043d\u0438\u043a\u0438 \u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u043f\u043e\u0442\u0435\u0440\u044e \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 \u0438 \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 freeze",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T01:15:29.434702Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T01:15:29.435669Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0440\u0430\u0437\u0440\u0435\u0448\u0451\u043d\u043d\u044b\u0439 \u0433\u0440\u0430\u0444 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0435 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0435 wheels",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T01:28:14.639300Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T01:28:14.641296Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043d\u0430\u0441\u0442\u043e\u044f\u0449\u0438\u0435 \u043f\u0430\u043a\u0435\u0442\u044b, \u0438\u0441\u0445\u043e\u0434\u043d\u0438\u043a\u0438 \u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T01:15:29.435665Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u043f\u043e\u0442\u0435\u0440\u044e \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 \u0438 \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 freeze",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T01:15:29.436710Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0441\u0442\u0438 \u043f\u043e\u0442\u0435\u0440\u044e \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 \u0438 \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 freeze",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T01:28:14.641284Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0440\u0430\u0437\u0440\u0435\u0448\u0451\u043d\u043d\u044b\u0439 \u0433\u0440\u0430\u0444 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0435 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0435 wheels",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T01:28:14.642620Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0440\u0430\u0437\u0440\u0435\u0448\u0451\u043d\u043d\u044b\u0439 \u0433\u0440\u0430\u0444 \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0435 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0435 wheels",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
