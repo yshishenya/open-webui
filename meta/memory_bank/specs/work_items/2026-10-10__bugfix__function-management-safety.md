@@ -2,10 +2,10 @@
 
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: done (source acceptance; production pending)
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-function-management-safety-2026-10-10-017.json
+- SDD Spec: meta/sdd/specs/completed/airis-function-management-safety-2026-10-10-017.json
 
 ## Goal / Acceptance Criteria
 Продолжение G14 / 13.11; финальная цель A/B сохраняется.
@@ -14,7 +14,7 @@
 - [x] Переключатели и удаление принимают серверный результат, блокируют пересечение действий одного id, обрабатывают ошибки и сохраняют прежнее состояние при отказе.
 - [x] JSON импорт полностью проверяется до первого POST; empty/invalid/duplicate/file failure не пишут; подтверждение arbitrary code сохранено; частичный результат не считается полным успехом.
 - [x] API CRUD/list/URL/export имеют точные типы, deadline60s/abort/явные HTTP ошибки; GET/POST/DELETE/body и user-valves договоры сохранены.
-- [ ] Docker адресные/общие checks без новых диагностик, браузер/сохранность/SDD/source push подтверждены; private acceptance синхронизирована.
+- [x] Docker адресные/общие checks без новых диагностик, браузер/сохранность/SDD/source push подтверждены; private acceptance синхронизирована.
 
 ## Scope and upstream impact
 Functions, единственный FunctionMenu caller; отдельный fork-owned parser; типы/backend response. Для network повторно используется requestJSON; добавляется только optional method GET/POST/DELETE для существующих bodyless mutations. GetFunctions и admin/user valves API остаются отдельными путями этой партии; их существующие callers изучены. Unsupported Community URL '#' не превращается в публикацию. Новых зависимостей нет.
@@ -36,3 +36,5 @@ Functions, единственный FunctionMenu caller; отдельный fork
 Клиент проверяет структуру всего массива, Unicode-идентификаторы и дубли по lower(); точная версия Unicode и исполнение кода проверяются сервером. Импорт не транзакционный: ранее принятые функции при позднем серверном отказе остаются; число показано, автоматического повтора нет. Abort не обещает отмену уже принятой сервером записи. После каждого результата файл сбрасывается для явного повторного выбора.
 
 GetFunctions, admin/user valves, редакторы и ImportModal не объявляются исправленными этим изменением. Общие types/lint остаются красными; PR/CI/интеграция/чистый образ/production ещё открыты. План198/244, новых номерных закрытий0, финальная цель active; реальные provider/payment/mail, телефон/добровольцы и окна24h/72h/14d требуют отдельных доказательств.
+
+Runtime source и remote: `a31bffdcd6cb92efcc493a9219f0792b05fd6006`; 1761 Git blobs совпали. SDD3/3 завершена, 218 tracked specs валидны. Частная приёмка записывается после отдельного коммита документации с CAS-проверкой исходного состояния.

@@ -2,7 +2,7 @@
   "spec_id": "airis-function-management-safety-2026-10-10-017",
   "title": "Airis Function Management Safety",
   "generated": "2026-10-10T02:35:33.687682Z",
-  "last_updated": "2026-10-10T02:53:47.661051Z",
+  "last_updated": "2026-10-10T03:27:00.081350Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -10,15 +10,17 @@
     "estimated_hours": 24,
     "security_sensitive": false,
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__function-management-safety.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-10T02:41:36.229269Z",
-    "progress_percentage": 66
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T03:27:00.080858Z",
+    "actual_hours": 0.553
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "Airis Function Management Safety",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
@@ -26,7 +28,7 @@
         "phase-3"
       ],
       "total_tasks": 3,
-      "completed_tasks": 2,
+      "completed_tasks": 3,
       "metadata": {}
     },
     "phase-1": {
@@ -64,14 +66,18 @@
     "phase-3": {
       "type": "phase",
       "title": "Verify frozen source and preservation",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-3-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T03:26:59.547339Z",
+        "journaled_at": "2026-10-10T03:26:59.550411Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -114,7 +120,7 @@
     "task-3-1": {
       "type": "task",
       "title": "Pass focused and frozen checks, browser and preservation, push source",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -123,9 +129,13 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
-        "started_at": "2026-10-10T02:53:47.660703Z"
+        "started_at": "2026-10-10T02:53:47.660703Z",
+        "completed_at": "2026-10-10T03:26:59.547155Z",
+        "needs_journaling": false,
+        "actual_hours": 0.553,
+        "journaled_at": "2026-10-10T03:26:59.548853Z"
       }
     }
   },
@@ -165,6 +175,24 @@
       "content": "All child tasks in phase phase-2 have been completed.",
       "metadata": {},
       "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T03:26:59.548848Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Pass focused and frozen checks, browser and preservation, push source",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T03:26:59.550402Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frozen source and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
     }
   ]
 }
