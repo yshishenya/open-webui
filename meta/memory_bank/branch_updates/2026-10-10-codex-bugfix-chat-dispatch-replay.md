@@ -363,3 +363,13 @@
   - Done: 2026-10-10 (local source acceptance)
   - Tests: Одинаковые16новых1passed/15failed→16/16, Canvas2/2, frontend2157/2157;235CI lintцелей0/0,types576/64,ESLint540,new0. AddUser script JS/CSS rules сохранены; backend1064 reused/565хешей; SDD0403/3.
   - Risks: Полные quality/PR/CI/интеграция/образ/выпуск/A/B открыты; план198/244,цельactive. Production/21чужойфайл/262тома сохранены.
+
+- [x] [BUG] Подсказки: импорт, редактирование и сохранение
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__prompt-suggestions.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Существующий SuggestionPrompt, минимальная проверка импортируемых строк и явный отказ сохранения через requestJSON.
+
+  - Done: 2026-10-10 (local source acceptance)
+  - Tests: Одинаковые19новых4passed/15failed→19/19; с сохранением настроек35/35,frontend2176/2176;236CI lintцелей0/0,types557/63,ESLint538,new0. Настоящий DOM/Blob export проверены; backend1064 reused/565хешей; SDD0413/3.
+  - Risks: Общие quality/PR/CI/интеграция/образ/выпуск/A/B открыты; план198/244,цельactive. Production/21чужойфайл/262тома сохранены.

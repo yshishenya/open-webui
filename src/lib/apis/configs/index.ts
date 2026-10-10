@@ -1,3 +1,5 @@
+import { requestJSON } from '$lib/utils/airis/request_json';
+import type { SuggestionPrompt } from '$lib/utils/airis/model-types';
 import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 import type { Banner } from '$lib/types';
 import type { ToolServerConnection } from '$lib/utils/airis/frontend-contracts';
@@ -443,34 +445,30 @@ export const setSubagentsConfig = async (token: string, config: object) => {
 	return res.json();
 };
 
-export const setDefaultPromptSuggestions = async (token: string, promptSuggestions: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/suggestions`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			suggestions: promptSuggestions
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const setDefaultPromptSuggestions = async (
+	token: string,
+	promptSuggestions: SuggestionPrompt[]
+): Promise<SuggestionPrompt[]> => {
+	const rows = await requestJSON<SuggestionPrompt[]>(
+		`${WEBUI_API_BASE_URL}/configs/suggestions`,
+		token,
+		{ suggestions: promptSuggestions },
+		undefined,
+		'Prompt suggestions'
+	);
+	if (
+		!Array.isArray(rows) ||
+		!rows.every(
+			(row) =>
+				row &&
+				typeof row === 'object' &&
+				typeof row.content === 'string' &&
+				Array.isArray(row.title) &&
+				row.title.every((part: unknown) => typeof part === 'string')
+		)
+	)
+		throw new Error('Invalid prompt suggestions response');
+	return rows;
 };
 
 export const getBanners = async (token: string): Promise<Banner[]> => {

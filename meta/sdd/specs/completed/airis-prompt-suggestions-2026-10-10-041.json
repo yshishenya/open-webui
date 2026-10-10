@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-prompt-suggestions-2026-10-10-041",
+  "title": "airis-prompt-suggestions",
+  "generated": "2026-10-10T18:18:30.816662Z",
+  "last_updated": "2026-10-10T18:26:36.044633Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__prompt-suggestions.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T18:18:31.095920Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T18:26:36.044348Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-prompt-suggestions",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace suggestion import/editor/save consumers and reproduce invalid data failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T18:22:41.892741Z",
+        "journaled_at": "2026-10-10T18:22:41.894592Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse SuggestionPrompt and requestJSON; preserve existing editing and exports",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T18:22:42.099885Z",
+        "journaled_at": "2026-10-10T18:22:42.101651Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Full frontend, source and preservation acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T18:26:35.618860Z",
+        "journaled_at": "2026-10-10T18:26:35.620792Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace suggestion import/editor/save consumers and reproduce invalid data failures",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T18:22:41.892581Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T18:22:41.893530Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse SuggestionPrompt and requestJSON; preserve existing editing and exports",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T18:22:42.099691Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T18:22:42.100665Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Full frontend, source and preservation acceptance",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T18:26:35.618677Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T18:26:35.619669Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T18:22:41.893525Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace suggestion import/editor/save consumers and reproduce invalid data failures",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T18:22:41.894587Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace suggestion import/editor/save consumers and reproduce invalid data failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T18:22:42.100661Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse SuggestionPrompt and requestJSON; preserve existing editing and exports",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T18:22:42.101647Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse SuggestionPrompt and requestJSON; preserve existing editing and exports",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T18:26:35.619664Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Full frontend, source and preservation acceptance",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T18:26:35.620788Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Full frontend, source and preservation acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

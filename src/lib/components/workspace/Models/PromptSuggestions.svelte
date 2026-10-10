@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import type { Action } from 'svelte/action';
+	import type { SuggestionPrompt } from '$lib/utils/airis/model-types';
 	import { saveAs } from 'file-saver';
 	import { toast } from 'svelte-sonner';
 	import Plus from '$lib/components/icons/Plus.svelte';
@@ -7,23 +9,25 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	const i18n = getContext('i18n');
 
-	export let promptSuggestions = [];
+	export let promptSuggestions: SuggestionPrompt[] = [];
+	type EditableSuggestion = SuggestionPrompt & { title: string[] };
+	let _promptSuggestions: EditableSuggestion[] = [];
+	const lifetime = { active: true };
+	onDestroy(() => {
+		lifetime.active = false;
+	});
 
-	let _promptSuggestions = [];
-
-	const setPromptSuggestions = () => {
-		_promptSuggestions = promptSuggestions.map((s) => {
-			if (typeof s.title === 'string') {
-				s.title = [s.title, ''];
-			} else if (!Array.isArray(s.title)) {
-				s.title = ['', ''];
-			}
-			return s;
-		});
+	const normalizeSuggestion = (s: SuggestionPrompt): EditableSuggestion => {
+		if (typeof s.title === 'string') s.title = [s.title, ''];
+		else if (!Array.isArray(s.title)) s.title = ['', ''];
+		return s as EditableSuggestion;
+	};
+	const setPromptSuggestions = (): void => {
+		_promptSuggestions = promptSuggestions.map(normalizeSuggestion);
 	};
 
-	const autosize = (node: HTMLTextAreaElement) => {
-		const resize = () => {
+	const autosize: Action<HTMLTextAreaElement, string> = (node) => {
+		const resize = (): void => {
 			node.style.height = 'auto';
 			node.style.height = `${node.scrollHeight}px`;
 		};
@@ -33,7 +37,7 @@
 
 		return {
 			update: resize,
-			destroy() {
+			destroy(): void {
 				node.removeEventListener('input', resize);
 			}
 		};
@@ -56,39 +60,52 @@
 				type="file"
 				accept=".json"
 				hidden
-				on:change={(e) => {
-					const files = e.target.files;
-					if (!files || files.length === 0) {
-						return;
-					}
-
-					console.log(files);
-
-					let reader = new FileReader();
-					reader.onload = async (event) => {
+				on:change={(e): void => {
+					const input = e.currentTarget;
+					const file = input.files?.[0];
+					input.value = '';
+					if (!file) return;
+					const reader = new FileReader();
+					const fail = (): void => {
+						if (lifetime.active) toast.error($i18n.t('Invalid JSON file'));
+					};
+					reader.onerror = fail;
+					reader.onload = (): void => {
+						if (!lifetime.active) return;
 						try {
-							let suggestions = JSON.parse(event.target.result);
-
-							suggestions = suggestions.map((s) => {
-								if (typeof s.title === 'string') {
-									s.title = [s.title, ''];
-								} else if (!Array.isArray(s.title)) {
-									s.title = ['', ''];
-								}
-
-								return s;
+							if (typeof reader.result !== 'string') throw Error('Invalid file');
+							const parsed: unknown = JSON.parse(reader.result);
+							if (!Array.isArray(parsed)) throw Error('Invalid suggestions');
+							const suggestions = parsed.map((s: unknown): EditableSuggestion => {
+								if (
+									!s ||
+									typeof s !== 'object' ||
+									!('content' in s) ||
+									typeof s.content !== 'string'
+								)
+									throw Error('Invalid suggestion');
+								const title = 'title' in s ? s.title : null;
+								if (
+									Array.isArray(title) &&
+									!title.every((part: unknown) => typeof part === 'string')
+								)
+									throw Error('Invalid title');
+								return normalizeSuggestion({
+									...s,
+									content: s.content,
+									title: typeof title === 'string' || Array.isArray(title) ? title : null
+								});
 							});
-
 							promptSuggestions = [...promptSuggestions, ...suggestions];
-						} catch (error) {
-							toast.error($i18n.t('Invalid JSON file'));
-							return;
+						} catch {
+							fail();
 						}
 					};
-
-					reader.readAsText(files[0]);
-
-					e.target.value = ''; // Reset the input value
+					try {
+						reader.readAsText(file);
+					} catch {
+						fail();
+					}
 				}}
 			/>
 
@@ -129,7 +146,7 @@
 				type="button"
 				aria-label={$i18n.t('Add prompt suggestion')}
 				on:click={() => {
-					if (promptSuggestions.length === 0 || promptSuggestions.at(-1).content !== '') {
+					if (promptSuggestions.length === 0 || promptSuggestions.at(-1)?.content !== '') {
 						promptSuggestions = [...promptSuggestions, { content: '', title: ['', ''] }];
 					}
 				}}
@@ -178,7 +195,7 @@
 								rows="1"
 								use:autosize={prompt.content}
 								bind:value={prompt.content}
-							/>
+							></textarea>
 						</Tooltip>
 					</div>
 
