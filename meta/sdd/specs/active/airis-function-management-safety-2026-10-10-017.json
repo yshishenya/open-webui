@@ -1,0 +1,170 @@
+{
+  "spec_id": "airis-function-management-safety-2026-10-10-017",
+  "title": "Airis Function Management Safety",
+  "generated": "2026-10-10T02:35:33.687682Z",
+  "last_updated": "2026-10-10T02:53:47.661051Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__function-management-safety.md",
+    "status": "active",
+    "activated_date": "2026-10-10T02:41:36.229269Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Function Management Safety",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce lifecycle, mutation and import failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T02:53:47.139945Z",
+        "journaled_at": "2026-10-10T02:53:47.142051Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Fix shared request and component handling",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T02:53:47.404194Z",
+        "journaled_at": "2026-10-10T02:53:47.406517Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frozen source and preservation",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce failures using actual component and API source",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T02:53:47.139743Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T02:53:47.140725Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Preserve server state and validate import before persistence",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T02:53:47.403954Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T02:53:47.405266Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Pass focused and frozen checks, browser and preservation, push source",
+      "status": "in_progress",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-10T02:53:47.660703Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T02:53:47.140720Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce failures using actual component and API source",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T02:53:47.142042Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce lifecycle, mutation and import failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T02:53:47.405260Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve server state and validate import before persistence",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T02:53:47.406512Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix shared request and component handling",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

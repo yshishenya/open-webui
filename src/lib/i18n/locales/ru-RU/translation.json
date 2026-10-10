@@ -3880,5 +3880,14 @@
 	"The pending request could not be saved": "Не удалось сохранить запрос для восстановления.",
 	"Connection is required to send the saved request": "Для отправки сохранённого запроса нужно подключение.",
 	"Tool connections changed. The saved request was kept; check its status first": "Настройки подключений изменились. Запрос сохранён; сначала проверьте его состояние.",
-	"Contact support": "Обратиться в поддержку"
+	"Contact support": "Обратиться в поддержку",
+	"Failed to refresh functions. Reload the page.": "Не удалось обновить список функций. Перезагрузите страницу.",
+	"Failed to delete function.": "Не удалось удалить функцию.",
+	"Failed to update function.": "Не удалось изменить функцию.",
+	"Failed to create function.": "Не удалось создать функцию.",
+	"Imported {{count}} functions before an error. Check the list before retrying.": "До ошибки импортировано функций: {{count}}. Проверьте список перед повторной попыткой.",
+	"Select a non-empty JSON array of functions.": "Выберите JSON-файл с непустым массивом функций.",
+	"Invalid function import. Check ids, names, code and metadata.": "Некорректный импорт функций. Проверьте идентификаторы, названия, код и метаданные.",
+	"Invalid or duplicate function id.": "Некорректный или повторяющийся идентификатор функции.",
+	"Invalid function metadata.": "Некорректные метаданные функции."
 }

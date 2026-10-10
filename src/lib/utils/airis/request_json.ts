@@ -5,7 +5,8 @@ export const requestJSON = async <T>(
 	token: string,
 	body?: object,
 	signal?: AbortSignal,
-	label = 'Request'
+	label = 'Request',
+	method: 'GET' | 'POST' | 'DELETE' = body === undefined ? 'GET' : 'POST'
 ): Promise<T> => {
 	signal?.throwIfAborted();
 	const controller = new AbortController();
@@ -17,9 +18,13 @@ export const requestJSON = async <T>(
 	);
 	try {
 		const res = await fetch(url, {
-			method: body === undefined ? 'GET' : 'POST',
+			method,
 			signal: controller.signal,
-			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			},
 			...(body === undefined ? {} : { body: JSON.stringify(body) })
 		});
 		if (!res.ok) {

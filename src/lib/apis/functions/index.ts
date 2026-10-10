@@ -6,36 +6,29 @@ import {
 	type ValveSpec
 } from '$lib/utils/airis/userValves';
 
-export const createNewFunction = async (token: string, func: object) => {
-	let error = null;
+import { requestJSON } from '$lib/utils/airis/request_json';
+import type { FunctionListItem } from '$lib/utils/airis/frontend-contracts';
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/create`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			...func
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export type FunctionUserItem = FunctionListItem & {
+	user?: { id: string; name: string; email: string; username?: string } | null;
 };
+export type FunctionRecord = FunctionListItem & {
+	content: string;
+	valves?: Record<string, unknown> | null;
+};
+export type FunctionForm = {
+	id: string;
+	name: string;
+	content: string;
+	meta: Partial<FunctionListItem['meta']>;
+};
+
+export const createNewFunction = async (
+	token: string,
+	func: FunctionForm,
+	signal?: AbortSignal
+): Promise<FunctionListItem | null> =>
+	requestJSON(`${WEBUI_API_BASE_URL}/functions/create`, token, func, signal, 'Function request');
 
 export const getFunctions = async (token: string = '') => {
 	let error = null;
@@ -68,264 +61,105 @@ export const getFunctions = async (token: string = '') => {
 	return res;
 };
 
-export const getFunctionList = async (token: string = '') => {
-	let error = null;
+export const getFunctionList = async (
+	token = '',
+	signal?: AbortSignal
+): Promise<FunctionUserItem[]> =>
+	requestJSON(`${WEBUI_API_BASE_URL}/functions/list`, token, undefined, signal, 'Function request');
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/list`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
+export const loadFunctionByUrl = async (
+	token: string,
+	url: string,
+	signal?: AbortSignal
+): Promise<{ name: string; content: string } | null> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/functions/load/url`,
+		token,
+		{ url },
+		signal,
+		'Function request'
+	);
 
-	if (error) {
-		throw error;
-	}
+export const exportFunctions = async (
+	token = '',
+	signal?: AbortSignal
+): Promise<FunctionRecord[]> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/functions/export`,
+		token,
+		undefined,
+		signal,
+		'Function request'
+	);
 
-	return res;
-};
+export const getFunctionById = async (
+	token: string,
+	id: string,
+	signal?: AbortSignal
+): Promise<FunctionRecord | null> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}`,
+		token,
+		undefined,
+		signal,
+		'Function request'
+	);
 
-export const loadFunctionByUrl = async (token: string = '', url: string) => {
-	let error = null;
+export const updateFunctionById = async (
+	token: string,
+	id: string,
+	func: FunctionForm,
+	signal?: AbortSignal
+): Promise<FunctionListItem | null> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/update`,
+		token,
+		func,
+		signal,
+		'Function request'
+	);
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/load/url`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			url
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
+export const deleteFunctionById = async (
+	token: string,
+	id: string,
+	signal?: AbortSignal
+): Promise<boolean> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/delete`,
+		token,
+		undefined,
+		signal,
+		'Function request',
+		'DELETE'
+	);
 
-	if (error) {
-		throw error;
-	}
+export const toggleFunctionById = async (
+	token: string,
+	id: string,
+	signal?: AbortSignal
+): Promise<FunctionRecord | null> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/toggle`,
+		token,
+		undefined,
+		signal,
+		'Function request',
+		'POST'
+	);
 
-	return res;
-};
-
-export const exportFunctions = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/export`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const getFunctionById = async (token: string, id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/id/${id}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const updateFunctionById = async (token: string, id: string, func: object) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/id/${id}/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			...func
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const deleteFunctionById = async (token: string, id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/id/${id}/delete`, {
-		method: 'DELETE',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const toggleFunctionById = async (token: string, id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/id/${id}/toggle`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const toggleGlobalById = async (token: string, id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/functions/id/${id}/toggle/global`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+export const toggleGlobalById = async (
+	token: string,
+	id: string,
+	signal?: AbortSignal
+): Promise<FunctionRecord | null> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/toggle/global`,
+		token,
+		undefined,
+		signal,
+		'Function request',
+		'POST'
+	);
 
 export const getFunctionValvesById = async (token: string, id: string) => {
 	let error = null;

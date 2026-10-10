@@ -111,3 +111,9 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: Runtime `878e48231bd8037ea6266455dcb175d6742e69a1`,1758 Git blobs;13/1700 тестов,браузер8/8,types1183/86,ESLint780,новых0. SDD2/2,217валидных;пустые собственные тома удалены. План198/244 и производственный допуск открыты.
+
+- [ ] [BUG] Управление функциями без потери состояния.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__function-management-safety.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Подтверждён async cleanup; проверяются переключение, импорт и shared API, финальная цель active198/244.

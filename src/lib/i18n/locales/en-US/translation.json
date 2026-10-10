@@ -3354,5 +3354,14 @@
 	"The pending request could not be saved": "The pending request could not be saved",
 	"Connection is required to send the saved request": "Connection is required to send the saved request",
 	"Tool connections changed. The saved request was kept; check its status first": "Tool connections changed. The saved request was kept; check its status first",
-	"Contact support": "Contact support"
+	"Contact support": "Contact support",
+	"Failed to refresh functions. Reload the page.": "Failed to refresh functions. Reload the page.",
+	"Failed to delete function.": "Failed to delete function.",
+	"Failed to update function.": "Failed to update function.",
+	"Failed to create function.": "Failed to create function.",
+	"Imported {{count}} functions before an error. Check the list before retrying.": "Imported {{count}} functions before an error. Check the list before retrying.",
+	"Select a non-empty JSON array of functions.": "Select a non-empty JSON array of functions.",
+	"Invalid function import. Check ids, names, code and metadata.": "Invalid function import. Check ids, names, code and metadata.",
+	"Invalid or duplicate function id.": "Invalid or duplicate function id.",
+	"Invalid function metadata.": "Invalid function metadata."
 }

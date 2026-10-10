@@ -45,12 +45,23 @@
 	import ChevronDown from '../icons/ChevronDown.svelte';
 	import ChevronUp from '../icons/ChevronUp.svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { FunctionUserItem } from '$lib/apis/functions';
+	import { parseFunctionImport } from '$lib/utils/airis/function_import';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
+	const controller = new AbortController();
+	let alive = true;
+	let pendingIds = new Set<string>();
+	let importing = false;
+	let refreshVersion = 0;
 
 	let shiftKey = false;
 
 	let functionsImportInputElement: HTMLInputElement;
-	let importFiles;
+	let importFiles: FileList | null = null;
 
 	let tagsContainerElement: HTMLDivElement;
 	let viewOption = '';
@@ -60,7 +71,6 @@
 
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
-	let selectedTag = '';
 	let selectedType = '';
 
 	let showImportModal = false;
@@ -69,28 +79,30 @@
 
 	let showManifestModal = false;
 	let showValvesModal = false;
-	let selectedFunction = null;
+	let selectedFunction: FunctionUserItem | null = null;
 
 	let showDeleteConfirm = false;
 
 	let loaded = false;
-	let functions = null;
-	let filteredItems = [];
+	let functions: FunctionUserItem[] = [];
+	let filteredItems: FunctionUserItem[] = [];
 
-	const handleSearchInput = () => {
+	const handleSearchInput = (): void => {
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			setFilteredItems();
 		}, 300);
 	};
 
-	const downloadFunctions = async () => {
-		const _functions = await exportFunctions(localStorage.token).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+	const downloadFunctions = async (): Promise<void> => {
+		const _functions = await exportFunctions(localStorage.token, controller.signal).catch(
+			(error) => {
+				if (alive) toast.error(getErrorMessage(error));
+				return null;
+			}
+		);
 
-		if (_functions) {
+		if (alive && _functions) {
 			let blob = new Blob([JSON.stringify(_functions)], {
 				type: 'application/json'
 			});
@@ -108,7 +120,7 @@
 		setFilteredItems();
 	}
 
-	const setFilteredItems = () => {
+	const setFilteredItems = (): void => {
 		filteredItems = (functions ?? [])
 			.filter(
 				(f) =>
@@ -134,7 +146,7 @@
 			});
 	};
 
-	const setSortKey = (key: string) => {
+	const setSortKey = (key: string): void => {
 		if (sortKey === key) {
 			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -143,47 +155,22 @@
 		}
 	};
 
-	const openFunction = (func) => {
+	const openFunction = (func: FunctionUserItem): void => {
 		goto(`/admin/functions/edit?id=${encodeURIComponent(func.id)}`);
 	};
 
-	const shouldIgnoreRowClick = (target: EventTarget | null) => {
+	const shouldIgnoreRowClick = (target: EventTarget | null): boolean => {
 		return target instanceof Element && !!target.closest('button, a, input, [role="menu"]');
 	};
-	const shareHandler = async (func) => {
-		const item = await getFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		toast.success($i18n.t('Redirecting you to Airis Community'));
-
-		const url = '#';
-
-		const tab = await window.open(`${url}/functions/create`, '_blank');
-
-		// Define the event handler function
-		const messageHandler = (event) => {
-			if (event.origin !== url) return;
-			if (event.data === 'loaded') {
-				tab.postMessage(JSON.stringify(item), '*');
-
-				// Remove the event listener after handling the message
-				window.removeEventListener('message', messageHandler);
+	const cloneHandler = async (func: FunctionUserItem): Promise<void> => {
+		const _function = await getFunctionById(localStorage.token, func.id, controller.signal).catch(
+			(error) => {
+				if (alive) toast.error(getErrorMessage(error));
+				return null;
 			}
-		};
+		);
 
-		window.addEventListener('message', messageHandler, false);
-		console.log(item);
-	};
-
-	const cloneHandler = async (func) => {
-		const _function = await getFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (_function) {
+		if (alive && _function) {
 			sessionStorage.function = JSON.stringify({
 				..._function,
 				id: `${_function.id}_clone`,
@@ -193,13 +180,15 @@
 		}
 	};
 
-	const exportHandler = async (func) => {
-		const _function = await getFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+	const exportHandler = async (func: FunctionUserItem): Promise<void> => {
+		const _function = await getFunctionById(localStorage.token, func.id, controller.signal).catch(
+			(error) => {
+				if (alive) toast.error(getErrorMessage(error));
+				return null;
+			}
+		);
 
-		if (_function) {
+		if (alive && _function) {
 			let blob = new Blob([JSON.stringify([_function])], {
 				type: 'application/json'
 			});
@@ -207,79 +196,148 @@
 		}
 	};
 
-	const deleteHandler = async (func) => {
-		const res = await deleteFunctionById(localStorage.token, func.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
-			toast.success($i18n.t('Function deleted successfully'));
-			functions = functions.filter((f) => f.id !== func.id);
-
-			_functions.set(await getFunctions(localStorage.token));
-			models.set(
-				await getModels(
+	const refreshFunctions = async (): Promise<void> => {
+		const version = ++refreshVersion;
+		try {
+			const [nextFunctions, nextModels] = await Promise.all([
+				getFunctions(localStorage.token),
+				getModels(
 					localStorage.token,
 					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null),
 					false,
 					true
 				)
-			);
-		}
-	};
-
-	const toggleGlobalHandler = async (func) => {
-		const res = await toggleGlobalById(localStorage.token, func.id).catch((error) => {
-			toast.error(`${error}`);
-		});
-
-		if (res) {
-			if (func.is_global) {
-				func.type === 'filter'
-					? toast.success($i18n.t('Filter is now globally enabled'))
-					: toast.success($i18n.t('Function is now globally enabled'));
-			} else {
-				func.type === 'filter'
-					? toast.success($i18n.t('Filter is now globally disabled'))
-					: toast.success($i18n.t('Function is now globally disabled'));
+			]);
+			if (!nextFunctions || !nextModels)
+				throw new Error($i18n.t('Failed to refresh functions. Reload the page.'));
+			if (alive && version === refreshVersion) {
+				_functions.set(nextFunctions);
+				models.set(nextModels);
 			}
-
-			_functions.set(await getFunctions(localStorage.token));
-			models.set(
-				await getModels(
-					localStorage.token,
-					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null),
-					false,
-					true
-				)
-			);
+		} catch (error) {
+			if (alive && version === refreshVersion) toast.error(getErrorMessage(error));
 		}
 	};
 
-	onMount(async () => {
+	const mutateFunction = async (
+		func: FunctionUserItem,
+		action: 'delete' | 'active' | 'global'
+	): Promise<void> => {
+		if (!alive || pendingIds.has(func.id)) return;
+		pendingIds = new Set(pendingIds).add(func.id);
+		try {
+			if (action === 'delete') {
+				if (!(await deleteFunctionById(localStorage.token, func.id, controller.signal)))
+					throw new Error($i18n.t('Failed to delete function.'));
+				if (!alive) return;
+				functions = functions.filter((f) => f.id !== func.id);
+				toast.success($i18n.t('Function deleted successfully'));
+			} else {
+				const res = await (action === 'active' ? toggleFunctionById : toggleGlobalById)(
+					localStorage.token,
+					func.id,
+					controller.signal
+				);
+				if (!res) throw new Error($i18n.t('Failed to update function.'));
+				if (!alive) return;
+				functions = functions.map((f) => (f.id === func.id ? { ...f, ...res } : f));
+				if (action === 'global')
+					toast.success(
+						$i18n.t(
+							res.is_global
+								? 'Function is now globally enabled'
+								: 'Function is now globally disabled'
+						)
+					);
+			}
+			await refreshFunctions();
+		} catch (error) {
+			if (alive) toast.error(getErrorMessage(error));
+		} finally {
+			pendingIds = new Set([...pendingIds].filter((id) => id !== func.id));
+			if (alive) functions = [...functions];
+		}
+	};
+	const deleteHandler = (func: FunctionUserItem): Promise<void> => mutateFunction(func, 'delete');
+	const toggleActiveHandler = (func: FunctionUserItem): Promise<void> =>
+		mutateFunction(func, 'active');
+	const toggleGlobalHandler = (func: FunctionUserItem): Promise<void> =>
+		mutateFunction(func, 'global');
+
+	const clearImport = (): void => {
+		importFiles = null;
+		if (functionsImportInputElement) functionsImportInputElement.value = '';
+	};
+	const importHandler = async (): Promise<void> => {
+		const file = importFiles?.[0];
+		if (!alive || importing || !file) return;
+		importing = true;
+		let created = 0;
+		try {
+			const payloads = parseFunctionImport(await file.text());
+			for (const payload of payloads) {
+				if (!alive) return;
+				const res = await createNewFunction(localStorage.token, payload, controller.signal);
+				if (!res) throw new Error($i18n.t('Failed to create function.'));
+				created++;
+			}
+			if (alive) {
+				toast.success($i18n.t('Functions imported successfully'));
+				clearImport();
+			}
+		} catch (error) {
+			if (alive)
+				toast.error(
+					created
+						? $i18n.t(
+								'Imported {{count}} functions before an error. Check the list before retrying.',
+								{ count: created }
+							) +
+								' ' +
+								getErrorMessage(error)
+						: $i18n.t(getErrorMessage(error))
+				);
+		} finally {
+			if (alive) clearImport();
+			if (alive && created) {
+				try {
+					const next = await getFunctionList(localStorage.token, controller.signal);
+					if (alive) functions = next;
+				} catch (error) {
+					if (alive) toast.error(getErrorMessage(error));
+				}
+				if (alive) await refreshFunctions();
+			}
+			importing = false;
+		}
+	};
+
+	onMount(() => {
 		viewOption = localStorage?.workspaceViewOption || '';
-		functions = await getFunctionList(localStorage.token).catch((error) => {
-			toast.error(`${error}`);
-			return [];
-		});
+		void (async (): Promise<void> => {
+			try {
+				const next = await getFunctionList(localStorage.token, controller.signal);
+				if (alive) functions = next;
+			} catch (error) {
+				if (alive) toast.error(getErrorMessage(error));
+			} finally {
+				if (alive) loaded = true;
+			}
+		})();
 
-		await tick();
-		loaded = true;
-
-		const onKeyDown = (event) => {
+		const onKeyDown = (event: KeyboardEvent): void => {
 			if (event.key === 'Shift') {
 				shiftKey = true;
 			}
 		};
 
-		const onKeyUp = (event) => {
+		const onKeyUp = (event: KeyboardEvent): void => {
 			if (event.key === 'Shift') {
 				shiftKey = false;
 			}
 		};
 
-		const onBlur = () => {
+		const onBlur = (): void => {
 			shiftKey = false;
 		};
 
@@ -295,6 +353,8 @@
 	});
 
 	onDestroy(() => {
+		alive = false;
+		controller.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 </script>
@@ -307,10 +367,10 @@
 
 <ImportModal
 	bind:show={showImportModal}
-	loadUrlHandler={async (url) => {
-		return await loadFunctionByUrl(localStorage.token, url);
+	loadUrlHandler={async (url: string) => {
+		return await loadFunctionByUrl(localStorage.token, url, controller.signal);
 	}}
-	onImport={(func) => {
+	onImport={(func: { name: string; content: string }) => {
 		sessionStorage.function = JSON.stringify({
 			...func
 		});
@@ -327,11 +387,12 @@
 					bind:this={functionsImportInputElement}
 					bind:files={importFiles}
 					type="file"
+					disabled={importing}
 					accept=".json"
 					hidden
 					on:change={() => {
-						console.log(importFiles);
-						showConfirm = true;
+						showConfirm = !!importFiles?.length;
+						if (!showConfirm) clearImport();
 					}}
 				/>
 
@@ -364,7 +425,9 @@
 								{
 									id: 'functions-import',
 									label: $i18n.t('Import JSON'),
-									onClick: () => functionsImportInputElement?.click(),
+									onClick: () => {
+										if (!importing) functionsImportInputElement?.click();
+									},
 									visible: $user?.role === 'admin'
 								},
 								{
@@ -640,12 +703,10 @@
 
 										<FunctionMenu
 											{func}
+											pending={pendingIds.has(func.id)}
 											show={openFunctionMenuId === func.id}
 											editHandler={() => {
 												goto(`/admin/functions/edit?id=${encodeURIComponent(func.id)}`);
-											}}
-											shareHandler={() => {
-												shareHandler(func);
 											}}
 											cloneHandler={() => {
 												cloneHandler(func);
@@ -690,19 +751,10 @@
 										>
 											<Tooltip content={func.is_active ? $i18n.t('Enabled') : $i18n.t('Disabled')}>
 												<Switch
-													bind:state={func.is_active}
-													on:change={async () => {
-														toggleFunctionById(localStorage.token, func.id);
-														models.set(
-															await getModels(
-																localStorage.token,
-																$config?.features?.enable_direct_connections &&
-																	($settings?.directConnections ?? null),
-																false,
-																true
-															)
-														);
-													}}
+													state={func.is_active}
+													ariaLabel={`${$i18n.t('Function')} ${func.name}: ${$i18n.t('Enabled')}`}
+													disabled={pendingIds.has(func.id)}
+													on:change={() => toggleActiveHandler(func)}
 												/>
 											</Tooltip>
 										</button>
@@ -729,18 +781,18 @@
 		'Admins have access to all tools at all times; users need tools assigned per model in the workspace.'
 	)}
 </div> -->
-
 	</div>
 
 	<DeleteConfirmDialog
 		bind:show={showDeleteConfirm}
 		title={$i18n.t('Delete function?')}
 		on:confirm={() => {
-			deleteHandler(selectedFunction);
+			if (selectedFunction) void deleteHandler(selectedFunction);
 		}}
 	>
 		<div class=" text-sm text-gray-500 truncate">
-			{$i18n.t('This will delete')} <span class="  font-normal">{selectedFunction.name}</span>.
+			{$i18n.t('This will delete')}
+			<span class="  font-normal">{selectedFunction?.name ?? ''}</span>.
 		</div>
 	</DeleteConfirmDialog>
 
@@ -750,55 +802,15 @@
 		type="function"
 		id={selectedFunction?.id ?? null}
 		on:save={async () => {
-			await tick();
-			models.set(
-				await getModels(
-					localStorage.token,
-					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null),
-					false,
-					true
-				)
-			);
+			await refreshFunctions();
 		}}
 	/>
 
 	<ConfirmDialog
 		bind:show={showConfirm}
-		on:confirm={() => {
-			const reader = new FileReader();
-			reader.onload = async (event) => {
-				const _functions = JSON.parse(event.target.result);
-				console.log(_functions);
-
-				for (let func of _functions) {
-					if ('function' in func) {
-						// Required for Community JSON import
-						func = func.function;
-					}
-
-					const res = await createNewFunction(localStorage.token, func).catch((error) => {
-						toast.error(`${error}`);
-						return null;
-					});
-				}
-
-				toast.success($i18n.t('Functions imported successfully'));
-				functions = await getFunctionList(localStorage.token);
-				_functions.set(await getFunctions(localStorage.token));
-				models.set(
-					await getModels(
-						localStorage.token,
-						$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null),
-						false,
-						true
-					)
-				);
-				importFiles = null;
-				functionsImportInputElement.value = '';
-			};
-
-			reader.readAsText(importFiles[0]);
-		}}
+		confirmDisabled={importing}
+		on:cancel={clearImport}
+		on:confirm={importHandler}
 	>
 		<div class="text-sm text-gray-500">
 			<div class=" bg-yellow-500/20 text-yellow-700 dark:text-yellow-200 rounded-lg px-4 py-3">
