@@ -1,0 +1,116 @@
+{
+  "spec_id": "airis-emoji-preference-safety-2026-10-10-016",
+  "title": "Airis Emoji Preference Safety",
+  "generated": "2026-10-10T02:19:16.671060Z",
+  "last_updated": "2026-10-10T02:23:12.900234Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__emoji-preference-safety.md",
+    "status": "active",
+    "activated_date": "2026-10-10T02:20:11.296600Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Emoji Preference Safety",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Воспроизвести и исправить выбор эмодзи",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T02:23:12.662287Z",
+        "journaled_at": "2026-10-10T02:23:12.664307Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Проверить и отправить исходники",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Воспроизвести и исправить договор списка и сохранение выбора",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T02:23:12.662136Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T02:23:12.663192Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Проверить, зафиксировать и отправить исходники",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-10T02:23:12.899993Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T02:23:12.663185Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Воспроизвести и исправить договор списка и сохранение выбора",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T02:23:12.664301Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Phase 1: [To Be Defined]",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

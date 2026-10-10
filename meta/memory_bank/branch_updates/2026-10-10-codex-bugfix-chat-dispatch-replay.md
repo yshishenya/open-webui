@@ -99,3 +99,9 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: Runtime78f4650a7d605198da01dbb673b4b73ae2a9b41f, 1756 Git blobs; 122/1687 тестов, браузер11/11, types1212/86, ESLint780, новых0. SDD3/3,216валидных; собственные пустые тома удалены. Частная приёмка синхронизируется после docs push; план198/244 и production gates открыты.
+
+- [ ] [BUG] Выбор эмодзи и сохранность недавних предпочтений.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__emoji-preference-safety.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Отложенный save отклоняется без catch; таймер не освобождается. У VirtualList неверный height и отсутствующий rowHeight; пять callers изучены.

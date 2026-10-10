@@ -1,7 +1,9 @@
 <script lang="ts">
 	import VirtualList from '@sveltejs/svelte-virtual-list';
 
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
@@ -25,58 +27,88 @@
 	const MAX_RECENT = 30;
 
 	let show = false;
-	let emojis = emojiShortCodes;
+	const shortCodes: Record<string, string | string[]> = emojiShortCodes;
+	const groups: Record<string, string[]> = emojiGroups;
+	type EmojiEntry = { type: 'emoji'; name: string; shortCodes: string[] };
+	type EmojiRowItem = EmojiEntry | { type: 'group'; label: string };
+	let emojis: Record<string, string | string[]> = shortCodes;
 	let search = '';
-	let flattenedEmojis = [];
-	let emojiRows = [];
+	let flattenedEmojis: EmojiRowItem[] = [];
+	let emojiRows: EmojiRowItem[][] = [];
 
 	let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+	let recentEmojiNames: string[] = [];
+	let savePending = false;
+	let saving = false;
+	let destroyed = false;
+	let saveToken = '';
 	$: recentEmojiNames = ($settings?.recentEmojis ?? [])
-		.filter((name) => emojiShortCodes[name])
+		.filter((name) => shortCodes[name])
 		.slice(0, MAX_RECENT);
 
-	function saveRecentEmoji(emojiName: string) {
-		// Remove if already present, then prepend
-		const updated = [emojiName, ...recentEmojiNames.filter((n) => n !== emojiName)].slice(
-			0,
-			MAX_RECENT
-		);
+	async function persistRecentEmojis(): Promise<void> {
+		if (!savePending || saving) return;
+		savePending = false;
+		if (saveToken !== localStorage.token) return;
+		saving = true;
+		try {
+			await updateUserSettings(saveToken, { ui: { ...$settings } });
+		} catch (error) {
+			if (!destroyed) toast.error(getErrorMessage(error));
+			else console.warn('Recent emoji preferences could not be saved.');
+		} finally {
+			saving = false;
+			if (savePending) void persistRecentEmojis();
+		}
+	}
 
-		// Update store immediately (reactive UI)
-		settings.set({ ...$settings, recentEmojis: updated });
-
-		// Debounce backend save (avoid API spam on rapid picks)
+	function saveRecentEmoji(emojiName: string): void {
+		if (!shortCodes[emojiName]) return;
+		settings.update((current) => ({
+			...current,
+			recentEmojis: [
+				emojiName,
+				...new Set(
+					(current.recentEmojis ?? []).filter((name) => name !== emojiName && shortCodes[name])
+				)
+			].slice(0, MAX_RECENT)
+		}));
+		saveToken = localStorage.token;
+		savePending = true;
 		if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
-		saveDebounceTimer = setTimeout(async () => {
-			await updateUserSettings(localStorage.token, { ui: { ...$settings, recentEmojis: updated } });
+		saveDebounceTimer = setTimeout(() => {
+			saveDebounceTimer = null;
+			return persistRecentEmojis();
 		}, 1000);
+	}
+
+	onDestroy(() => {
+		destroyed = true;
+		if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+		saveDebounceTimer = null;
+		// Flush the authorized choice instead of losing it when its caller leaves the screen.
+		void persistRecentEmojis();
+	});
+
+	function emojiEntry(name: string): EmojiEntry {
+		const codes = shortCodes[name];
+		return { type: 'emoji', name, shortCodes: typeof codes === 'string' ? [codes] : codes };
 	}
 
 	// Reactive statement to filter the emojis based on search query
 	$: {
 		if (search) {
-			emojis = Object.keys(emojiShortCodes).reduce((acc, key) => {
-				if (key.includes(search.toLowerCase())) {
-					acc[key] = emojiShortCodes[key];
-				} else {
-					if (Array.isArray(emojiShortCodes[key])) {
-						const filtered = emojiShortCodes[key].filter((emoji) =>
-							emoji.includes(search.toLowerCase())
-						);
-						if (filtered.length) {
-							acc[key] = filtered;
-						}
-					} else {
-						if (emojiShortCodes[key].includes(search.toLowerCase())) {
-							acc[key] = emojiShortCodes[key];
-						}
-					}
-				}
-				return acc;
-			}, {});
+			const query = search.toLowerCase();
+			emojis = Object.fromEntries(
+				Object.entries(shortCodes).filter(
+					([key, value]) =>
+						key.toLowerCase().includes(query) ||
+						(Array.isArray(value) ? value : [value]).some((code) => code.includes(query))
+				)
+			);
 		} else {
-			emojis = emojiShortCodes;
+			emojis = shortCodes;
 		}
 	}
 	// Flatten emoji groups and group them into rows of 8 for virtual scrolling
@@ -86,37 +118,19 @@
 		// Add "Recently Used" group first (only when not searching)
 		if (!search && recentEmojiNames.length > 0) {
 			flattenedEmojis.push({ type: 'group', label: $i18n.t('Recently Used') });
-			flattenedEmojis.push(
-				...recentEmojiNames.map((emoji) => ({
-					type: 'emoji',
-					name: emoji,
-					shortCodes:
-						typeof emojiShortCodes[emoji] === 'string'
-							? [emojiShortCodes[emoji]]
-							: emojiShortCodes[emoji]
-				}))
-			);
+			flattenedEmojis.push(...recentEmojiNames.map(emojiEntry));
 		}
 
-		Object.keys(emojiGroups).forEach((group) => {
-			const groupEmojis = emojiGroups[group].filter((emoji) => emojis[emoji]);
+		Object.keys(groups).forEach((group) => {
+			const groupEmojis = groups[group].filter((emoji) => emojis[emoji]);
 			if (groupEmojis.length > 0) {
 				flattenedEmojis.push({ type: 'group', label: group });
-				flattenedEmojis.push(
-					...groupEmojis.map((emoji) => ({
-						type: 'emoji',
-						name: emoji,
-						shortCodes:
-							typeof emojiShortCodes[emoji] === 'string'
-								? [emojiShortCodes[emoji]]
-								: emojiShortCodes[emoji]
-					}))
-				);
+				flattenedEmojis.push(...groupEmojis.map(emojiEntry));
 			}
 		});
 		// Group emojis into rows of 8
 		emojiRows = [];
-		let currentRow = [];
+		let currentRow: EmojiEntry[] = [];
 		flattenedEmojis.forEach((item) => {
 			if (item.type === 'emoji') {
 				currentRow.push(item);
@@ -136,9 +150,8 @@
 			emojiRows.push(currentRow); // Push the final row
 		}
 	}
-	const ROW_HEIGHT = 48; // Approximate height for a row with multiple emojis
 	// Handle emoji selection
-	function selectEmoji(emoji) {
+	function selectEmoji(emoji: EmojiEntry): void {
 		const selectedCode = emoji.shortCodes[0];
 		saveRecentEmoji(emoji.name);
 		if (selected === selectedCode) {
@@ -146,6 +159,7 @@
 		} else {
 			onSubmit(selectedCode);
 		}
+		search = '';
 		show = false;
 	}
 </script>
@@ -184,7 +198,7 @@
 					</div>
 				{:else}
 					<div class="w-full flex ml-0.5">
-						<VirtualList rowHeight={ROW_HEIGHT} items={emojiRows} height={384} let:item>
+						<VirtualList items={emojiRows} height="384px" let:item>
 							<div class="w-full mb-2.5">
 								{#if item.length === 1 && item[0].type === 'group'}
 									<!-- Render group header -->
@@ -195,25 +209,27 @@
 									<!-- Render emojis in a row -->
 									<div class="flex items-center gap-1.5 w-full">
 										{#each item as emojiItem}
-											<Tooltip
-												content={emojiItem.shortCodes.map((code) => `:${code}:`).join(', ')}
-												placement="top"
-											>
-												<button
-													class="p-1 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition {selected ===
-													emojiItem.shortCodes[0]
-														? 'bg-gray-200 dark:bg-gray-700'
-														: ''}"
-													on:click={() => selectEmoji(emojiItem)}
+											{#if emojiItem.type === 'emoji'}
+												<Tooltip
+													content={emojiItem.shortCodes.map((code) => `:${code}:`).join(', ')}
+													placement="top"
 												>
-													<img
-														src="{WEBUI_BASE_URL}/assets/emojis/{emojiItem.name.toLowerCase()}.svg"
-														alt={emojiItem.name}
-														class="size-5"
-														loading="lazy"
-													/>
-												</button>
-											</Tooltip>
+													<button
+														class="p-1 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition {selected ===
+														emojiItem.shortCodes[0]
+															? 'bg-gray-200 dark:bg-gray-700'
+															: ''}"
+														on:click={() => selectEmoji(emojiItem)}
+													>
+														<img
+															src="{WEBUI_BASE_URL}/assets/emojis/{emojiItem.name.toLowerCase()}.svg"
+															alt={emojiItem.name}
+															class="size-5"
+															loading="lazy"
+														/>
+													</button>
+												</Tooltip>
+											{/if}
 										{/each}
 									</div>
 								{/if}
