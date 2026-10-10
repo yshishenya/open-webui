@@ -347,3 +347,9 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: CSV/rating0/username/snapshot и отмена устаревшего чтения исправлены через requestJSON. Целевые19/19,frontend2124/2124,229lintцелей0/0; types618/68,ESLint545,new0. Production/21чужойфайл/262тома сохранены. Общие quality/release/A/B открыты.
+
+- [x] [BUG] Пользователи: список и подтверждённое удаление
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__admin-users.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: DELETE не меняет страницу при отказе, чтение/поиск отменяются; getUsers/requestJSON/GroupMember и Banner/sanitizedHtml переиспользованы. Own17/17,targeted44/44,frontend2141/2141;232lintцели0/0,types593/68,ESLint544,new0. Денежные callbacks/production/чужие21файла/262тома сохранены; release/A/B открыты.

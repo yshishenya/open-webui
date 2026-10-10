@@ -45,7 +45,7 @@
 		name: string;
 		email: string;
 		password: string;
-		oauth?: Record<string, { sub: string }>;
+		oauth?: Record<string, { sub?: string }> | null;
 		created_at?: number;
 	}
 
@@ -56,7 +56,7 @@
 
 	// Props
 	export let show = false;
-	export let selectedUser: UserFormData | null = null;
+	export let selectedUser: Omit<UserFormData, 'password'> | null = null;
 	export let sessionUser: { id: string; role: string } | null = null;
 
 	// Reactive initialization

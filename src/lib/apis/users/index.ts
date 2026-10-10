@@ -2,7 +2,16 @@ import { requestJSON } from '$lib/utils/airis/request_json';
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getUserPosition } from '$lib/utils';
 import type { SessionUser } from '$lib/stores';
+import type { GroupMember } from '$lib/utils/airis/group-types';
 import type { GroupDetails } from '$lib/utils/airis/group-types';
+
+export type AdminUser = GroupMember & {
+	profile_image_url: string;
+	created_at: number;
+	updated_at: number;
+	oauth?: Record<string, { sub?: string }> | null;
+};
+export type AdminUserList = { users: AdminUser[]; total: number };
 
 export type UserInfoResponse = Required<
 	Pick<
@@ -165,48 +174,29 @@ export const getUsers = async (
 	query?: string,
 	orderBy?: string,
 	direction?: string,
-	page = 1
-) => {
-	let error = null;
-	let res = null;
-
+	page = 1,
+	signal?: AbortSignal
+): Promise<AdminUserList> => {
 	const searchParams = new URLSearchParams();
-
 	searchParams.set('page', `${page}`);
-
-	if (query) {
-		searchParams.set('query', query);
-	}
-
-	if (orderBy) {
-		searchParams.set('order_by', orderBy);
-	}
-
-	if (direction) {
-		searchParams.set('direction', direction);
-	}
-
-	res = await fetch(`${WEBUI_API_BASE_URL}/users/?${searchParams.toString()}`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
+	if (query) searchParams.set('query', query);
+	if (orderBy) searchParams.set('order_by', orderBy);
+	if (direction) searchParams.set('direction', direction);
+	const res = await requestJSON<AdminUserList>(
+		`${WEBUI_API_BASE_URL}/users/?${searchParams}`,
+		token,
+		undefined,
+		signal,
+		'User list'
+	);
+	if (
+		!res ||
+		!Array.isArray(res.users) ||
+		res.users.some((user) => !user || typeof user.id !== 'string') ||
+		!Number.isInteger(res.total) ||
+		res.total < 0
+	)
+		throw new Error('Invalid user list response');
 	return res;
 };
 
