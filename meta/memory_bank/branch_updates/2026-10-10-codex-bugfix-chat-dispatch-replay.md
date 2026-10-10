@@ -240,3 +240,17 @@
   - Preservation: Backend543/1064reused,production13соседей/healthy/restarts0,
     21чужой файл/262тома сохранены,новыхтомов0.
   - Risks: Общие quality/выпуск и реальные A/Bкритерии открыты;план198/244.
+
+- [ ] **[REFACTOR]** Типы общих функций чатов, языка и OpenAPI
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__refactor__shared-utility-types.md`
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Описать прежние JSONконтракты, переиспользовать типы истории и документированный hashexport.
+
+- [x] **[REFACTOR][TYPES]** Типы общих функций импорта, языка, переменных и OpenAPI
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__refactor__shared-utility-types.md`
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: Устранены 21 прежняя ошибка типов; тела функций сохранены, named sha256 равен прежней функции. Без новых зависимостей и подавлений.
+  - Tests: helpers 7/7; полный frontend 2055/2055; types 834/85 → 813/85, ESLint 710, новых замечаний 0; backend 1064 переиспользован после сверки 543 файлов.
+  - Risks: Общие проверки и выпуск пока открыты; production и чужие данные сохранены.
