@@ -30,7 +30,7 @@
 	export let stopResponse: () => Promise<void>;
 	export let files: ChatAttachment[];
 	export let chatId: string | null;
-	export let modelId: string;
+	export let modelId: string | null;
 
 	let wakeLock: Awaited<ReturnType<typeof navigator.wakeLock.request>> | null = null;
 
@@ -565,7 +565,7 @@
 		audioCache.set(content, undefined);
 		let audio: string | true | null = null;
 		try {
-			if ($settings?.showEmojiInCall ?? false) {
+			if (($settings?.showEmojiInCall ?? false) && modelId) {
 				const result = await generateEmoji(
 					localStorage.token,
 					modelId,

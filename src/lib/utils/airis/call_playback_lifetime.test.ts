@@ -88,7 +88,7 @@ const rig = () => {
 		chatStreaming: false,
 		emoji: null,
 		model: null,
-		modelId: 'model',
+		modelId: 'model' as string | null,
 		chatId: 'chat',
 		$settings: { audio: { tts: { engine: '', playbackRate: 1 } }, showEmojiInCall: false },
 		$config: { audio: { tts: { engine: 'openai', voice: 'voice' } } },
@@ -396,4 +396,14 @@ it('takes a ready video snapshot without logging image content', () => {
 	expect(r.api.takeScreenshot()).toBe('data:image/png;base64,fixture');
 	expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 640, 480);
 	expect(r.context.console.log).not.toHaveBeenCalled();
+});
+
+it('skips optional emoji without a selected model and still synthesizes speech', async () => {
+	const r = rig();
+	r.context.modelId = null;
+	r.context.$settings.showEmojiInCall = true;
+	await r.api.fetchAudio('Answer');
+	expect(r.context.generateEmoji).not.toHaveBeenCalled();
+	expect(r.context.synthesizeOpenAISpeech).toHaveBeenCalledTimes(1);
+	expect(r.api.cache.get('Answer')).toBe('blob:server');
 });

@@ -1,3 +1,5 @@
+import type { Node, SvelteFlow } from '@xyflow/svelte';
+import type { SessionUser } from '$lib/stores';
 import type { ModelParams } from '$lib/apis';
 import type { Content } from '@tiptap/core';
 import type { Model } from './model-types';
@@ -6,7 +8,7 @@ import type { ChatAttachment, ChatHistory, ChatHistoryMessage } from './chat_his
 import type { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
 import type { TerminalServer } from '$lib/apis/terminal';
 import type { updateOpenAIConfig } from '$lib/apis/openai';
-import type { ComponentProps } from 'svelte';
+import type { ComponentProps, ComponentEvents } from 'svelte';
 import type AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
 
 export type ArtifactContent = { type: 'iframe' | 'svg'; content: string };
@@ -418,3 +420,17 @@ export type SelectOption<Value extends string | null = string> = { value: Value;
 
 // Legacy Svelte generic marker, imported explicitly for the pinned ESLint parser.
 export type SvelteGeneric<T> = T;
+
+/** Data created by Overview/View and passed through native nodeclick events. */
+export type ChatOverviewNode = Node<
+	{
+		message: ChatHistoryMessage;
+		user: Pick<SessionUser, 'id' | 'name'> | null | undefined;
+		model?: Model | null;
+	},
+	'custom'
+>;
+
+export type ChatOverviewClick = Omit<ComponentEvents<SvelteFlow>['nodeclick']['detail'], 'node'> & {
+	node: ChatOverviewNode;
+};

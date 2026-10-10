@@ -101,7 +101,7 @@ export type ChatHistoryMessage = {
 	code_executions?: ChatCodeExecution[];
 	embeds?: string[];
 	followUps?: string[];
-	favorite?: boolean;
+	favorite?: boolean | null;
 	lastSentence?: string;
 	annotation?: ChatAnnotation;
 	feedbackId?: string;

@@ -27,7 +27,7 @@
 			bind:pane
 			containerId="test-chat-container"
 			chatId="saved-chat"
-			history={{ messages: {} }}
+			history={{ messages: {}, currentId: null }}
 			files={[]}
 			modelId="free-model"
 			eventTarget={new EventTarget()}
