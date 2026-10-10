@@ -314,3 +314,9 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: Scoped lint220/220без диагностик; все50замечаний17файлов сняты. Frontend2083/2083,22compiled pairs,5realhandlers; types690/76 и ESLint605, новых0. Общий долг/выпуск/A/B остаются открытыми.
+
+- [ ] **[FRONTEND][CI]** Дополнительные цели после правок callers
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__refactor__required-frontend-lint.md`
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: После commit реальный список222цели;19прежних замечаний в NotebookView/Navbar теперь блокируют changed-file CI. Первоначальные50замечаний17файлов сняты; полный CI не принят.
