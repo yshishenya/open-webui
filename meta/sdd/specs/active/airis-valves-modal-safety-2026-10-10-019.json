@@ -1,0 +1,189 @@
+{
+  "spec_id": "airis-valves-modal-safety-2026-10-10-019",
+  "title": "Airis Valves Modal Safety",
+  "generated": "2026-10-10T04:03:12.758006Z",
+  "last_updated": "2026-10-10T04:18:26.779385Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__valves-modal-safety.md",
+    "status": "active",
+    "activated_date": "2026-10-10T04:05:06.759691Z",
+    "progress_percentage": 66
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Valves Modal Safety",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce shared settings failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T04:07:33.726604Z",
+        "journaled_at": "2026-10-10T04:07:33.729235Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce actual four-mode modal and adapters",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T04:07:33.726342Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T04:07:33.727770Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Fix snapshot ownership and adapters",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T04:18:26.779359Z",
+        "completed_at": "2026-10-10T04:18:26.776986Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Preserve draft and cancel stale settings requests",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T04:18:26.776808Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T04:18:26.778610Z",
+        "started_at": "2026-10-10T04:17:50.912620Z",
+        "status_note": "Actual browser discovered native required rejection for empty arrays; shared renderer boundary included.",
+        "actual_hours": 0.01
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify and publish source acceptance",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept frozen Docker/browser/preservation and pushed Git blobs",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T04:07:33.727764Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce actual four-mode modal and adapters",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:07:33.729227Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce shared settings failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:11:28.672710Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve draft and cancel stale settings requests",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:11:28.673814Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix snapshot ownership and adapters",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T04:18:26.778605Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve draft and cancel stale settings requests",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T04:18:26.779355Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix snapshot ownership and adapters",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

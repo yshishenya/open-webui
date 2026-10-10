@@ -125,3 +125,9 @@
   - Tests: focused43/43,frontend1756/1756/161файл,browser9/9,console0/0;types1148/86→1140/85,ESLint769→762,новых0. SDD3/3,219specs,1762frozenGitblobs;backend542/protected21/production12соседей сохранены.
   - Source: `9b1ef88dbee6ec2585250a7049ad0044506bb2bd` pushed and verified;production revision c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908 healthy/restarts0. Общие types/lint,PR/CI/production и A/B ещё не приняты;план198/244,цельactive.
   - Done: 2026-10-10 (приёмка исходников; интеграция ожидается)
+
+- [ ] [BUG] Загрузка и сохранение общих/личных настроек инструментов и функций.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__valves-modal-safety.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Изучены общий ValvesModal,3callers,12valveAPI,shared request/array helpers и серверные договоры; проверяются сохранность черновика, stale selection и явный повтор.

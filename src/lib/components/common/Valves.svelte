@@ -118,7 +118,7 @@
 								placeholder={valvesSpec.properties[property].title}
 								bind:value={valves[property]}
 								autocomplete="off"
-								required
+								required={valvesSpec.properties[property]?.type !== 'array'}
 								on:change={() => {
 									dispatch('change');
 								}}
