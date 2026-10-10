@@ -1,25 +1,26 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import { config, user } from '$lib/stores';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import { user } from '$lib/stores';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Share from '$lib/components/icons/Share.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	export let editHandler: Function;
-	export let shareHandler: Function;
-	export let cloneHandler: Function;
-	export let exportHandler: Function;
-	export let deleteHandler: Function;
-	export let onClose: Function;
+	export let editHandler: () => void;
+	export let cloneHandler: () => void;
+	export let exportHandler: () => void;
+	export let deleteHandler: () => void;
+	export let onClose: () => void;
 
 	export let show = false;
+	export let disabled = false;
 
 	const closeMenu = () => {
 		show = false;
@@ -44,8 +45,9 @@
 			<button
 				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
 				draggable="false"
+				{disabled}
 				on:click={() => {
-					editHandler();
+					if (!disabled) editHandler();
 					closeMenu();
 				}}
 			>
@@ -66,20 +68,6 @@
 
 				<div class="flex items-center">{$i18n.t('Edit')}</div>
 			</button>
-
-			{#if $config.features.enable_community_sharing}
-				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
-					draggable="false"
-					on:click={() => {
-						shareHandler();
-						closeMenu();
-					}}
-				>
-					<Share className="size-3.5" />
-					<div class="flex items-center">{$i18n.t('Share')}</div>
-				</button>
-			{/if}
 
 			<button
 				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
@@ -112,8 +100,9 @@
 			<button
 				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
 				draggable="false"
+				{disabled}
 				on:click={() => {
-					deleteHandler();
+					if (!disabled) deleteHandler();
 					closeMenu();
 				}}
 			>

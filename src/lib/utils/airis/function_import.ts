@@ -57,7 +57,7 @@ export const parseFunctionImport = (text: string): FunctionForm[] =>
 
 export const parseImportAccessGrants = (
 	value: unknown,
-	kind: 'tool' | 'skill'
+	kind: 'tool' | 'skill' | 'prompt'
 ): ToolAccessGrantInput[] | null | undefined => {
 	let grants: ToolAccessGrantInput[] | null | undefined;
 	if (value !== undefined) {

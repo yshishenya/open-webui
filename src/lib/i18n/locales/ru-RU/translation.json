@@ -3910,5 +3910,7 @@
 	"Invalid skill import.": "Неверные данные импорта навыков.",
 	"Duplicate skill id.": "Повторяющийся идентификатор навыка.",
 	"Invalid skill metadata.": "Неверные метаданные навыка.",
-	"Invalid skill access grants.": "Неверные права доступа к навыку."
+	"Invalid skill access grants.": "Неверные права доступа к навыку.",
+	"Imported {{count}} prompts": "Импортировано шаблонов: {{count}}",
+	"Imported {{count}} prompts before an error. Check the list before retrying.": "До ошибки импортировано шаблонов: {{count}}. Проверьте список перед повтором."
 }

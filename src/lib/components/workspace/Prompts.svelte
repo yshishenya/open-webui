@@ -11,7 +11,7 @@
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
-	import { WEBUI_NAME, config, user, workspaceActions } from '$lib/stores';
+	import { WEBUI_NAME, user, workspaceActions } from '$lib/stores';
 
 	import {
 		createNewPrompt,
@@ -42,16 +42,10 @@
 	import ChevronDown from '../icons/ChevronDown.svelte';
 	import ChevronUp from '../icons/ChevronUp.svelte';
 
-	type PromptDraft = {
-		id?: string;
-		name: string;
-		command: string;
-		content: string;
-		tags: string[];
-		access_grants: any[];
-		commit_message?: string;
-		is_production?: boolean;
-	};
+	import type { PromptForm, PromptRecord } from '$lib/apis/prompts';
+	import { parsePromptImport } from '$lib/utils/airis/prompt_import';
+	type PromptDraft = PromptForm;
+	type PromptRow = PromptRecord & { is_active: boolean };
 
 	export let showCreateOnMount = false;
 	export let createModalCloseHref = '';
@@ -62,19 +56,32 @@
 	let promptsImportInputElement: HTMLInputElement;
 	let loaded = false;
 
-	let importFiles = null;
+	let importFiles: FileList | null = null;
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	let prompts = null;
-	let tags = [];
-	let total = null;
+	let prompts: PromptRow[] | null = null;
+	let loadError = '';
+	let tags: string[] = [];
+	let total = 0;
 	let loading = false;
+	let alive = true;
+	const controller = new AbortController();
+	let listController: AbortController | null = null;
+	let listVersion = 0;
+	let pendingIds = new Set<string>();
+	let importing = false;
+	let creating = false;
+	let copyTimer: ReturnType<typeof setTimeout>;
+	const invalidateList = (): void => {
+		listController?.abort();
+		++listVersion;
+	};
 
 	let showDeleteConfirm = false;
 	let showCreateModal = false;
 	let createPrompt: PromptDraft | null = null;
-	let deletePrompt = null;
+	let deletePrompt: PromptRecord | null = null;
 
 	let tagsContainerElement: HTMLDivElement;
 	let viewOption = '';
@@ -116,7 +123,8 @@
 		]);
 	}
 
-	const handleSearchInput = () => {
+	const handleSearchInput = (): void => {
+		invalidateList();
 		loading = true;
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
@@ -140,7 +148,7 @@
 		getPromptList();
 	}
 
-	const setSortKey = (key: string) => {
+	const setSortKey = (key: string): void => {
 		if (sortKey === key) {
 			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -149,17 +157,21 @@
 		}
 	};
 
-	const openPrompt = (prompt) => {
+	const openPrompt = (prompt: PromptRecord): void => {
+		if (!prompt.id) return;
 		goto(`/workspace/prompts/${prompt.id}`);
 	};
 
-	const shouldIgnoreRowClick = (target: EventTarget | null) => {
+	const shouldIgnoreRowClick = (target: EventTarget | null): boolean => {
 		return target instanceof Element && !!target.closest('button, a, input, [role="menu"]');
 	};
 
-	const getPromptList = async () => {
-		if (!loaded) return;
-
+	const getPromptList = async (): Promise<void> => {
+		if (!alive || !loaded) return;
+		invalidateList();
+		listController = new AbortController();
+		const version = listVersion;
+		loadError = '';
 		loading = true;
 		try {
 			const res = await getPromptItems(
@@ -169,61 +181,44 @@
 				selectedTag,
 				sortKey,
 				sortDirection,
-				page
-			).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			if (res) {
-				prompts = res.items;
-				total = res.total;
-
-				// get tags
-				tags = await getPromptTags(localStorage.token).catch((error) => {
-					toast.error(`${error}`);
-					return [];
-				});
+				page,
+				listController.signal
+			);
+			if (!alive || version !== listVersion) return;
+			prompts = res.items.map((item) => ({ ...item, is_active: item.is_active ?? true }));
+			total = res.total;
+			try {
+				const nextTags = await getPromptTags(localStorage.token, listController.signal);
+				if (alive && version === listVersion) tags = nextTags;
+			} catch (error) {
+				if (alive && version === listVersion) toast.error(`${error}`);
 			}
-		} catch (err) {
-			console.error(err);
+		} catch (error) {
+			if (alive && version === listVersion) {
+				loadError = `${error}`;
+				toast.error(loadError);
+			}
 		} finally {
-			loading = false;
+			if (alive && version === listVersion) loading = false;
 		}
 	};
 
-	const shareHandler = async (prompt) => {
-		toast.success($i18n.t('Redirecting you to Airis Community'));
-
-		const url = '#';
-
-		const tab = await window.open(`${url}/prompts/create`, '_blank');
-		window.addEventListener(
-			'message',
-			(event) => {
-				if (event.origin !== url) return;
-				if (event.data === 'loaded') {
-					tab.postMessage(JSON.stringify(prompt), '*');
-				}
-			},
-			false
-		);
-	};
-
-	const toPromptDraft = (prompt: any): PromptDraft => ({
-		name: prompt.name || prompt.title || 'Prompt',
-		command: prompt.command || '',
-		content: prompt.content || '',
-		tags: prompt.tags || [],
-		access_grants: prompt.access_grants !== undefined ? prompt.access_grants : []
+	const toPromptDraft = (prompt: PromptRecord): PromptDraft => ({
+		name: prompt.name,
+		command: prompt.command,
+		content: prompt.content,
+		data: prompt.data,
+		meta: prompt.meta,
+		tags: prompt.tags,
+		access_grants: prompt.access_grants
 	});
 
-	const openCreateModal = (prompt: PromptDraft | null = null) => {
+	const openCreateModal = (prompt: PromptDraft | null = null): void => {
 		createPrompt = prompt;
 		showCreateModal = true;
 	};
 
-	const closeCreateModal = async () => {
+	const closeCreateModal = async (): Promise<void> => {
 		showCreateModal = false;
 		createPrompt = null;
 
@@ -232,21 +227,27 @@
 		}
 	};
 
-	const createPromptHandler = async (prompt: PromptDraft) => {
-		const res = await createNewPrompt(localStorage.token, prompt).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+	const createPromptHandler = async (prompt: PromptDraft): Promise<boolean> => {
+		if (!alive || creating || importing) return false;
+		creating = true;
+		try {
+			const res = await createNewPrompt(localStorage.token, prompt, controller.signal);
+			if (!res) throw new Error('Failed to create prompt.');
+			if (!alive) return false;
 			toast.success($i18n.t('Prompt created successfully'));
 			page = 1;
 			await getPromptList();
-			await closeCreateModal();
+			if (alive) await closeCreateModal();
+			return true;
+		} catch (error) {
+			if (alive) toast.error(`${error}`);
+			return false;
+		} finally {
+			if (alive) creating = false;
 		}
 	};
 
-	const cloneHandler = async (prompt) => {
+	const cloneHandler = (prompt: PromptRecord): void => {
 		const clonedPrompt = { ...prompt };
 
 		clonedPrompt.name = `${clonedPrompt.name} (Clone)`;
@@ -258,53 +259,129 @@
 		openCreateModal(toPromptDraft(clonedPrompt));
 	};
 
-	const exportHandler = async (prompt) => {
+	const exportHandler = (prompt: PromptRecord): void => {
 		let blob = new Blob([JSON.stringify([prompt])], {
 			type: 'application/json'
 		});
 		saveAs(blob, `prompt-export-${Date.now()}.json`);
 	};
 
-	const copyHandler = async (prompt) => {
+	const copyHandler = async (prompt: PromptRecord): Promise<void> => {
 		const res = await copyToClipboard(prompt.content);
-		if (res) {
+		if (alive && res) {
 			copiedId = prompt.command;
-			setTimeout(() => {
+			clearTimeout(copyTimer);
+			copyTimer = setTimeout(() => {
 				copiedId = null;
 			}, 2000);
 		}
 	};
 
-	const deleteHandler = async (prompt) => {
-		const command = prompt.command;
-
-		const res = await deletePromptById(localStorage.token, prompt.id).catch((err) => {
-			toast.error(err);
-			return null;
-		});
-
-		if (res) {
-			toast.success($i18n.t(`Deleted {{name}}`, { name: command }));
+	const deleteHandler = async (prompt: PromptRecord | null): Promise<void> => {
+		const id = prompt?.id;
+		if (!alive || !id || pendingIds.has(id)) return;
+		pendingIds = new Set(pendingIds).add(id);
+		try {
+			const result = await deletePromptById(localStorage.token, id, controller.signal);
+			if (result !== true) throw new Error('Failed to delete prompt.');
+			if (!alive) return;
+			invalidateList();
+			prompts = (prompts ?? []).filter((item) => item.id !== id);
+			total = Math.max(0, total - 1);
+			toast.success($i18n.t('Deleted {{name}}', { name: prompt.command }));
+			page = 1;
+			await getPromptList();
+		} catch (error) {
+			if (alive) toast.error(`${error}`);
+		} finally {
+			if (alive) {
+				pendingIds.delete(id);
+				pendingIds = new Set(pendingIds);
+			}
 		}
-
-		page = 1;
-		getPromptList();
 	};
 
-	onMount(async () => {
+	const toggleHandler = async (prompt: PromptRecord): Promise<void> => {
+		const id = prompt.id;
+		if (!alive || !id || pendingIds.has(id)) return;
+		pendingIds = new Set(pendingIds).add(id);
+		const previous = prompt.is_active ?? true;
+		try {
+			const result = await togglePromptById(localStorage.token, id, controller.signal);
+			if (!result) throw new Error('Failed to update prompt.');
+			if (!alive) return;
+			invalidateList();
+			prompts = (prompts ?? []).map((item) =>
+				item.id === id ? { ...item, is_active: result.is_active ?? true } : item
+			);
+			await getPromptList();
+		} catch (error) {
+			if (alive) {
+				prompts = (prompts ?? []).map((item) =>
+					item.id === id ? { ...item, is_active: previous } : item
+				);
+				toast.error(`${error}`);
+			}
+		} finally {
+			if (alive) {
+				pendingIds.delete(id);
+				pendingIds = new Set(pendingIds);
+			}
+		}
+	};
+
+	const importHandler = async (): Promise<void> => {
+		const file = importFiles?.[0];
+		if (!alive || !file || importing || creating) return;
+		importing = true;
+		let accepted = 0;
+		try {
+			const text = await file.text();
+			if (!alive) return;
+			const drafts = parsePromptImport(text);
+			for (const draft of drafts) {
+				if (!alive) return;
+				const result = await createNewPrompt(localStorage.token, draft, controller.signal);
+				if (!result) throw new Error('Failed to import prompt.');
+				accepted++;
+			}
+			if (alive) toast.success($i18n.t('Imported {{count}} prompts', { count: accepted }));
+		} catch (error) {
+			if (alive)
+				toast.error(
+					`${error} (${$i18n.t('Imported {{count}} prompts before an error. Check the list before retrying.', { count: accepted })})`
+				);
+		} finally {
+			if (alive) {
+				importing = false;
+				importFiles = null;
+				promptsImportInputElement.value = '';
+				if (accepted) {
+					page = 1;
+					await getPromptList();
+				}
+			}
+		}
+	};
+
+	onMount(() => {
 		viewOption = localStorage?.workspaceViewOption || '';
 		loaded = true;
 
-		const onMessage = async (event: MessageEvent) => {
-			if (
-				![window.location.origin, 'http://localhost:9999'].includes(
-					event.origin
-				)
-			) {
-				return;
+		const receivePrompt = (text: string): void => {
+			try {
+				openCreateModal(parsePromptImport(text)[0]);
+			} catch (error) {
+				toast.error(`${error}`);
 			}
-
-			openCreateModal(toPromptDraft(JSON.parse(event.data)));
+		};
+		const onMessage = (event: MessageEvent): void => {
+			if (
+				![window.location.origin, 'http://localhost:9999'].includes(event.origin) ||
+				typeof event.data !== 'string'
+			)
+				return;
+			receivePrompt(event.data);
 		};
 
 		window.addEventListener('message', onMessage);
@@ -314,9 +391,9 @@
 		}
 
 		if (sessionStorage.prompt) {
-			const prompt = JSON.parse(sessionStorage.prompt);
+			const text = sessionStorage.prompt;
 			sessionStorage.removeItem('prompt');
-			openCreateModal(toPromptDraft(prompt));
+			receivePrompt(text);
 		} else if (showCreateOnMount) {
 			openCreateModal();
 		}
@@ -351,7 +428,11 @@
 	});
 
 	onDestroy(() => {
+		alive = false;
+		controller.abort();
+		invalidateList();
 		clearTimeout(searchDebounceTimer);
+		clearTimeout(copyTimer);
 	});
 </script>
 
@@ -370,7 +451,8 @@
 		}}
 	>
 		<div class=" text-sm text-gray-500 truncate">
-			{$i18n.t('This will delete')} <span class="  font-normal">{deletePrompt.command}</span>.
+			{$i18n.t('This will delete')}
+			<span class="  font-normal">{deletePrompt?.command ?? ''}</span>.
 		</div>
 	</DeleteConfirmDialog>
 
@@ -399,37 +481,8 @@
 		type="file"
 		accept=".json"
 		hidden
-		on:change={() => {
-			console.log(importFiles);
-			if (!importFiles || importFiles.length === 0) return;
-
-			const reader = new FileReader();
-			reader.onload = async (event) => {
-				const savedPrompts = JSON.parse(event.target.result);
-				console.log(savedPrompts);
-
-				try {
-					for (const prompt of savedPrompts) {
-						await createNewPrompt(localStorage.token, {
-							command: prompt.command,
-							name: prompt.name,
-							content: prompt.content
-						}).catch((error) => {
-							toast.error(typeof error === 'string' ? error : JSON.stringify(error));
-							return null;
-						});
-					}
-
-					page = 1;
-					await getPromptList();
-				} finally {
-					importFiles = null;
-					promptsImportInputElement.value = '';
-				}
-			};
-
-			reader.readAsText(importFiles[0]);
-		}}
+		disabled={importing}
+		on:change={importHandler}
 	/>
 
 	<div class="space-y-1">
@@ -496,7 +549,15 @@
 			</div>
 		</div>
 
-		{#if prompts === null || loading}
+		{#if loadError}
+			<div role="alert" class="my-3 text-sm text-gray-500">
+				{loadError}
+				<button type="button" class="ml-2 underline" on:click={getPromptList}
+					>{$i18n.t('Retry')}</button
+				>
+			</div>
+		{/if}
+		{#if (prompts === null && !loadError) || loading}
 			<div class="w-full h-full flex justify-center items-center my-16 mb-24">
 				<Spinner className="size-5" />
 			</div>
@@ -575,14 +636,14 @@
 											</div>
 
 											<Tooltip
-												content={dayjs((prompt.updated_at ?? prompt.created_at) * 1000).format(
+												content={dayjs((prompt.updated_at ?? prompt.created_at ?? 0) * 1000).format(
 													'LLLL'
 												)}
 											>
 												<div
 													class="shrink-0 truncate text-[11px] leading-5 text-gray-400 dark:text-gray-600"
 												>
-													{dayjs((prompt.updated_at ?? prompt.created_at) * 1000).fromNow()}
+													{dayjs((prompt.updated_at ?? prompt.created_at ?? 0) * 1000).fromNow()}
 												</div>
 											</Tooltip>
 
@@ -627,6 +688,7 @@
 											class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition dark:text-gray-500"
 											type="button"
 											aria-label={$i18n.t('Delete')}
+											disabled={!prompt.write_access || !prompt.id || pendingIds.has(prompt.id)}
 											on:click={(e) => {
 												e.preventDefault();
 												e.stopPropagation();
@@ -662,15 +724,13 @@
 											editHandler={() => {
 												goto(`/workspace/prompts/${prompt.id}`);
 											}}
-											shareHandler={() => {
-												shareHandler(prompt);
-											}}
 											cloneHandler={() => {
 												cloneHandler(prompt);
 											}}
 											exportHandler={() => {
 												exportHandler(prompt);
 											}}
+											disabled={!prompt.write_access || !prompt.id || pendingIds.has(prompt.id)}
 											deleteHandler={async () => {
 												deletePrompt = prompt;
 												showDeleteConfirm = true;
@@ -707,10 +767,10 @@
 													: $i18n.t('Disabled')}
 											>
 												<Switch
-													bind:state={prompt.is_active}
-													on:change={async () => {
-														togglePromptById(localStorage.token, prompt.id);
-													}}
+													state={prompt.is_active}
+													ariaLabel={$i18n.t('Enabled')}
+													disabled={!prompt.write_access || !prompt.id || pendingIds.has(prompt.id)}
+													on:change={() => toggleHandler(prompt)}
 												/>
 											</Tooltip>
 										</button>
@@ -727,7 +787,7 @@
 					<Pagination bind:page count={total} perPage={30} />
 				</div>
 			{/if}
-		{:else}
+		{:else if !loadError}
 			<div class="flex w-full flex-col items-center justify-center py-16 pb-24">
 				<div class="max-w-sm text-center text-gray-900 dark:text-gray-100">
 					<div class="mb-1.5 text-sm">{$i18n.t('No prompts found')}</div>
@@ -738,7 +798,6 @@
 			</div>
 		{/if}
 	</div>
-
 {:else}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />

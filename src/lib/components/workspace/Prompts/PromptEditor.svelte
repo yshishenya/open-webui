@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick, getContext } from 'svelte';
+	import { onMount, tick, getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 	import { goto } from '$app/navigation';
@@ -11,6 +11,8 @@
 	import Clipboard from '$lib/components/icons/Clipboard.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
 	import AccessControlModal from '../common/AccessControlModal.svelte';
+	import type { ToolAccessGrantInput } from '$lib/apis/tools';
+	import type { PromptForm, PromptHistoryItem } from '$lib/apis/prompts';
 	import { user } from '$lib/stores';
 	import { slugify, formatDate, copyToClipboard } from '$lib/utils';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -32,13 +34,13 @@
 
 	dayjs.extend(localizedFormat);
 
-	export let onSubmit: Function;
+	export let onSubmit: (prompt: PromptForm) => Promise<boolean>;
 	export let edit = false;
-	export let prompt: any = null;
+	export let prompt: (Omit<PromptForm, 'id'> & { id?: string | null }) | null = null;
 	export let clone = false;
 	export let disabled = false;
 	export let modal = false;
-	export let onCancel: Function = () => {};
+	export let onCancel: () => void = () => {};
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
@@ -48,114 +50,120 @@
 	let name = '';
 	let command = '';
 	let content = '';
-	let tags = [];
+	let tags: { name: string }[] = [];
 	let commitMessage = '';
 	let isProduction = true;
 
-	let accessGrants = [];
+	let accessGrants: ToolAccessGrantInput[] = [];
 	let showAccessControlModal = false;
 	let hasManualEdit = false;
 
-	let history: any[] = [];
+	let history: PromptHistoryItem[] = [];
 	let historyLoading = false;
-	let selectedHistoryEntry: any = null;
+	let selectedHistoryEntry: PromptHistoryItem | null = null;
 	let historyPage = 0;
 	let historyHasMore = true;
 	let contentCopied = false;
 
-	// For debounced auto-save of name/command
-	let originalName = '';
-	let originalCommand = '';
-	let originalTags = [];
+	let alive = true;
+	const controller = new AbortController();
+	let historyController: AbortController | null = null;
+	let historyVersion = 0;
+	let historyMutationPending = false;
+	let pendingSave: Promise<void> = Promise.resolve();
+	let copyTimer: ReturnType<typeof setTimeout>;
+	onDestroy(() => {
+		alive = false;
+		controller.abort();
+		historyController?.abort();
+		if (debounceTimer) clearTimeout(debounceTimer);
+		clearTimeout(copyTimer);
+	});
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-	let suggestionTags = [];
+	let suggestionTags: { name: string }[] = [];
 
 	$: if (!edit && !hasManualEdit) {
 		command = name !== '' ? slugify(name) : '';
 	}
 
-	function handleCommandInput(e: Event) {
+	function handleCommandInput(): void {
 		hasManualEdit = true;
 	}
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
+		if (!alive || loading || historyMutationPending) return;
 		if (disabled) {
 			toast.error($i18n.t('You do not have permission to edit this prompt.'));
 			return;
 		}
-		loading = true;
-
-		if (validateCommandString(command)) {
-			try {
-				await onSubmit({
-					id: prompt?.id,
-					name,
-					command,
-					content,
-					tags: tags.map((tag) => tag.name),
-					access_grants: accessGrants,
-					commit_message: commitMessage || undefined,
-					is_production: isProduction
-				});
-				showEditModal = false;
-				commitMessage = '';
-				isProduction = true;
-				await loadHistory(true); // Reset and reload
-				// Select the newest version after saving
-				if (history.length > 0) {
-					selectedHistoryEntry = history[0];
-				}
-			} catch (error) {
-				toast.error(`${error}`);
-			}
-		} else {
+		if (!validateCommandString(command)) {
 			toast.error(
 				$i18n.t('Only alphanumeric characters and hyphens are allowed in the command string.')
 			);
+			return;
 		}
-
-		loading = false;
-	};
-
-	const validateCommandString = (inputString) => {
-		const regex = /^[a-zA-Z0-9-_]+$/;
-		return regex.test(inputString);
-	};
-
-	const loadHistory = async (reset = false) => {
-		if (!prompt?.id || !edit) return;
-		if (historyLoading) return;
-		if (!reset && !historyHasMore) return;
-
-		historyLoading = true;
-
-		if (reset) {
-			historyPage = 0;
-			historyHasMore = true;
-		}
-
+		loading = true;
+		if (debounceTimer) clearTimeout(debounceTimer);
 		try {
-			const newEntries = await getPromptHistory(localStorage.token, prompt.id, historyPage);
-
-			if (reset) {
-				history = newEntries;
-			} else {
-				history = [...history, ...newEntries];
-			}
-
-			historyHasMore = newEntries.length > 0;
-			historyPage = historyPage + 1;
+			await pendingSave;
+			if (!alive) return;
+			const saved = await onSubmit({
+				...(prompt?.id ? { id: prompt.id } : {}),
+				name,
+				command,
+				content,
+				data: prompt?.data,
+				meta: prompt?.meta,
+				tags: tags.map((tag) => tag.name),
+				access_grants: accessGrants,
+				commit_message: commitMessage || undefined,
+				is_production: isProduction
+			});
+			if (!alive || !saved) return;
+			showEditModal = false;
+			commitMessage = '';
+			isProduction = true;
+			if (await loadHistory(true)) selectedHistoryEntry = history[0] ?? null;
 		} catch (error) {
-			console.error('Failed to load history:', error);
-			if (reset) {
-				history = [];
-			}
+			if (alive) toast.error(`${error}`);
+		} finally {
+			if (alive) loading = false;
 		}
-		historyLoading = false;
 	};
 
-	const handleHistoryScroll = (e: Event) => {
+	const validateCommandString = (inputString: string): boolean =>
+		/^[a-zA-Z0-9_-]+$/.test(inputString);
+
+	const loadHistory = async (reset = false): Promise<boolean> => {
+		if (!alive || !prompt?.id || !edit) return false;
+		if (!reset && (historyLoading || !historyHasMore)) return false;
+		historyController?.abort();
+		historyController = new AbortController();
+		const version = ++historyVersion;
+		const requestedPage = reset ? 0 : historyPage;
+		historyLoading = true;
+		try {
+			const newEntries = await getPromptHistory(
+				localStorage.token,
+				prompt.id,
+				requestedPage,
+				historyController.signal
+			);
+			if (!alive || version !== historyVersion) return false;
+			history = reset ? newEntries : [...history, ...newEntries];
+			historyHasMore = newEntries.length > 0;
+			historyPage = requestedPage + 1;
+			return true;
+		} catch (error) {
+			if (alive && version === historyVersion) toast.error(`${error}`);
+			return false;
+		} finally {
+			if (alive && version === historyVersion) historyLoading = false;
+		}
+	};
+
+	const handleHistoryScroll = (e: Event): void => {
 		const target = e.target as HTMLElement;
 		const nearBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
 		if (nearBottom && historyHasMore && !historyLoading) {
@@ -163,51 +171,65 @@
 		}
 	};
 
-	const copyContent = async () => {
-		const textToCopy = selectedHistoryEntry?.snapshot?.content || content;
+	const copyContent = async (): Promise<void> => {
+		const textToCopy = selectedHistoryEntry?.snapshot?.content ?? content;
 		const success = await copyToClipboard(textToCopy);
-		if (success) {
+		if (alive && success) {
 			contentCopied = true;
-			setTimeout(() => {
+			clearTimeout(copyTimer);
+			copyTimer = setTimeout(() => {
 				contentCopied = false;
 			}, 2000);
 		}
 	};
 
-	const setAsProduction = async (historyEntry: any) => {
-		if (disabled) {
-			toast.error($i18n.t('You do not have permission to edit this prompt.'));
-			return;
-		}
-
+	const setAsProduction = async (historyEntry: PromptHistoryItem): Promise<void> => {
+		if (!alive || disabled || loading || historyMutationPending || !prompt?.id) return;
+		historyMutationPending = true;
 		try {
-			await setProductionPromptVersion(localStorage.token, prompt.id, historyEntry.id);
-			// Update local prompt object to trigger reactivity
-			prompt = { ...prompt, version_id: historyEntry.id };
+			const result = await setProductionPromptVersion(
+				localStorage.token,
+				prompt.id,
+				historyEntry.id,
+				controller.signal
+			);
+			if (!result) throw new Error('Failed to update production version.');
+			if (!alive) return;
+			prompt = { ...prompt, version_id: result.version_id };
 			toast.success($i18n.t('Production version updated'));
 		} catch (error) {
-			toast.error(`${error}`);
+			if (alive) toast.error(`${error}`);
+		} finally {
+			if (alive) historyMutationPending = false;
 		}
 	};
 
-	const handleDeleteHistory = async (historyId: string) => {
-		if (disabled) return;
-
+	const handleDeleteHistory = async (historyId: string): Promise<void> => {
+		if (!alive || disabled || loading || historyMutationPending || !prompt?.id) return;
+		historyMutationPending = true;
 		try {
-			await deletePromptHistoryVersion(localStorage.token, prompt.id, historyId);
+			const deleted = await deletePromptHistoryVersion(
+				localStorage.token,
+				prompt.id,
+				historyId,
+				controller.signal
+			);
+			if (deleted !== true) throw new Error('Failed to delete version.');
+			if (!alive) return;
+			historyController?.abort();
+			++historyVersion;
+			history = history.filter((entry) => entry.id !== historyId);
+			if (selectedHistoryEntry?.id === historyId) selectedHistoryEntry = history[0] ?? null;
 			toast.success($i18n.t('Version deleted'));
-			// Reload history from scratch
 			await loadHistory(true);
-			// Reset selection if deleted entry was selected
-			if (selectedHistoryEntry?.id === historyId) {
-				selectedHistoryEntry = history.length > 0 ? history[0] : null;
-			}
 		} catch (error) {
-			toast.error(`${error}`);
+			if (alive) toast.error(`${error}`);
+		} finally {
+			if (alive) historyMutationPending = false;
 		}
 	};
 
-	const renderDate = (timestamp: number) => {
+	const renderDate = (timestamp: number): string => {
 		const dateVal = timestamp * 1000;
 		return $i18n.t(formatDate(dateVal), {
 			LOCALIZED_TIME: dayjs(dateVal).format('LT'),
@@ -215,72 +237,98 @@
 		});
 	};
 
-	const debouncedSaveMetadata = () => {
-		if (disabled || !edit) return;
-
-		if (debounceTimer) {
-			clearTimeout(debounceTimer);
-		}
-
-		debounceTimer = setTimeout(async () => {
+	const debouncedSaveMetadata = (): void => {
+		if (!alive || disabled || !edit || loading || !prompt?.id) return;
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			const id = prompt?.id;
+			if (!alive || !id) return;
 			if (!validateCommandString(command)) {
 				toast.error(
 					$i18n.t('Only alphanumeric characters and hyphens are allowed in the command string.')
 				);
-				command = originalCommand;
 				return;
 			}
-
-			try {
-				await updatePromptMetadata(
-					localStorage.token,
-					prompt?.id,
-					name,
-					command,
-					tags.map((tag) => tag.name)
-				);
-				// Update originals on success
-				originalName = name;
-				originalCommand = command;
-				originalTags = tags;
-				toast.success($i18n.t('Saved'));
-			} catch (error) {
-				toast.error(`${error}`);
-				// Revert on error (collision)
-				name = originalName;
-				command = originalCommand;
-				tags = originalTags;
-			}
+			const snapshot = { name, command, tags: tags.map((tag) => tag.name) };
+			// Preserve write order without retrying failed writes or replacing the user's draft.
+			pendingSave = pendingSave.then(async () => {
+				if (!alive) return;
+				try {
+					const result = await updatePromptMetadata(
+						localStorage.token,
+						id,
+						snapshot.name,
+						snapshot.command,
+						snapshot.tags,
+						controller.signal
+					);
+					if (!result) throw new Error('Failed to save prompt metadata.');
+					if (
+						alive &&
+						name === snapshot.name &&
+						command === snapshot.command &&
+						JSON.stringify(tags.map((tag) => tag.name)) === JSON.stringify(snapshot.tags)
+					)
+						toast.success($i18n.t('Saved'));
+				} catch (error) {
+					if (alive) toast.error(`${error}`);
+				}
+			});
 		}, 500);
+	};
+
+	const saveAccess = async (): Promise<void> => {
+		const id = prompt?.id;
+		if (!alive || disabled || loading || !edit || !id) return;
+		const snapshot = accessGrants.map((grant) => ({ ...grant }));
+		pendingSave = pendingSave.then(async () => {
+			if (!alive) return;
+			try {
+				const result = await updatePromptAccessGrants(
+					localStorage.token,
+					id,
+					snapshot,
+					controller.signal
+				);
+				if (!result) throw new Error('Failed to save prompt permissions.');
+				if (alive && JSON.stringify(accessGrants) === JSON.stringify(snapshot))
+					toast.success($i18n.t('Saved'));
+			} catch (error) {
+				if (alive) toast.error(`${error}`);
+			}
+		});
+		await pendingSave;
 	};
 
 	onMount(async () => {
 		if (prompt) {
 			name = prompt.name || '';
 			await tick();
+			if (!alive) return;
 			command = prompt.command.at(0) === '/' ? prompt.command.slice(1) : prompt.command;
 			content = prompt.content;
-			tags = (prompt.tags || []).map((tag) => ({ name: tag }));
-			accessGrants = prompt?.access_grants === undefined ? [] : prompt?.access_grants;
-
-			// Store originals for revert on collision
-			originalName = name;
-			originalCommand = command;
-			originalTags = tags;
+			tags = (prompt.tags ?? [])
+				.filter((tag): tag is string => typeof tag === 'string')
+				.map((tag) => ({ name: tag }));
+			accessGrants = prompt.access_grants ?? [];
 
 			if (edit) {
 				await loadHistory();
+				if (!alive) return;
 				// Auto-select production version
 				if (prompt.version_id && history.length > 0) {
-					selectedHistoryEntry = history.find((h) => h.id === prompt.version_id) || history[0];
+					selectedHistoryEntry = history.find((h) => h.id === prompt?.version_id) || history[0];
 				} else if (history.length > 0) {
 					selectedHistoryEntry = history[0];
 				}
 			}
 		}
 
-		const res = await getPromptTags(localStorage.token);
-		if (res) {
+		const res = await getPromptTags(localStorage.token, controller.signal).catch((error) => {
+			if (alive) toast.error(`${error}`);
+			return null;
+		});
+		if (alive && res) {
 			suggestionTags = res.map((tag) => ({ name: tag }));
 		}
 	});
@@ -293,16 +341,7 @@
 	share={$user?.permissions?.sharing?.prompts || $user?.role === 'admin'}
 	sharePublic={$user?.permissions?.sharing?.public_prompts || $user?.role === 'admin'}
 	shareUsers={($user?.permissions?.access_grants?.allow_users ?? true) || $user?.role === 'admin'}
-	onChange={async () => {
-		if (edit && prompt?.id) {
-			try {
-				await updatePromptAccessGrants(localStorage.token, prompt.id, accessGrants);
-				toast.success($i18n.t('Saved'));
-			} catch (error) {
-				toast.error(`${error}`);
-			}
-		}
-	}}
+	onChange={saveAccess}
 />
 
 <!-- Edit Modal -->
@@ -330,7 +369,8 @@
 						className="text-xs w-full bg-transparent outline-hidden overflow-y-hidden resize-none"
 						placeholder={$i18n.t('Write a summary in 50 words that summarizes {{topic}}.')}
 						bind:value={content}
-						aria-label={$i18n.t('Prompt Content')}
+						ariaLabel={$i18n.t('Prompt Content')}
+						readonly={loading}
 						rows={6}
 						required
 					/>
@@ -345,6 +385,7 @@
 						placeholder={$i18n.t('Describe what changed...')}
 						aria-label={$i18n.t('Commit Message')}
 						bind:value={commitMessage}
+						disabled={loading || historyMutationPending}
 					/>
 				</div>
 			</div>
@@ -354,6 +395,7 @@
 					<input
 						type="checkbox"
 						bind:checked={isProduction}
+						disabled={loading || historyMutationPending}
 						class="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
 					/>
 					<span class="text-xs text-gray-700 dark:text-gray-300"
@@ -366,7 +408,7 @@
 							? 'cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
 							: 'bg-black hover:bg-gray-900 text-white dark:bg-white dark:hover:bg-gray-100 dark:text-black'} flex justify-center"
 						type="submit"
-						disabled={loading}
+						disabled={loading || historyMutationPending}
 					>
 						<div class="font-normal">{$i18n.t('Save')}</div>
 						{#if loading}
@@ -402,7 +444,7 @@
 					placeholder={$i18n.t('Prompt Name')}
 					bind:value={name}
 					on:input={debouncedSaveMetadata}
-					{disabled}
+					disabled={disabled || loading}
 				/>
 
 				<div class="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-gray-500">
@@ -413,7 +455,7 @@
 							placeholder={$i18n.t('command')}
 							bind:value={command}
 							on:input={debouncedSaveMetadata}
-							{disabled}
+							disabled={disabled || loading}
 						/>
 					</div>
 				</div>
@@ -428,7 +470,7 @@
 						{$i18n.t('Edit')}
 					</button>
 
-					<AccessButton on:click={() => (showAccessControlModal = true)} />
+					<AccessButton disabled={loading} on:click={() => (showAccessControlModal = true)} />
 				{:else}
 					<span class="rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-gray-850">
 						{$i18n.t('Read Only')}
@@ -441,7 +483,7 @@
 			<div class="flex-1 min-w-0">
 				<Tags
 					{tags}
-					{disabled}
+					disabled={disabled || loading}
 					{suggestionTags}
 					on:add={(e) => {
 						tags = [...tags, { name: e.detail }];
@@ -458,11 +500,11 @@
 				<button
 					class="min-w-0 max-w-[14rem] shrink-0 truncate rounded-md px-1 py-0.5 font-mono text-xs text-gray-400 transition hover:text-gray-700 dark:hover:text-gray-300"
 					on:click={() => {
-						copyToClipboard(prompt.id);
+						if (prompt?.id) copyToClipboard(prompt.id);
 						toast.success($i18n.t('ID copied to clipboard'));
 					}}
 				>
-					{prompt.id}
+					{prompt?.id}
 				</button>
 			</Tooltip>
 		</div>
@@ -498,14 +540,17 @@
 							{:else}
 								<button
 									class="text-xs text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:underline transition"
-									on:click={() => setAsProduction(selectedHistoryEntry)}
+									disabled={historyMutationPending || loading}
+									on:click={() => selectedHistoryEntry && setAsProduction(selectedHistoryEntry)}
 								>
 									{$i18n.t('Set as Production')}
 								</button>
 							{/if}
 							<PromptHistoryMenu
 								isProduction={selectedHistoryEntry.id === prompt?.version_id}
-								onDelete={() => handleDeleteHistory(selectedHistoryEntry.id)}
+								disabled={historyMutationPending || loading}
+								onDelete={() =>
+									selectedHistoryEntry && handleDeleteHistory(selectedHistoryEntry.id)}
 								onClose={() => {}}
 							/>
 						</div>
@@ -533,7 +578,7 @@
 					>
 						<pre
 							class="whitespace-pre-wrap pr-8 font-mono text-[11px] leading-relaxed">{selectedHistoryEntry
-								?.snapshot?.content || content}</pre>
+								?.snapshot?.content ?? content}</pre>
 					</div>
 				</div>
 			</div>
@@ -576,7 +621,7 @@
 								required
 							/>
 							<div class="self-center shrink-0">
-								<AccessButton on:click={() => (showAccessControlModal = true)} />
+								<AccessButton disabled={loading} on:click={() => (showAccessControlModal = true)} />
 							</div>
 						</div>
 						<div class="flex gap-0.5 items-center text-xs text-gray-500">
@@ -653,7 +698,7 @@
 						? 'px-3.5 py-1.5 text-xs rounded-full w-fit'
 						: 'text-xs w-full lg:w-fit px-4 py-2 rounded-xl'} transition bg-black hover:bg-gray-900 text-white dark:bg-white dark:hover:bg-gray-100 dark:text-black flex justify-center"
 					type="submit"
-					disabled={loading}
+					disabled={loading || historyMutationPending}
 				>
 					<div class="font-normal">{$i18n.t('Save & Create')}</div>
 					{#if loading}
@@ -709,7 +754,7 @@
 									src={`/api/v1/users/${entry.user.id}/profile/image`}
 									alt={entry.user.name}
 									class="size-3 rounded-full mr-0.5"
-									on:error={(e) => (e.target.src = '/user.png')}
+									on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/user.png')}
 								/>
 								<span class="truncate">{entry.user.name}</span>
 								<span>•</span>

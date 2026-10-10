@@ -3384,5 +3384,7 @@
 	"Invalid skill import.": "Invalid skill import.",
 	"Duplicate skill id.": "Duplicate skill id.",
 	"Invalid skill metadata.": "Invalid skill metadata.",
-	"Invalid skill access grants.": "Invalid skill access grants."
+	"Invalid skill access grants.": "Invalid skill access grants.",
+	"Imported {{count}} prompts": "Imported {{count}} prompts",
+	"Imported {{count}} prompts before an error. Check the list before retrying.": "Imported {{count}} prompts before an error. Check the list before retrying."
 }

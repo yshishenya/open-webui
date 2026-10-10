@@ -1,591 +1,297 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import { requestJSON } from '$lib/utils/airis/request_json';
+import type { ToolAccessGrantInput } from '$lib/apis/tools';
 
-type PromptItem = {
-	id?: string; // Prompt ID
+export type PromptForm = {
+	id?: string;
 	command: string;
-	name: string; // Changed from title
+	name: string;
 	content: string;
-	data?: object | null;
-	meta?: object | null;
-	access_grants?: object[];
-	version_id?: string | null; // Active version
-	commit_message?: string | null; // For history tracking
-	is_production?: boolean; // Whether to set new version as production
+	data?: Record<string, unknown> | null;
+	meta?: Record<string, unknown> | null;
+	tags?: (string | null)[] | null;
+	access_grants?: ToolAccessGrantInput[] | null;
+	version_id?: string | null;
+	commit_message?: string | null;
+	is_production?: boolean | null;
 };
-
-type PromptHistoryItem = {
+export type PromptRecord = Omit<PromptForm, 'id' | 'access_grants'> & {
+	id: string | null;
+	user_id: string;
+	access_grants: ToolAccessGrantInput[];
+	is_active?: boolean | null;
+	created_at?: number | null;
+	updated_at?: number | null;
+	user?: { id: string; name: string; email: string } | null;
+	write_access?: boolean | null;
+};
+export type PromptPage = { items: PromptRecord[]; total: number };
+export type PromptHistoryItem = {
 	id: string;
 	prompt_id: string;
 	parent_id: string | null;
-	snapshot: {
-		name: string;
-		content: string;
-		command: string;
-		data: object;
-		meta: object;
-		access_grants: object[];
-	};
+	snapshot: Partial<PromptForm>;
 	user_id: string;
 	commit_message: string | null;
 	created_at: number;
-	user?: {
-		id: string;
-		name: string;
-		email: string;
-	};
+	user?: { id: string; name: string; email: string } | null;
 };
-
-type PromptDiff = {
+export type PromptDiff = {
 	from_id: string;
 	to_id: string;
-	from_snapshot: object;
-	to_snapshot: object;
+	from_snapshot: Partial<PromptForm>;
+	to_snapshot: Partial<PromptForm>;
 	content_diff: string[];
 	name_changed: boolean;
-	access_grants_changed: boolean;
 };
-
-export const createNewPrompt = async (token: string, prompt: PromptItem) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/create`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
+const readPromptPage = (value: PromptPage): PromptPage => {
+	if (!value || !Array.isArray(value.items) || !Number.isInteger(value.total) || value.total < 0)
+		throw new Error('Invalid prompts list response');
+	return value;
+};
+export const createNewPrompt = async (
+	token: string,
+	prompt: PromptForm,
+	signal?: AbortSignal
+): Promise<PromptRecord | null> => {
+	const result = await requestJSON<PromptRecord | null>(
+		`${WEBUI_API_BASE_URL}/prompts/create`,
+		token,
+		{
 			...prompt,
 			command: prompt.command.startsWith('/') ? prompt.command.slice(1) : prompt.command
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+		},
+		signal,
+		'Prompt request'
+	);
+	return result;
 };
-
-export const getPrompts = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const getPrompts = async (token = '', signal?: AbortSignal): Promise<PromptRecord[]> => {
+	const result = await requestJSON<PromptRecord[]>(
+		`${WEBUI_API_BASE_URL}/prompts/`,
+		token,
+		undefined,
+		signal,
+		'Prompt request'
+	);
+	if (!Array.isArray(result)) throw new Error('Invalid prompts list response');
+	return result;
 };
-
-export const getPromptTags = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/tags`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const getPromptTags = async (token = '', signal?: AbortSignal): Promise<string[]> => {
+	const result = await requestJSON<string[]>(
+		`${WEBUI_API_BASE_URL}/prompts/tags`,
+		token,
+		undefined,
+		signal,
+		'Prompt request'
+	);
+	if (!Array.isArray(result)) throw new Error('Invalid prompts list response');
+	return result;
 };
-
 export const getPromptItems = async (
-	token: string = '',
+	token = '',
 	query: string | null,
 	viewOption: string | null,
 	selectedTag: string | null,
 	orderBy: string | null,
 	direction: string | null,
-	page: number
-) => {
-	let error = null;
-
+	page: number,
+	signal?: AbortSignal
+): Promise<PromptPage> => {
 	const searchParams = new URLSearchParams();
-	if (query) {
-		searchParams.append('query', query);
-	}
-	if (viewOption) {
-		searchParams.append('view_option', viewOption);
-	}
-	if (selectedTag) {
-		searchParams.append('tag', selectedTag);
-	}
-	if (orderBy) {
-		searchParams.append('order_by', orderBy);
-	}
-	if (direction) {
-		searchParams.append('direction', direction);
-	}
-	if (page) {
-		searchParams.append('page', page.toString());
-	}
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/list?${searchParams.toString()}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	if (query) searchParams.append('query', query);
+	if (viewOption) searchParams.append('view_option', viewOption);
+	if (selectedTag) searchParams.append('tag', selectedTag);
+	if (orderBy) searchParams.append('order_by', orderBy);
+	if (direction) searchParams.append('direction', direction);
+	if (page) searchParams.append('page', page.toString());
+	return readPromptPage(
+		await requestJSON<PromptPage>(
+			`${WEBUI_API_BASE_URL}/prompts/list?${searchParams.toString()}`,
+			token,
+			undefined,
+			signal,
+			'Prompt request'
+		)
+	);
 };
-
-export const getPromptList = async (token: string = '') => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/list`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const getPromptList = async (token = '', signal?: AbortSignal): Promise<PromptPage> => {
+	const result = await requestJSON<PromptPage>(
+		`${WEBUI_API_BASE_URL}/prompts/list`,
+		token,
+		undefined,
+		signal,
+		'Prompt request'
+	);
+	return readPromptPage(result);
 };
-
-export const getPromptById = async (token: string, promptId: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const getPromptById = async (
+	token: string,
+	promptId: string,
+	signal?: AbortSignal
+): Promise<PromptRecord | null> => {
+	const result = await requestJSON<PromptRecord | null>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}`,
+		token,
+		undefined,
+		signal,
+		'Prompt request'
+	);
+	return result;
 };
-
-export const updatePromptById = async (token: string, prompt: PromptItem) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${prompt.id}/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify(prompt)
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const updatePromptById = async (
+	token: string,
+	prompt: PromptForm,
+	signal?: AbortSignal
+): Promise<PromptRecord | null> => {
+	if (!prompt.id) throw new Error('Prompt id is required.');
+	return requestJSON(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(prompt.id)}/update`,
+		token,
+		prompt,
+		signal,
+		'Prompt request'
+	);
 };
-
 export const updatePromptMetadata = async (
 	token: string,
 	promptId: string,
 	name: string,
 	command: string,
-	tags: string[] = []
-) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/update/meta`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({ name, command, tags })
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	tags: string[] = [],
+	signal?: AbortSignal
+): Promise<PromptRecord | null> => {
+	const result = await requestJSON<PromptRecord | null>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/update/meta`,
+		token,
+		{ name, command, tags },
+		signal,
+		'Prompt request'
+	);
+	return result;
 };
-
 export const setProductionPromptVersion = async (
 	token: string,
 	promptId: string,
-	version_id: string
-) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/update/version`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			version_id: version_id
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.log(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	version_id: string,
+	signal?: AbortSignal
+): Promise<PromptRecord | null> => {
+	const result = await requestJSON<PromptRecord | null>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/update/version`,
+		token,
+		{ version_id },
+		signal,
+		'Prompt request'
+	);
+	return result;
 };
-
-export const togglePromptById = async (token: string, promptId: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/toggle`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const togglePromptById = async (
+	token: string,
+	promptId: string,
+	signal?: AbortSignal
+): Promise<PromptRecord | null> => {
+	const result = await requestJSON<PromptRecord | null>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/toggle`,
+		token,
+		undefined,
+		signal,
+		'Prompt request',
+		'POST'
+	);
+	return result;
 };
-
-export const deletePromptById = async (token: string, promptId: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/delete`, {
-		method: 'DELETE',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+export const deletePromptById = async (
+	token: string,
+	promptId: string,
+	signal?: AbortSignal
+): Promise<boolean> => {
+	const result = await requestJSON<boolean>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/delete`,
+		token,
+		undefined,
+		signal,
+		'Prompt request',
+		'DELETE'
+	);
+	if (result !== true) throw new Error('Failed to delete prompt version or prompt.');
+	return result;
 };
-
 export const updatePromptAccessGrants = async (
 	token: string,
 	promptId: string,
-	accessGrants: any[]
-) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/access/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({ access_grants: accessGrants })
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	accessGrants: ToolAccessGrantInput[],
+	signal?: AbortSignal
+): Promise<PromptRecord | null> => {
+	const result = await requestJSON<PromptRecord | null>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/access/update`,
+		token,
+		{ access_grants: accessGrants },
+		signal,
+		'Prompt request'
+	);
+	return result;
 };
-
-////////////////////////////
-// Prompt History APIs
-////////////////////////////
-
 export const getPromptHistory = async (
 	token: string,
 	promptId: string,
-	page: number = 0
+	page = 0,
+	signal?: AbortSignal
 ): Promise<PromptHistoryItem[]> => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/history?page=${page}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	const result = await requestJSON<PromptHistoryItem[]>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/history?page=${page}`,
+		token,
+		undefined,
+		signal,
+		'Prompt request'
+	);
+	if (!Array.isArray(result)) throw new Error('Invalid prompts list response');
+	return result;
 };
-
 export const deletePromptHistoryVersion = async (
 	token: string,
 	promptId: string,
-	historyId: string
+	historyId: string,
+	signal?: AbortSignal
 ): Promise<boolean> => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/history/${historyId}`, {
-		method: 'DELETE',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return false;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	const result = await requestJSON<boolean>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/history/${encodeURIComponent(historyId)}`,
+		token,
+		undefined,
+		signal,
+		'Prompt request',
+		'DELETE'
+	);
+	if (result !== true) throw new Error('Failed to delete prompt version or prompt.');
+	return result;
 };
-
 export const getPromptHistoryEntry = async (
 	token: string,
 	promptId: string,
-	historyId: string
+	historyId: string,
+	signal?: AbortSignal
 ): Promise<PromptHistoryItem> => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/history/${historyId}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	const result = await requestJSON<PromptHistoryItem>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/history/${encodeURIComponent(historyId)}`,
+		token,
+		undefined,
+		signal,
+		'Prompt request'
+	);
+	return result;
 };
-
 export const getPromptDiff = async (
 	token: string,
 	promptId: string,
 	fromId: string,
-	toId: string
+	toId: string,
+	signal?: AbortSignal
 ): Promise<PromptDiff> => {
-	let error = null;
-
-	const res = await fetch(
-		`${WEBUI_API_BASE_URL}/prompts/id/${promptId}/history/diff?from_id=${fromId}&to_id=${toId}`,
-		{
-			method: 'GET',
-			headers: {
-				Accept: 'application/json',
-				'Content-Type': 'application/json',
-				authorization: `Bearer ${token}`
-			}
-		}
-	)
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	const result = await requestJSON<PromptDiff>(
+		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(promptId)}/history/diff?${new URLSearchParams({ from_id: fromId, to_id: toId })}`,
+		token,
+		undefined,
+		signal,
+		'Prompt request'
+	);
+	return result;
 };
