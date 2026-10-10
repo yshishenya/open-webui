@@ -39,7 +39,11 @@ const scriptBody = (path: string, only?: string): string => {
 			(s) =>
 				!only ||
 				(ts.isVariableStatement(s) &&
-					s.declarationList.declarations.some((d) => d.name.getText(parsed) === only))
+					s.declarationList.declarations.some(
+						(d) =>
+							d.name.getText(parsed) === only ||
+							(only === 'saveSettings' && d.name.getText(parsed) === 'settingsSaveQueue')
+					))
 		)
 		.filter(
 			(s) =>

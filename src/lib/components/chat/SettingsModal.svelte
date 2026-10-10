@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { getContext, onMount, tick } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 	import { config, models, settings, user } from '$lib/stores';
 	import type { Settings, SettingsModalRequest } from '$lib/stores';
@@ -55,7 +56,7 @@
 	import AdminPipelines from '$lib/components/admin/Settings/Pipelines.svelte';
 	import AdminDatabase from '$lib/components/admin/Settings/Database.svelte';
 
-	const i18n: Writable<any> = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	export let show: boolean | string | SettingsModalRequest = false;
 	let modalShow = false;
@@ -814,16 +815,23 @@
 		scrollToSelectedTab();
 	};
 
-	const saveSettings = async (updated: Partial<Settings>): Promise<void> => {
-		const snapshot = { ...$settings, ...updated };
-		const saved = await updateUserSettings(localStorage.token, { ui: snapshot });
-		if (!saved) throw new Error('Settings could not be saved.');
-		settings.set(snapshot);
-		try {
-			models.set(await getModels());
-		} catch {
-			toast.error($i18n.t('Server connection failed'));
-		}
+	let settingsSaveQueue: Promise<void> = Promise.resolve();
+	const saveSettings = (updated: Partial<Settings>): Promise<void> => {
+		const changes = structuredClone(updated);
+		const save = settingsSaveQueue.then(async () => {
+			const snapshot = { ...$settings, ...changes };
+			const saved = await updateUserSettings(localStorage.token, { ui: snapshot });
+			if (!saved) throw new Error('Settings could not be saved.');
+			settings.set(snapshot);
+			try {
+				models.set(await getModels());
+			} catch {
+				toast.error($i18n.t('Server connection failed'));
+			}
+		});
+		// The caller still receives this failure; only the queue recovers for the next choice.
+		settingsSaveQueue = save.catch(() => undefined);
+		return save;
 	};
 
 	const getModels = async () => {
@@ -881,7 +889,7 @@
 		availableSettings = getAvailableSettings();
 		setFilteredSettings();
 
-		config.subscribe((configData) => {
+		return config.subscribe(() => {
 			availableSettings = getAvailableSettings();
 			setFilteredSettings();
 		});

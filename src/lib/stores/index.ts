@@ -19,6 +19,7 @@ import type {
 	SelectedFolder,
 	GenerationParams,
 	ImageCompressionSize,
+	FloatingAction,
 	SpeechSettings,
 	StoredTerminalServer,
 	FunctionListItem,
@@ -189,8 +190,8 @@ export type Settings = {
 	stylizedPdfExport?: boolean;
 	imageCompression?: boolean;
 	imageCompressionSize?: ImageCompressionSize;
-	textScale?: number;
-	widescreenMode?: null;
+	textScale?: number | null;
+	widescreenMode?: boolean;
 	largeTextAsFile?: boolean;
 	promptAutocomplete?: boolean;
 	hapticFeedback?: boolean;
@@ -200,6 +201,7 @@ export type Settings = {
 	insertPromptAsRichText?: boolean;
 	temporaryChatByDefault?: boolean;
 	showFloatingActionButtons?: boolean;
+	floatingActionButtons?: FloatingAction[] | null;
 	chatFadeStreamingText?: boolean;
 	regenerateMenu?: boolean;
 	keepFollowUpPrompts?: boolean;
@@ -215,7 +217,7 @@ export type Settings = {
 	autoTags?: boolean;
 	autoFollowUps?: boolean;
 	splitLargeChunks?: boolean;
-	backgroundImageUrl?: null;
+	backgroundImageUrl?: string | null;
 	landingPageMode?: string;
 	iframeSandboxAllowForms?: boolean;
 	iframeSandboxAllowSameOrigin?: boolean;

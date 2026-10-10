@@ -1,27 +1,37 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
-	const i18n = getContext('i18n');
-
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import type { ImageCompressionSize } from '$lib/utils/airis/frontend-contracts';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 	import Modal from '$lib/components/common/Modal.svelte';
-	import Plus from '$lib/components/icons/Plus.svelte';
-	import Minus from '$lib/components/icons/Minus.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
-	import Textarea from '$lib/components/common/Textarea.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import { settings } from '$lib/stores';
-
+	const i18n = getContext<Writable<i18nType>>('i18n');
 	export let show = false;
-	export let size = null;
-	export let onSave = () => {};
-
-	const submitHandler = async () => {
-		onSave(size);
-		show = false;
+	export let size: ImageCompressionSize = { width: '', height: '' };
+	export let onSave: (value: ImageCompressionSize) => Promise<boolean> = async () => true;
+	let draft: ImageCompressionSize = { width: '', height: '' };
+	let saving = false;
+	let wasOpen = false;
+	let draftVersion = 0;
+	$: if (show !== wasOpen) {
+		wasOpen = show;
+		draftVersion++;
+		if (show) draft = structuredClone(size);
+	}
+	const submitHandler = async (): Promise<void> => {
+		if (saving) return;
+		saving = true;
+		const version = draftVersion;
+		try {
+			if ((await onSave(structuredClone(draft))) && version === draftVersion) show = false;
+		} catch (error) {
+			if (version === draftVersion) toast.error(getErrorMessage(error));
+		} finally {
+			saving = false;
+		}
 	};
-
-	onMount(() => {});
 </script>
 
 <Modal size="sm" bind:show className="bg-white dark:bg-gray-900 rounded-4xl">
@@ -69,7 +79,7 @@
 										>
 										<input
 											id="image-comp-width"
-											bind:value={size.width}
+											bind:value={draft.width}
 											type="number"
 											class="h-7 w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 text-center text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500"
 											min="0"
@@ -87,7 +97,7 @@
 										>
 										<input
 											id="image-comp-height"
-											bind:value={size.height}
+											bind:value={draft.height}
 											type="number"
 											class="h-7 w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 text-center text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500"
 											min="0"
@@ -103,6 +113,7 @@
 						<button
 							class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
 							type="submit"
+							disabled={saving}
 						>
 							{$i18n.t('Save')}
 						</button>

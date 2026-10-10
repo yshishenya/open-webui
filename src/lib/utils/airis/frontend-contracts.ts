@@ -200,6 +200,8 @@ export type GenerationParams = {
 	custom_params?: Record<string, string>;
 };
 
+export type FloatingAction = { id: string; label: string; input?: boolean; prompt: string };
+
 export type ImageCompressionSize = {
 	width: number | '' | undefined;
 	height: number | '' | undefined;

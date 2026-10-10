@@ -1,3 +1,4 @@
+import { requestJSON } from '$lib/utils/airis/request_json';
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getUserPosition } from '$lib/utils';
 import type { SessionUser } from '$lib/stores';
@@ -313,35 +314,18 @@ export const getUserSettings = async (token: string) => {
 	return res;
 };
 
-export const updateUserSettings = async (token: string, settings: object) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/users/user/settings/update`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			...settings
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+export const updateUserSettings = (
+	token: string,
+	settings: object,
+	signal?: AbortSignal
+): Promise<Record<string, unknown>> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/users/user/settings/update`,
+		token,
+		settings,
+		signal,
+		'Settings request'
+	);
 
 export const getUserInfoById = async (
 	token: string,
