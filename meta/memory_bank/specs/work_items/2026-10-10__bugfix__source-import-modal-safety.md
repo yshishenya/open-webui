@@ -2,10 +2,10 @@
 
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: source-accepted
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-source-import-modal-safety-2026-10-10-018.json
+- SDD Spec: meta/sdd/specs/completed/airis-source-import-modal-safety-2026-10-10-018.json
 
 ## Goal / Acceptance Criteria
 Продолжение G14/13.11; финальная цель A/B остаётся прежней.
@@ -14,7 +14,7 @@
 - [x] Закрытие/destroy отменяют запрос и игнорируют поздний ответ; повторное открытие не принимает старый результат; передача в редактор подтверждается по завершению callback.
 - [x] Общий Modal удаляет принадлежащие ему обработчики и узел безопасно, восстанавливает прокрутку с учётом других Modal; его прежние свойства/слоты/клавиатурный порядок сохраняются.
 - [x] Tool URL API повторно использует requestJSON с deadline/abort/reject; оба тонких callers передают AbortSignal. Загрузка исходника не считается установкой функции/инструмента.
-- [ ] Docker адресные/общие проверки без новых диагностик, настоящий браузер, сохранность, SDD/source push и частный отчёт подтверждены.
+- [x] Docker адресные/общие проверки без новых диагностик, настоящий браузер, сохранность, SDD/source push и частный отчёт подтверждены.
 
 ## Scope / upstream impact
 ImportModal, общий Modal, URL-загрузка tools, тонкие URL callbacks Functions/Tools. Новых зависимостей и backend изменений нет. Остальные function/tool API, ValvesModal и редакторы не объявляются исправленными этой партией; их отдельные пути прочитаны для определения границ.
@@ -32,3 +32,5 @@ ImportModal, общий Modal, URL-загрузка tools, тонкие URL call
 
 ## Limits and next gates
 Loading source is not installing/executing it. The server/editor remains responsible for full code validation; Unicode identifier behavior is unchanged. Cancelling an already invoked editor callback cannot reverse its accepted side effects; late loader responses never invoke it. GetFunctions, other tool/function API operations, ValvesModal and editors remain outside this work item. Whole-repository types/lint are still red; PR/CI/integration/clean build/production and real A/B acceptance remain pending. Plan198/244 and final goal active.
+
+Runtime commit: 9b1ef88dbee6ec2585250a7049ad0044506bb2bd; pushed exact source and all 1762 frozen Git blobs verified. SDD3/3 completed; 219 tracked specs valid. Whole-goal acceptance remains pending as stated above.

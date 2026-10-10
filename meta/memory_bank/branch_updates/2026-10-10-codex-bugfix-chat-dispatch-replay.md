@@ -118,8 +118,10 @@
   - Done: 2026-10-10
   - Summary: Runtime a31bffdcd6cb92efcc493a9219f0792b05fd6006,1761 Git blobs;35/1735 тестов,браузер9/9,types1148/86,ESLint769,новых0. SDD3/3,218валидных;свои пустые тома удалены. План198/244,production/финальная цель открыты.
 
-- [ ] [BUG] Импорт по ссылке и завершение Modal без поздних действий.
+- [x] [BUG] Импорт по ссылке и завершение Modal — принято в исходниках.
   - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__source-import-modal-safety.md
   - Owner: Codex
-  - Started: 2026-10-10
-  - Summary: Изучены два ImportModal callers/URL API и общий Modal; воспроизводятся зависшее ожидание, поздний переход и утечки обработчиков. План198/244,финальная цельactive.
+  - Summary: 17 исходных отказов; импорт валидирует/копирует ответ, отменяет позднюю загрузку и ожидает редактор. Общий Modal безопасно удаляет listeners/portal и сохраняет блокировку прокрутки других окон; оба callers передают signal, tools URL API использует requestJSON.
+  - Tests: focused43/43,frontend1756/1756/161файл,browser9/9,console0/0;types1148/86→1140/85,ESLint769→762,новых0. SDD3/3,219specs,1762frozenGitblobs;backend542/protected21/production12соседей сохранены.
+  - Source: `9b1ef88dbee6ec2585250a7049ad0044506bb2bd` pushed and verified;production revision c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908 healthy/restarts0. Общие types/lint,PR/CI/production и A/B ещё не приняты;план198/244,цельactive.
+  - Done: 2026-10-10 (приёмка исходников; интеграция ожидается)
