@@ -173,3 +173,16 @@
   - Summary: Existing requestJSON/grant parser reused; validated full imports, preserved Markdown, contained refusals/partial acceptance, duplicate operations and late events. Editor loading/inactive state/metadata preserved. Runtime `3ac78da26bf0f9d38d41a71e310024d6f5ca097d` pushed.
   - Tests: Frozen full 1958/1958, focused 142/142, browser 23/23, console 0/0; types 1059/85, ESLint 742, new 0; backend 542/primary 21/production 12 neighbors preserved. SDD 3/3 complete.
   - Risks: Source acceptance only; global quality, PR/CI/integration/build/deploy and real A/B criteria pending. Plan 198/244, goal active.
+
+- [x] [BUG] Prompts: API refusals, draft preservation and management
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__prompts-management-safety.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Reproduce actual API/editor failures, reuse requestJSON and existing validation; source acceptance before release.
+
+  - Done: 2026-10-10 (Prompts source acceptance; production release pending)
+  - Acceptance: frontend 2013/2013 (166 files), related 185/185, browser 21/21,
+    console 0/0; types 1059→1001, lint 742→723, new diagnostics 0.
+  - Preservation: 5618 frozen source blobs, backend 542, primary 21, production
+    healthy/restarts 0 and 12 neighbors unchanged; all 262 volumes preserved.
+  - Runtime: fcca5208491f40223da33a9e7daecb60b2a30337; plan 198/244, 46 open, goal active.
