@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { getContext, tick } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { SavedChat } from '$lib/utils/airis/frontend-contracts';
+	import { getChatExportHistory, getChatExportText } from '$lib/utils/airis/chat-export';
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
-	import { downloadChatAsPDF } from '$lib/apis/utils';
-	import { copyToClipboard, createMessagesList } from '$lib/utils';
-	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
+	import { copyToClipboard } from '$lib/utils';
 
 	import {
 		showControls,
 		showArtifacts,
-		mobile,
 		temporaryChatEnabled,
-		theme,
 		user,
 		settings,
 		folders,
@@ -38,37 +38,28 @@
 	import Messages from '$lib/components/chat/Messages.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	export let shareEnabled: boolean = false;
 	export let readOnly: boolean = false;
 
-	export let shareHandler: Function;
-	export let moveChatHandler: Function;
+	export let shareHandler: () => void | Promise<void>;
+	export let moveChatHandler: (chatId: string, folderId: string) => void | Promise<void>;
 
-	export let archiveChatHandler: Function;
-	export let deleteChatHandler: Function;
+	export let archiveChatHandler: () => void | Promise<void>;
+	export let deleteChatHandler: () => void | Promise<void>;
 
-	// export let tagHandler: Function;
+	// export let tagHandler: () => void | Promise<void>;
 
-	export let chat;
-	export let onClose: Function = () => {};
+	export let chat: SavedChat;
+	export let onClose: () => void | Promise<void> = () => {};
 	export let scrollToTop: (() => void) | null = null;
 
 	let showFullMessages = false;
 
-	const getChatAsText = async () => {
-		const history = chat.chat.history;
-		const messages = createMessagesList(history, history.currentId);
-		const chatText = messages.reduce((a, message, i, arr) => {
-			const content = getOutputText(message.output) || message.content || '';
-			return `${a}### ${message.role.toUpperCase()}\n${content}\n\n`;
-		}, '');
+	const getChatAsText = async (): Promise<string> => getChatExportText(chat);
 
-		return chatText.trim();
-	};
-
-	const downloadTxt = async () => {
+	const downloadTxt = async (): Promise<void> => {
 		const chatText = await getChatAsText();
 
 		let blob = new Blob([chatText], {
@@ -78,117 +69,118 @@
 		saveAs(blob, `chat-${chat.chat.title}.txt`);
 	};
 
-	const downloadPdf = async () => {
+	const downloadPdf = async (): Promise<void> => {
 		const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
 			import('jspdf'),
 			import('html2canvas-pro')
 		]);
 
 		if ($settings?.stylizedPdfExport ?? true) {
-			showFullMessages = true;
-			await tick();
+			let clonedElement: HTMLElement | null = null;
+			try {
+				showFullMessages = true;
+				await tick();
+				const containerElement = document.getElementById('full-messages-container');
+				if (!containerElement) throw new Error('Missing PDF preview');
+				const isDarkMode = document.documentElement.classList.contains('dark');
+				const virtualWidth = 800; // px, fixed width for cloned element
 
-			const containerElement = document.getElementById('full-messages-container');
-			if (containerElement) {
-				try {
-					const isDarkMode = document.documentElement.classList.contains('dark');
-					const virtualWidth = 800; // px, fixed width for cloned element
+				// Clone and style
+				clonedElement = containerElement.cloneNode(true) as HTMLElement;
+				clonedElement.classList.add('text-black');
+				clonedElement.classList.add('dark:text-white');
+				clonedElement.style.width = `${virtualWidth}px`;
+				clonedElement.style.position = 'absolute';
+				clonedElement.style.left = '-9999px';
+				clonedElement.style.height = 'auto';
+				document.body.appendChild(clonedElement);
 
-					// Clone and style
-					const clonedElement = containerElement.cloneNode(true);
-					clonedElement.classList.add('text-black');
-					clonedElement.classList.add('dark:text-white');
-					clonedElement.style.width = `${virtualWidth}px`;
-					clonedElement.style.position = 'absolute';
-					clonedElement.style.left = '-9999px';
-					clonedElement.style.height = 'auto';
-					document.body.appendChild(clonedElement);
+				// Override content-visibility so html2canvas can capture all messages
+				clonedElement.querySelectorAll<HTMLElement>('.message-listitem').forEach((el) => {
+					el.style.contentVisibility = 'visible';
+				});
 
-					// Override content-visibility so html2canvas can capture all messages
-					clonedElement.querySelectorAll('.message-listitem').forEach((el) => {
-						el.style.contentVisibility = 'visible';
-					});
+				// Let the browser compute layout for the cloned element
+				await new Promise((r) => requestAnimationFrame(r));
 
-					// Let the browser compute layout for the cloned element
-					await new Promise((r) => requestAnimationFrame(r));
+				// Render entire content once
+				const canvas = await html2canvas(clonedElement, {
+					backgroundColor: isDarkMode ? '#000' : '#fff',
+					useCORS: true,
+					scale: 2, // increase resolution
+					width: virtualWidth
+				});
 
-					// Render entire content once
-					const canvas = await html2canvas(clonedElement, {
-						backgroundColor: isDarkMode ? '#000' : '#fff',
-						useCORS: true,
-						scale: 2, // increase resolution
-						width: virtualWidth
-					});
+				document.body.removeChild(clonedElement);
 
-					document.body.removeChild(clonedElement);
+				const pdf = new jsPDF('p', 'mm', 'a4');
+				const pageWidthMM = 210;
+				const pageHeightMM = 297;
 
-					const pdf = new jsPDF('p', 'mm', 'a4');
-					const pageWidthMM = 210;
-					const pageHeightMM = 297;
+				// Convert page height in mm to px on canvas scale for cropping
+				// Get canvas DPI scale:
+				// Since 1 page width is 210 mm, but canvas width is 800 px at scale 2
+				// Assume 1 mm = px / (pageWidthMM scaled)
+				// Actually better: Calculate scale factor from px/mm:
+				// virtualWidth px corresponds directly to 210mm in PDF, so pxPerMM:
+				const pxPerPDFMM = canvas.width / pageWidthMM; // canvas px per PDF mm
 
-					// Convert page height in mm to px on canvas scale for cropping
-					// Get canvas DPI scale:
-					const pxPerMM = canvas.width / virtualWidth; // width in px / width in px?
-					// Since 1 page width is 210 mm, but canvas width is 800 px at scale 2
-					// Assume 1 mm = px / (pageWidthMM scaled)
-					// Actually better: Calculate scale factor from px/mm:
-					// virtualWidth px corresponds directly to 210mm in PDF, so pxPerMM:
-					const pxPerPDFMM = canvas.width / pageWidthMM; // canvas px per PDF mm
+				// Height in px for one page slice:
+				const pagePixelHeight = Math.floor(pxPerPDFMM * pageHeightMM);
 
-					// Height in px for one page slice:
-					const pagePixelHeight = Math.floor(pxPerPDFMM * pageHeightMM);
+				let offsetY = 0;
+				let page = 0;
 
-					let offsetY = 0;
-					let page = 0;
+				while (offsetY < canvas.height) {
+					// Height of slice
+					const sliceHeight = Math.min(pagePixelHeight, canvas.height - offsetY);
 
-					while (offsetY < canvas.height) {
-						// Height of slice
-						const sliceHeight = Math.min(pagePixelHeight, canvas.height - offsetY);
+					// Create temp canvas for slice
+					const pageCanvas = document.createElement('canvas');
+					pageCanvas.width = canvas.width;
+					pageCanvas.height = sliceHeight;
 
-						// Create temp canvas for slice
-						const pageCanvas = document.createElement('canvas');
-						pageCanvas.width = canvas.width;
-						pageCanvas.height = sliceHeight;
+					const ctx = pageCanvas.getContext('2d');
+					if (!ctx) throw new Error('Canvas 2D unavailable');
 
-						const ctx = pageCanvas.getContext('2d');
+					// Draw the slice of original canvas onto pageCanvas
+					ctx.drawImage(
+						canvas,
+						0,
+						offsetY,
+						canvas.width,
+						sliceHeight,
+						0,
+						0,
+						canvas.width,
+						sliceHeight
+					);
 
-						// Draw the slice of original canvas onto pageCanvas
-						ctx.drawImage(
-							canvas,
-							0,
-							offsetY,
-							canvas.width,
-							sliceHeight,
-							0,
-							0,
-							canvas.width,
-							sliceHeight
-						);
+					const imgData = pageCanvas.toDataURL('image/jpeg', 0.7);
 
-						const imgData = pageCanvas.toDataURL('image/jpeg', 0.7);
+					// Calculate image height in PDF units keeping aspect ratio
+					const imgHeightMM = (sliceHeight * pageWidthMM) / canvas.width;
 
-						// Calculate image height in PDF units keeping aspect ratio
-						const imgHeightMM = (sliceHeight * pageWidthMM) / canvas.width;
+					if (page > 0) pdf.addPage();
 
-						if (page > 0) pdf.addPage();
-
-						if (isDarkMode) {
-							pdf.setFillColor(0, 0, 0);
-							pdf.rect(0, 0, pageWidthMM, pageHeightMM, 'F'); // black bg
-						}
-
-						pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMM, imgHeightMM);
-
-						offsetY += sliceHeight;
-						page++;
+					if (isDarkMode) {
+						pdf.setFillColor(0, 0, 0);
+						pdf.rect(0, 0, pageWidthMM, pageHeightMM, 'F'); // black bg
 					}
 
-					pdf.save(`chat-${chat.chat.title}.pdf`);
+					pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMM, imgHeightMM);
 
-					showFullMessages = false;
-				} catch (error) {
-					console.error('Error generating PDF', error);
+					offsetY += sliceHeight;
+					page++;
 				}
+
+				pdf.save(`chat-${chat.chat.title}.pdf`);
+			} catch (error) {
+				console.error('Error generating PDF', error);
+				toast.error($i18n.t('Something went wrong :/'));
+			} finally {
+				clonedElement?.remove();
+				showFullMessages = false;
 			}
 		} else {
 			console.log('Downloading PDF');
@@ -206,7 +198,6 @@
 			const pageWidth = doc.internal.pageSize.getWidth();
 			const pageHeight = doc.internal.pageSize.getHeight();
 			const usableWidth = pageWidth - left - right;
-			const usableHeight = pageHeight - top - bottom;
 
 			// Font size and line height
 			const fontSize = 8;
@@ -239,7 +230,7 @@
 		}
 	};
 
-	const downloadJSONExport = async () => {
+	const downloadJSONExport = async (): Promise<void> => {
 		if (chat.id) {
 			let chatObj = null;
 
@@ -265,12 +256,15 @@
 				chatId={`chat-preview-${chat?.id ?? ''}`}
 				user={$user}
 				readOnly={true}
-				history={chat.chat.history}
-				messages={chat.chat.messages}
+				history={getChatExportHistory(chat)}
+				selectedModels={chat.chat.models ?? []}
+				atSelectedModel={null}
 				autoScroll={true}
 				sendMessage={() => {}}
 				continueResponse={() => {}}
 				regenerateResponse={() => {}}
+				mergeResponses={() => {}}
+				chatActionHandler={() => {}}
 				messagesCount={null}
 				editCodeBlock={false}
 			/>
@@ -366,7 +360,7 @@
 				<hr class="border-gray-50/30 dark:border-gray-800/30 mx-1 my-0.5" />
 			{/if}
 
-			{#if !readOnly && !$temporaryChatEnabled && ($user?.role === 'admin' || ($user.permissions?.chat?.share ?? true))}
+			{#if !readOnly && !$temporaryChatEnabled && ($user?.role === 'admin' || ($user?.permissions?.chat?.share ?? true))}
 				<button
 					draggable="false"
 					class="flex h-[1.6875rem] w-full items-center gap-2 rounded-xl px-2 text-[13px] cursor-pointer select-none hover:bg-gray-50/40 dark:hover:bg-gray-800/40"
@@ -380,7 +374,7 @@
 				</button>
 			{/if}
 
-			{#if $user?.role === 'admin' || ($user.permissions?.chat?.export ?? true)}
+			{#if $user?.role === 'admin' || ($user?.permissions?.chat?.export ?? true)}
 				<DropdownSub contentClass="select-none z-50">
 					<button
 						slot="trigger"

@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-chat-menu-export-2026-10-10-031",
+  "title": "Airis Chat Menu Export",
+  "generated": "2026-10-10T15:05:34.343330Z",
+  "last_updated": "2026-10-10T15:19:56.725996Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__chat-menu-export.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T15:11:45.455804Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T15:19:56.725663Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Chat Menu Export",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce legacy export and failed PDF cleanup in both menus",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:14:23.483755Z",
+        "journaled_at": "2026-10-10T15:14:23.485591Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse existing history conversion and fix cleanup and preview contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:15:45.530753Z",
+        "journaled_at": "2026-10-10T15:15:45.532730Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify focused and full frontend checks and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:19:56.252838Z",
+        "journaled_at": "2026-10-10T15:19:56.255111Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce legacy export and failed PDF cleanup in both menus",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:14:23.483601Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T15:14:23.484536Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse existing history conversion and fix cleanup and preview contracts",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:15:45.530613Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T15:15:45.531529Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify focused and full frontend checks and preservation",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:19:56.252625Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T15:19:56.253898Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T15:14:23.484531Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce legacy export and failed PDF cleanup in both menus",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:14:23.485587Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce legacy export and failed PDF cleanup in both menus",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:15:45.531524Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse existing history conversion and fix cleanup and preview contracts",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:15:45.532726Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse existing history conversion and fix cleanup and preview contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T15:19:56.253889Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify focused and full frontend checks and preservation",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:19:56.255107Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify focused and full frontend checks and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
