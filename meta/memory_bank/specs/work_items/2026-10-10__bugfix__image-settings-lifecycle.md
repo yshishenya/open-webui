@@ -2,10 +2,10 @@
 
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: completed (source acceptance)
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-image-settings-lifecycle-2026-10-10-014.json
+- SDD Spec: meta/sdd/specs/completed/airis-image-settings-lifecycle-2026-10-10-014.json
 
 ## Goal
 Продолжение G14 / 13.11: настройки изображений используют фактический договор ImagesConfig, не зависают при ошибках JSON и сети, не выдают ложное сохранение/проверку и безопасно читают оба файла ComfyUI. Типы и ошибки проверяются для всех связанных вызовов.
@@ -16,7 +16,7 @@
 - [x] Параметры и workflow проверяются до POST; отказ сохраняет введённые данные и переключатели; finally завершает состояние сохранения.
 - [x] Договор API типизирован по ImagesConfig и моделям; отсутствуют новые Any, подавления и изменения платных запросов генерации.
 - [x] Ошибки конфигурационного HTTP и отмена явные; поздние ответы не меняют закрытый компонент; проверка не сообщает успех после отказа сохранения.
-- [ ] Общие Docker проверки без новых диагностик; исходники отправлены, SDD/частные документы подтверждены, production и чужие файлы сохранены.
+- [x] Общие Docker проверки без новых диагностик; исходники отправлены, SDD/частные документы подтверждены, production и чужие файлы сохранены.
 
 ## Evidence and callers
 ImagesConfig описан backend/open_webui/routers/images.py:232; API getConfig/updateConfig/verifyConfigUrl/getImageGenerationModels используются администраторской формой Images.svelte. imageGenerations/imageEdits используются также playground/Images и chat/ResponseMessage; их денежный и серверный путь сохраняется. Audio уже имеет requestAudioJSON с deadline, отменой и разбором ответа: прежде чем создавать аналог, рассматривается его переиспользование. Выявлены типы null/params/node_ids и однотипные обработчики обоих workflow.
@@ -40,3 +40,6 @@ Source acceptance не заменяет общий зелёный gate, инте
 
 ## Upstream impact — actual
 src/lib/apis/images/index.ts: точные типы и общий ограниченный JSON-запрос четырёх действующих API. src/lib/apis/audio/index.ts: existing requestAudioJSON перенесён в src/lib/utils/airis/request_json.ts без смены deadline/ошибок Audio; его четыре callers используют общий путь. src/lib/components/admin/Settings/Images.svelte: typed draft, immutable validation/payload, loading/finally, отмена/поздние ответы и единый upload вместо двух FileReader. Кнопка проверки edit ComfyUI удалена: backend проверяет лишь generation, подтверждать edit через неё было неверно. Backend API не расширялся. Вёрстка остальных полей сохранена; Steps использует native number/min/step.
+
+## Final source receipt
+Runtime source/remote: `e27cda8bddb11958504452ab6f46e5a1c6cac5a4`. 9/9 браузерных сценариев, console 0/0. SDD 3/3; общие release/CI/production gates остаются pending. Последняя production-проверка 2026-10-10T01:48:05.107131+00:00: healthy, рестартов 0, revision c0ea9dd7823a89e21a8bd58f1e8eef6fe930b908; 542 backend, 21 защищённый файл и 12 соседей сохранены. Частные документы синхронизируются после подтверждения итогового docs SHA; критерий отправки относится к принятому runtime SHA.

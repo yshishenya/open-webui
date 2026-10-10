@@ -78,8 +78,10 @@
   - Started: 2026-10-10
   - Summary: Разбираются 46 diagnostics, ошибки JSON/сохранения и оба FileReader; сохраняются денежные пути и production.
 
-- [ ] [BUG] Настройки изображений — исходники проверены, отправка и оформление в работе.
+- [x] [BUG] Настройки изображений — приняты и отправлены исходники.
   - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__image-settings-lifecycle.md
   - Owner: Codex
-  - Started: 2026-10-10
+  - Done: 2026-10-10
   - Summary: 20 исходных отказов воспроизведены; общий JSON API переиспользует Audio timeout/abort; params/workflow/pending/uploads защищены. 40 адресных + 34 соседних, 1667 общих; types 1275/87, ESLint 804, новых диагностик 0. Общий зелёный допуск и рабочий выпуск остаются открытыми.
+
+Настройки изображений: runtime SHA `e27cda8bddb11958504452ab6f46e5a1c6cac5a4`; 9/9 браузерных сценариев, 1755 frozen Git blobs, SDD 3/3. План остаётся 198/244, цель active; выпуск не выполнен.
