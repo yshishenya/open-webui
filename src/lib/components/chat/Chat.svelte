@@ -1034,7 +1034,9 @@
 					);
 			}
 			if (!$skills) {
-				skills.set(await getSkills(localStorage.token));
+				await getSkills(localStorage.token)
+					.then((items) => skills.set(items))
+					.catch(() => toast.error($i18n.t('Could not load skills. Try again.')));
 			}
 			if (selectedModels.length !== 1 && !atSelectedModel) {
 				return;

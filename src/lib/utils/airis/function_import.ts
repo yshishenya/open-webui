@@ -39,26 +39,8 @@ export const parseCodeImport = (
 		) {
 			throw new Error(`Invalid ${kind} metadata.`);
 		}
-		let grants: ToolAccessGrantInput[] | null | undefined;
-		if (kind === 'tool' && value.access_grants !== undefined) {
-			if (value.access_grants === null) grants = null;
-			else {
-				if (!Array.isArray(value.access_grants)) throw new Error('Invalid tool access grants.');
-				grants = value.access_grants.map((grant: unknown): ToolAccessGrantInput => {
-					if (
-						!isRecord(grant) ||
-						(grant.id !== undefined && typeof grant.id !== 'string') ||
-						(grant.principal_type !== 'user' &&
-							grant.principal_type !== 'group' &&
-							grant.principal_type !== 'anyone') ||
-						typeof grant.principal_id !== 'string' ||
-						(grant.permission !== 'read' && grant.permission !== 'write')
-					)
-						throw new Error('Invalid tool access grants.');
-					return grant as ToolAccessGrantInput;
-				});
-			}
-		}
+		const grants =
+			kind === 'tool' ? parseImportAccessGrants(value.access_grants, 'tool') : undefined;
 		ids.add(value.id.toLowerCase());
 		return {
 			id: value.id,
@@ -72,3 +54,30 @@ export const parseCodeImport = (
 
 export const parseFunctionImport = (text: string): FunctionForm[] =>
 	parseCodeImport(text, 'function');
+
+export const parseImportAccessGrants = (
+	value: unknown,
+	kind: 'tool' | 'skill'
+): ToolAccessGrantInput[] | null | undefined => {
+	let grants: ToolAccessGrantInput[] | null | undefined;
+	if (value !== undefined) {
+		if (value === null) grants = null;
+		else {
+			if (!Array.isArray(value)) throw new Error(`Invalid ${kind} access grants.`);
+			grants = value.map((grant: unknown): ToolAccessGrantInput => {
+				if (
+					!isRecord(grant) ||
+					(grant.id !== undefined && typeof grant.id !== 'string') ||
+					(grant.principal_type !== 'user' &&
+						grant.principal_type !== 'group' &&
+						grant.principal_type !== 'anyone') ||
+					typeof grant.principal_id !== 'string' ||
+					(grant.permission !== 'read' && grant.permission !== 'write')
+				)
+					throw new Error(`Invalid ${kind} access grants.`);
+				return grant as ToolAccessGrantInput;
+			});
+		}
+	}
+	return grants;
+};

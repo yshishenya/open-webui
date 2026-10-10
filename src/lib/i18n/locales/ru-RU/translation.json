@@ -3900,5 +3900,15 @@
 	"Invalid tool import. Check ids, names, code and metadata.": "Некорректный импорт инструментов. Проверьте идентификаторы, названия, код и метаданные.",
 	"Invalid or duplicate tool id.": "Некорректный или повторяющийся идентификатор инструмента.",
 	"Invalid tool metadata.": "Некорректные метаданные инструмента.",
-	"Invalid tool access grants.": "Некорректные права доступа к инструменту."
+	"Invalid tool access grants.": "Некорректные права доступа к инструменту.",
+	"Could not load skills. Try again.": "Не удалось загрузить навыки. Попробуйте ещё раз.",
+	"Failed to delete skill.": "Не удалось удалить навык.",
+	"Failed to update skill.": "Не удалось обновить навык.",
+	"Failed to create skill.": "Не удалось создать навык.",
+	"Imported {{count}} skills before an error. Check the list before retrying.": "До ошибки импортировано навыков: {{count}}. Проверьте список перед повтором.",
+	"Select a non-empty JSON file of skills.": "Выберите непустой JSON-файл с навыками.",
+	"Invalid skill import.": "Неверные данные импорта навыков.",
+	"Duplicate skill id.": "Повторяющийся идентификатор навыка.",
+	"Invalid skill metadata.": "Неверные метаданные навыка.",
+	"Invalid skill access grants.": "Неверные права доступа к навыку."
 }

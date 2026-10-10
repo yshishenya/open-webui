@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getTools as fetchTools } from '$lib/apis/tools';
+import { getSkills as fetchSkills } from '$lib/apis/skills';
 import { deleteOAuthSession } from '$lib/apis/auths';
 vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
 afterEach(() => {
@@ -11,7 +12,7 @@ import { transpileModule, ScriptTarget } from 'typescript';
 type Item = {
 	id: string;
 	name: string;
-	meta: { description: string | null };
+	meta: { description?: string | null; tags?: string[] | null };
 	description?: string | null;
 	is_active?: boolean;
 	authenticated?: boolean;
@@ -31,7 +32,7 @@ type FetchList = () => Promise<Item[] | null>;
 type InitFactory = (
 	state: State,
 	getTools: () => Promise<Item[]>,
-	getSkills: FetchList,
+	getSkills: () => Promise<Item[]>,
 	toast: { error: (message: string) => void }
 ) => () => Promise<void>;
 
@@ -72,9 +73,12 @@ const state = (): State => ({
 	skills: null
 });
 const fetched = async (): Promise<Item[]> => [];
-const toolsResponse = (result: FetchList): (() => Promise<Item[]>) => {
+const toolsResponse = (
+	result: FetchList,
+	kind: 'tools' | 'skills' = 'tools'
+): (() => Promise<Item[]>) => {
 	vi.stubGlobal('fetch', async () => new Response(JSON.stringify(await result())));
-	return () => fetchTools('fixture');
+	return () => (kind === 'tools' ? fetchTools('fixture') : fetchSkills('fixture'));
 };
 
 describe('integration menu list recovery', () => {
@@ -104,7 +108,12 @@ describe('integration menu list recovery', () => {
 		const value = state();
 		value.toolList = [];
 		value.skillList = null;
-		const init = createInit(value, fetched, async () => null, { error: () => {} });
+		const init = createInit(
+			value,
+			fetched,
+			toolsResponse(async () => null, 'skills'),
+			{ error: () => {} }
+		);
 		await init();
 		expect(value.skills).toEqual({});
 		expect(value.selectedSkills).toEqual(['saved-skill']);
@@ -120,7 +129,7 @@ describe('integration menu list recovery', () => {
 		const init = createInit(
 			value,
 			toolsResponse(async () => null),
-			async () => null,
+			toolsResponse(async () => null, 'skills'),
 			{ error: () => {} }
 		);
 		await init();

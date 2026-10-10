@@ -105,7 +105,9 @@
 		}
 
 		if ($_skills === null) {
-			_skills.set(await getSkills(localStorage.token).catch(() => null));
+			await getSkills(localStorage.token)
+				.then((items) => _skills.set(items))
+				.catch(() => toast.error($i18n.t('Could not load skills. Try again.')));
 		}
 
 		if ($_skills) {
@@ -122,8 +124,6 @@
 
 		if ($_skills !== null) {
 			selectedSkillIds = selectedSkillIds.filter((id) => Object.keys(skills).includes(id));
-		} else {
-			toast.error($i18n.t('Could not load skills. Close and reopen the menu to retry.'));
 		}
 	};
 </script>

@@ -415,7 +415,14 @@
 				if (!voicesAbort.signal.aborted) toast.error($i18n.t('Could not load tools. Try again.'));
 			});
 		if (voicesAbort.signal.aborted) return;
-		skillsList = (await getSkills(localStorage.token).catch(() => null)) ?? [];
+		await getSkills(localStorage.token, voicesAbort.signal)
+			.then((items) => {
+				if (!voicesAbort.signal.aborted) skillsList = items;
+			})
+			.catch(() => {
+				if (!voicesAbort.signal.aborted) toast.error($i18n.t('Could not load skills. Try again.'));
+			});
+		if (voicesAbort.signal.aborted) return;
 		if (!$functions) {
 			await getFunctions(localStorage.token, voicesAbort.signal)
 				.then((items) => {

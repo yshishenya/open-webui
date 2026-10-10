@@ -3374,5 +3374,15 @@
 	"Invalid tool import. Check ids, names, code and metadata.": "Invalid tool import. Check ids, names, code and metadata.",
 	"Invalid or duplicate tool id.": "Invalid or duplicate tool id.",
 	"Invalid tool metadata.": "Invalid tool metadata.",
-	"Invalid tool access grants.": "Invalid tool access grants."
+	"Invalid tool access grants.": "Invalid tool access grants.",
+	"Could not load skills. Try again.": "Could not load skills. Try again.",
+	"Failed to delete skill.": "Failed to delete skill.",
+	"Failed to update skill.": "Failed to update skill.",
+	"Failed to create skill.": "Failed to create skill.",
+	"Imported {{count}} skills before an error. Check the list before retrying.": "Imported {{count}} skills before an error. Check the list before retrying.",
+	"Select a non-empty JSON file of skills.": "Select a non-empty JSON file of skills.",
+	"Invalid skill import.": "Invalid skill import.",
+	"Duplicate skill id.": "Duplicate skill id.",
+	"Invalid skill metadata.": "Invalid skill metadata.",
+	"Invalid skill access grants.": "Invalid skill access grants."
 }
