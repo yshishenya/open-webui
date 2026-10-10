@@ -142,3 +142,20 @@
   - Summary: Seven original callers traced; shared requestJSON rejects network/JSON/container failure, cached state preserved, existing admin/editor cancellation reused, redundant admin prefetch removed. Runtime/remote `7d2d026674dcf289248380aab03846432b12928e`.
   - Tests: final full1835/1835,163 files; focused106/106 extracted; browser15/15,console0/0. Types1127/85 and ESLint762;new0. SDD3/3;preservation and5612 frozen Git blobs verified. Own proof cleanup only;262 other volumes preserved.
   - Risks: Local source acceptance; broader type/lint/backend gates, PR/CI/integration/clean build/deploy and real A/B criteria remain pending. No editor/Tools lifecycle or full-root claim.
+
+- [ ] **[BUG]** Tools API and management preserve accepted state on refusal
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__bugfix__tools-management-safety.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Started: 2026-10-10
+  - Summary: Trace all legacy tools API callers; reproduce lifecycle/import/refresh refusals before shared correction.
+  - Tests: In progress.
+  - Risks: Source-only acceptance; global release and external A/B gates stay open.
+
+- [x] **[BUG]** Tools API and management — source accepted
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__tools-management-safety.md
+  - Owner: Codex
+  - Done: 2026-10-10
+  - Summary: Existing requestJSON/parser reused; explicit refusals, validated partial import, accepted delete/OAuth state, no duplicate writes or late lifecycle publication. Runtime `881e145b077981b53f11a2fb73c37189a45a7eea` pushed.
+  - Tests: Frozen full1888/1888,focused100/100,browser18/18,console0/0;types1098/85,ESLint754,new0;backend542/primary21/production12neighbors preserved. SDD3/3completed.
+  - Risks: Source acceptance only; broader quality, PR/CI/integration/build/deploy and real A/B criteria remain open. Plan198/244,goalactive.
