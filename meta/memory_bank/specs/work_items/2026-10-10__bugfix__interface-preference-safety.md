@@ -2,10 +2,10 @@
 
 ## Meta
 - Type: bugfix
-- Status: active
+- Status: source accepted; release pending
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-interface-preference-safety-2026-10-10-015.json
+- SDD Spec: meta/sdd/specs/completed/airis-interface-preference-safety-2026-10-10-015.json
 
 ## Goal / Acceptance Criteria
 Продолжение общего допуска G14 / 13.11; конечная цель A/B сохраняется.
@@ -14,7 +14,8 @@
 - [x] Оба окна имеют отдельный черновик; отмена сохраняет исходный объект; Save ждёт результат и остаётся открытым при отказе.
 - [x] Общий saveSettings последовательно сохраняет частичные обновления, сохраняя предыдущие успешные поля после ошибки; автокопирование не читает частный буфер.
 - [x] Типы Settings/размеров/quick actions совпадают с действительными потребителями; нет новых Any/подавлений/зависимостей.
-- [ ] Общие Docker проверки без новых ошибок, браузер и сохранность подтверждены; исходники отправлены, частные документы синхронизированы.
+- [x] Общие Docker проверки без новых ошибок, браузер и сохранность подтверждены; исходники отправлены.
+- Частная итоговая приёмка записывается после отправки документации посредством CAS; общий выпуск остаётся открытым.
 
 ## Evidence and callers
 Interface передаёт частичные Settings в SettingsModal.saveSettings; этот же путь обслуживает General/Audio/Notifications и настройки подключений. ManageImageCompressionModal и ManageFloatingActionButtonsModal имеют единственного caller Interface и сейчас изменяют переданные объекты. FloatingButtons потребляет сохранённые quick actions из ContentRenderer; фон и численные размеры потребляются чатами/каналами. Чтение Clipboard в toggleResponseAutoCopy не подтверждает разрешение записи; настоящая запись выполняется существующим copyToClipboard.
@@ -44,3 +45,5 @@ Interface использует общий persistSettings для обработ�
 12/12 исходных отказов; 20 новых Interface и 102 соседних проверки, выделенные из итогового общего JSON: 1687/1687, 157 файлов, failed/pending/todo=0. Types 1275/87 → 1212/86; ESLint 804 → 780; новых диагностик 0, изменённые файлы без диагностик. 11/11 браузерных сценариев, console errors/warnings=0; настоящий script/API/native FileReader, отдельный HTTP fixture. Исправления последнего тестового файла не изменили приложение; receipt фиксирует границу переиспользования браузера.
 
 1756 frozen файлов проверены; backend 542/protected 21/production/12 соседей сохранены. Backend 1063 переиспользованы, нового прогона нет. Общие types/lint остаются красными; source acceptance не закрывает G14, production или реальную пользовательскую приёмку.
+
+Runtime source/remote: `78f4650a7d605198da01dbb673b4b73ae2a9b41f`. 1756 Git blobs совпали. SDD 3/3 закрыта; 216 tracked SDD валидны. Свои браузер/сервер/контейнеры остановлены; оба пустых собственных тома проверены read-only и удалены без force/prune.
