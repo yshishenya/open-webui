@@ -1,4 +1,5 @@
 import { AUDIO_API_BASE_URL } from '$lib/constants';
+import { requestJSON } from '$lib/utils/airis/request_json';
 import { getErrorMessage } from '$lib/utils/airis/error_message';
 
 export type AudioConfigForm = {
@@ -44,49 +45,15 @@ export type AudioConfigResponse = {
 };
 export type AudioVoice = { id: string; name: string };
 
-const requestAudioJSON = async <T>(
-	token: string,
-	path: string,
-	body?: AudioConfigForm,
-	signal?: AbortSignal
-): Promise<T> => {
-	signal?.throwIfAborted();
-	const controller = new AbortController();
-	const abort = (): void => controller.abort(signal?.reason);
-	signal?.addEventListener('abort', abort, { once: true });
-	const timeout = setTimeout(
-		() => controller.abort(new DOMException('Audio request timed out.', 'TimeoutError')),
-		60_000
-	);
-	try {
-		const res = await fetch(`${AUDIO_API_BASE_URL}${path}`, {
-			method: body === undefined ? 'GET' : 'POST',
-			signal: controller.signal,
-			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-			...(body === undefined ? {} : { body: JSON.stringify(body) })
-		});
-		if (!res.ok) {
-			const detail: unknown = await res.json().catch(() => null);
-			controller.signal.throwIfAborted();
-			throw new Error(detail ? getErrorMessage(detail) : `Audio request failed (${res.status}).`);
-		}
-		const data: T = await res.json();
-		controller.signal.throwIfAborted();
-		return data;
-	} finally {
-		clearTimeout(timeout);
-		signal?.removeEventListener('abort', abort);
-	}
-};
-
 export const getAudioConfig = (token: string, signal?: AbortSignal): Promise<AudioConfigResponse> =>
-	requestAudioJSON(token, '/config', undefined, signal);
+	requestJSON(`${AUDIO_API_BASE_URL}/config`, token, undefined, signal, 'Audio request');
 
 export const updateAudioConfig = (
 	token: string,
 	payload: AudioConfigForm,
 	signal?: AbortSignal
-): Promise<AudioConfigResponse> => requestAudioJSON(token, '/config/update', payload, signal);
+): Promise<AudioConfigResponse> =>
+	requestJSON(`${AUDIO_API_BASE_URL}/config/update`, token, payload, signal, 'Audio request');
 
 export const transcribeAudio = async (token: string, file: File, language?: string) => {
 	const data = new FormData();
@@ -167,17 +134,19 @@ interface AvailableModelsResponse {
 export const getModels = (
 	token: string = '',
 	signal?: AbortSignal
-): Promise<AvailableModelsResponse> => requestAudioJSON(token, '/models', undefined, signal);
+): Promise<AvailableModelsResponse> =>
+	requestJSON(`${AUDIO_API_BASE_URL}/models`, token, undefined, signal, 'Audio request');
 
 export const getVoices = (
 	token: string = '',
 	signal?: AbortSignal
 ): Promise<{ voices: AudioVoice[] }> =>
-	requestAudioJSON<{ voices: { id: string; name: unknown }[] }>(
+	requestJSON<{ voices: { id: string; name: unknown }[] }>(
+		`${AUDIO_API_BASE_URL}/voices`,
 		token,
-		'/voices',
 		undefined,
-		signal
+		signal,
+		'Audio request'
 	).then(({ voices }) => ({
 		voices: voices.map(({ id, name }) => ({ id, name: typeof name === 'string' ? name : id }))
 	}));

@@ -71,3 +71,15 @@
   - Owner: Codex
   - Done: 2026-10-10
   - Summary: 6 адресных / 1627 общих проверок; types 1321/87, ESLint 809, новых 0. Два профиля прошли по 19 браузерных сценариев; 17 roots / 49 зависимостей / 63 файла, SHA256 и сохранённые версии, повтор идентичен. Source `028ea3b0e3208c13b3ca3e1c0e5ce1f2fa6798c9` отправлен; SDD 3/3 закрыта. Production / 12 соседей / 21 чужой файл сохранены. Общие gates и выпуск открыты.
+
+- [ ] **[BUG][IMAGES]** Договор и жизненный цикл настроек изображений
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__image-settings-lifecycle.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Разбираются 46 diagnostics, ошибки JSON/сохранения и оба FileReader; сохраняются денежные пути и production.
+
+- [ ] [BUG] Настройки изображений — исходники проверены, отправка и оформление в работе.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__image-settings-lifecycle.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: 20 исходных отказов воспроизведены; общий JSON API переиспользует Audio timeout/abort; params/workflow/pending/uploads защищены. 40 адресных + 34 соседних, 1667 общих; types 1275/87, ESLint 804, новых диагностик 0. Общий зелёный допуск и рабочий выпуск остаются открытыми.
