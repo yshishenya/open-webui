@@ -193,3 +193,10 @@
   Started: 2026-10-10
   Done: 2026-10-10
   Summary: 2024 frontend, 12 focused, 7 PostgreSQL, 1064 backend, 8 browser; preserve subscriber guards and record whole quality/thread-warning limits.
+
+- [x] [BUG] Sparse save/native activity test lifecycle accepted
+  Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__sparse-save-test-lifecycle.md
+  Owner: Codex
+  Started: 2026-10-10
+  Done: 2026-10-10
+  Summary: Native calls 23/23 completed; strict backend 1064/0 thread errors; SQLite/PostgreSQL 38 each. App unchanged; release criteria remain open.

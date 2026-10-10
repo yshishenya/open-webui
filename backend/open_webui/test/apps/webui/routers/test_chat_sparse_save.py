@@ -9,6 +9,9 @@ from open_webui.internal.db import engine
 from open_webui.main import app
 from open_webui.models.chat_messages import ChatMessages
 from open_webui.models.users import Users
+from open_webui.test.apps.webui.routers.test_chat_dispatch_replay import (
+    separate_test_loops as separate_test_loops,
+)
 from open_webui.utils.auth import create_token
 
 

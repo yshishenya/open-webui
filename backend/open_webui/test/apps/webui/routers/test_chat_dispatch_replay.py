@@ -202,7 +202,19 @@ def separate_test_loops(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
             yield portal
 
         monkeypatch.setattr(TestClient, '_portal_factory', http_portal)
-        yield
+        try:
+            yield
+        finally:
+
+            async def finish_activity_writes() -> None:
+                pending = [
+                    task
+                    for task in asyncio.all_tasks()
+                    if getattr(task.get_coro(), 'cr_code', None) is Users.update_last_active_by_id.__code__
+                ]
+                await asyncio.wait_for(asyncio.gather(*pending), timeout=10)
+
+            portal.call(finish_activity_writes)
     asyncio.run(engine.dispose())
 
 
