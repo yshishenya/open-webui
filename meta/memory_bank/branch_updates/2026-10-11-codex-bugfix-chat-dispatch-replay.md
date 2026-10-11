@@ -222,3 +222,11 @@
   - Done: 2026-10-11
   - Summary: Проверить отправителя, закрепить origin после Sync, подавить поздние результаты отменённой операции; не сохранять повреждённый NDJSON.
   - Tests: 26/26 targeted, frontend 2419/2419; types 146/34, ESLint 229, new 0; scoped lint 0/format pass; future CI 336/29. SDD lifecycle complete; production/data preserved.
+
+- [x] **[REFACTOR][TYPES]** Типы Pipelines и неиспользуемый код компонентов
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__refactor__pipelines-types.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Переиспользовать Model и ValveValues/ValveSpec, удалить неиспользуемые loaded/catch и CSS; сохранить исполняемое поведение.
+  - Tests: 6 compiled comparisons, frontend 2419/2419; types 146/30, ESLint 219, new 0; scoped lint 0/format pass; future CI 336/19; 264 SDD valid. Production/data preserved.

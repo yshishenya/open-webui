@@ -10,7 +10,6 @@
 
 	const i18n = getContext('i18n');
 
-	let loaded = false;
 	let loading = false;
 
 	let prompt = '';
@@ -107,7 +106,7 @@
 			a.download = `image-${Date.now()}-${index}.png`;
 			a.click();
 			URL.revokeObjectURL(blobUrl);
-		} catch (error) {
+		} catch {
 			toast.error($i18n.t('Failed to download image'));
 		}
 	};
@@ -117,7 +116,6 @@
 			await goto('/');
 			return;
 		}
-		loaded = true;
 	});
 </script>
 
