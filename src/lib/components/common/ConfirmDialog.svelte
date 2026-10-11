@@ -2,9 +2,11 @@
 	import DOMPurify from 'dompurify';
 
 	import { onMount, getContext, createEventDispatcher, onDestroy, tick } from 'svelte';
+	import type { i18n as I18n } from 'i18next';
+	import type { Readable } from 'svelte/store';
 	import * as FocusTrap from 'focus-trap';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	import { fade } from 'svelte/transition';
@@ -20,7 +22,7 @@
 	export let confirmLabel = $i18n.t('Confirm');
 	export let confirmDisabled = false;
 
-	export let onConfirm = () => {};
+	export let onConfirm: () => unknown = () => {};
 
 	export let input = false;
 	export let inputPlaceholder = '';
@@ -36,7 +38,7 @@
 		init();
 	}
 
-	let modalElement = null;
+	let modalElement: HTMLDivElement | null = null;
 	let mounted = false;
 
 	let focusTrap: FocusTrap.FocusTrap | null = null;
@@ -90,7 +92,7 @@
 			window.addEventListener('keydown', handleKeyDown);
 			document.body.style.overflow = 'hidden';
 		} else if (modalElement) {
-			focusTrap.deactivate();
+			focusTrap?.deactivate();
 
 			window.removeEventListener('keydown', handleKeyDown);
 			document.body.removeChild(modalElement);
@@ -107,12 +109,12 @@
 		}
 		if (modalElement) {
 			document.body.removeChild(modalElement);
+			document.body.style.overflow = 'unset';
 		}
 	});
 </script>
 
 {#if show}
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		bind:this={modalElement}
@@ -146,6 +148,7 @@
 					<div class=" text-sm text-gray-500 flex-1">
 						{#if message !== ''}
 							{@const html = DOMPurify.sanitize(marked.parse(message))}
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -- Sanitized by DOMPurify above. -->
 							{@html html}
 						{:else}
 							{$i18n.t('This action cannot be undone. Do you wish to continue?')}
@@ -181,7 +184,7 @@
 									class="w-full mt-2 rounded-lg px-4 py-2 text-sm dark:text-gray-300 dark:bg-gray-900 outline-hidden resize-none"
 									rows="3"
 									required
-								/>
+								></textarea>
 							{/if}
 						{/if}
 					</div>
@@ -212,20 +215,3 @@
 		</div>
 	</div>
 {/if}
-
-<style>
-	.modal-content {
-		animation: scaleUp 0.1s ease-out forwards;
-	}
-
-	@keyframes scaleUp {
-		from {
-			transform: scale(0.985);
-			opacity: 0;
-		}
-		to {
-			transform: scale(1);
-			opacity: 1;
-		}
-	}
-</style>
