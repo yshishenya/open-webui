@@ -1146,7 +1146,6 @@
 									</button>
 
 									<ModelMenu
-										user={$user}
 										{model}
 										exportHandler={() => {
 											exportModelHandler(model);

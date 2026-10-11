@@ -1,52 +1,55 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { WorkspaceModel } from '$lib/apis/models';
+	import type { ModelConfig } from '$lib/apis';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
-	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
-	import Pencil from '$lib/components/icons/Pencil.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Tags from '$lib/components/chat/Tags.svelte';
-	import Share from '$lib/components/icons/Share.svelte';
-	import ArchiveBox from '$lib/components/icons/ArchiveBox.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
-	import ArrowUpCircle from '$lib/components/icons/ArrowUpCircle.svelte';
 	import Pin from '$lib/components/icons/Pin.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
 	import LockClosed from '$lib/components/icons/LockClosed.svelte';
 
-	import { config, settings } from '$lib/stores';
+	import { settings } from '$lib/stores';
 	import Link from '$lib/components/icons/Link.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let user;
-	export let model;
+	type MenuModel = Pick<ModelConfig, 'id'> &
+		Partial<Pick<ModelConfig, 'meta'>> & {
+			is_active?: boolean;
+			access_grants?: WorkspaceModel['access_grants'] | null;
+		};
 
-	export let exportHandler: Function;
-	export let hideHandler: Function;
-	export let privacyHandler: Function;
+	export let model: MenuModel;
+
+	export let exportHandler: () => void | Promise<void>;
+	export let hideHandler: () => void | Promise<void>;
+	export let privacyHandler: () => void | Promise<void>;
 	export let isDefaultSelected = false;
 	export let isDefaultPinned = false;
-	export let defaultSelectedHandler: Function;
-	export let defaultPinnedHandler: Function;
-	export let pinModelHandler: Function;
-	export let copyLinkHandler: Function;
-	export let cloneHandler: Function;
+	export let defaultSelectedHandler: () => void | Promise<void>;
+	export let defaultPinnedHandler: () => void | Promise<void>;
+	export let pinModelHandler: (modelId: string) => void | Promise<void>;
+	export let copyLinkHandler: () => void | Promise<void>;
+	export let cloneHandler: () => void | Promise<void>;
 
-	export let onClose: Function;
+	export let onClose: () => void | Promise<void>;
 
 	let show = false;
 
-	const runAndClose = async (handler: Function) => {
+	const runAndClose = async (handler: () => void | Promise<void>): Promise<void> => {
 		show = false;
 		await handler();
 	};
 
-	const isPublicModel = (model) =>
+	const isPublicModel = (model: MenuModel): boolean =>
 		(model?.access_grants ?? []).some(
 			(g) => g.principal_type === 'user' && g.principal_id === '*' && g.permission === 'read'
 		);

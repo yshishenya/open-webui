@@ -856,7 +856,6 @@
 									{:else}
 										<div class="flex shrink-0 flex-row items-center gap-1.5 self-center">
 											<ModelMenu
-												user={$user}
 												{model}
 												writeAccess={model.write_access ?? false}
 												editHandler={() => {
