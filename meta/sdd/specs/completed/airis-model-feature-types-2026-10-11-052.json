@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-model-feature-types-2026-10-11-052",
+  "title": "airis-model-feature-types",
+  "generated": "2026-10-11T12:40:59.087331Z",
+  "last_updated": "2026-10-11T12:49:31.421009Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__model-feature-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T12:41:47.786764Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T12:49:31.420738Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-model-feature-types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace feature lists and prove character importer has no callers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:42:37.098118Z",
+        "journaled_at": "2026-10-11T12:42:37.100049Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Use exact feature types and delete the orphan importer",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:42:37.317250Z",
+        "journaled_at": "2026-10-11T12:42:37.319040Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify unchanged runtime and frontend quality checks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:49:30.997093Z",
+        "journaled_at": "2026-10-11T12:49:30.998963Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace feature lists and prove character importer has no callers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:42:37.097982Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:42:37.098986Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Use exact feature types and delete the orphan importer",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:42:37.317102Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:42:37.318041Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify unchanged runtime and frontend quality checks",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:49:30.996935Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:49:30.997880Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T12:42:37.098981Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace feature lists and prove character importer has no callers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:42:37.100044Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace feature lists and prove character importer has no callers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:42:37.318037Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use exact feature types and delete the orphan importer",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:42:37.319036Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Use exact feature types and delete the orphan importer",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T12:49:30.997876Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify unchanged runtime and frontend quality checks",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:49:30.998959Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify unchanged runtime and frontend quality checks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

@@ -1012,7 +1012,10 @@
 									([key, value]) =>
 										value && ['web_search', 'code_interpreter', 'image_generation'].includes(key)
 								)
-								.map(([key]) => key)}
+								.map(
+									([key]) =>
+										key as NonNullable<ComponentProps<DefaultFeatures>['availableFeatures']>[number]
+								)}
 
 							{#if availableFeatures.length > 0}
 								<div class="my-3">

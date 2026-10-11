@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import { marked } from 'marked';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	const featureLabels = {
 		web_search: {
@@ -21,8 +23,12 @@
 		}
 	};
 
-	export let availableFeatures = ['web_search', 'image_generation', 'code_interpreter'];
-	export let featureIds = [];
+	export let availableFeatures: (keyof typeof featureLabels)[] = [
+		'web_search',
+		'image_generation',
+		'code_interpreter'
+	];
+	export let featureIds: string[] = [];
 </script>
 
 <div>
