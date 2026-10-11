@@ -256,3 +256,11 @@
   - Done: 2026-10-11
   - Summary: Стираемые типы существующих полей и удаление неиспользуемого кода; старые преобразования и API сохраняются.
   - Tests: 2426 full, compiled client/server JS/CSS exact после удалений; types145/25 ESLint201 новых0, scoped lint0/format pass;265 SDD valid. CI337 целей/2 ошибки остаются; production/data сохранены, выпуска нет. План198/244, цель active.
+
+- [x] **[BUG][A11Y]** Открытие и закрытие уведомлений
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__bugfix__notification-actions.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Исправлены случайные переходы при закрытии/посторонних событиях; нативная кнопка открывает,6px порог сохранён, sanitizedHtml переиспользован. Локально принято, выпуска нет.
+  - Tests: До3/12 pass, после17 targeted/2443 full; types145/24 ESLint199 новых0; scoped lint0/format pass;266 SDD valid/complete; будущий CI337 целей0 ошибок. Production/data сохранены; общие проверки/PR/CI/выпуск открыты, план198/244, цель active.
