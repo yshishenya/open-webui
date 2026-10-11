@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getContext, onDestroy, tick } from 'svelte';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -11,7 +13,7 @@
 	import Textarea from '$lib/components/common/Textarea.svelte';
 	import Knowledge from '$lib/components/workspace/Models/Knowledge.svelte';
 	import { getFolderById } from '$lib/apis/folders';
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let show = false;
 	export let onSubmit: (folder: {
@@ -27,6 +29,7 @@
 
 	let nameInput: HTMLInputElement | null = null;
 	let loadVersion = 0;
+	let imageReader: FileReader | null = null;
 	let initializing = false;
 	let name = '';
 	let meta: Record<string, unknown> & { background_image_url?: string | null } = {
@@ -87,10 +90,13 @@
 	const invalidateLoad = (): void => {
 		loadVersion += 1;
 		initializing = false;
+		imageReader?.abort();
+		imageReader = null;
 	};
 
 	const init = async (id: string | null): Promise<void> => {
-		const version = ++loadVersion;
+		invalidateLoad();
+		const version = loadVersion;
 		initializing = Boolean(id);
 		try {
 			if (id) {
@@ -193,40 +199,49 @@
 						hidden
 						accept="image/*"
 						on:change={(e) => {
-							const inputFiles = e.target.files;
-
-							let reader = new FileReader();
-							reader.onload = (event) => {
-								let originalImageUrl = `${event.target.result}`;
-								meta.background_image_url = originalImageUrl;
-							};
-
-							if (
-								inputFiles &&
-								inputFiles.length > 0 &&
-								['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(
-									inputFiles[0]['type']
-								)
-							) {
-								reader.readAsDataURL(inputFiles[0]);
-							} else {
-								console.log(`Unsupported File Type '${inputFiles[0]['type']}'.`);
-
-								// clear the input
-								e.target.value = '';
+							const input = e.currentTarget;
+							const file = input.files?.[0];
+							if (!file) return;
+							if (!['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(file.type)) {
+								input.value = '';
+								toast.error($i18n.t('Invalid file format.'));
+								return;
 							}
+							imageReader?.abort();
+							const reader = new FileReader();
+							imageReader = reader;
+							const version = loadVersion;
+							reader.onload = (): void => {
+								if (imageReader !== reader || version !== loadVersion || !show) return;
+								imageReader = null;
+								if (typeof reader.result !== 'string') {
+									toast.error($i18n.t('Failed to upload file.'));
+									return;
+								}
+								meta.background_image_url = reader.result;
+							};
+							reader.onerror = (): void => {
+								if (imageReader !== reader || version !== loadVersion || !show) return;
+								imageReader = null;
+								toast.error($i18n.t('Failed to upload file.'));
+							};
+							reader.readAsDataURL(file);
 						}}
 					/>
 
 					<div class="flex justify-between w-full mt-1 items-center">
-						<div class="text-xs text-gray-500">{$i18n.t('Folder Background Image')}</div>
+						<div id="folder-background-label" class="text-xs text-gray-500">
+							{$i18n.t('Folder Background Image')}
+						</div>
 
 						<div class="">
 							<button
-								aria-labelledby="chat-background-label background-image-url-state"
+								aria-labelledby="folder-background-label background-image-url-state"
 								class="p-1 px-3 text-xs flex rounded-sm transition"
 								on:click={() => {
-									if (meta?.background_image_url !== null) {
+									if ((meta?.background_image_url ?? null) !== null) {
+										imageReader?.abort();
+										imageReader = null;
 										meta.background_image_url = null;
 									} else {
 										const input = document.getElementById('folder-background-image-input');

@@ -272,3 +272,11 @@
   - Done: 2026-10-11
   - Summary: Семь компонентов используют существующие типы; действия/права/данные сохранены. Локально принято, выпуска нет.
   - Tests: 2443/2443 full,14 client/server JS/CSS сравнений pass; types124/24 ESLint195 новых0; scoped lint0/format pass;266 SDD valid; будущий CI343 целей0 ошибок. Production/data сохранены. Общие проверки/PR/CI/выпуск открыты, план198/244, цель active.
+
+- [x] **[BUG][SEARCH][FOLDERS]** Выбор в поиске и фон папки
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__bugfix__search-folder-inputs.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Исправлены Enter после изменения списка и отмена/ошибка/устаревшее чтение картинки. FileReader и существующий loadVersion; данные/действия сохранены. Локально принято, выпуска нет.
+  - Tests: До16/28; дополнительный случай−1 тоже воспроизведён. После29 targeted/2462 full; types110/24 ESLint191 новых0; scoped lint0/format pass;267 SDD valid/эта спецификация3/3 completed; будущий CI347 целей0 ошибок.4 client/server компиляции/CSS сохранены. Production/data сохранены. Общие проверки/PR/CI/выпуск открыты; план198/244, цель active.

@@ -53,9 +53,10 @@ describe('FolderModal loading', () => {
 		vi.resetAllMocks();
 		localStorage.token = 'test-token';
 		document.body.innerHTML = '';
-		api.load.mockResolvedValue(folder('Existing'));
+		api.load.mockImplementation(async () => folder('Existing'));
 	});
 	afterEach(() => {
+		vi.restoreAllMocks();
 		mounted?.$destroy();
 		mounted = null;
 		document.body.innerHTML = '';
@@ -233,5 +234,135 @@ describe('FolderModal loading', () => {
 		await settleLoad();
 		expect(input().value).toBe('Existing');
 		expect(input().matches(':disabled')).toBe(false);
+	});
+	const imageInput = (): HTMLInputElement => {
+		const node = document.querySelector<HTMLInputElement>('#folder-background-image-input');
+		if (!node) throw new Error('Background image input missing');
+		return node;
+	};
+	async function chooseImage(file: File | null): Promise<void> {
+		Object.defineProperty(imageInput(), 'files', { configurable: true, value: file ? [file] : [] });
+		imageInput().dispatchEvent(new Event('change', { bubbles: true }));
+		await tick();
+	}
+	function holdImageRead(): FileReader[] {
+		const readers: FileReader[] = [];
+		vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+			readers.push(this);
+		});
+		return readers;
+	}
+	function completeRead(reader: FileReader, result: string | ArrayBuffer | null): void {
+		Object.defineProperty(reader, 'result', { configurable: true, value: result });
+		reader.dispatchEvent(new ProgressEvent('load'));
+	}
+	it('retains folder data when the image picker is canceled', async () => {
+		const errors: string[] = [];
+		const capture = (event: ErrorEvent): void => {
+			errors.push(event.message);
+			event.preventDefault();
+		};
+		window.addEventListener('error', capture);
+		try {
+			mount({ folderId: 'a', edit: true });
+			await settleLoad();
+			await chooseImage(null);
+			await submit();
+			expect(errors).toEqual([]);
+			expect(api.submit.mock.calls[0][0].meta).toEqual({ icon: 'grinning' });
+		} finally {
+			window.removeEventListener('error', capture);
+		}
+	});
+	it('saves a valid image together with the existing folder data', async () => {
+		const readers = holdImageRead();
+		mount({ folderId: 'a', edit: true });
+		await settleLoad();
+		await chooseImage(new File(['image'], 'background.png', { type: 'image/png' }));
+		completeRead(readers[0], 'data:image/png;base64,aW1hZ2U=');
+		await submit();
+		expect(api.submit.mock.calls[0][0]).toMatchObject({
+			meta: { icon: 'grinning', background_image_url: 'data:image/png;base64,aW1hZ2U=' },
+			data: { system_prompt: 'Keep me', files: [] }
+		});
+	});
+	it.each(['error', 'invalid-result'])(
+		'reports %s without changing the folder image',
+		async (failure) => {
+			const readers = holdImageRead();
+			mount({ folderId: 'a', edit: true });
+			await settleLoad();
+			await chooseImage(new File(['image'], 'background.png', { type: 'image/png' }));
+			if (failure === 'error') readers[0].dispatchEvent(new ProgressEvent('error'));
+			else completeRead(readers[0], null);
+			await submit();
+			expect(api.error).toHaveBeenCalledWith('Failed to upload file.');
+			expect(api.submit.mock.calls[0][0].meta).toEqual({ icon: 'grinning' });
+		}
+	);
+	it.each(['different-folder', 'reopen', 'destroy'])(
+		'ignores a late image after %s',
+		async (change) => {
+			const readers = holdImageRead();
+			mount({ folderId: 'a', edit: true });
+			await settleLoad();
+			await chooseImage(new File(['image'], 'background.png', { type: 'image/png' }));
+			if (change === 'destroy') {
+				mounted?.$destroy();
+				mounted = null;
+				mount({ folderId: 'b', edit: true });
+			} else if (change === 'reopen') {
+				mounted?.$set({ show: false });
+				await tick();
+				mounted?.$set({ show: true });
+			} else mounted?.$set({ folderId: 'b' });
+			await settleLoad();
+			completeRead(readers[0], 'data:image/png;base64,b2xk');
+			await submit();
+			expect(api.submit.mock.calls[0][0].meta).toEqual({ icon: 'grinning' });
+		}
+	);
+	it('keeps the latest selected image when reads finish out of order', async () => {
+		const readers = holdImageRead();
+		mount({ folderId: 'a', edit: true });
+		await settleLoad();
+		await chooseImage(new File(['old'], 'old.png', { type: 'image/png' }));
+		await chooseImage(new File(['new'], 'new.png', { type: 'image/png' }));
+		completeRead(readers[1], 'data:image/png;base64,bmV3');
+		completeRead(readers[0], 'data:image/png;base64,b2xk');
+		await submit();
+		expect(api.submit.mock.calls[0][0].meta.background_image_url).toBe(
+			'data:image/png;base64,bmV3'
+		);
+	});
+	it('does not restore an image after Reset while reading a replacement', async () => {
+		const readers = holdImageRead();
+		api.load.mockResolvedValueOnce({
+			...folder('Existing'),
+			meta: { icon: 'grinning', background_image_url: 'old.png' }
+		});
+		mount({ folderId: 'a', edit: true });
+		await settleLoad();
+		await chooseImage(new File(['image'], 'new.png', { type: 'image/png' }));
+		const reset = [...document.querySelectorAll('button')].find(
+			(button) => button.textContent?.trim() === 'Reset'
+		);
+		if (!reset) throw new Error('Reset missing');
+		reset.click();
+		await tick();
+		completeRead(readers[0], 'data:image/png;base64,bmV3');
+		await submit();
+		expect(api.submit.mock.calls[0][0].meta.background_image_url).toBeNull();
+	});
+	it('opens Upload for a folder whose image field is absent', async () => {
+		mount({ folderId: 'a', edit: true });
+		await settleLoad();
+		const click = vi.spyOn(imageInput(), 'click');
+		const upload = [...document.querySelectorAll('button')].find(
+			(button) => button.textContent?.trim() === 'Upload'
+		);
+		if (!upload) throw new Error('Upload missing');
+		upload.click();
+		expect(click).toHaveBeenCalledOnce();
 	});
 });

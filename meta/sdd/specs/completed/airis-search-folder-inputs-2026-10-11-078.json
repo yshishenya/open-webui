@@ -1,0 +1,199 @@
+{
+  "spec_id": "airis-search-folder-inputs-2026-10-11-078",
+  "title": "AIRIS search selection and folder images",
+  "generated": "2026-10-11T18:40:26.099663Z",
+  "last_updated": "2026-10-11T18:56:00.167553Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__search-folder-inputs.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T18:40:54.811055Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T18:56:00.167200Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS search selection and folder images",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce selection and image input failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T18:44:47.341051Z",
+        "journaled_at": "2026-10-11T18:44:47.342918Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Fix input handling with existing components",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T18:46:55.040788Z",
+        "journaled_at": "2026-10-11T18:46:55.042830Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce selection and image input failures",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T18:44:47.340904Z",
+        "needs_journaling": false,
+        "status_note": "28 actual component scenarios: original16 pass/12 fail. Search hover/filter/hidden Enter and folder cancel/read error/late replace/reset/missing field failures reproduced. IME/navigation/valid save preserved; all callers traced.",
+        "journaled_at": "2026-10-11T18:44:47.341820Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Fix input handling with existing components",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T18:46:55.040645Z",
+        "needs_journaling": false,
+        "status_note": "29 component checks pass. Supplemental empty-list ArrowDown/negative index failed before the lower bound guard. Native FileReader cancellation and existing loadVersion preserve image data; current visible list bounded on both sides. Unused loading writes and query console log removed; existing background label linked for accessibility.",
+        "journaled_at": "2026-10-11T18:46:55.041609Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frontend and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T18:55:59.692420Z",
+        "journaled_at": "2026-10-11T18:55:59.694461Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify frontend and preservation",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T18:55:59.692223Z",
+        "needs_journaling": false,
+        "status_note": "29 targeted and2462 full pass, no failed/pending/todo. Types110/24 ESLint191 no new diagnostics; future CI347 targets0 errors; scoped lint0/format pass;4 client/server compilations/CSS preserved. 267 SDD valid; production/foreign files/volumes unchanged. Global checks/PR/CI/release and real A/B remain pending.",
+        "journaled_at": "2026-10-11T18:55:59.693273Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T18:44:47.341815Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce selection and image input failures",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 28 actual component scenarios: original16 pass/12 fail. Search hover/filter/hidden Enter and folder cancel/read error/late replace/reset/missing field failures reproduced. IME/navigation/valid save preserved; all callers traced.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T18:44:47.342910Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce selection and image input failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T18:46:55.041604Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Fix input handling with existing components",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 28 component checks pass. Native FileReader abort plus existing loadVersion preserve folder data after cancel/change/reopen/reset; failures shown safely. Enter uses visible current suggestions with a bounded index; IME/navigation and parent search preserved.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T18:46:55.042825Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix input handling with existing components",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T18:55:59.693268Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frontend and preservation",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: 29 targeted and2462 full pass, no failed/pending/todo. Types110/24 ESLint191 no new diagnostics; future CI347 targets0 errors; scoped lint0/format pass;4 client/server compilations/CSS preserved. 267 SDD valid; production/foreign files/volumes unchanged. Global checks/PR/CI/release and real A/B remain pending.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T18:55:59.694451Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frontend and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
