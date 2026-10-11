@@ -152,3 +152,11 @@
   - Summary: 38 объявлений в 20 компонентах; прежний production JavaScript/CSS совпал побайтно, зависимости и поведение сохранены.
   - Tests: frontend 2350/2350; types 215/35, ESLint 323, новых 0; форматирование прошло. 326 целей CI имеют 96 существующих замечаний. Backend 1064 reused/565 hashes, 259 SDD valid; production и данные сохранены.
   - Pending: общие проверки, PR/CI, выпуск и реальные A/B; план 198/244, цель active.
+
+- [x] **[REFACTOR][061]** Типы источников и общих настроек — локально принято
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__citation-settings-types.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: последние три Function устранены; string/number source identifiers и Settings/GenerationParams/Model сохранены. Два присваивания stop объединены без новых механизмов.
+  - Tests: 16/16 целевых, frontend 2355/2355; types 208/35, ESLint 320, новых 0; 3 exact JS/CSS scopes и 1 normalized scope, 5 сценариев настоящей формы. 328 CI targets имеют 99 прежних замечаний. Backend 1064 reused/565 hashes, 259 SDD valid; production/data preserved.
+  - Pending: общие проверки, PR/CI, выпуск и реальные A/B; план 198/244, цель active.

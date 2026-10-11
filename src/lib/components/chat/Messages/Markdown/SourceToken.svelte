@@ -5,7 +5,7 @@
 
 	export let token;
 	export let sourceIds: string[] = [];
-	export let onClick: (id: string) => unknown = () => {};
+	export let onClick: (id: string | number) => unknown = () => {};
 
 	let openPreview = false;
 

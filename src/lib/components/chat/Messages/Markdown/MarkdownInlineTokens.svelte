@@ -20,7 +20,7 @@
 	export let done = true;
 	export let tokens: Token[] = [];
 	export let sourceIds: string[] = [];
-	export let onSourceClick: (id: string) => unknown = () => {};
+	export let onSourceClick: (id: string | number) => unknown = () => {};
 
 	/**
 	 * Check if a URL is a same-origin note link and return the note ID if so.
