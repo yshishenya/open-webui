@@ -9,11 +9,11 @@
 
 	const i18n = getContext('i18n');
 
-	export let editHandler: Function;
-	export let cloneHandler: Function;
-	export let runHandler: Function = () => {};
-	export let deleteHandler: Function;
-	export let onClose: Function = () => {};
+	export let editHandler: () => unknown;
+	export let cloneHandler: () => unknown;
+	export let runHandler: () => unknown = () => {};
+	export let deleteHandler: () => unknown;
+	export let onClose: () => unknown = () => {};
 
 	export let show = false;
 </script>

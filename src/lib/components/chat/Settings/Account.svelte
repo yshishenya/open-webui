@@ -25,7 +25,7 @@
 
 	const i18n = getContext('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let profileImageUrl = '';
 	let name = '';

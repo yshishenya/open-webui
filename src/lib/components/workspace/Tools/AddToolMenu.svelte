@@ -9,10 +9,10 @@
 
 	const i18n = getContext('i18n');
 
-	export let createHandler: Function;
-	export let importFromLinkHandler: Function;
+	export let createHandler: () => unknown;
+	export let importFromLinkHandler: () => unknown;
 
-	export let onClose: Function = () => {};
+	export let onClose: () => unknown = () => {};
 
 	let show = false;
 </script>

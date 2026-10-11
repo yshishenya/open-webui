@@ -5,7 +5,7 @@
 
 	const i18n = getContext('i18n');
 
-	export let onChange: Function = () => {};
+	export let onChange: (state: string) => unknown = () => {};
 	export let state = 'private';
 </script>
 

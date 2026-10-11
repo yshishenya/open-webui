@@ -143,3 +143,12 @@
   - Summary:7неподдерживаемых третьих аргументов удалены из2тестовых файлов; фабрики/утверждения и runtime продукта сохранены.
   - Tests:6/6целевых,2350/2350frontend;types216/35,ESLint361,new0;scopedlint0/0,formatpassed;306CIцелей46старыхошибок;1797product/testhashes совпали,backend1064reused/565hashes,259SDDvalid,data preserved.
   - Pending:общиепроверки/PR/CI/интеграция/выпуск/реальныеA/B;план198/244,цельactive.
+
+
+- [x] **[REFACTOR][060]** Типы существующих обработчиков — локально принято
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__callback-signatures.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: 38 объявлений в 20 компонентах; прежний production JavaScript/CSS совпал побайтно, зависимости и поведение сохранены.
+  - Tests: frontend 2350/2350; types 215/35, ESLint 323, новых 0; форматирование прошло. 326 целей CI имеют 96 существующих замечаний. Backend 1064 reused/565 hashes, 259 SDD valid; production и данные сохранены.
+  - Pending: общие проверки, PR/CI, выпуск и реальные A/B; план 198/244, цель active.

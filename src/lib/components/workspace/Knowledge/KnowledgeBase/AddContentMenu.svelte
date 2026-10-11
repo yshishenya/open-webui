@@ -16,11 +16,13 @@
 
 	const i18n = getContext('i18n');
 
-	export let onClose: Function = () => {};
+	export let onClose: () => unknown = () => {};
 
-	export let onSync: Function = () => {};
-	export let onUpload: Function = (data) => {};
-	export let onReset: Function = () => {};
+	export let onSync: () => unknown = () => {};
+	export let onUpload: (data: {
+		type: 'new_directory' | 'files' | 'directory' | 'web' | 'text';
+	}) => unknown = (data) => {};
+	export let onReset: () => unknown = () => {};
 
 	let show = false;
 </script>

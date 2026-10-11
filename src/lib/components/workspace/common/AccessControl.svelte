@@ -26,7 +26,7 @@
 		write: { group_ids: string[]; user_ids: string[] };
 	};
 
-	export let onChange: Function = () => {};
+	export let onChange: (grants: AccessGrant[]) => unknown = () => {};
 
 	export let accessRoles = ['read'];
 	export let accessGrants: AccessGrant[] | any = [];

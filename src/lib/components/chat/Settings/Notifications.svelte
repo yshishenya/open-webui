@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Settings } from '$lib/stores';
 	import { getContext, onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import { toast } from 'svelte-sonner';
@@ -20,7 +21,7 @@
 
 	const i18n: Writable<any> = getContext('i18n');
 
-	export let saveSettings: Function;
+	export let saveSettings: (updated: Partial<Settings>) => Promise<void>;
 
 	let notificationEnabled = false;
 	let notificationSound = true;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Model } from '$lib/utils/airis/model-types';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 
@@ -18,10 +19,10 @@
 	export let model;
 
 	export let pinModelHandler: (modelId: string) => void = () => {};
-	export let copyLinkHandler: Function = () => {};
-	export let deleteModelHandler: Function = () => {};
+	export let copyLinkHandler: () => unknown = () => {};
+	export let deleteModelHandler: (model: Model) => unknown = () => {};
 
-	export let onClose: Function = () => {};
+	export let onClose: () => unknown = () => {};
 </script>
 
 <Dropdown

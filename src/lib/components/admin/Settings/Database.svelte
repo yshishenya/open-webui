@@ -14,7 +14,7 @@
 
 	const i18n: any = getContext('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let configImportInputElement: HTMLInputElement;
 	const actionButtonClass =

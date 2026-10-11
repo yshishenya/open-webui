@@ -25,7 +25,7 @@
 
 	const i18n: Writable<i18nType> = getContext('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let downloading = false;
 	let uploading = false;

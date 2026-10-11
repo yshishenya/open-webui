@@ -55,9 +55,9 @@
 	export let onUpdate = () => {};
 	export let onDelete: (id: string) => void = () => {};
 
-	export let loadHandler: null | Function = null;
-	export let unarchiveHandler: null | Function = null;
-	export let unshareHandler: null | Function = null;
+	export let loadHandler: null | (() => unknown) = null;
+	export let unarchiveHandler: null | ((id: string) => unknown) = null;
+	export let unshareHandler: null | ((id: string) => unknown) = null;
 
 	const setSortKey = (key) => {
 		if (orderBy === key) {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Settings } from '$lib/stores';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -18,7 +19,7 @@
 
 	const i18n = getContext('i18n');
 
-	export let saveSettings: Function;
+	export let saveSettings: (updated: Partial<Settings>) => Promise<void>;
 
 	// Chats
 	let importFiles;

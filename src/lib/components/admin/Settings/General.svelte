@@ -24,7 +24,7 @@
 
 	const i18n: any = getContext('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let updateAvailable: boolean | null = false;
 	let version = {
@@ -148,7 +148,6 @@
 							{$i18n.t('Documentation')}
 						</a>
 					</div>
-
 				</div>
 
 				<div class="text-xs">
