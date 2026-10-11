@@ -89,3 +89,10 @@
   - Done: 2026-10-11
   - Summary: Восстановление прокрутки при удалении открытого окна и точные типы.
   - Tests: До 0/1, после 30/30; frontend 2338/2338; types 250/56, ESLint 395, новых 0; 278 целей CI без замечаний. SDD 2/2. Выпуск и реальные A/B открыты.
+
+- [x] **[BUG][056]** Типы расширений Markdown
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__markdown-contract-types.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Существующие типы токенов/lexer, прежний разбор и удаление неиспользуемого расширения команд.
+  - Tests: 5 runtime scopes, 25 lexer/parser fixtures, 4/4 целевых; frontend 2338/2338; types 245/56, ESLint 382, новых 0; 283 цели CI без замечаний. SDD 2/2. Выпуск/общие проверки и реальные A/B открыты.

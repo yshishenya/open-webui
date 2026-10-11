@@ -56,7 +56,7 @@ export function citationExtension() {
 			};
 		},
 
-		renderer(token: any) {
+		renderer(token: { raw: string }): string {
 			// fallback text
 			return token.raw;
 		}

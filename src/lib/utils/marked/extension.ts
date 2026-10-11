@@ -63,7 +63,10 @@ function detailsStart(src: string) {
 	return src.match(/^<details[\s>]/) ? 0 : -1;
 }
 
-function lheadingTokenizer(this: any, src: string): any {
+function lheadingTokenizer(
+	this: TokenizerThis & { rules: { block: { lheading: RegExp } } },
+	src: string
+): Tokens.Paragraph | false {
 	const cap = this.rules.block.lheading.exec(src);
 	const detailsIndex = cap?.[1]?.search(/\n<details[\s>]/) ?? -1;
 	if (!cap || detailsIndex === -1) return false;
@@ -78,7 +81,7 @@ function lheadingTokenizer(this: any, src: string): any {
 	};
 }
 
-function detailsRenderer(token: any) {
+function detailsRenderer(token: NonNullable<ReturnType<typeof detailsTokenizer>>): string {
 	const attributesString = token.attributes
 		? Object.entries(token.attributes)
 				.map(([key, value]) => `${key}="${value}"`)
@@ -92,10 +95,10 @@ function detailsRenderer(token: any) {
 }
 
 // Extension wrapper function
-function detailsExtension(_options: Record<string, unknown> = {}) {
+function detailsExtension() {
 	return {
 		name: 'details',
-		level: 'block',
+		level: 'block' as const,
 		start: detailsStart,
 		tokenizer: detailsTokenizer,
 		renderer: detailsRenderer
@@ -103,10 +106,15 @@ function detailsExtension(_options: Record<string, unknown> = {}) {
 }
 
 export default function (options: Record<string, unknown> = {}) {
+	void options;
 	return {
 		tokenizer: {
-			lheading: lheadingTokenizer as any
+			// Marked accepts a paragraph here; its built-in callback type only lists headings.
+			lheading: lheadingTokenizer as NonNullable<
+				NonNullable<MarkedExtension['tokenizer']>['lheading']
+			>
 		},
 		extensions: [detailsExtension()]
 	};
 }
+import type { MarkedExtension, TokenizerThis, Tokens } from 'marked';

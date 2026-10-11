@@ -18,7 +18,10 @@ function mentionStart(src: string) {
 	return src.indexOf('<');
 }
 
-function mentionRenderer(token: any, options: MentionOptions = {}) {
+function mentionRenderer(
+	token: { id: string; label: string },
+	options: MentionOptions = {}
+): string {
 	const trigger = options.triggerChar ?? '@';
 	const cls = options.className ?? 'mention';
 	const extra = options.extraAttrs ?? {};
@@ -63,7 +66,7 @@ export function mentionExtension(opts: MentionOptions = {}) {
 				label: label && label.length > 0 ? label : id
 			};
 		},
-		renderer(token: any) {
+		renderer(token: Parameters<typeof mentionRenderer>[0]): string {
 			return mentionRenderer(token, snapshot);
 		}
 	};
