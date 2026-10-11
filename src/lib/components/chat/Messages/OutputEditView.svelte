@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { getContext, onDestroy, tick } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { OutputItem } from './structuredOutput';
 
 	import { basicSetup, EditorView } from 'codemirror';
 	import { keymap } from '@codemirror/view';
@@ -11,10 +14,10 @@
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let output: any[] = [];
-	export let onChange: (output: any[]) => void = () => {};
+	export let output: OutputItem[] = [];
+	export let onChange: (output: OutputItem[]) => void = () => {};
 
 	let viewMode: 'visual' | 'json' = 'visual';
 	let jsonError = '';
@@ -24,7 +27,7 @@
 	let cmEditor: EditorView | null = null;
 	let editorTheme = new Compartment();
 
-	function initCodeMirror() {
+	function initCodeMirror(): void {
 		if (cmEditor || !cmContainer) return;
 		const isDark = document.documentElement.classList.contains('dark');
 		cmEditor = new EditorView({
@@ -45,10 +48,10 @@
 					EditorView.updateListener.of((e) => {
 						if (e.docChanged) {
 							try {
-								const parsed = JSON.parse(e.state.doc.toString());
+								const parsed: unknown = JSON.parse(e.state.doc.toString());
 								if (Array.isArray(parsed)) {
 									jsonError = '';
-									output = parsed;
+									output = parsed as OutputItem[];
 									onChange(output);
 								} else {
 									jsonError = 'Must be a JSON array';
@@ -64,20 +67,20 @@
 		});
 	}
 
-	function destroyCodeMirror() {
+	function destroyCodeMirror(): void {
 		if (cmEditor) {
 			cmEditor.destroy();
 			cmEditor = null;
 		}
 	}
 
-	async function switchToJson() {
+	async function switchToJson(): Promise<void> {
 		viewMode = 'json';
 		await tick();
 		initCodeMirror();
 	}
 
-	function switchToVisual() {
+	function switchToVisual(): void {
 		if (jsonError) return;
 		destroyCodeMirror();
 		viewMode = 'visual';
@@ -90,17 +93,17 @@
 	interface DisplayItem {
 		type: 'message' | 'reasoning' | 'function_call' | 'code_interpreter' | 'openai_tool';
 		indices: number[];
-		item: any;
-		outputItem?: any;
+		item: OutputItem;
+		outputItem?: OutputItem;
 	}
 
-	function buildDisplayItems(items: any[]): DisplayItem[] {
+	function buildDisplayItems(items: OutputItem[]): DisplayItem[] {
 		const result: DisplayItem[] = [];
-		const outputByCallId: Record<string, { item: any; index: number }> = {};
+		const outputByCallId: Record<string, { item: OutputItem; index: number }> = {};
 
 		for (let i = 0; i < items.length; i++) {
 			if (items[i]?.type === 'function_call_output') {
-				outputByCallId[items[i].call_id] = { item: items[i], index: i };
+				outputByCallId[items[i].call_id as string] = { item: items[i], index: i };
 			}
 		}
 
@@ -112,7 +115,7 @@
 			} else if (t === 'reasoning') {
 				result.push({ type: 'reasoning', indices: [i], item });
 			} else if (t === 'function_call') {
-				const paired = outputByCallId[item.call_id];
+				const paired = outputByCallId[item.call_id as string];
 				result.push({
 					type: 'function_call',
 					indices: paired ? [i, paired.index] : [i],
@@ -134,31 +137,31 @@
 
 	// --- Helpers ---
 
-	function getMessageText(item: any): string {
+	function getMessageText(item: OutputItem): string {
 		return (item.content ?? [])
-			.filter((p: any) => p.type === 'output_text' || 'text' in p)
-			.map((p: any) => p.text ?? '')
+			.filter((p) => p.type === 'output_text' || 'text' in p)
+			.map((p) => p.text ?? '')
 			.join('\n');
 	}
 
-	function updateMessageText(idx: number, text: string) {
+	function updateMessageText(idx: number, text: string): void {
 		const next = [...output];
 		const item = { ...next[idx] };
-		const parts = (item.content ?? []).filter((p: any) => p.type === 'output_text' || 'text' in p);
+		const parts = (item.content ?? []).filter((p) => p.type === 'output_text' || 'text' in p);
 		item.content = [{ ...(parts[0] ?? { type: 'output_text' }), text }];
 		next[idx] = item;
 		output = next;
 		onChange(output);
 	}
 
-	function getReasoningText(item: any): string {
+	function getReasoningText(item: OutputItem): string {
 		return (item.summary ?? item.content ?? [])
-			.filter((p: any) => 'text' in p)
-			.map((p: any) => p.text ?? '')
+			.filter((p) => 'text' in p)
+			.map((p) => p.text ?? '')
 			.join('');
 	}
 
-	function updateReasoningText(idx: number, text: string) {
+	function updateReasoningText(idx: number, text: string): void {
 		const next = [...output];
 		const item = { ...next[idx] };
 		const key = item.summary ? 'summary' : 'content';
@@ -168,13 +171,13 @@
 		onChange(output);
 	}
 
-	function deleteIndices(indices: number[]) {
+	function deleteIndices(indices: number[]): void {
 		const rm = new Set(indices);
 		output = output.filter((_, i) => !rm.has(i));
 		onChange(output);
 	}
 
-	function formatArgs(args: any): string {
+	function formatArgs(args: unknown): string {
 		if (!args) return '';
 		try {
 			return typeof args === 'string' ? args : JSON.stringify(args, null, 2);
@@ -183,7 +186,7 @@
 		}
 	}
 
-	function resizeEl(el: HTMLTextAreaElement) {
+	function resizeEl(el: HTMLTextAreaElement): void {
 		const c = document.getElementById('messages-container');
 		const s = c?.scrollTop;
 		el.style.height = '';
@@ -191,12 +194,12 @@
 		if (c && s !== undefined) c.scrollTop = s;
 	}
 
-	function autoResize(e: Event) {
+	function autoResize(e: Event): void {
 		resizeEl(e.target as HTMLTextAreaElement);
 	}
 
 	/** Svelte action: auto-expand textarea to fit content on mount */
-	function fitContent(el: HTMLTextAreaElement) {
+	function fitContent(el: HTMLTextAreaElement): void {
 		resizeEl(el);
 	}
 
@@ -216,7 +219,7 @@
 					file_search_call: 'Files',
 					computer_call: 'Computer'
 				};
-				return names[di.item.type] ?? di.item.type;
+				return names[di.item.type as string] ?? (di.item.type as string);
 			}
 			default:
 				return 'Item';
@@ -323,7 +326,11 @@
 							<div class="text-[0.9375rem] p-1.5 text-gray-500 dark:text-gray-400">
 								{#if di.item.action?.queries || di.item.queries}
 									<span class="text-xs"
-										>{(di.item.action?.queries ?? di.item.queries ?? []).join(', ')}</span
+										>{(
+											(di.item.action?.queries as unknown[] | undefined) ??
+											di.item.queries ??
+											[]
+										).join(', ')}</span
 									>
 								{/if}
 							</div>

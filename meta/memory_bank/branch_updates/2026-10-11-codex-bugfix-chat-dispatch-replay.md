@@ -196,3 +196,9 @@
   - Owner: Codex
   - Done: 2026-10-11
   - Summary: Ошибка очистки input воспроизведена и исправлена; File.text и requestJSON, явные ошибки/тайм-аут, защита от повторной отправки. 14 целевых, 7 браузерных и 2393 frontend сценария прошли; types 155/34, ESLint 273, новых 0. 263 SDD валидны. Production/данные сохранены; выпуск/A/B открыты, план 198/244.
+
+- [x] [REFACTOR] Типы редактора структурированного ответа (068) — локально принято.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__output-editor-types.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: существующий OutputItem вместо 14 any; client/server JS/CSS побайтно совпали. Frontend 2393/2393; types 155/34, ESLint 259, новых 0; scoped lint/format прошли. Backend 1064 reused/565 hashes, 263 SDD valid; production/данные сохранены. Выпуск/A/B открыты, план 198/244.
