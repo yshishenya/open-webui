@@ -1,0 +1,198 @@
+{
+  "spec_id": "airis-navbar-access-inputs-2026-10-12-083",
+  "title": "AIRIS navbar access inputs",
+  "generated": "2026-10-11T22:11:01.027692Z",
+  "last_updated": "2026-10-11T22:41:34.797358Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__navbar-access-inputs.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T22:12:28.099922Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T22:41:34.796940Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS navbar access inputs",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce malformed banner state and trace temporary mode",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T22:38:01.642842Z",
+        "journaled_at": "2026-10-11T22:38:01.644657Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Guard banner inputs and type existing access contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T22:38:01.849745Z",
+        "journaled_at": "2026-10-11T22:38:01.851630Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce malformed banner state and trace temporary mode",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T22:38:01.642676Z",
+        "needs_journaling": false,
+        "status_note": "Original3 targeted:1 pass/2 fail;3 compiled-browser page errors. All temporary-mode consumers traced; null is existing one-shot opt-out, not false.",
+        "journaled_at": "2026-10-11T22:38:01.643629Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Guard banner inputs and type existing access contracts",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T22:38:01.849579Z",
+        "needs_journaling": false,
+        "status_note": "3 targeted/28 compiled-browser pass,page errors0. Validate persisted string IDs; session close survives storage refusal; license missing values stay unknown; nullable mode/admin types. Reuse existing sanitizer for pending custom content; no new subsystem or dependencies.",
+        "journaled_at": "2026-10-11T22:38:01.850558Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify local changes and preserved release state",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T22:41:34.339602Z",
+        "journaled_at": "2026-10-11T22:41:34.341647Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify local changes and preserved release state",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T22:41:34.339418Z",
+        "needs_journaling": false,
+        "status_note": "Final3 targeted/28 compiled-browser/2515 full pass, no failed/skipped/todo. Types69 to60/24, ESLint188 to186,new0; scoped5/futureCI358/format clean.4 client/server compilations,CSS identical, store JS exact.565 backend hashes matched; no new backend run. Production/21 foreignfiles/262 volumes/12 neighbors preserved. Browser/HTTP/temp build and2 empty task-created volumes removed. No release.",
+        "journaled_at": "2026-10-11T22:41:34.340477Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T22:38:01.643625Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce malformed banner state and trace temporary mode",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Original3 targeted:1 pass/2 fail;3 compiled-browser page errors. All temporary-mode consumers traced; null is existing one-shot opt-out, not false.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T22:38:01.644653Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce malformed banner state and trace temporary mode",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T22:38:01.850550Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Guard banner inputs and type existing access contracts",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 3 targeted/28 compiled-browser pass,page errors0. Validate persisted string IDs; session close survives storage refusal; license missing values stay unknown; nullable mode/admin types. Reuse existing sanitizer for pending custom content; no new subsystem or dependencies.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T22:38:01.851626Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Guard banner inputs and type existing access contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T22:41:34.340472Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify local changes and preserved release state",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Final3 targeted/28 compiled-browser/2515 full pass, no failed/skipped/todo. Types69 to60/24, ESLint188 to186,new0; scoped5/futureCI358/format clean.4 client/server compilations,CSS identical, store JS exact.565 backend hashes matched; no new backend run. Production/21 foreignfiles/262 volumes/12 neighbors preserved. Browser/HTTP/temp build and2 empty task-created volumes removed. No release.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T22:41:34.341643Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify local changes and preserved release state",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

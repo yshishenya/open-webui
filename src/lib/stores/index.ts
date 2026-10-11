@@ -159,7 +159,7 @@ export const artifactContents: Writable<ArtifactContent[] | null> = writable(nul
 
 export const embed: Writable<CitationEmbed | null> = writable(null);
 
-export const temporaryChatEnabled = writable(false);
+export const temporaryChatEnabled = writable<boolean | null>(false);
 
 // Transient one-shot event from the desktop shell (Spotlight, drag-and-drop, etc.).
 // Set by +layout.svelte, consumed and cleared by Chat.svelte.

@@ -55,13 +55,18 @@
 
 	const getDismissedBannerIds = (): string[] => {
 		try {
-			return JSON.parse(localStorage.getItem('dismissedBannerIds') ?? '[]');
+			const ids: unknown = JSON.parse(localStorage.getItem('dismissedBannerIds') ?? '[]');
+			return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [];
 		} catch {
 			return [];
 		}
 	};
 
 	let showShareChatModal = false;
+	$: licenseExceeded =
+		$config?.license_metadata?.seats != null &&
+		$config?.user_count != null &&
+		$config.user_count > $config.license_metadata.seats;
 </script>
 
 <ShareChatModal bind:show={showShareChatModal} chatId={$chatId} />
@@ -253,7 +258,7 @@
 	{/if}
 
 	<div class="absolute top-[100%] left-0 right-0 h-fit">
-		{#if !history.currentId && !$chatId && ($banners.length > 0 || ($config?.license_metadata?.type ?? null) === 'trial' || (($config?.license_metadata?.seats ?? null) !== null && $config?.user_count > $config?.license_metadata?.seats))}
+		{#if !history.currentId && !$chatId && ($banners.length > 0 || ($config?.license_metadata?.type ?? null) === 'trial' || licenseExceeded)}
 			<div class=" w-full z-30">
 				<div
 					class=" flex flex-col gap-1 w-full max-h-28 overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible"
@@ -270,7 +275,7 @@
 						/>
 					{/if}
 
-					{#if ($config?.license_metadata?.seats ?? null) !== null && $config?.user_count > $config?.license_metadata?.seats}
+					{#if licenseExceeded}
 						<Banner
 							banner={{
 								type: 'error',
@@ -287,18 +292,21 @@
 							{banner}
 							on:dismiss={(e) => {
 								const bannerId = e.detail;
+								closedBannerIds = [...closedBannerIds, bannerId];
 
 								if (banner.dismissible) {
-									localStorage.setItem(
-										'dismissedBannerIds',
-										JSON.stringify(
-											[bannerId, ...getDismissedBannerIds()].filter((id) =>
-												$banners.find((b) => b.id === id)
+									try {
+										localStorage.setItem(
+											'dismissedBannerIds',
+											JSON.stringify(
+												[bannerId, ...getDismissedBannerIds()].filter((id) =>
+													$banners.find((b) => b.id === id)
+												)
 											)
-										)
-									);
-								} else {
-									closedBannerIds = [...closedBannerIds, bannerId];
+										);
+									} catch {
+										console.warn('Unable to persist dismissed banner');
+									}
 								}
 							}}
 						/>

@@ -1,7 +1,9 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { requestJSON } from '$lib/utils/airis/request_json';
 
-export const getAdminDetails = async (token: string) => {
+export type AdminDetails = { name: string | null; email: string | null };
+
+export const getAdminDetails = async (token: string): Promise<AdminDetails | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/admin/details`, {
