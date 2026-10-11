@@ -16,7 +16,11 @@ const deferred = <T>() => {
 };
 
 const rig = (displayMedia = false) => {
-	const source = readFileSync('src/lib/components/chat/MessageInput/VoiceRecording.svelte', 'utf8');
+	const source = readFileSync(
+		process.env.AIRIS_TEST_VOICE_SOURCE ??
+			'src/lib/components/chat/MessageInput/VoiceRecording.svelte',
+		'utf8'
+	);
 	const instance = parse(source).instance;
 	if (!instance) throw new Error('Missing component script');
 	const parsed = ts.createSourceFile(
@@ -141,6 +145,7 @@ const rig = (displayMedia = false) => {
 		stream: null as Stream | null,
 		mediaRecorder: null as Recorder | null,
 		speechRecognition: null,
+		webRecognition: false,
 		audioChunks: [] as Blob[],
 		audioContext: null as { close: () => Promise<void> } | null,
 		recognitionTimeout: undefined,
@@ -167,7 +172,9 @@ const rig = (displayMedia = false) => {
 		Blob,
 		console: { log: vi.fn(), error: vi.fn() },
 		$i18n: { t: (value: string): string => value },
-		$config: { audio: { stt: { engine: '' } } },
+		$config: { audio: { stt: { engine: '' } } } as
+			| { audio?: { stt?: { engine?: string } } }
+			| undefined,
 		$settings: {},
 		localStorage: { token: 'fixture' },
 		toast: { error: vi.fn() },
@@ -385,7 +392,7 @@ it.each(['recognition-first', 'recorder-first', 'cancel'])(
 	async (mode) => {
 		const r = rig();
 		r.context.transcribe = true;
-		r.context.$config.audio.stt.engine = 'web';
+		r.context.$config = { audio: { stt: { engine: 'web' } } };
 		await r.api.startRecording();
 		const recorder = r.recorders[0];
 		const recognition = r.recognizers[0];
@@ -423,3 +430,124 @@ it('confirmation releases a pending wake lock without restarting analysis', asyn
 	expect(r.context.analyseAudio).not.toHaveBeenCalled();
 	expect(r.context.onConfirm).toHaveBeenCalledTimes(1);
 });
+
+it.each([undefined, {}, { audio: {} }])(
+	'uses selected web recognition when application audio configuration is incomplete: %j',
+	async (configuration) => {
+		const r = rig();
+		r.context.transcribe = true;
+		r.context.$config = configuration;
+		r.context.$settings = { audio: { stt: { engine: 'web' } } };
+		await r.api.startRecording();
+		expect(r.context.recording).toBe(true);
+		expect(r.recognizers).toHaveLength(1);
+		const recorder = r.recorders[0];
+		await recorder.onstart?.();
+		await r.recognizers[0].onresult?.({
+			results: { 0: { 0: { transcript: 'Selected web words' } } }
+		});
+		await r.api.confirmRecording();
+		recorder.data('final');
+		await recorder.onstop?.();
+		expect(r.context.onConfirm).toHaveBeenCalledWith({ text: 'Selected web words' });
+		expect(r.context.transcribeAudio).not.toHaveBeenCalled();
+		r.tracks.forEach((track) => expect(track.readyState).toBe('ended'));
+	}
+);
+it.each(['absent', 'undefined'])(
+	'missing %s web recognizer stops capture without server fallback',
+	async (mode) => {
+		const r = rig();
+		r.context.transcribe = true;
+		r.context.$config = { audio: { stt: { engine: 'web' } } };
+		const platform = r.context.window as Record<string, unknown>;
+		if (mode === 'absent') delete platform.SpeechRecognition;
+		else platform.SpeechRecognition = undefined;
+		await r.api.startRecording();
+		expect(r.context.recording).toBe(false);
+		expect(r.context.loading).toBe(false);
+		expect(r.context.mediaRecorder).toBeNull();
+		r.tracks.forEach((track) => expect(track.readyState).toBe('ended'));
+		expect(r.context.toast.error).toHaveBeenCalledWith(
+			'Speech recognition is not supported in this browser.'
+		);
+		expect(r.context.onConfirm).not.toHaveBeenCalled();
+		expect(r.context.transcribeAudio).not.toHaveBeenCalled();
+	}
+);
+it('keeps server and web transcript data out of logs while delivering it to the parent', async () => {
+	for (const engine of ['server', 'web']) {
+		const r = rig();
+		r.context.transcribe = true;
+		r.context.$config = { audio: { stt: { engine: engine === 'web' ? 'web' : '' } } };
+		r.context.transcribeAudio.mockResolvedValue({ text: 'Private recorded words' });
+		await r.api.startRecording();
+		const recorder = r.recorders[0];
+		await recorder.onstart?.();
+		if (engine === 'web')
+			await r.recognizers[0].onresult?.({
+				results: { 0: { 0: { transcript: 'Private recorded words' } } }
+			});
+		await r.api.confirmRecording();
+		recorder.data('final');
+		await recorder.onstop?.();
+		expect(r.context.onConfirm).toHaveBeenCalledWith({ text: 'Private recorded words' });
+		expect(JSON.stringify(r.context.console.log.mock.calls)).not.toContain(
+			'Private recorded words'
+		);
+	}
+});
+it('can destroy before the resize observer has been mounted', () => {
+	const r = rig();
+	(r.context as Record<string, unknown>).resizeObserver = undefined;
+	expect(() => r.destroy()).not.toThrow();
+	expect(r.context.destroyed).toBe(true);
+	expect(r.context.recording).toBe(false);
+});
+
+it.each(['web', 'server'])(
+	'keeps the selected %s mode across configuration changes',
+	async (mode) => {
+		const r = rig();
+		r.context.transcribe = true;
+		r.context.$config = { audio: { stt: { engine: mode === 'web' ? 'web' : '' } } };
+		r.context.transcribeAudio.mockResolvedValue({ text: 'Server words' });
+		const permission = deferred<typeof r.acquired>();
+		r.context.navigator.mediaDevices.getUserMedia.mockReturnValue(permission.promise);
+		const pending = r.api.startRecording();
+		r.context.$config = { audio: { stt: { engine: mode === 'web' ? '' : 'web' } } };
+		await permission.resolve(r.acquired);
+		await pending;
+		const recorder = r.recorders[0];
+		await recorder.onstart?.();
+		if (mode === 'web') {
+			expect(r.recognizers).toHaveLength(1);
+			await r.recognizers[0].onresult?.({ results: { 0: { 0: { transcript: 'Web words' } } } });
+		} else expect(r.recognizers).toHaveLength(0);
+		await r.api.confirmRecording();
+		recorder.data('final');
+		await recorder.onstop?.();
+		expect(r.context.transcribeAudio).toHaveBeenCalledTimes(mode === 'web' ? 0 : 1);
+		expect(r.context.onConfirm).toHaveBeenCalledWith({
+			text: mode === 'web' ? 'Web words' : 'Server words'
+		});
+		r.tracks.forEach((track) => expect(track.readyState).toBe('ended'));
+	}
+);
+it.each([undefined, {}, { audio: {} }])(
+	'does not capture or upload with unavailable audio configuration: %j',
+	async (configuration) => {
+		const r = rig();
+		r.context.transcribe = true;
+		r.context.$config = configuration;
+		await r.api.startRecording();
+		expect(r.context.navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+		expect(r.context.navigator.mediaDevices.getDisplayMedia).not.toHaveBeenCalled();
+		expect(r.context.transcribeAudio).not.toHaveBeenCalled();
+		expect(r.context.recording).toBe(false);
+		expect(r.context.loading).toBe(false);
+		expect(r.context.toast.error).toHaveBeenCalledWith(
+			'Audio settings are unavailable. Please try again.'
+		);
+	}
+);

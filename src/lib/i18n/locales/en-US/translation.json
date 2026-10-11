@@ -2522,6 +2522,8 @@
 	"Specific users or groups": "",
 	"Speech Playback Speed": "",
 	"Speech recognition error: {{error}}": "",
+	"Audio settings are unavailable. Please try again.": "Audio settings are unavailable. Please try again.",
+	"Speech recognition is not supported in this browser.": "Speech recognition is not supported in this browser.",
 	"Speech-to-Text": "",
 	"Speech-to-Text Engine": "",
 	"Speech-to-Text Language": "",

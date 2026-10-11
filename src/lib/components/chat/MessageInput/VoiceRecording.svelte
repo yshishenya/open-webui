@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { tick, getContext, onMount, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { config, settings } from '$lib/stores';
 	import { blobToFile } from '$lib/utils';
 
@@ -11,7 +13,22 @@
 	import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 	dayjs.extend(LocalizedFormat);
 
-	const i18n = getContext('i18n');
+	type RecognitionResultEvent = {
+		results: Record<number, Record<number, { transcript: string }>>;
+	};
+	type BrowserRecognizer = {
+		continuous: boolean;
+		onresult: ((event: RecognitionResultEvent) => Promise<void>) | null;
+		onend: (() => void) | null;
+		onerror: ((event: { error: string }) => void) | null;
+		start: () => void;
+		stop: () => void;
+	};
+	type RecognitionWindow = Window & {
+		SpeechRecognition?: new () => BrowserRecognizer;
+		webkitSpeechRecognition?: new () => BrowserRecognizer;
+	};
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let recording = false;
 	export let transcribe = true;
@@ -23,7 +40,7 @@
 
 	export let className = ' p-2.5 w-full max-w-full';
 
-	export let onCancel = () => {};
+	export let onCancel: () => void | Promise<void> = () => {};
 	export let onConfirm: (data: {
 		text: string;
 		filename?: string;
@@ -58,7 +75,7 @@
 		stopRecording();
 	}
 
-	const formatSeconds = (seconds) => {
+	const formatSeconds = (seconds: number): string => {
 		const minutes = Math.floor(seconds / 60);
 		const remainingSeconds = seconds % 60;
 		const formattedSeconds = remainingSeconds < 10 ? `0${remainingSeconds}` : remainingSeconds;
@@ -112,17 +129,18 @@
 	};
 
 	let stream: MediaStream | null = null;
-	let speechRecognition;
+	let speechRecognition: BrowserRecognizer | null | undefined;
+	let webRecognition = false;
 
 	let mediaRecorder: MediaRecorder | null = null;
 
 	const MIN_DECIBELS = -45;
 	let VISUALIZER_BUFFER_LENGTH = 300;
 
-	let visualizerData = Array(VISUALIZER_BUFFER_LENGTH).fill(0);
+	let visualizerData: number[] = Array(VISUALIZER_BUFFER_LENGTH).fill(0);
 
 	// Function to calculate the RMS level from time domain data
-	const calculateRMS = (data: Uint8Array) => {
+	const calculateRMS = (data: Uint8Array): number => {
 		let sumSquares = 0;
 		for (let i = 0; i < data.length; i++) {
 			const normalizedValue = (data[i] - 128) / 128; // Normalize the data
@@ -131,7 +149,7 @@
 		return Math.sqrt(sumSquares / data.length);
 	};
 
-	const normalizeRMS = (rms) => {
+	const normalizeRMS = (rms: number): number => {
 		rms = rms * 10;
 		const exp = 1.5; // Adjust exponent value; values greater than 1 expand larger numbers more and compress smaller numbers more
 		const scaledRMS = Math.pow(rms, exp);
@@ -154,8 +172,8 @@
 		const domainData = new Uint8Array(bufferLength);
 		const timeDomainData = new Uint8Array(analyser.fftSize);
 
-		const detectSound = () => {
-			const processFrame = () => {
+		const detectSound = (): void => {
+			const processFrame = (): void => {
 				if (request !== recordingRequest || destroyed || !recording || loading || confirmed) return;
 
 				if (recording && !loading) {
@@ -206,7 +224,7 @@
 		const file = blobToFile(audioBlob, `Recording-${dayjs().format('L LT')}.${ext}`);
 
 		if (transcribe) {
-			if ($config.audio.stt.engine === 'web' || ($settings?.audio?.stt?.engine ?? '') === 'web') {
+			if (webRecognition) {
 				// Confirm from the recorder's terminal event, regardless of recognition/stop ordering.
 				onConfirm({ text: transcription });
 				return;
@@ -223,7 +241,6 @@
 
 			if (request !== recordingRequest || destroyed || !confirmed) return;
 			if (res) {
-				console.log(res);
 				onConfirm(res);
 			}
 		} else {
@@ -242,6 +259,15 @@
 		let acquired: MediaStream | null = null;
 		let started = false;
 		try {
+			// Keep this recording's mode: configuration updates must not trigger a paid upload.
+			webRecognition =
+				$config?.audio?.stt?.engine === 'web' || $settings?.audio?.stt?.engine === 'web';
+			if (transcribe && !webRecognition && typeof $config?.audio?.stt?.engine !== 'string') {
+				toast.error($i18n.t('Audio settings are unavailable. Please try again.'));
+				await cancelRecording();
+				onCancel();
+				return;
+			}
 			acquired = displayMedia
 				? await navigator.mediaDevices.getDisplayMedia({ audio: true })
 				: await navigator.mediaDevices.getUserMedia({
@@ -308,34 +334,33 @@
 			};
 			recorder.start();
 			if (transcribe) {
-				if ($config.audio.stt.engine === 'web' || ($settings?.audio?.stt?.engine ?? '') === 'web') {
-					if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+				if (webRecognition) {
+					const platform = window as RecognitionWindow;
+					const Recognition = platform.SpeechRecognition || platform.webkitSpeechRecognition;
+					if (Recognition) {
 						// reset accumulated transcription from previous sessions
 						transcription = '';
 
 						// Create a SpeechRecognition object
-						const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+						const recognition = new Recognition();
 						speechRecognition = recognition;
 
 						// Set continuous to true for continuous recognition
 						recognition.continuous = true;
 
 						// Set the timeout for turning off the recognition after inactivity (in milliseconds)
-						const inactivityTimeout = 2000; // 3 seconds
+						const inactivityTimeout = 2000;
 
 						// Start recognition
 						recognition.start();
 
 						// Event triggered when speech is recognized
-						recognition.onresult = async (event: {
-							results: Record<number, Record<number, { transcript: string }>>;
-						}): Promise<void> => {
+						recognition.onresult = async (event: RecognitionResultEvent): Promise<void> => {
 							if (request !== recordingRequest || destroyed || !recording || confirmed) return;
 							// Clear the inactivity timeout
 							clearTimeout(recognitionTimeout);
 
 							// Handle recognized speech
-							console.log(event);
 							const transcript = event.results[Object.keys(event.results).length - 1][0].transcript;
 
 							transcription = `${transcription}${transcript}`;
@@ -363,12 +388,16 @@
 						// Event triggered when an error occurs
 						recognition.onerror = function (event: { error: string }): void {
 							if (request !== recordingRequest || destroyed) return;
-							console.log(event);
 							toast.error($i18n.t(`Speech recognition error: {{error}}`, { error: event.error }));
 							onCancel();
 
 							cancelRecording();
 						};
+					} else {
+						toast.error($i18n.t('Speech recognition is not supported in this browser.'));
+						await cancelRecording();
+						onCancel();
+						return;
 					}
 				}
 			}
@@ -451,10 +480,10 @@
 		await stopRecording(true);
 	};
 
-	let resizeObserver;
-	let containerWidth;
+	let resizeObserver: ResizeObserver | undefined;
+	let containerWidth: number;
 
-	const handleKeyDown = (e) => {
+	const handleKeyDown = (e: KeyboardEvent): void => {
 		if (e.key === 'Escape') {
 			e.preventDefault();
 			cancelRecording();
@@ -462,13 +491,13 @@
 		}
 	};
 
-	const handleVisibilityChange = async () => {
+	const handleVisibilityChange = async (): Promise<void> => {
 		if (recording && document.visibilityState === 'visible') {
 			await requestWakeLock();
 		}
 	};
 
-	onMount(() => {
+	onMount((): void => {
 		window.addEventListener('keydown', handleKeyDown);
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -493,7 +522,7 @@
 		window.removeEventListener('keydown', handleKeyDown);
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 		// remove resize observer
-		resizeObserver.disconnect();
+		resizeObserver?.disconnect();
 	});
 </script>
 

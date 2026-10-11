@@ -296,3 +296,11 @@
   - Done: 2026-10-11
   - Summary: Native file.text(), importing guard, безопасные ошибки, прежние AIRIS/ChatGPT форматы и API. Private журналы удалены. Общий store отвергает старые refresh/page ответы после смены сеанса. Локально принято; выпуска нет.
   - Tests: До1/11 плюс store0/2; после27 focused/2490 full, failed/pending/todo0; types92/24 ESLint191 новых0. Scoped lint/формат6 файлов pass;352 будущие цели CI clean.2 компиляции/CSS сохранены;269 SDD valid/эта спецификация3/3 completed; backend1064/25 reused после565 хешей. Production/данные сохранены. Общие проверки/PR/CI/собранный интерфейс/выпуск открыты; план198/244, цель active.
+
+- [x] **[BUG][VOICE]** Конфигурация и данные записи голоса
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__bugfix__voice-recording-inputs.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Один снимок режима до разрешения устройства предотвращает неожиданную отправку на тарифицируемый сервер. При неполной конфигурации запись не начинается; отсутствующий web recognizer освобождает захват и показывает ошибку. Убраны журналы текста; API/очистка/CSS сохранены.
+  - Tests: До27 случаев15 pass/12 fail; после27 focused/2502 full, failed/pending/todo0. Types80/24, ESLint191 без изменений, новых0; scoped lint/формат4 файлов pass; futureCI354 clean;2 компиляции/CSS identical;270 SDD valid/3 tasks completed. Backend1064/25 reused после565 хешей. Production/21 чужой файл/262 тома/12 соседей сохранены. Общие проверки/PR/CI/собранный интерфейс/выпуск pending; план198/244,цель active.

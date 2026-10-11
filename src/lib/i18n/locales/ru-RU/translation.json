@@ -2548,6 +2548,8 @@
 	"Specific users or groups": "",
 	"Speech Playback Speed": "Скорость воспроизведения речи",
 	"Speech recognition error: {{error}}": "Ошибка распознавания речи: {{error}}",
+	"Audio settings are unavailable. Please try again.": "Настройки аудио недоступны. Попробуйте ещё раз.",
+	"Speech recognition is not supported in this browser.": "Распознавание речи не поддерживается в этом браузере. Выберите другой способ в настройках аудио.",
 	"Speech-to-Text": "Речь в текст",
 	"Speech-to-Text Engine": "Система распознавания речи",
 	"Speech-to-Text Language": "Язык распознавания речи",
