@@ -4,15 +4,17 @@
 	import { config, models, settings } from '$lib/stores';
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
-	import { onMount, tick, getContext } from 'svelte';
-	import { createNewModel, getModelById } from '$lib/apis/models';
+	import { onMount, getContext, type ComponentProps } from 'svelte';
+	import { createNewModel } from '$lib/apis/models';
 	import { getModels } from '$lib/apis';
 
 	import ModelEditor from '$lib/components/workspace/Models/ModelEditor.svelte';
 
 	const i18n = getContext('i18n');
 
-	const onSubmit = async (modelInfo) => {
+	const onSubmit = async (
+		modelInfo: Parameters<ComponentProps<ModelEditor>['onSubmit']>[0]
+	): Promise<void> => {
 		if ($models.find((m) => m.id === modelInfo.id)) {
 			toast.error(
 				$i18n.t(
@@ -58,16 +60,14 @@
 		}
 	};
 
-	let model = null;
+	let model: ComponentProps<ModelEditor>['model'] = null;
 
 	onMount(() => {
 		const handleMessageEvent = async (event: MessageEvent) => {
 			if (
-				![
-					window.location.origin,
-					'http://localhost:9999',
-					'http://localhost:5173'
-				].includes(event.origin)
+				![window.location.origin, 'http://localhost:9999', 'http://localhost:5173'].includes(
+					event.origin
+				)
 			) {
 				return;
 			}
