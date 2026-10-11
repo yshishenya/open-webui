@@ -33,3 +33,10 @@
   - Done: 2026-10-11
   - Summary: Сохранение полей при отказе и изменение списка только после подтверждения.
   - Validation: 25/25 целевых,2321/2321frontend;types350/63,ESLint489,new0;257CI lintцелей0/0,SDD3/3. Production/21чужойфайл/262тома сохранены; общиеquality/release/A/B открыты.
+
+- [x] **[BUG]** Типы общих элементов интерфейса
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__common-element-types.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: DOM-типы и метки без изменения поведения; удаление неиспользуемых объявлений.
+  - Validation: JS/CSS6/6,frontend2321/2321;types324/62,ESLint477,new0;263CIцели0/0,SDD3/3. Production/чужиефайлы/тома сохранены; общиеquality/release/A/B открыты.

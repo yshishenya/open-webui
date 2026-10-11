@@ -4,14 +4,14 @@
 
 	const i18n = getContext('i18n');
 
-	export let suggestionTags = [];
+	export let suggestionTags: { name: string }[] = [];
 	export let disabled = false;
 
 	let tagName = '';
 	let showInput = false;
 	let inputElement: HTMLInputElement;
 
-	const addTagHandler = async () => {
+	const addTagHandler = async (): Promise<void> => {
 		tagName = tagName.trim();
 		if (tagName !== '') {
 			dispatch('add', tagName);
@@ -19,12 +19,12 @@
 		}
 	};
 
-	const openInput = () => {
+	const openInput = (): void => {
 		showInput = true;
 		setTimeout(() => inputElement?.focus(), 0);
 	};
 
-	const closeInput = () => {
+	const closeInput = (): void => {
 		if (tagName.trim() === '') {
 			showInput = false;
 		}
@@ -69,7 +69,7 @@
 {#if suggestionTags.length > 0}
 	<datalist id="tagOptions">
 		{#each suggestionTags as tag}
-			<option value={tag.name} />
+			<option value={tag.name}></option>
 		{/each}
 	</datalist>
 {/if}
