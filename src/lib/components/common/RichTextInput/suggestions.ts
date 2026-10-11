@@ -1,35 +1,53 @@
-import { mount, unmount } from 'svelte';
+import type { ComponentProps as SvelteProps, SvelteComponent } from 'svelte';
+import type { Readable } from 'svelte/store';
+import type { i18n as I18n } from 'i18next';
+import type {
+	SuggestionOptions,
+	SuggestionProps,
+	SuggestionKeyDownProps
+} from '@tiptap/suggestion';
+import type CommandSuggestionList from '$lib/components/chat/MessageInput/CommandSuggestionList.svelte';
+import type MentionList from '$lib/components/channel/MessageInput/MentionList.svelte';
 import { createClassComponent } from 'svelte/legacy';
 
-import tippy from 'tippy.js';
+import tippy, { type Instance } from 'tippy.js';
 
-export function getSuggestionRenderer(Component: any, ComponentProps = {}) {
+type Item = { id: string; label: string };
+type ListProps = Pick<SvelteProps<typeof CommandSuggestionList>, 'char' | 'query' | 'command'>;
+type ListExports = Pick<CommandSuggestionList, '_onKeyDown'>;
+type ListEvents = Record<string, CustomEvent<unknown>>;
+type ListSlots = Record<string, never>;
+
+export function getSuggestionRenderer(
+	Component: typeof CommandSuggestionList | typeof MentionList,
+	ComponentProps: Record<string, unknown> & { i18n?: Readable<I18n> } = {}
+): NonNullable<SuggestionOptions<unknown, Item>['render']> {
 	return function suggestionRenderer() {
-		let component = null;
+		let component: (SvelteComponent<ListProps, ListEvents, ListSlots> & ListExports) | null = null;
 		let container: HTMLDivElement | null = null;
 
-		let popup: TippyInstance | null = null;
+		let popup: Instance | null = null;
 		let refEl: HTMLDivElement | null = null; // dummy reference
 
 		return {
-			onStart: (props: any) => {
+			onStart: (props: SuggestionProps<unknown, Item>): void => {
 				container = document.createElement('div');
 				container.className = 'suggestion-list-container';
 				document.body.appendChild(container);
 
 				// mount Svelte component
-				component = createClassComponent({
+				component = createClassComponent<ListProps, ListExports, ListEvents, ListSlots>({
 					component: Component,
 					target: container,
 					props: {
 						char: props?.text?.charAt(0),
 						query: props?.query,
-						command: (item) => {
+						command: (item: Item): void => {
 							props.command({ id: item.id, label: item.label });
 						},
 						...ComponentProps
 					},
-					context: new Map<string, any>([['i18n', ComponentProps?.i18n]])
+					context: new Map<string, unknown>([['i18n', ComponentProps?.i18n]])
 				});
 
 				// Create a tiny reference element so outside taps are truly "outside"
@@ -43,8 +61,9 @@ export function getSuggestionRenderer(Component: any, ComponentProps = {}) {
 				});
 				document.body.appendChild(refEl);
 
+				// TipTap can lose cursor geometry while the editor updates.
 				popup = tippy(refEl, {
-					getReferenceClientRect: props.clientRect as any,
+					getReferenceClientRect: () => props.clientRect?.() ?? new DOMRect(),
 					appendTo: () => document.body,
 					content: container,
 					interactive: true,
@@ -82,29 +101,28 @@ export function getSuggestionRenderer(Component: any, ComponentProps = {}) {
 				popup?.show();
 			},
 
-			onUpdate: (props: any) => {
+			onUpdate: (props: SuggestionProps<unknown, Item>): void => {
 				if (!component) return;
 
 				component.$set({
 					query: props.query,
-					command: (item) => {
+					command: (item: Item): void => {
 						props.command({ id: item.id, label: item.label });
 					}
 				});
 
-				if (props.clientRect && popup) {
-					popup.setProps({ getReferenceClientRect: props.clientRect as any });
+				if (popup) {
+					popup.setProps({ getReferenceClientRect: () => props.clientRect?.() ?? new DOMRect() });
 				}
 			},
 
-			onKeyDown: (props: any) => {
+			onKeyDown: (props: SuggestionKeyDownProps): boolean => {
 				// forward to the Svelte component’s handler
 				// (expose this from component as `export function onKeyDown(evt)`)
-				// @ts-ignore
 				return component?._onKeyDown?.(props.event) ?? false;
 			},
 
-			onExit: () => {
+			onExit: (): void => {
 				popup?.destroy();
 				popup = null;
 
