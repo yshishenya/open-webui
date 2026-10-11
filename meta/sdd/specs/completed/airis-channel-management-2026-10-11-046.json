@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-channel-management-2026-10-11-046",
+  "title": "airis-channel-management",
+  "generated": "2026-10-11T06:08:09.879216Z",
+  "last_updated": "2026-10-11T06:23:52.049830Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__channel-management.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T06:10:15.905486Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T06:23:52.049532Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Channel memberships and webhooks",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace API/callers and reproduce refused writes and stale lists",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T06:23:51.153841Z",
+        "journaled_at": "2026-10-11T06:23:51.155685Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse channel types and preserve only unacknowledged changes",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T06:23:51.373563Z",
+        "journaled_at": "2026-10-11T06:23:51.375478Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify whole frontend and preserve production and foreign state",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T06:23:51.591948Z",
+        "journaled_at": "2026-10-11T06:23:51.594039Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace API/callers and reproduce refused writes and stale lists",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T06:23:51.153671Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T06:23:51.154585Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse channel types and preserve only unacknowledged changes",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T06:23:51.373384Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T06:23:51.374379Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify whole frontend and preserve production and foreign state",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T06:23:51.591756Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T06:23:51.592868Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T06:23:51.154581Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace API/callers and reproduce refused writes and stale lists",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:23:51.155680Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace API/callers and reproduce refused writes and stale lists",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:23:51.374374Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse channel types and preserve only unacknowledged changes",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:23:51.375473Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse channel types and preserve only unacknowledged changes",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T06:23:51.592863Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify whole frontend and preserve production and foreign state",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:23:51.594034Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify whole frontend and preserve production and foreign state",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

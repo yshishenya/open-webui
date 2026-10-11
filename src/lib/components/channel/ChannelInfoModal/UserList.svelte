@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import { WEBUI_NAME, config, user as _user, showSidebar } from '$lib/stores';
-	import { goto } from '$app/navigation';
-	import { onMount, getContext } from 'svelte';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import { user as _user } from '$lib/stores';
+	import { onDestroy, getContext } from 'svelte';
 
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
@@ -11,6 +10,7 @@
 	dayjs.extend(localizedFormat);
 
 	import { toast } from 'svelte-sonner';
+	import type { ChannelDetail, ChannelMember } from '$lib/utils/airis/channel-types';
 	import { getChannelMembersById } from '$lib/apis/channels';
 
 	import Pagination from '$lib/components/common/Pagination.svelte';
@@ -23,69 +23,69 @@
 
 	const i18n = getContext('i18n');
 
-	export let channel = null;
+	export let channel: ChannelDetail | null = null;
 
-	export let onAdd = null;
-	export let onRemove = null;
+	export let onAdd: (() => void) | null = null;
+	export let onRemove: ((id: string) => void | Promise<void>) | null = null;
 
 	export let search = true;
-	export let sort = true;
 
 	let page = 1;
 
-	let users = null;
-	let total = null;
+	let users: ChannelMember[] | null = null;
+	let total: number | null = null;
 
 	let query = '';
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+	let memberVersion = 0;
 
 	let orderBy = 'name'; // default sort key
 	let direction = 'asc'; // default sort order
 
-	const setSortKey = (key) => {
-		if (!sort) {
-			return;
-		}
-
-		if (orderBy === key) {
-			direction = direction === 'asc' ? 'desc' : 'asc';
-		} else {
-			orderBy = key;
-			direction = 'asc';
-		}
-	};
-
-	const getUserList = async () => {
+	const getUserList = async (): Promise<void> => {
+		if (!channel) return;
+		const id = channel.id,
+			version = ++memberVersion;
+		const requestedQuery = query,
+			requestedPage = page,
+			requestedOrder = orderBy,
+			requestedDirection = direction;
 		try {
-			const res = await getChannelMembersById(
+			const result = await getChannelMembersById(
 				localStorage.token,
-				channel.id,
-				query,
-				orderBy,
-				direction,
-				page
-			).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			if (res) {
-				users = res.users;
-				total = res.total;
-			}
-		} catch (err) {
-			console.error(err);
+				id,
+				requestedQuery,
+				requestedOrder,
+				requestedDirection,
+				requestedPage
+			);
+			if (
+				version !== memberVersion ||
+				channel?.id !== id ||
+				query !== requestedQuery ||
+				page !== requestedPage ||
+				orderBy !== requestedOrder ||
+				direction !== requestedDirection
+			)
+				return;
+			users = result.users;
+			total = result.total;
+		} catch (error) {
+			if (version === memberVersion && channel?.id === id) toast.error(`${error}`);
 		}
 	};
-
-	const handleSearchInput = () => {
-		if (channel === null) return;
-
+	const handleSearchInput = (): void => {
+		if (!channel) return;
+		memberVersion++;
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
 			getUserList();
 		}, 300);
 	};
+	onDestroy(() => {
+		memberVersion++;
+		clearTimeout(debounceTimer);
+	});
 
 	// Immediate response to page/sort changes
 	$: if (channel !== null && page && orderBy && direction) {
@@ -210,7 +210,7 @@
 						</div>
 					</div> -->
 					<div class="w-full">
-						{#each users as user, userIdx (user.id)}
+						{#each users as user (user.id)}
 							<div class=" dark:border-gray-850 text-xs flex items-center justify-between">
 								<div class="px-2 py-1.5 font-normal text-gray-900 dark:text-white flex-1">
 									<div class="flex items-center gap-2">

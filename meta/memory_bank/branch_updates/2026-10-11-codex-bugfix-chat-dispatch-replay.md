@@ -19,3 +19,10 @@
   - Done: 2026-10-11
   - Summary: Черновик после отказа, подтверждённое сохранение и актуальные данные рейтинга.
   - Validation:20/20новых,39/39целевых,2267/2267frontend;types409/63,ESLint509,new0;250CI lintцелей0/0,SDD3/3. Production/21чужойфайл/262тома сохранены; общиеquality/release/A/B открыты.
+
+- [x] **[BUG]** Участники и внешние вызовы каналов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__channel-management.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Подтверждённые изменения, остаток очереди и актуальные списки текущего канала.
+  - Validation: 29/29 целевых,2296/2296frontend;types367/63,ESLint495,new0;255CI lintцелей0/0,SDD3/3. Production/21чужойфайл/262тома сохранены; общиеquality/release/A/B открыты.

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ChannelWebhook } from '$lib/utils/airis/channel-types';
+	import type { WebhookForm } from '$lib/apis/channels';
 	import { getContext } from 'svelte';
 	const i18n = getContext('i18n');
 
@@ -12,31 +14,29 @@
 	import { toast } from 'svelte-sonner';
 	import dayjs from 'dayjs';
 
-	export let webhook;
+	export let webhook: ChannelWebhook;
 	export let expanded = false;
 
 	export let onClick = () => {};
 	export let onDelete = () => {};
-	export let onUpdate = (changes: { name: string; profile_image_url: string }) => {};
+	export let onUpdate: (changes: WebhookForm) => void = () => {};
 
 	let name = webhook.name;
 	let image = webhook.profile_image_url || '';
 
-	// Notify parent when changes occur
-	$: if (name !== webhook.name || image !== (webhook.profile_image_url || '')) {
-		onUpdate({ name: name.trim() || webhook.name, profile_image_url: image });
-	}
+	// Always notify on edits, including returning to saved values.
+	$: onUpdate({ name: name.trim() || webhook.name, profile_image_url: image });
+	let filesInputElement: HTMLInputElement;
+	let inputFiles: FileList | null = null;
 
-	let filesInputElement;
-	let inputFiles;
-
-	const handleImageUpload = () => {
+	const handleImageUpload = (): void => {
 		if (!inputFiles?.length) return;
 
+		const file = inputFiles[0];
 		const reader = new FileReader();
-		reader.onload = (event) => {
-			const dataUrl = `${event.target?.result}`;
-			const fileType = inputFiles[0]?.type;
+		reader.onload = () => {
+			const dataUrl = `${reader.result}`;
+			const fileType = file.type;
 
 			if (['image/gif', 'image/webp'].includes(fileType)) {
 				image = dataUrl;
@@ -50,6 +50,7 @@
 					canvas.height = canvasSize;
 
 					const context = canvas.getContext('2d');
+					if (!context) return;
 					const aspectRatio = tempImage.width / tempImage.height;
 					const scaledWidth = aspectRatio > 1 ? canvasSize * aspectRatio : canvasSize;
 					const scaledHeight = aspectRatio > 1 ? canvasSize : canvasSize / aspectRatio;
@@ -62,14 +63,18 @@
 			}
 			inputFiles = null;
 		};
-		reader.readAsDataURL(inputFiles[0]);
+		reader.readAsDataURL(file);
 	};
 
-	const copyUrl = () => {
-		navigator.clipboard.writeText(
-			`${WEBUI_API_BASE_URL}/channels/webhooks/${webhook.id}/${webhook.token}`
-		);
-		toast.success($i18n.t('Copied'));
+	const copyUrl = async (): Promise<void> => {
+		try {
+			await navigator.clipboard.writeText(
+				`${WEBUI_API_BASE_URL}/channels/webhooks/${webhook.id}/${webhook.token}`
+			);
+			toast.success($i18n.t('Copied'));
+		} catch (error) {
+			toast.error(`${error}`);
+		}
 	};
 </script>
 

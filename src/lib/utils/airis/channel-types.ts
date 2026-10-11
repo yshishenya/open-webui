@@ -157,3 +157,29 @@ export type ChannelMessageEvent = {
 		| { type: 'message:delete'; data: ChannelEventMessage }
 		| { type: 'typing'; data: { typing: boolean } };
 };
+
+// GET /channels/{id}/members and mutation acknowledgements.
+export type ChannelMember = Pick<SessionUser, 'id' | 'email' | 'name' | 'role'> & {
+	profile_image_url: string | null;
+	presence_state: string | null;
+	status_emoji: string | null;
+	status_message: string | null;
+	status_expires_at: number | null;
+	is_active: boolean;
+};
+export type ChannelMemberList = { users: ChannelMember[]; total: number };
+// Only identity is consumed from the membership mutation response.
+export type ChannelMembership = { id: string; channel_id: string; user_id: string };
+// ChannelWebhookModel; optional user metadata is read by the existing item renderer.
+export type ChannelWebhook = {
+	id: string;
+	channel_id: string;
+	user_id: string;
+	name: string;
+	profile_image_url: string | null;
+	token: string;
+	last_used_at: number | null;
+	created_at: number;
+	updated_at: number;
+	user?: Pick<SessionUser, 'id' | 'name'> | null;
+};

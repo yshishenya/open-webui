@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import type {
+		ChannelListItem,
+		ChannelDetail,
+		ChannelWebhook
+	} from '$lib/utils/airis/channel-types';
+	import type { WebhookForm } from '$lib/apis/channels';
 
 	import {
 		getChannelWebhooks,
@@ -19,79 +25,115 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
-	export let channel = null;
-
-	let webhooks = [];
+	export let channel: ChannelListItem | ChannelDetail | null = null;
+	let webhooks: ChannelWebhook[] = [];
 	let isLoading = false;
 	let isSaving = false;
-
 	let showDeleteConfirmDialog = false;
-	let selectedWebhookId = null;
+	let selectedWebhookId: string | null = null;
+	let pendingChanges: Record<string, WebhookForm> = {};
+	let webhookSession = 0;
+	let loadVersion = 0;
+	const isCurrent = (session: number, id: string): boolean =>
+		session === webhookSession && show && channel?.id === id;
 
-	// Track pending changes from child components
-	let pendingChanges: { [webhookId: string]: { name: string; profile_image_url: string } } = {};
-
-	const loadWebhooks = async () => {
+	const loadWebhooks = async (): Promise<void> => {
+		if (!show || !channel) return;
+		const id = channel.id,
+			session = webhookSession,
+			version = ++loadVersion;
 		isLoading = true;
 		try {
-			webhooks = await getChannelWebhooks(localStorage.token, channel.id);
-		} catch {
-			webhooks = [];
+			const result = await getChannelWebhooks(localStorage.token, id);
+			if (isCurrent(session, id) && version === loadVersion) webhooks = result;
+		} catch (error) {
+			if (isCurrent(session, id) && version === loadVersion) toast.error(`${error}`);
+		} finally {
+			if (isCurrent(session, id) && version === loadVersion) isLoading = false;
 		}
-		isLoading = false;
 	};
-
-	const createHandler = async () => {
+	const createHandler = async (): Promise<void> => {
+		if (!show || !channel || isSaving) return;
+		const id = channel.id,
+			session = webhookSession;
 		isSaving = true;
 		try {
-			const newWebhook = await createChannelWebhook(localStorage.token, channel.id, {
-				name: 'New Webhook'
-			});
-			if (newWebhook) {
-				webhooks = [...webhooks, newWebhook];
-				selectedWebhookId = newWebhook.id;
-			}
+			const result = await createChannelWebhook(localStorage.token, id, { name: 'New Webhook' });
+			if (!isCurrent(session, id)) return;
+			webhooks = [...webhooks, result];
+			selectedWebhookId = result.id;
 		} catch (error) {
-			toast.error(`${error}`);
+			if (isCurrent(session, id)) toast.error(`${error}`);
+		} finally {
+			if (isCurrent(session, id)) isSaving = false;
 		}
-		isSaving = false;
 	};
-
-	const saveHandler = async () => {
+	const saveHandler = async (): Promise<void> => {
+		if (!show || !channel || isSaving) return;
+		const id = channel.id,
+			session = webhookSession;
 		isSaving = true;
 		try {
 			for (const [webhookId, changes] of Object.entries(pendingChanges)) {
-				await updateChannelWebhook(localStorage.token, channel.id, webhookId, changes);
+				if (!isCurrent(session, id)) return;
+				const saved = await updateChannelWebhook(localStorage.token, id, webhookId, changes);
+				if (!isCurrent(session, id)) return;
+				if (pendingChanges[webhookId] === changes) delete pendingChanges[webhookId];
+				webhooks = webhooks.map((webhook) => (webhook.id === saved.id ? saved : webhook));
 			}
-			pendingChanges = {};
-			await loadWebhooks();
 			toast.success($i18n.t('Saved'));
 		} catch (error) {
-			toast.error(`${error}`);
+			if (isCurrent(session, id)) toast.error(`${error}`);
+		} finally {
+			if (isCurrent(session, id)) isSaving = false;
 		}
-		isSaving = false;
 	};
-
-	const deleteHandler = async () => {
-		if (!selectedWebhookId) return;
-
+	const deleteHandler = async (): Promise<void> => {
+		if (!show || !channel || !selectedWebhookId || isSaving) return;
+		const id = channel.id,
+			webhookId = selectedWebhookId,
+			session = webhookSession;
+		isSaving = true;
 		try {
-			await deleteChannelWebhook(localStorage.token, channel.id, selectedWebhookId);
-			webhooks = webhooks.filter((webhook) => webhook.id !== selectedWebhookId);
+			const deleted = await deleteChannelWebhook(localStorage.token, id, webhookId);
+			if (!isCurrent(session, id)) return;
+			if (!deleted) throw new Error($i18n.t('Failed to delete webhook'));
+			webhooks = webhooks.filter((webhook) => webhook.id !== webhookId);
+			delete pendingChanges[webhookId];
+			selectedWebhookId = null;
+			showDeleteConfirmDialog = false;
 			toast.success($i18n.t('Deleted'));
 		} catch (error) {
-			toast.error(`${error}`);
+			if (isCurrent(session, id)) toast.error(`${error}`);
+		} finally {
+			if (isCurrent(session, id)) isSaving = false;
 		}
-
-		selectedWebhookId = null;
-		showDeleteConfirmDialog = false;
 	};
-
-	$: if (show && channel) {
-		loadWebhooks();
+	const updatePendingChanges = (webhook: ChannelWebhook, changes: WebhookForm): void => {
+		if (
+			changes.name === webhook.name &&
+			(changes.profile_image_url ?? '') === (webhook.profile_image_url ?? '')
+		) {
+			if (webhook.id in pendingChanges) delete pendingChanges[webhook.id];
+		} else if (
+			pendingChanges[webhook.id]?.name !== changes.name ||
+			pendingChanges[webhook.id]?.profile_image_url !== changes.profile_image_url
+		) {
+			pendingChanges[webhook.id] = changes;
+		}
+	};
+	$: {
+		webhookSession++;
+		isSaving = false;
+		isLoading = false;
+		webhooks = [];
 		selectedWebhookId = null;
 		pendingChanges = {};
+		if (show && channel) loadWebhooks();
 	}
+	onDestroy(() => {
+		webhookSession++;
+	});
 </script>
 
 <ConfirmDialog bind:show={showDeleteConfirmDialog} on:confirm={deleteHandler} />
@@ -150,7 +192,7 @@
 										showDeleteConfirmDialog = true;
 									}}
 									onUpdate={(changes) => {
-										pendingChanges[webhook.id] = changes;
+										updatePendingChanges(webhook, changes);
 									}}
 								/>
 							{/each}
