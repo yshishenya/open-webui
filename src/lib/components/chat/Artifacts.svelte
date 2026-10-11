@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { onMount, getContext, createEventDispatcher } from 'svelte';
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	const i18n = getContext<Readable<I18n>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	import {
@@ -13,14 +15,13 @@
 		showControls,
 		artifactContents
 	} from '$lib/stores';
-	import { copyToClipboard, createMessagesList } from '$lib/utils';
+	import { copyToClipboard } from '$lib/utils';
 	import { injectCsp } from '$lib/utils/csp';
 
 	import XMark from '../icons/XMark.svelte';
 	import ArrowsPointingOut from '../icons/ArrowsPointingOut.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import SvgPanZoom from '../common/SVGPanZoom.svelte';
-	import ArrowLeft from '../icons/ArrowLeft.svelte';
 	import Download from '../icons/Download.svelte';
 
 	export let overlay = false;
@@ -29,57 +30,66 @@
 	let selectedContentIdx = 0;
 
 	let copied = false;
-	let iframeElement: HTMLIFrameElement;
+	let iframeElement: HTMLIFrameElement & {
+		webkitRequestFullscreen?: () => void | Promise<void>;
+		msRequestFullscreen?: () => void | Promise<void>;
+	};
 
-	function navigateContent(direction: 'prev' | 'next') {
+	function navigateContent(direction: 'prev' | 'next'): void {
 		selectedContentIdx =
 			direction === 'prev'
 				? Math.max(selectedContentIdx - 1, 0)
 				: Math.min(selectedContentIdx + 1, contents.length - 1);
 	}
 
-	const iframeLoadHandler = () => {
-		iframeElement.contentWindow.addEventListener(
+	const iframeLoadHandler = (): void => {
+		const frame = iframeElement.contentWindow;
+		// Sandboxed and cross-origin documents cannot be instrumented by the parent.
+		if (!frame || !iframeElement.contentDocument) return;
+		frame.addEventListener(
 			'click',
 			function (e) {
-				const target = e.target.closest('a');
+				const target = (e.target as Element | null)?.closest?.('a');
 				if (target && target.href) {
 					e.preventDefault();
-					const url = new URL(target.href, iframeElement.baseURI);
-					if (url.origin === window.location.origin) {
-						iframeElement.contentWindow.history.pushState(
-							null,
-							'',
-							url.pathname + url.search + url.hash
-						);
-					} else {
-						console.info('External navigation blocked:', url.href);
+					try {
+						const url = new URL(target.href, iframeElement.baseURI);
+						if (url.origin === window.location.origin) {
+							if (target.getAttribute('href')?.startsWith('#')) {
+								// Native fragment navigation uses srcdoc's URL, not its inherited base URL.
+								frame.location.hash = url.hash;
+							} else {
+								frame.history.pushState(null, '', url.pathname + url.search + url.hash);
+							}
+						}
+					} catch {
+						toast.error($i18n.t('Something went wrong :/'));
 					}
 				}
 			},
 			true
 		);
 
-		// Cancel drag when hovering over iframe
-		iframeElement.contentWindow.addEventListener('mouseenter', function (e) {
-			e.preventDefault();
-			iframeElement.contentWindow.addEventListener('dragstart', (event) => {
-				event.preventDefault();
-			});
+		frame.addEventListener('dragstart', (event) => {
+			event.preventDefault();
 		});
 	};
 
-	const showFullScreen = () => {
-		if (iframeElement.requestFullscreen) {
-			iframeElement.requestFullscreen();
-		} else if (iframeElement.webkitRequestFullscreen) {
-			iframeElement.webkitRequestFullscreen();
-		} else if (iframeElement.msRequestFullscreen) {
-			iframeElement.msRequestFullscreen();
+	const showFullScreen = async (): Promise<void> => {
+		try {
+			if (iframeElement.requestFullscreen) {
+				await iframeElement.requestFullscreen();
+			} else if (iframeElement.webkitRequestFullscreen) {
+				await iframeElement.webkitRequestFullscreen();
+			} else if (iframeElement.msRequestFullscreen) {
+				await iframeElement.msRequestFullscreen();
+			}
+		} catch {
+			toast.error($i18n.t('Something went wrong :/'));
 		}
 	};
 
-	const downloadArtifact = () => {
+	const downloadArtifact = (): void => {
 		const blob = new Blob([contents[selectedContentIdx].content], { type: 'text/html' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -92,16 +102,8 @@
 	};
 
 	onMount(() => {
-		const unsubscribeArtifactCode = artifactCode.subscribe((value) => {
-			if (contents) {
-				const codeIdx = contents.findIndex((content) => content.content.includes(value));
-				selectedContentIdx = codeIdx !== -1 ? codeIdx : 0;
-			}
-		});
-
 		const unsubscribeArtifactContents = artifactContents.subscribe((value) => {
 			const newContents = value ?? [];
-			console.log('Artifact contents updated:', newContents);
 
 			if (newContents.length === 0) {
 				showControls.set(false);
@@ -109,9 +111,18 @@
 				selectedContentIdx = 0;
 			} else if (newContents.length > contents.length) {
 				selectedContentIdx = newContents.length - 1;
+			} else {
+				selectedContentIdx = Math.min(selectedContentIdx, newContents.length - 1);
 			}
 
 			contents = newContents;
+		});
+
+		const unsubscribeArtifactCode = artifactCode.subscribe((value) => {
+			if (value !== null && contents.length > 0) {
+				const codeIdx = contents.findIndex((content) => content.content.includes(value));
+				selectedContentIdx = codeIdx !== -1 ? codeIdx : 0;
+			}
 		});
 
 		return () => {
@@ -202,6 +213,7 @@
 						<Tooltip content={$i18n.t('Download')}>
 							<button
 								class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
+								aria-label={$i18n.t('Download')}
 								on:click={downloadArtifact}
 							>
 								<Download className="size-3.5" />
@@ -212,6 +224,7 @@
 							<Tooltip content={$i18n.t('Open in full screen')}>
 								<button
 									class=" bg-none border-none text-xs bg-gray-50 hover:bg-gray-100 dark:bg-gray-850 dark:hover:bg-gray-800 transition rounded-md p-0.5"
+									aria-label={$i18n.t('Open in full screen')}
 									on:click={showFullScreen}
 								>
 									<ArrowsPointingOut className="size-3.5" />
@@ -222,6 +235,7 @@
 				</div>
 
 				<button
+					aria-label={$i18n.t('Close')}
 					class="self-center pointer-events-auto p-1 rounded-full bg-white dark:bg-gray-850"
 					on:click={() => {
 						dispatch('close');

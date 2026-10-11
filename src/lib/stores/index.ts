@@ -154,7 +154,7 @@ export const showFileNavPath: Writable<string | null> = writable(null);
 export const showFileNavDir: Writable<string | null> = writable(null);
 export const selectedTerminalId: Writable<string | null> = writable(null);
 
-export const artifactCode = writable(null);
+export const artifactCode = writable<string | null>(null);
 export const artifactContents: Writable<ArtifactContent[] | null> = writable(null);
 
 export const embed: Writable<CitationEmbed | null> = writable(null);

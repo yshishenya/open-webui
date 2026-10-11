@@ -154,15 +154,13 @@
 		}
 	);
 
-	const previewHandler = /** @type {any} */ (
-		async (/** @type {string} */ value) => {
-			console.log('Preview', value);
-			await artifactCode.set(/** @type {any} */ (value));
-			await showControls.set(true);
-			await showArtifacts.set(true);
-			await showEmbeds.set(false);
-		}
-	);
+	/** @returns {Promise<void>} */
+	const previewHandler = async (/** @type {string} */ value) => {
+		await artifactCode.set(value);
+		await showControls.set(true);
+		await showArtifacts.set(true);
+		await showEmbeds.set(false);
+	};
 
 	const updateButtonPosition = (event) => {
 		const buttonsContainerElement = document.getElementById(`floating-buttons-${id}`);

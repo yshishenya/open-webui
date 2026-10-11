@@ -304,3 +304,11 @@
   - Done: 2026-10-11
   - Summary: Один снимок режима до разрешения устройства предотвращает неожиданную отправку на тарифицируемый сервер. При неполной конфигурации запись не начинается; отсутствующий web recognizer освобождает захват и показывает ошибку. Убраны журналы текста; API/очистка/CSS сохранены.
   - Tests: До27 случаев15 pass/12 fail; после27 focused/2502 full, failed/pending/todo0. Types80/24, ESLint191 без изменений, новых0; scoped lint/формат4 файлов pass; futureCI354 clean;2 компиляции/CSS identical;270 SDD valid/3 tasks completed. Backend1064/25 reused после565 хешей. Production/21 чужой файл/262 тома/12 соседей сохранены. Общие проверки/PR/CI/собранный интерфейс/выпуск pending; план198/244,цель active.
+
+- [x] **[BUG][CHAT][ARTIFACTS]** Просмотр HTML/SVG и выбор версии
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__bugfix__artifact-preview.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-12
+  - Summary: Локальные guards изолированного iframe/неверного индекса, native fragment navigation и обработка URL/fullscreen отказов; один drag blocker. Sandbox/CSP сохранены; private logs/unused imports удалены;3 существующие иконки получили aria-label.
+  - Tests: До0/10; после11 focused/16 compiled-browser/2512 full pass, failed/pending/todo0,page errors0. Types69/24, ESLint188,new0; scoped lint/формат4 файлов pass;futureCI356 clean.4 компиляции/CSS identical,store JS exact;271 SDD valid/3 tasks completed. Backend1064/25 reused after565 hashes. Production/21 чужой файл/262 тома/12 соседей сохранены; временный стенд удалён. Общие проверки/PR/CI/выпуск pending;план198/244,цель active.
