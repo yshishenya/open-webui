@@ -239,3 +239,12 @@
   - Summary: Локально принято удаление четырёх неиспользуемых параметров и полной цепочки models в панели; сохранение настроек, импорт и отправка сообщений прежние. Выпуска нет.
   - Tests: 27 targeted; 2419 full; 16 client/server компиляций, CSS прежний; types 145/26, ESLint 214, новых 0; scoped lint/Prettier pass; 264 SDD valid; backend565 hashes preserved. Будущий CI337 целей/15 ошибок ещё не проходит.
   - Risks: Низкий; только удаления внутренних неиспользуемых параметров. Production/21 чужой tracked-файл/262 тома сохранены. PR/CI и выпуск открыты; цель active, план 198/244.
+
+- [x] **[REFACTOR][FRONTEND]** Переиспользовать безопасный HTML предпросмотра и лицензии
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__refactor__html-previews.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Существующий sanitizedHtml для трёх HTML-вставок, стандартная кнопка открытия файла и типы General; данные и действия сохраняются. Локально принято; PR/CI и выпуск открыты, план198/244, цель active.
+  - Tests: 10 targeted/2426 full; 4 client/server компиляции, CSS прежний; types145/25 ESLint206 новых0, scoped lint0/Prettier pass; 265 SDD valid/complete. Будущий CI337 целей/7 ошибок остаются.
+  - Risks: Низкий; DOM-очистка обязательна, новых сервисов или зависимостей нет.
