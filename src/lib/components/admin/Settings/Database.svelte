@@ -17,8 +17,6 @@
 
 	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let saveHandler: () => unknown;
-
 	let configImportInputElement: HTMLInputElement;
 	let importing = false;
 	const actionButtonClass =

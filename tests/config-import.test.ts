@@ -33,8 +33,7 @@ async function setup() {
 	document.body.append(target);
 	const component = mount(Database, {
 		target,
-		context: new Map([['i18n', writable(i18n)]]),
-		props: { saveHandler: () => {} }
+		context: new Map([['i18n', writable(i18n)]])
 	});
 	await tick();
 	const input = target.querySelector<HTMLInputElement>('#config-json-input')!;

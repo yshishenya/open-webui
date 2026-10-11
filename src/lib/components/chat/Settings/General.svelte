@@ -5,7 +5,6 @@
 
 	import { config, settings, theme, user, type Settings } from '$lib/stores';
 	import type { GenerationParams } from '$lib/utils/airis/frontend-contracts';
-	import type { Model } from '$lib/utils/airis/model-types';
 
 	const i18n = getContext('i18n');
 
@@ -16,7 +15,6 @@
 	import UserSettingSection from './UserSettingSection.svelte';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 	export let saveSettings: (updated: Partial<Settings>) => Promise<void>;
-	export let getModels: () => Promise<Model[]>;
 
 	// General
 	let themes = ['dark', 'light', 'oled-dark'];

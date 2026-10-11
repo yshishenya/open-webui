@@ -6,7 +6,6 @@
 	import { Pane, PaneResizer, type PaneAPI } from 'paneforge';
 	import type { ModelParams } from '$lib/apis';
 	import type { ChatAttachment, ChatHistory } from '$lib/utils/airis/chat_history';
-	import type { Model } from '$lib/utils/airis/model-types';
 
 	import { onMount, tick, getContext } from 'svelte';
 	import {
@@ -34,7 +33,6 @@
 	const i18n = getContext('i18n');
 
 	export let history: ChatHistory;
-	export let models: Model[] = [];
 
 	export let chatId: string | null = null;
 
@@ -349,7 +347,7 @@
 							{:else if activeTab === 'files' && codeInterpreterEnabled}
 								<PyodideFileNav />
 							{:else}
-								<Controls embed={true} {models} bind:chatFiles bind:params />
+								<Controls embed={true} bind:chatFiles bind:params />
 							{/if}
 						</div>
 					</div>
@@ -502,7 +500,7 @@
 								{:else if activeTab === 'files' && codeInterpreterEnabled}
 									<PyodideFileNav overlay={dragged} />
 								{:else}
-									<Controls embed={true} {models} bind:chatFiles bind:params />
+									<Controls embed={true} bind:chatFiles bind:params />
 								{/if}
 							</div>
 						</div>

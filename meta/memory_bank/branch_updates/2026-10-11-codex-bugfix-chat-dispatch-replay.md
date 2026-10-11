@@ -230,3 +230,12 @@
   - Done: 2026-10-11
   - Summary: Переиспользовать Model и ValveValues/ValveSpec, удалить неиспользуемые loaded/catch и CSS; сохранить исполняемое поведение.
   - Tests: 6 compiled comparisons, frontend 2419/2419; types 146/30, ESLint 219, new 0; scoped lint 0/format pass; future CI 336/19; 264 SDD valid. Production/data preserved.
+
+- [x] **[REFACTOR][FRONTEND]** Удалить неиспользуемые параметры настроек и модели панели
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__refactor__unused-settings-props.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Локально принято удаление четырёх неиспользуемых параметров и полной цепочки models в панели; сохранение настроек, импорт и отправка сообщений прежние. Выпуска нет.
+  - Tests: 27 targeted; 2419 full; 16 client/server компиляций, CSS прежний; types 145/26, ESLint 214, новых 0; scoped lint/Prettier pass; 264 SDD valid; backend565 hashes preserved. Будущий CI337 целей/15 ошибок ещё не проходит.
+  - Risks: Низкий; только удаления внутренних неиспользуемых параметров. Production/21 чужой tracked-файл/262 тома сохранены. PR/CI и выпуск открыты; цель active, план 198/244.

@@ -4777,13 +4777,6 @@
 						bind:pane={controlPane}
 						chatId={$chatId}
 						modelId={selectedModelIds?.at(0) ?? null}
-						models={selectedModelIds.reduce<Model[]>((a, e) => {
-							const model = $models.find((m) => m.id === e);
-							if (model) {
-								return [...a, model];
-							}
-							return a;
-						}, [])}
 						submitPrompt={submitHandler}
 						{stopResponse}
 						{showMessage}
