@@ -280,3 +280,11 @@
   - Done: 2026-10-11
   - Summary: Исправлены Enter после изменения списка и отмена/ошибка/устаревшее чтение картинки. FileReader и существующий loadVersion; данные/действия сохранены. Локально принято, выпуска нет.
   - Tests: До16/28; дополнительный случай−1 тоже воспроизведён. После29 targeted/2462 full; types110/24 ESLint191 новых0; scoped lint0/format pass;267 SDD valid/эта спецификация3/3 completed; будущий CI347 целей0 ошибок.4 client/server компиляции/CSS сохранены. Production/data сохранены. Общие проверки/PR/CI/выпуск открыты; план198/244, цель active.
+
+- [x] **[BUG][ADMIN][IMPORT]** Создание пользователей и импорт CSV
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__bugfix__admin-user-import.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Блокировка на всё время операции, native file.text(), защита от старых результатов и остановка новых пачек после закрытия; пароль CSV не выводится. Сохранены API/роли/пачки10. Локально принято; выпуска нет.
+  - Tests: До2/15, после15 targeted/2477 full, failed/pending/todo0; types101/24 ESLint191 новых0. Scoped lint/формат pass,348 будущих целей CI clean.2 компиляции/CSS сохранены;268 SDD valid/эта спецификация3/3 completed; backend1064/25 reused после565 хешей. Production/21 чужой файл/262 тома/12 соседей сохранены. Общие проверки/PR/CI/выпуск открыты; план198/244, цель active.
