@@ -1,14 +1,22 @@
 <script lang="ts">
 	import { getContext, onDestroy } from 'svelte';
-	import { getPrompts } from '$lib/apis/prompts';
-	import { getSkillItems } from '$lib/apis/skills';
+	import { getPrompts, type PromptRecord } from '$lib/apis/prompts';
+	import { getSkillItems, type SkillUserItem } from '$lib/apis/skills';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Cube from '$lib/components/icons/Cube.svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
+
+	type CommandItem =
+		| { type: 'command'; data: { id: string } }
+		| { type: 'prompt'; data: PromptRecord }
+		| { type: 'skill'; data: SkillUserItem };
 
 	export let query = '';
-	export let onSelect = (e) => {};
+	export let onSelect: (e: CommandItem) => void = () => {};
 	export let canCompact = false;
 	export let compactDisabled = false;
 	export let canStatus = false;
@@ -18,10 +26,10 @@
 	export let contextHasThreshold = false;
 
 	let selectedIdx = 0;
-	export let filteredItems = [];
+	export let filteredItems: CommandItem[] = [];
 
-	let prompts = [];
-	let skills = [];
+	let prompts: PromptRecord[] = [];
+	let skills: SkillUserItem[] = [];
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
 	$: contextCirclePercent = contextHasThreshold
@@ -31,13 +39,13 @@
 
 	$: commandItems = [
 		...(canCompact && 'compact'.startsWith(query.toLowerCase())
-			? [{ type: 'command', data: { id: 'compact' } }]
+			? [{ type: 'command' as const, data: { id: 'compact' } }]
 			: []),
 		...(canFork && 'fork'.startsWith(query.toLowerCase())
-			? [{ type: 'command', data: { id: 'fork' } }]
+			? [{ type: 'command' as const, data: { id: 'fork' } }]
 			: []),
 		...(canStatus && 'status'.startsWith(query.toLowerCase())
-			? [{ type: 'command', data: { id: 'status' } }]
+			? [{ type: 'command' as const, data: { id: 'status' } }]
 			: [])
 	];
 
@@ -47,8 +55,8 @@
 
 	$: filteredItems = [
 		...commandItems,
-		...filteredPrompts.map((data) => ({ type: 'prompt', data })),
-		...skills.map((data) => ({ type: 'skill', data }))
+		...filteredPrompts.map((data) => ({ type: 'prompt' as const, data })),
+		...skills.map((data) => ({ type: 'skill' as const, data }))
 	];
 
 	$: if (query) {
@@ -68,7 +76,7 @@
 		clearTimeout(searchDebounceTimer);
 	});
 
-	const getItems = async () => {
+	const getItems = async (): Promise<void> => {
 		const [promptRes, skillRes] = await Promise.all([
 			getPrompts(localStorage.token).catch(() => null),
 			getSkillItems(localStorage.token, query).catch(() => null)
@@ -81,15 +89,15 @@
 		skills = skillRes?.items ?? [];
 	};
 
-	export const selectUp = () => {
+	export const selectUp = (): void => {
 		selectedIdx = Math.max(0, selectedIdx - 1);
 	};
 
-	export const selectDown = () => {
+	export const selectDown = (): void => {
 		selectedIdx = Math.min(selectedIdx + 1, filteredItems.length - 1);
 	};
 
-	export const select = async () => {
+	export const select = async (): Promise<void> => {
 		const item = filteredItems[selectedIdx];
 		if (item?.type === 'command' && item.data?.id === 'compact' && compactDisabled) {
 			return;
@@ -102,7 +110,7 @@
 		}
 	};
 
-	const escapeTooltipText = (value = '') =>
+	const escapeTooltipText = (value: unknown = ''): string =>
 		String(value)
 			.replaceAll('&', '&amp;')
 			.replaceAll('<', '&lt;')
@@ -110,7 +118,7 @@
 			.replaceAll('"', '&quot;')
 			.replaceAll("'", '&#39;');
 
-	const getSkillTooltipContent = (skill) => {
+	const getSkillTooltipContent = (skill: SkillUserItem): string => {
 		const name = escapeTooltipText(skill.name);
 		const description = escapeTooltipText(skill.description);
 

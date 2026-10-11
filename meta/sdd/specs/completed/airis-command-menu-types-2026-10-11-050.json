@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-command-menu-types-2026-10-11-050",
+  "title": "airis-command-menu-types",
+  "generated": "2026-10-11T07:40:27.938910Z",
+  "last_updated": "2026-10-11T12:27:33.026615Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__command-menu-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T07:41:05.303161Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T12:27:33.026351Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Type existing command menu data without runtime changes",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace command payloads and shared bindings",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:27:32.194828Z",
+        "journaled_at": "2026-10-11T12:27:32.196695Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Use existing API types without changing behavior",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:27:32.402691Z",
+        "journaled_at": "2026-10-11T12:27:32.404537Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify compiled JS CSS and frontend checks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:27:32.610747Z",
+        "journaled_at": "2026-10-11T12:27:32.613032Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace command payloads and shared bindings",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:27:32.194683Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:27:32.195642Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Use existing API types without changing behavior",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:27:32.402521Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:27:32.403507Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify compiled JS CSS and frontend checks",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:27:32.610578Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:27:32.611548Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T12:27:32.195638Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace command payloads and shared bindings",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:27:32.196691Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace command payloads and shared bindings",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:27:32.403502Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use existing API types without changing behavior",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:27:32.404533Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Use existing API types without changing behavior",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T12:27:32.611543Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify compiled JS CSS and frontend checks",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:27:32.613028Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify compiled JS CSS and frontend checks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

@@ -46,9 +46,9 @@
 		selectDown: () => void;
 		select: () => void | Promise<void>;
 	} | null = null;
-	let filteredItems: ComponentProps<typeof SlashCommands>['filteredItems'] = [];
+	let filteredItems: unknown[] = [];
 
-	const onKeyDown = (event: KeyboardEvent) => {
+	const onKeyDown = (event: KeyboardEvent): boolean => {
 		if (!['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(event.key)) return false;
 
 		if (event.key === 'ArrowUp') {
@@ -90,7 +90,9 @@
 				<SlashCommands
 					bind:this={suggestionElement}
 					{query}
-					bind:filteredItems
+					bind:filteredItems={
+						filteredItems as ComponentProps<typeof SlashCommands>['filteredItems']
+					}
 					canCompact={compactAvailable}
 					compactDisabled={isCompactDisabled}
 					canStatus={statusAvailable}
@@ -129,7 +131,7 @@
 				<Knowledge
 					bind:this={suggestionElement}
 					{query}
-					bind:filteredItems
+					bind:filteredItems={filteredItems as ComponentProps<typeof Knowledge>['filteredItems']}
 					onSelect={(e) => {
 						const { type, data } = e;
 
@@ -154,7 +156,7 @@
 				<AtCommands
 					bind:this={suggestionElement}
 					{query}
-					bind:filteredItems
+					bind:filteredItems={filteredItems as ComponentProps<typeof AtCommands>['filteredItems']}
 					onSelect={(e) => {
 						const { type, data } = e;
 
@@ -186,7 +188,7 @@
 				<Skills
 					bind:this={suggestionElement}
 					{query}
-					bind:filteredItems
+					bind:filteredItems={filteredItems as ComponentProps<typeof Skills>['filteredItems']}
 					onSelect={(e) => {
 						const { type, data } = e;
 
@@ -207,7 +209,7 @@
 				<Emojis
 					bind:this={suggestionElement}
 					{query}
-					bind:filteredItems
+					bind:filteredItems={filteredItems as ComponentProps<typeof Emojis>['filteredItems']}
 					onSelect={(e) => {
 						const { type, data } = e;
 

@@ -47,3 +47,10 @@
   - Done: 2026-10-11
   - Summary: Повтор VK SDK после отказа, предел ожидания и исключение поздних событий Telegram.
   - Validation: SDK 13/13, frontend 2335/2335, 265 CI целей 0/0; types 324/60, ESLint 460, new 0. SDD 3/3. Production и чужие данные сохранены; общий выпуск и A/B открыты.
+
+- [x] **[BUG]** Типы данных меню команд
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__command-menu-types.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Существующие типы API, выбора и общей привязки без изменения поведения.
+  - Validation: JS/CSS 7/7, frontend 2335/2335, 272 цели CI без замечаний; types 292/60, ESLint 446, новых 0. SDD 3/3. Production и чужие данные сохранены; общий выпуск и A/B открыты.

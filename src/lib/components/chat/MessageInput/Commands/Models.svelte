@@ -1,20 +1,29 @@
 <script lang="ts">
 	import Fuse from 'fuse.js';
 
-	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
-	import { tick, getContext } from 'svelte';
+	import { getContext } from 'svelte';
 
 	import { models } from '$lib/stores';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
+
+	import type { Model } from '$lib/utils/airis/model-types';
+	type SearchModel = Omit<Model, 'tags'> & {
+		modelName: string;
+		tags?: string;
+		desc?: string | null;
+	};
 
 	export let query = '';
-	export let onSelect = (e) => {};
+	export let onSelect: (e: { type: 'model'; data: Model | SearchModel }) => void = () => {};
 
 	let selectedIdx = 0;
-	export let filteredItems = [];
+	export let filteredItems: (Model | SearchModel)[] = [];
 
 	let fuse = new Fuse(
 		$models
@@ -44,15 +53,15 @@
 		selectedIdx = 0;
 	}
 
-	export const selectUp = () => {
+	export const selectUp = (): void => {
 		selectedIdx = Math.max(0, selectedIdx - 1);
 	};
 
-	export const selectDown = () => {
+	export const selectDown = (): void => {
 		selectedIdx = Math.min(selectedIdx + 1, filteredItems.length - 1);
 	};
 
-	export const select = async () => {
+	export const select = async (): Promise<void> => {
 		const model = filteredItems[selectedIdx];
 		if (model) {
 			onSelect({ type: 'model', data: model });

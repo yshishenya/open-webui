@@ -1,16 +1,19 @@
 <script lang="ts">
 	import { getContext, onDestroy } from 'svelte';
-	import { getSkillItems } from '$lib/apis/skills';
+	import { getSkillItems, type SkillUserItem } from '$lib/apis/skills';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Cube from '$lib/components/icons/Cube.svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let query = '';
-	export let onSelect = (e) => {};
+	export let onSelect: (e: { type: 'skill'; data: SkillUserItem }) => void = () => {};
 
 	let selectedIdx = 0;
-	export let filteredItems = [];
+	export let filteredItems: SkillUserItem[] = [];
 
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
@@ -25,7 +28,7 @@
 		clearTimeout(searchDebounceTimer);
 	});
 
-	const getItems = async () => {
+	const getItems = async (): Promise<void> => {
 		const res = await getSkillItems(localStorage.token, query).catch(() => null);
 		if (res) {
 			filteredItems = res.items;
@@ -36,22 +39,22 @@
 		selectedIdx = 0;
 	}
 
-	export const selectUp = () => {
+	export const selectUp = (): void => {
 		selectedIdx = Math.max(0, selectedIdx - 1);
 	};
 
-	export const selectDown = () => {
+	export const selectDown = (): void => {
 		selectedIdx = Math.min(selectedIdx + 1, filteredItems.length - 1);
 	};
 
-	export const select = async () => {
+	export const select = async (): Promise<void> => {
 		const skill = filteredItems[selectedIdx];
 		if (skill) {
 			onSelect({ type: 'skill', data: skill });
 		}
 	};
 
-	const escapeTooltipText = (value = '') =>
+	const escapeTooltipText = (value: unknown = ''): string =>
 		String(value)
 			.replaceAll('&', '&amp;')
 			.replaceAll('<', '&lt;')
@@ -59,7 +62,7 @@
 			.replaceAll('"', '&quot;')
 			.replaceAll("'", '&#39;');
 
-	const getTooltipContent = (skill) => {
+	const getTooltipContent = (skill: SkillUserItem): string => {
 		const name = escapeTooltipText(skill.name);
 		const description = escapeTooltipText(skill.description);
 
