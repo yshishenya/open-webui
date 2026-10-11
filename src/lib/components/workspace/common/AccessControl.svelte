@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { GroupDetails } from '$lib/utils/airis/group-types';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	import { getGroups, getGroupById, getGroupInfoById } from '$lib/apis/groups';
-	import { getUserInfoById } from '$lib/apis/users';
+	import { getGroups, getGroupInfoById } from '$lib/apis/groups';
+	import { getUserInfoById, type UserInfoResponse } from '$lib/apis/users';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
-	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import AddAccessModal from './AddAccessModal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -26,11 +28,15 @@
 		write: { group_ids: string[]; user_ids: string[] };
 	};
 
+	type LegacyAccessControlInput = {
+		[Permission in keyof LegacyAccessControl]?: Partial<LegacyAccessControl[Permission]>;
+	};
+
 	export let onChange: (grants: AccessGrant[]) => unknown = () => {};
 
 	export let accessRoles = ['read'];
-	export let accessGrants: AccessGrant[] | any = [];
-	export let accessControl: any = undefined;
+	export let accessGrants: unknown = [];
+	export let accessControl: unknown = undefined;
 
 	export let share = true;
 	export let sharePublic = true;
@@ -39,9 +45,9 @@
 	export let allowGroups = true;
 	export let defaultPermission: 'read' | 'write' = 'read';
 
-	let groups: any[] = [];
+	let groups: Pick<GroupDetails, 'id' | 'name' | 'member_count'>[] = [];
 	const resolvingGroupIds = new Set<string>();
-	let userById: Record<string, any> = {};
+	let userById: Record<string, Pick<UserInfoResponse, 'id' | 'name' | 'email'>> = {};
 	const resolvingUserIds = new Set<string>();
 
 	let showAddAccessModal = false;
@@ -63,7 +69,7 @@
 		return Array.from(map.values());
 	};
 
-	const legacyAccessControlToGrants = (accessControl: any): AccessGrant[] => {
+	const legacyAccessControlToGrants = (accessControl: unknown): AccessGrant[] => {
 		if (accessControl === null) {
 			return [
 				{
@@ -80,7 +86,7 @@
 
 		const grants: AccessGrant[] = [];
 		for (const permission of ['read', 'write'] as const) {
-			const entry = accessControl?.[permission] ?? {};
+			const entry = (accessControl as LegacyAccessControlInput)?.[permission] ?? {};
 			for (const groupId of entry?.group_ids ?? []) {
 				grants.push({
 					principal_type: 'group',
@@ -136,7 +142,7 @@
 		return result;
 	};
 
-	const normalizeInputToGrants = (value: any): AccessGrant[] => {
+	const normalizeInputToGrants = (value: unknown): AccessGrant[] => {
 		if (value === null) {
 			return legacyAccessControlToGrants(null);
 		}
@@ -149,7 +155,7 @@
 		return [];
 	};
 
-	const stableStringify = (value: any): string => {
+	const stableStringify = (value: unknown): string => {
 		try {
 			return JSON.stringify(value ?? null);
 		} catch {
@@ -157,35 +163,35 @@
 		}
 	};
 
-	const hasPublicReadGrant = (grants: AccessGrant[]): boolean =>
-		grants.some(
+	const hasPublicReadGrant = (grants: unknown): boolean =>
+		(grants as AccessGrant[]).some(
 			(grant) =>
 				grant.principal_type === 'user' && grant.principal_id === '*' && grant.permission === 'read'
 		);
 
-	const hasAnyoneReadGrant = (grants: AccessGrant[]): boolean =>
-		grants.some(
+	const hasAnyoneReadGrant = (grants: unknown): boolean =>
+		(grants as AccessGrant[]).some(
 			(grant) =>
 				grant.principal_type === 'anyone' &&
 				grant.principal_id === '*' &&
 				grant.permission === 'read'
 		);
 
-	const hasPublicWriteGrant = (grants: AccessGrant[]): boolean =>
-		grants.some(
+	const hasPublicWriteGrant = (grants: unknown): boolean =>
+		(grants as AccessGrant[]).some(
 			(grant) =>
 				grant.principal_type === 'user' &&
 				grant.principal_id === '*' &&
 				grant.permission === 'write'
 		);
 
-	const currentGrants = (grants: AccessGrant[] | any = accessGrants): AccessGrant[] =>
+	const currentGrants = (grants: unknown = accessGrants): AccessGrant[] =>
 		Array.isArray(grants) ? (grants as AccessGrant[]) : [];
 
 	const getPrincipalIdsByPermission = (
 		principalType: 'user' | 'group',
 		permission: 'read' | 'write',
-		grants: AccessGrant[] | any = accessGrants
+		grants: unknown = accessGrants
 	): string[] =>
 		Array.from(
 			new Set(
@@ -209,12 +215,12 @@
 				grant.permission === permission
 		);
 
-	const commitAccessGrants = (nextGrants: AccessGrant[]) => {
+	const commitAccessGrants = (nextGrants: AccessGrant[]): void => {
 		accessGrants = dedupeAccessGrants(nextGrants);
-		onChange(accessGrants);
+		onChange(accessGrants as AccessGrant[]);
 	};
 
-	const getVisibility = (grants: AccessGrant[]): 'private' | 'public' | 'open' => {
+	const getVisibility = (grants: unknown): 'private' | 'public' | 'open' => {
 		if (hasAnyoneReadGrant(grants)) return 'open';
 		if (hasPublicReadGrant(grants)) return 'public';
 		return 'private';
@@ -471,7 +477,7 @@
 	bind:show={showAddAccessModal}
 	{shareUsers}
 	{allowGroups}
-	{accessGrants}
+	accessGrants={accessGrants as AccessGrant[]}
 	onAdd={handleAddAccess}
 />
 
