@@ -150,7 +150,7 @@
 				bind:value={prompt}
 				rows={8}
 				placeholder={$i18n.t('Enter prompt here.')}
-			/>
+			></textarea>
 		</div>
 
 		<!-- Bottom toolbar -->

@@ -123,7 +123,7 @@
 								: compactSystemPromptTextareaClass}
 							rows="3"
 							placeholder={$i18n.t('Enter system prompt')}
-						/>
+						></textarea>
 					</div>
 				</Collapsible>
 			{/if}

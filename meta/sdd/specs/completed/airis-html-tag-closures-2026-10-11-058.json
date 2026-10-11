@@ -1,0 +1,141 @@
+{
+  "spec_id": "airis-html-tag-closures-2026-10-11-058",
+  "title": "airis-html-tag-closures",
+  "generated": "2026-10-11T14:07:53.063052Z",
+  "last_updated": "2026-10-11T14:13:30.593221Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__refactor__html-tag-closures.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T14:09:24.843213Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T14:13:30.592957Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-html-tag-closures",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Capture actual warning elements and preserve native HTML semantics",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T14:09:25.077754Z",
+        "journaled_at": "2026-10-11T14:09:25.079682Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Capture actual warning elements and preserve native HTML semantics",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T14:09:25.077562Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T14:09:25.078650Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Close only nonvoid tags and verify client server CSS and full gates",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T14:13:30.174768Z",
+        "journaled_at": "2026-10-11T14:13:30.176560Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Close only nonvoid tags and verify client server CSS and full gates",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T14:13:30.174611Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T14:13:30.175514Z"
+      },
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T14:09:25.078645Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Capture actual warning elements and preserve native HTML semantics",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T14:09:25.079677Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Capture actual warning elements and preserve native HTML semantics",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T14:13:30.175509Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Close only nonvoid tags and verify client server CSS and full gates",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T14:13:30.176555Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Close only nonvoid tags and verify client server CSS and full gates",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
