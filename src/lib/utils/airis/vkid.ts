@@ -1,4 +1,4 @@
-const VKID_SDK_URL = 'https://unpkg.com/@vkid/sdk@2.6.0/dist-sdk/umd/index.js';
+const VKID_SDK_URL = 'https://unpkg.com/@vkid/sdk@2.6.9/dist-sdk/umd/index.js';
 
 export type VkIdProvider = 'vk' | 'ok' | 'mail';
 
@@ -31,9 +31,30 @@ const loadVkIdSdk = async (): Promise<void> => {
 		const script = document.createElement('script');
 		script.src = VKID_SDK_URL;
 		script.async = true;
-		script.onload = () => resolve();
-		script.onerror = () => reject(new Error('Failed to load VK ID SDK'));
+		const cleanup = (): void => {
+			clearTimeout(timer);
+			script.onload = null;
+			script.onerror = null;
+		};
+		const fail = (message: string): void => {
+			cleanup();
+			script.remove();
+			reject(new Error(message));
+		};
+		const timer = setTimeout(() => fail('Timed out loading VK ID SDK'), 20_000);
+		script.onload = () => {
+			if (!window.VKIDSDK) {
+				fail('VK ID SDK is not available');
+				return;
+			}
+			cleanup();
+			resolve();
+		};
+		script.onerror = () => fail('Failed to load VK ID SDK');
 		document.head.appendChild(script);
+	}).catch((error: unknown) => {
+		vkidLoadPromise = null;
+		throw error;
 	});
 
 	return vkidLoadPromise;
@@ -93,4 +114,3 @@ export const vkIdLogin = async (
 
 	return { authResponse: authResponseRaw, authData };
 };
-

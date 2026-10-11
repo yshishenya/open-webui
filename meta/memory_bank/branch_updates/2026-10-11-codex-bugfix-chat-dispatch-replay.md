@@ -40,3 +40,10 @@
   - Done: 2026-10-11
   - Summary: DOM-типы и метки без изменения поведения; удаление неиспользуемых объявлений.
   - Validation: JS/CSS6/6,frontend2321/2321;types324/62,ESLint477,new0;263CIцели0/0,SDD3/3. Production/чужиефайлы/тома сохранены; общиеquality/release/A/B открыты.
+
+- [x] **[BUG]** Восстановление загрузки социальных способов входа
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__auth-provider-loading.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Повтор VK SDK после отказа, предел ожидания и исключение поздних событий Telegram.
+  - Validation: SDK 13/13, frontend 2335/2335, 265 CI целей 0/0; types 324/60, ESLint 460, new 0. SDD 3/3. Production и чужие данные сохранены; общий выпуск и A/B открыты.

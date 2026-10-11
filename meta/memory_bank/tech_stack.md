@@ -82,6 +82,16 @@
 
 ### Auth Stack
 
+- **VK ID browser SDK**: external UMD URL pinned to `@vkid/sdk@2.6.9`.
+  Verified 2026-10-11 against npm latest stable, official types, changelog and
+  original SDK exports. The existing VK/OK/Mail Config/Auth contracts remain;
+  releases after 2.6.0 include the vk.ru domain change and crypto-js 4.2.0 fixes.
+  `src/lib/utils/airis/vkid.ts` owns loading; failed loads can be retried by the
+  next user action, with a 20-second load timeout and no automatic login retry.
+- **Telegram login widget**: official `telegram-widget.js?22`; the existing
+  global `data-onauth` callback is removed on replacement/destruction and late
+  auth/error events are discarded. Backend verification remains authoritative.
+
 - **JWT**: PyJWT 2.10.1 with crypto support
 - **OAuth/OIDC**: Authlib 1.6.6
 - **JWT Legacy**: python-jose 3.5.0

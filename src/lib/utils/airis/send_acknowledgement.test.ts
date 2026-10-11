@@ -27,28 +27,33 @@ import type {
 vi.mock('$app/environment', () => ({ browser: false, dev: false }));
 vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '', WEBUI_BASE_URL: '' }));
 
+// ponytail: component files are frozen during a run; start a new run after source changes.
+const handlerCodeCache = new Map<string, string>();
 function handler<T>(component: string, name: string, context: object): T {
 	const path = `${process.env.AIRIS_COMPONENT_ROOT ?? 'src/lib/components/chat'}/${component}.svelte`;
-	const source = readFileSync(path, 'utf8'),
-		instance = parse(source).instance;
-	if (!instance) throw new Error('Missing script');
-	const script = ts.createSourceFile(
-		path,
-		source.slice(instance.content.start, instance.content.end),
-		ts.ScriptTarget.Latest,
-		true
-	);
-	const declaration = script.statements
-		.filter(ts.isVariableStatement)
-		.flatMap((s) => [...s.declarationList.declarations])
-		.find((d) => d.name.getText(script) === name);
-	if (!declaration?.initializer) throw new Error(`Missing ${name}`);
-	return runInNewContext(
-		ts.transpileModule(`(${declaration.initializer.getText(script)})`, {
+	const key = JSON.stringify([path, name]);
+	let code = handlerCodeCache.get(key);
+	if (code === undefined) {
+		const source = readFileSync(path, 'utf8'),
+			instance = parse(source).instance;
+		if (!instance) throw new Error('Missing script');
+		const script = ts.createSourceFile(
+			path,
+			source.slice(instance.content.start, instance.content.end),
+			ts.ScriptTarget.Latest,
+			true
+		);
+		const declaration = script.statements
+			.filter(ts.isVariableStatement)
+			.flatMap((s) => [...s.declarationList.declarations])
+			.find((d) => d.name.getText(script) === name);
+		if (!declaration?.initializer) throw new Error(`Missing ${name}`);
+		code = ts.transpileModule(`(${declaration.initializer.getText(script)})`, {
 			compilerOptions: { target: ts.ScriptTarget.ES2022 }
-		}).outputText,
-		context
-	) as T;
+		}).outputText;
+		handlerCodeCache.set(key, code);
+	}
+	return runInNewContext(code, context) as T;
 }
 
 function submitEvents(context: object): ((event: { detail: string }) => Promise<void>)[] {
@@ -1248,4 +1253,17 @@ it('guide query fills the composer after its loading view has mounted', async ()
 	expect(c.prompt).toBe('guide');
 	expect(composer.setText).toHaveBeenCalledWith('guide');
 	expect(c.submitPrompt).not.toHaveBeenCalled();
+});
+
+it('cached handler code keeps independent test contexts', () => {
+	const first = { embedded: false, $temporaryChatEnabled: false, $chatId: 'first' };
+	const second = { embedded: false, $temporaryChatEnabled: false, $chatId: 'second' };
+	const a = handler<() => string>('Chat', 'draftScope', first);
+	const b = handler<() => string>('Chat', 'draftScope', second);
+	expect(a).not.toBe(b);
+	expect(a()).toBe('first');
+	expect(b()).toBe('second');
+	first.$chatId = 'changed';
+	expect(a()).toBe('changed');
+	expect(b()).toBe('second');
 });
