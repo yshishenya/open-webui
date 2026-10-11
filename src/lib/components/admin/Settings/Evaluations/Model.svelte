@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher } from 'svelte';
+	import type { ArenaModel } from '$lib/apis/evaluations';
+	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
-	const i18n = getContext('i18n');
 
 	import Cog6 from '$lib/components/icons/Cog6.svelte';
 	import ArenaModelModal from './ArenaModelModal.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
-	export let model;
+	export let model: ArenaModel;
+	export let onSubmit: (model: ArenaModel) => Promise<boolean>;
 
 	let showModel = false;
 </script>
@@ -15,9 +16,7 @@
 	bind:show={showModel}
 	edit={true}
 	{model}
-	on:submit={async (e) => {
-		dispatch('edit', e.detail);
-	}}
+	{onSubmit}
 	on:delete={async () => {
 		dispatch('delete');
 	}}

@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { models, settings, user, config } from '$lib/stores';
-	import { createEventDispatcher, onMount, getContext, tick } from 'svelte';
+	import { createEventDispatcher, onMount, getContext } from 'svelte';
 
 	const dispatch = createEventDispatcher();
 	import { getModels } from '$lib/apis';
-	import { getConfig, updateConfig } from '$lib/apis/evaluations';
+	import {
+		getConfig,
+		updateConfig,
+		type EvaluationConfig,
+		type ArenaModel
+	} from '$lib/apis/evaluations';
 
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -16,92 +21,81 @@
 	import AdminSettingRow from './AdminSettingRow.svelte';
 	import AdminSettingSection from './AdminSettingSection.svelte';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext('i18n');
 
-	let evaluationConfig = null;
+	let evaluationConfig: EvaluationConfig | null = null;
+	let saving = false;
 	let showAddModel = false;
 
-	const submitHandler = async () => {
-		evaluationConfig = await updateConfig(localStorage.token, evaluationConfig).catch((err) => {
-			toast.error(err);
-			return null;
-		});
-
-		if (evaluationConfig) {
+	const submitHandler = async (nextConfig = evaluationConfig): Promise<boolean> => {
+		if (!nextConfig || saving) return false;
+		saving = true;
+		try {
+			const saved = await updateConfig(localStorage.token, nextConfig).catch((error) => {
+				toast.error(`${error}`);
+				return null;
+			});
+			if (!saved) return false;
+			evaluationConfig = saved;
 			toast.success($i18n.t('Settings saved successfully!'));
-			models.set(
-				await getModels(
-					localStorage.token,
-					$config?.features?.enable_direct_connections
-						? ($settings?.directConnections ?? null)
-						: null
-				)
-			);
+			dispatch('save');
+			// Configuration is saved; a catalog refresh failure must not repeat its POST.
+			const catalog = await getModels(
+				localStorage.token,
+				$config?.features?.enable_direct_connections ? ($settings?.directConnections ?? null) : null
+			).catch((error) => {
+				toast.error(`${error}`);
+				return null;
+			});
+			if (catalog) models.set(catalog);
+			return true;
+		} finally {
+			saving = false;
 		}
 	};
 
-	const addModelHandler = async (model) => {
-		evaluationConfig.EVALUATION_ARENA_MODELS.push(model);
-		evaluationConfig.EVALUATION_ARENA_MODELS = [...evaluationConfig.EVALUATION_ARENA_MODELS];
-
-		await submitHandler();
-		models.set(
-			await getModels(
-				localStorage.token,
-				$config?.features?.enable_direct_connections ? ($settings?.directConnections ?? null) : null
-			)
-		);
+	const addModelHandler = async (model: ArenaModel): Promise<boolean> => {
+		if (!evaluationConfig) return false;
+		return submitHandler({
+			...evaluationConfig,
+			EVALUATION_ARENA_MODELS: [...evaluationConfig.EVALUATION_ARENA_MODELS, model]
+		});
 	};
-
-	const editModelHandler = async (model, modelIdx) => {
-		evaluationConfig.EVALUATION_ARENA_MODELS[modelIdx] = model;
-		evaluationConfig.EVALUATION_ARENA_MODELS = [...evaluationConfig.EVALUATION_ARENA_MODELS];
-
-		await submitHandler();
-		models.set(
-			await getModels(
-				localStorage.token,
-				$config?.features?.enable_direct_connections ? ($settings?.directConnections ?? null) : null
+	const editModelHandler = async (model: ArenaModel, modelIdx: number): Promise<boolean> => {
+		if (!evaluationConfig) return false;
+		return submitHandler({
+			...evaluationConfig,
+			EVALUATION_ARENA_MODELS: evaluationConfig.EVALUATION_ARENA_MODELS.map((current, index) =>
+				index === modelIdx ? model : current
 			)
-		);
+		});
 	};
-
-	const deleteModelHandler = async (modelIdx) => {
-		evaluationConfig.EVALUATION_ARENA_MODELS = evaluationConfig.EVALUATION_ARENA_MODELS.filter(
-			(m, mIdx) => mIdx !== modelIdx
-		);
-
-		await submitHandler();
-		models.set(
-			await getModels(
-				localStorage.token,
-				$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
+	const deleteModelHandler = async (modelIdx: number): Promise<boolean> => {
+		if (!evaluationConfig) return false;
+		return submitHandler({
+			...evaluationConfig,
+			EVALUATION_ARENA_MODELS: evaluationConfig.EVALUATION_ARENA_MODELS.filter(
+				(_, index) => index !== modelIdx
 			)
-		);
+		});
 	};
 
 	onMount(async () => {
 		if ($user?.role === 'admin') {
 			evaluationConfig = await getConfig(localStorage.token).catch((err) => {
-				toast.error(err);
+				toast.error(`${err}`);
 				return null;
 			});
 		}
 	});
 </script>
 
-<ArenaModelModal
-	bind:show={showAddModel}
-	on:submit={async (e) => {
-		addModelHandler(e.detail);
-	}}
-/>
+<ArenaModelModal bind:show={showAddModel} onSubmit={addModelHandler} />
 
 <form
 	class="flex flex-col h-full justify-between text-sm"
 	on:submit|preventDefault={() => {
 		submitHandler();
-		dispatch('save');
 	}}
 >
 	<h2 class="text-sm font-medium text-gray-900 dark:text-white mb-4">{$i18n.t('Evaluations')}</h2>
@@ -146,10 +140,8 @@
 							{#each evaluationConfig.EVALUATION_ARENA_MODELS as model, index}
 								<Model
 									{model}
-									on:edit={(e) => {
-										editModelHandler(e.detail, index);
-									}}
-									on:delete={(e) => {
+									onSubmit={(model) => editModelHandler(model, index)}
+									on:delete={() => {
 										deleteModelHandler(index);
 									}}
 								/>
@@ -177,6 +169,7 @@
 		<button
 			class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
 			type="submit"
+			disabled={saving || !evaluationConfig}
 		>
 			{$i18n.t('Save')}
 		</button>

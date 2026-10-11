@@ -12,3 +12,10 @@
   - Done: 2026-10-11
   - Summary: Ожидание подтверждения reset, конкретные типы форм и освобождение Sortable.
   - Validation:11/11новых,31/31целевых,2247/2247frontend;types457/63,ESLint517,new0;244CI lintцелей0/0,SDD3/3. Production/21чужойфайл/262тома сохранены; общиеquality/release/A/B открыты.
+
+- [x] **[BUG]** Настройки оценки моделей и рейтинг
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__evaluation-settings.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Черновик после отказа, подтверждённое сохранение и актуальные данные рейтинга.
+  - Validation:20/20новых,39/39целевых,2267/2267frontend;types409/63,ESLint509,new0;250CI lintцелей0/0,SDD3/3. Production/21чужойфайл/262тома сохранены; общиеquality/release/A/B открыты.

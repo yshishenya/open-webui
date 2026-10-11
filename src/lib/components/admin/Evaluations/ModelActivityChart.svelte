@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
+	import type { Chart as ChartInstance, TooltipItem } from 'chart.js';
 	import { getContext } from 'svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
@@ -10,10 +11,10 @@
 	export let aggregateWeekly = false;
 
 	let chartCanvas: HTMLCanvasElement;
-	let chartInstance: any = null;
-	let Chart: any = null;
+	let chartInstance: ChartInstance<'bar'> | null = null;
+	let Chart: typeof import('chart.js/auto').default | null = null;
 
-	const createChart = async () => {
+	const createChart = async (): Promise<void> => {
 		if (!chartCanvas || !history.length) return;
 
 		// Dynamically import Chart.js
@@ -28,7 +29,9 @@
 		}
 
 		// For year/all views, aggregate by week
-		let chartData = history;
+		let chartData: Array<
+			{ date: string; won: number; lost: number } | { startDate: string; won: number; lost: number }
+		> = history;
 
 		if (aggregateWeekly && history.length > 7) {
 			// Aggregate daily data into weekly buckets
@@ -115,8 +118,8 @@
 						boxWidth: 8,
 						boxHeight: 8,
 						callbacks: {
-							label: function (context: any) {
-								const value = Math.abs(context.raw);
+							label: function (context: TooltipItem<'bar'>) {
+								const value = Math.abs(context.raw as number);
 								return `${context.dataset.label}: ${value}`;
 							}
 						}
@@ -149,8 +152,8 @@
 							padding: 8,
 							stepSize: 1,
 							precision: 0,
-							callback: function (value: number) {
-								return Math.abs(value); // Show absolute values on y-axis
+							callback: function (value: string | number) {
+								return Math.abs(value as number); // Show absolute values on y-axis
 							}
 						},
 						border: {
