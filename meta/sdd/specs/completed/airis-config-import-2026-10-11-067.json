@@ -1,0 +1,143 @@
+{
+  "spec_id": "airis-config-import-2026-10-11-067",
+  "title": "Reliable configuration file import",
+  "generated": "2026-10-11T16:14:47.035766Z",
+  "last_updated": "2026-10-11T16:30:00.011181Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__config-import.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T16:15:51.905527Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T16:30:00.010942Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Reliable configuration file import",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix import",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T16:20:24.631264Z",
+        "journaled_at": "2026-10-11T16:20:24.633070Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify and deliver",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T16:29:59.571951Z",
+        "journaled_at": "2026-10-11T16:29:59.573736Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce wrong input reset and fix the existing import path",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T16:20:24.631084Z",
+        "needs_journaling": false,
+        "status_note": "Actual form reset regression failed before fix; 14 import scenarios now pass. Native File.text and existing requestJSON reused.",
+        "journaled_at": "2026-10-11T16:20:24.632029Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify actual form, full suite and source delivery",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T16:29:59.571810Z",
+        "needs_journaling": false,
+        "status_note": "Final frontend 2393/2393; actual browser 7/7, console errors 0. Types 155/34 and ESLint checked without new diagnostics. Source delivery recorded in final receipt.",
+        "journaled_at": "2026-10-11T16:29:59.572721Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T16:20:24.632023Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce wrong input reset and fix the existing import path",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual form reset regression failed before fix; 14 import scenarios now pass. Native File.text and existing requestJSON reused.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T16:20:24.633065Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and fix import",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T16:29:59.572716Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify actual form, full suite and source delivery",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Final frontend 2393/2393; actual browser 7/7, console errors 0. Types 155/34 and ESLint checked without new diagnostics. Source delivery recorded in final receipt.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T16:29:59.573731Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify and deliver",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

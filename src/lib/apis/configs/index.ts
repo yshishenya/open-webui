@@ -5,34 +5,21 @@ import type { Banner } from '$lib/types';
 import type { ToolServerConnection } from '$lib/utils/airis/frontend-contracts';
 import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 
-export const importConfig = async (token: string, config: object) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/import`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			config: config
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
+export const importConfig = async (
+	token: string,
+	config: object
+): Promise<Record<string, unknown>> => {
+	const res = await requestJSON<unknown>(
+		`${WEBUI_API_BASE_URL}/configs/import`,
+		token,
+		{ config },
+		undefined,
+		'Config import'
+	);
+	if (!res || typeof res !== 'object' || Array.isArray(res)) {
+		throw new Error('Invalid configuration response');
 	}
-
-	return res;
+	return res as Record<string, unknown>;
 };
 
 export const exportConfig = async (token: string) => {
