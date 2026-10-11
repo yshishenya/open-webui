@@ -30,7 +30,7 @@
 					class="outline-hidden bg-transparent text-sm font-normal block w-fit pr-10 max-w-full placeholder-gray-400"
 					value={state === 'private' ? 'private' : 'public'}
 					on:change={(e) => {
-						if (e.target.value === 'public') {
+						if ((e.target as HTMLSelectElement).value === 'public') {
 							state = 'public';
 						} else {
 							state = 'private';

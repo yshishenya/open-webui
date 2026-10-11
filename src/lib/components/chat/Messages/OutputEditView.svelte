@@ -271,7 +271,7 @@
 								class="w-full bg-transparent outline-hidden resize-none overflow-hidden text-[0.9375rem] p-1.5 rounded-lg"
 								value={getMessageText(di.item)}
 								on:input={(e) => {
-									updateMessageText(di.indices[0], e.target.value);
+									updateMessageText(di.indices[0], (e.target as HTMLTextAreaElement).value);
 									autoResize(e);
 								}}
 								placeholder={$i18n.t('Message text...')}
@@ -283,7 +283,7 @@
 								class="w-full bg-transparent outline-hidden resize-none overflow-hidden text-[0.9375rem] text-gray-500 dark:text-gray-400 p-1.5 rounded-lg"
 								value={getReasoningText(di.item)}
 								on:input={(e) => {
-									updateReasoningText(di.indices[0], e.target.value);
+									updateReasoningText(di.indices[0], (e.target as HTMLTextAreaElement).value);
 									autoResize(e);
 								}}
 								placeholder={$i18n.t('Reasoning text...')}

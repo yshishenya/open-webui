@@ -184,3 +184,9 @@
   - Owner: Codex
   - Done: 2026-10-11
   - Summary: Типы родителя/Model уточнены; runtime отличается только удалением пустого default. Frontend 2379 прошли, types 174/34, ESLint 274, новых 0. Production сохранён; общий выпуск/A/B открыты, план 198/244.
+
+- [x] [REFACTOR] Типы DOM-событий (066) — локально принято.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__dom-event-types.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: 6 компонентов, 12 точных сравнений JS/CSS; frontend 2379/2379, types 162/34, ESLint 274, новых 0. CI 333 цели/73 прежних замечания; форматирование прошло. Production/данные сохранены; выпуск/A/B открыты, план 198/244.
