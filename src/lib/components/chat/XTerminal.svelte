@@ -23,16 +23,16 @@
 	// Resolve the active terminal server's info for the WebSocket URL
 	const getTerminalInfo = (): { serverId: string; baseUrl: string } | null => {
 		// System terminal (admin-configured, has an `id`)
-		const systemTerminals = ($terminalServers ?? []).filter((t: any) => t.id);
-		const systemMatch = systemTerminals.find((t: any) => t.id === $selectedTerminalId);
+		const systemTerminals = ($terminalServers ?? []).filter((t) => t.id);
+		const systemMatch = systemTerminals.find((t) => t.id === $selectedTerminalId);
 		if (systemMatch) {
 			// For system terminals, WS goes through the Airis backend proxy
-			return { serverId: systemMatch.id, baseUrl: WEBUI_API_BASE_URL };
+			return { serverId: systemMatch.id as string, baseUrl: WEBUI_API_BASE_URL };
 		}
 
 		// Direct terminal (user-configured, matched by URL)
-		const directTerminals = ($settings?.terminalServers ?? []).filter((s: any) => s.url);
-		const directMatch = directTerminals.find((s: any) => s.url === $selectedTerminalId);
+		const directTerminals = ($settings?.terminalServers ?? []).filter((s) => s.url);
+		const directMatch = directTerminals.find((s) => s.url === $selectedTerminalId);
 		if (directMatch) {
 			// For direct terminals, construct WS URL from the server URL directly
 			return { serverId: '__direct__', baseUrl: directMatch.url };
@@ -41,7 +41,7 @@
 		return null;
 	};
 
-	const connect = async () => {
+	const connect = async (): Promise<void> => {
 		if (ws) disconnect();
 
 		const info = getTerminalInfo();
@@ -59,8 +59,8 @@
 			if (info.serverId === '__direct__') {
 				// Direct connection to open-terminal
 				const base = info.baseUrl.replace(/\/$/, '');
-				const directTerminals = ($settings?.terminalServers ?? []).filter((s: any) => s.url);
-				const directMatch = directTerminals.find((s: any) => s.url === $selectedTerminalId);
+				const directTerminals = ($settings?.terminalServers ?? []).filter((s) => s.url);
+				const directMatch = directTerminals.find((s) => s.url === $selectedTerminalId);
 				const apiKey = directMatch?.key ?? '';
 				authToken = apiKey;
 

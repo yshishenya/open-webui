@@ -202,3 +202,9 @@
   - Owner: Codex
   - Done: 2026-10-11
   - Summary: существующий OutputItem вместо 14 any; client/server JS/CSS побайтно совпали. Frontend 2393/2393; types 155/34, ESLint 259, новых 0; scoped lint/format прошли. Backend 1064 reused/565 hashes, 263 SDD valid; production/данные сохранены. Выпуск/A/B открыты, план 198/244.
+
+- [x] [REFACTOR] Типы настроек и терминала (069) — локально принято.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__settings-terminal-types.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: 11 explicit any устранены, 15 полей CodeExecutionConfig совпали с backend; 13 сравнений компиляции прошли, только два неиспользуемых выражения удалены. Frontend 2393/2393; types 153/34, ESLint 247, новых 0; scoped lint/format прошли. CI 334 цели/46 ошибок. Backend 1064 reused/565 hashes, 263 SDD valid; production/данные сохранены. Выпуск/A/B открыты, план 198/244.

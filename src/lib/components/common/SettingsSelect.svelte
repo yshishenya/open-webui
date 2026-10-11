@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
 
-	export let value: string | number | boolean = '';
+	export let value: string | number | boolean | null | undefined = '';
 	export let id = '';
 	export let name = '';
 	export let ariaLabel = '';

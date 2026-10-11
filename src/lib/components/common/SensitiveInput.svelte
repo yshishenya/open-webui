@@ -4,7 +4,7 @@
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { v4 as uuidv4 } from 'uuid';
 	export let id = `password-input-${uuidv4()}`;
-	export let value: string = '';
+	export let value: string | null | undefined = '';
 	export let placeholder = '';
 	export let type = 'text';
 	export let required = true;

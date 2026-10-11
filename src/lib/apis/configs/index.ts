@@ -255,7 +255,27 @@ export const initiateOAuthRedirect = (tool: {
 	window.open(authUrl, '_self', 'noopener');
 };
 
-export const getCodeExecutionConfig = async (token: string) => {
+export type CodeExecutionConfig = {
+	ENABLE_CODE_EXECUTION: boolean;
+	CODE_EXECUTION_ENGINE: string;
+	CODE_EXECUTION_JUPYTER_URL: string | null;
+	CODE_EXECUTION_JUPYTER_AUTH: string | null;
+	CODE_EXECUTION_JUPYTER_AUTH_TOKEN: string | null;
+	CODE_EXECUTION_JUPYTER_AUTH_PASSWORD: string | null;
+	CODE_EXECUTION_JUPYTER_TIMEOUT: number | null;
+	ENABLE_CODE_INTERPRETER: boolean;
+	CODE_INTERPRETER_ENGINE: string;
+	CODE_INTERPRETER_PROMPT_TEMPLATE: string | null;
+	CODE_INTERPRETER_JUPYTER_URL: string | null;
+	CODE_INTERPRETER_JUPYTER_AUTH: string | null;
+	CODE_INTERPRETER_JUPYTER_AUTH_TOKEN: string | null;
+	CODE_INTERPRETER_JUPYTER_AUTH_PASSWORD: string | null;
+	CODE_INTERPRETER_JUPYTER_TIMEOUT: number | null;
+};
+
+export const getCodeExecutionConfig = async (
+	token: string
+): Promise<CodeExecutionConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/code_execution`, {
@@ -282,7 +302,10 @@ export const getCodeExecutionConfig = async (token: string) => {
 	return res;
 };
 
-export const setCodeExecutionConfig = async (token: string, config: object) => {
+export const setCodeExecutionConfig = async (
+	token: string,
+	config: CodeExecutionConfig | null
+): Promise<CodeExecutionConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/code_execution`, {
