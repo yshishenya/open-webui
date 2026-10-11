@@ -288,3 +288,11 @@
   - Done: 2026-10-11
   - Summary: Блокировка на всё время операции, native file.text(), защита от старых результатов и остановка новых пачек после закрытия; пароль CSV не выводится. Сохранены API/роли/пачки10. Локально принято; выпуска нет.
   - Tests: До2/15, после15 targeted/2477 full, failed/pending/todo0; types101/24 ESLint191 новых0. Scoped lint/формат pass,348 будущих целей CI clean.2 компиляции/CSS сохранены;268 SDD valid/эта спецификация3/3 completed; backend1064/25 reused после565 хешей. Production/21 чужой файл/262 тома/12 соседей сохранены. Общие проверки/PR/CI/выпуск открыты; план198/244, цель active.
+
+- [x] **[BUG][CHAT][IMPORT]** Чтение истории чатов и смена сеанса
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__bugfix__chat-history-import.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Native file.text(), importing guard, безопасные ошибки, прежние AIRIS/ChatGPT форматы и API. Private журналы удалены. Общий store отвергает старые refresh/page ответы после смены сеанса. Локально принято; выпуска нет.
+  - Tests: До1/11 плюс store0/2; после27 focused/2490 full, failed/pending/todo0; types92/24 ESLint191 новых0. Scoped lint/формат6 файлов pass;352 будущие цели CI clean.2 компиляции/CSS сохранены;269 SDD valid/эта спецификация3/3 completed; backend1064/25 reused после565 хешей. Production/данные сохранены. Общие проверки/PR/CI/собранный интерфейс/выпуск открыты; план198/244, цель active.

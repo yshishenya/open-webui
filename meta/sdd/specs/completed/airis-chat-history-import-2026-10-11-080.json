@@ -1,0 +1,207 @@
+{
+  "spec_id": "airis-chat-history-import-2026-10-11-080",
+  "title": "AIRIS chat history import",
+  "generated": "2026-10-11T19:26:19.103165Z",
+  "last_updated": "2026-10-11T20:21:11.517502Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__chat-history-import.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T19:27:00.548545Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T20:21:11.517247Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS chat history import",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce invalid and late history imports",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T20:07:50.810788Z",
+        "journaled_at": "2026-10-11T20:07:50.813144Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Use native reading and preserve export formats",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T20:11:04.552250Z",
+        "journaled_at": "2026-10-11T20:11:04.554264Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce invalid and late history imports",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T20:07:50.810596Z",
+        "needs_journaling": false,
+        "status_note": "Original DataControls and converter:11 scenarios,1 pass/10 fail. Invalid JSON/file/API, duplicate/read lifetime, cross-session list refresh, private logs, export/navigation failures reproduced; complete async original handler observed. Native/legacy and ChatGPT converter/API/backend paths read.",
+        "journaled_at": "2026-10-11T20:07:50.811992Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Use native reading and preserve export formats",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T20:11:04.552086Z",
+        "needs_journaling": false,
+        "status_note": "18/18 focused including real shared converter checks. Native file.text, one importing guard, input reset, destroy/session checks, safe parse/API/export/navigation errors; AIRIS wrapped/legacy fields and mixed ChatGPT preserved. Private title/message logs removed. Types101 to92/24; scoped lint/format pass. Backend/API unchanged.",
+        "journaled_at": "2026-10-11T20:17:34.627761Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frontend and preserved data",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T20:21:11.068358Z",
+        "journaled_at": "2026-10-11T20:21:11.070356Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify frontend and preserved data",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T20:21:11.068180Z",
+        "needs_journaling": false,
+        "status_note": "Original11 cases1 pass/10 fail; two real-store session cases0/2. Final27 focused and2490 full pass, failed/pending/todo0. Types101 to92/24, ESLint191 unchanged, new0;6 files scoped lint/format pass and352 future-CI targets clean. Two Svelte compilations/CSS unchanged;269 SDD valid. Backend1064/25 reused after565 hashes. Production/21 foreign files/262 volumes/12 neighbors preserved. No deployment or new compiled-browser acceptance.",
+        "journaled_at": "2026-10-11T20:21:11.069190Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T20:07:50.811983Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce invalid and late history imports",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Original DataControls and converter:11 scenarios,1 pass/10 fail. Invalid JSON/file/API, duplicate/read lifetime, cross-session list refresh, private logs, export/navigation failures reproduced; complete async original handler observed. Native/legacy and ChatGPT converter/API/backend paths read.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:07:50.813139Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce invalid and late history imports",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:11:04.553104Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use native reading and preserve export formats",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 18/18 focused including real shared converter checks. Native file.text, one importing guard, input reset, destroy/session checks, safe parse/API/export/navigation errors; AIRIS wrapped/legacy fields and mixed ChatGPT preserved. Private title/message logs removed. Types101 to92/24; scoped lint/format pass. Backend/API unchanged.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:11:04.554259Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Use native reading and preserve export formats",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T20:17:34.627752Z",
+      "entry_type": "deviation",
+      "title": "Reject list responses after a session change",
+      "author": "Codex",
+      "content": "First full2488 run finished before source changes. Two real-store regressions failed0/2 when token changed during refresh/page response; resetChatListState has no runtime callers. Added session snapshot comparison to both shared response commit paths, preserving existing generation checks. Focused27/27 and types92/24; another full run required.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:21:11.069186Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frontend and preserved data",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Original11 cases1 pass/10 fail; two real-store session cases0/2. Final27 focused and2490 full pass, failed/pending/todo0. Types101 to92/24, ESLint191 unchanged, new0;6 files scoped lint/format pass and352 future-CI targets clean. Two Svelte compilations/CSS unchanged;269 SDD valid. Backend1064/25 reused after565 hashes. Production/21 foreign files/262 volumes/12 neighbors preserved. No deployment or new compiled-browser acceptance.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:21:11.070352Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frontend and preserved data",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

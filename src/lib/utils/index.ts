@@ -917,8 +917,8 @@ const convertOpenAIMessages = (convo: OpenAIExportEntry): ImportedOpenAIChat => 
 				messages.push(new_chat);
 				lastId = currentId;
 			}
-		} catch (error) {
-			console.log('Error with', message, '\nError:', error);
+		} catch {
+			console.warn('Unable to convert a chat message.');
 		}
 	}
 
@@ -973,10 +973,6 @@ export const convertOpenAIChats = (_chats: OpenAIExportEntry[]): ImportedOpenAIC
 		// Skip folder/project metadata entries that lack a 'mapping' key
 		if (!('mapping' in convo)) {
 			skipped++;
-			console.log(
-				'Skipping non-conversation entry (folder/project):',
-				convo['title'] ?? convo['id']
-			);
 			continue;
 		}
 
