@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 	import { getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ChatTitleIdResponse } from '$lib/utils/airis/frontend-contracts';
 
 	import dayjs from 'dayjs';
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
@@ -22,11 +25,10 @@
 	import XMark from '../icons/XMark.svelte';
 	import ChevronUp from '../icons/ChevronUp.svelte';
 	import ChevronDown from '../icons/ChevronDown.svelte';
-	import Link from '../icons/Link.svelte';
 	import LinkSlash from '../icons/LinkSlash.svelte';
 	import Clipboard from '../icons/Clipboard.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let show = false;
 
@@ -44,12 +46,20 @@
 	export let orderBy = 'updated_at';
 	export let direction = 'desc'; // 'asc' or 'desc'
 
-	export let chatList = null;
+	export let chatList:
+		| (Pick<ChatTitleIdResponse, 'id' | 'title' | 'updated_at'> & {
+				time_range?: string;
+				share_id?: string | null;
+				user_id?: string;
+				user_name?: string;
+		  })[]
+		| null = null;
 	export let allChatsLoaded = false;
 	export let chatListLoading = false;
+	export let chatListError: string | null = null;
+	export let retryHandler: null | (() => unknown) = null;
 
-	let selectedChatId = null;
-	let selectedIdx = 0;
+	let selectedChatId: string | null = null;
 	let showDeleteConfirmDialog = false;
 
 	export let onUpdate = () => {};
@@ -59,7 +69,7 @@
 	export let unarchiveHandler: null | ((id: string) => unknown) = null;
 	export let unshareHandler: null | ((id: string) => unknown) = null;
 
-	const setSortKey = (key) => {
+	const setSortKey = (key: string): void => {
 		if (orderBy === key) {
 			direction = direction === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -68,7 +78,7 @@
 		}
 	};
 
-	const deleteHandler = async (chatId) => {
+	const deleteHandler = async (chatId: string): Promise<void> => {
 		const res = await deleteChatById(localStorage.token, chatId).catch((error) => {
 			toast.error(`${error}`);
 		});
@@ -159,7 +169,6 @@
 									class="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition"
 									on:click={() => {
 										query = '';
-										selectedIdx = 0;
 									}}
 								>
 									<XMark className="size-3" strokeWidth="2" />
@@ -167,6 +176,17 @@
 							</div>
 						{/if}
 					</div>
+				</div>
+			{/if}
+
+			{#if chatListError}
+				<div role="alert" class="text-sm text-red-600 dark:text-red-400 py-2">
+					<div>{chatListError}</div>
+					{#if retryHandler}
+						<button class="underline" disabled={chatListLoading} on:click={() => retryHandler?.()}
+							>{$i18n.t('Retry')}</button
+						>
+					{/if}
 				</div>
 			{/if}
 
@@ -235,7 +255,9 @@
 								<div
 									class="text-xs text-gray-500 dark:text-gray-400 text-center px-5 min-h-20 w-full h-full flex justify-center items-center"
 								>
-									{$i18n.t('No results found')}
+									{query
+										? $i18n.t('No results found')
+										: emptyPlaceholder || $i18n.t('No results found')}
 								</div>
 							{/if}
 
@@ -400,9 +422,9 @@
 								</div>
 							{/each}
 
-							{#if !allChatsLoaded && loadHandler}
+							{#if !allChatsLoaded && !chatListError && loadHandler}
 								<Loader
-									on:visible={(e) => {
+									on:visible={() => {
 										if (!chatListLoading) {
 											loadHandler();
 										}
@@ -422,7 +444,7 @@
 							<slot name="footer"></slot>
 						{/if}
 					</div>
-				{:else}
+				{:else if !chatListError}
 					<div class="w-full h-full flex justify-center items-center min-h-20">
 						<Spinner className="size-5" />
 					</div>

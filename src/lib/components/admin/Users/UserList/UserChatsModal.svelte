@@ -1,107 +1,137 @@
 <script lang="ts">
-	import { toast } from 'svelte-sonner';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { AdminUser } from '$lib/apis/users';
+	import type { ChatTitleIdResponse } from '$lib/utils/airis/frontend-contracts';
 
 	import dayjs from 'dayjs';
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
 
 	dayjs.extend(localizedFormat);
 
-	import { getChatListByUserId, deleteChatById, getArchivedChatList } from '$lib/apis/chats';
+	import { getChatListByUserId } from '$lib/apis/chats';
 
-	import Modal from '$lib/components/common/Modal.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ChatsModal from '$lib/components/layout/ChatsModal.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let show = false;
-	export let user;
+	export let user: Pick<AdminUser, 'id' | 'name'>;
 
-	let chatList = null;
+	let chatList: (ChatTitleIdResponse & { time_range: string })[] | null = null;
 	let page = 1;
 
 	let query = '';
 	let orderBy = 'updated_at';
 	let direction = 'desc';
 
-	let filter = {};
-	$: filter = {
-		...(query ? { query } : {}),
-		...(orderBy ? { order_by: orderBy } : {}),
-		...(direction ? { direction } : {})
-	};
-
-	$: if (filter !== null) {
-		searchHandler();
-	}
-
 	let allChatsLoaded = false;
 	let chatListLoading = false;
+	let chatListError: string | null = null;
+	let searchDebounceTimeout: ReturnType<typeof setTimeout> | undefined;
+	let requestGeneration = 0;
+	let destroyed = false;
 
-	let searchDebounceTimeout;
+	let filter: { query?: string; order_by: string; direction: string };
+	$: filter = {
+		...(query ? { query } : {}),
+		order_by: orderBy,
+		direction
+	};
 
-	const searchHandler = async () => {
-		if (!show) {
-			return;
-		}
+	const isCurrent = (request: number, requestFilter: typeof filter, userId: string): boolean =>
+		!destroyed &&
+		show &&
+		request === requestGeneration &&
+		user.id === userId &&
+		query === (requestFilter.query ?? '') &&
+		orderBy === requestFilter.order_by &&
+		direction === requestFilter.direction;
 
-		if (searchDebounceTimeout) {
-			clearTimeout(searchDebounceTimeout);
-		}
-
+	const searchHandler = async (
+		open = show,
+		requestFilter = filter,
+		userId = user.id
+	): Promise<void> => {
+		clearTimeout(searchDebounceTimeout);
+		const request = ++requestGeneration;
 		page = 1;
 		chatList = null;
-
-		if (query === '') {
-			chatList = await getChatListByUserId(localStorage.token, user.id, page, filter);
-		} else {
-			searchDebounceTimeout = setTimeout(async () => {
-				chatList = await getChatListByUserId(localStorage.token, user.id, page, filter);
-			}, 500);
-		}
-
-		if ((chatList ?? []).length === 0) {
-			allChatsLoaded = true;
-		} else {
-			allChatsLoaded = false;
-		}
-	};
-
-	const loadMoreChats = async () => {
-		chatListLoading = true;
-		page += 1;
-
-		let newChatList = [];
-
-		newChatList = await getChatListByUserId(localStorage.token, user.id, page, filter);
-
-		// once the bottom of the list has been reached (no results) there is no need to continue querying
-		allChatsLoaded = newChatList.length === 0;
-
-		if (newChatList.length > 0) {
-			const existingIds = new Set(chatList.map((c) => c.id));
-			const uniqueNewChats = newChatList.filter((c) => !existingIds.has(c.id));
-			chatList = [...chatList, ...uniqueNewChats];
-		}
-
-		chatListLoading = false;
-	};
-
-	const init = async () => {
-		chatList = await getChatListByUserId(localStorage.token, user.id, page, filter);
-	};
-
-	$: if (show) {
-		init();
-	} else {
-		chatList = null;
-		page = 1;
-
+		chatListError = null;
 		allChatsLoaded = false;
-		chatListLoading = false;
-	}
+		chatListLoading = open && !destroyed;
+		if (!open || destroyed) return;
+		const fetchChats = async (): Promise<void> => {
+			if (!isCurrent(request, requestFilter, userId)) return;
+			try {
+				const results = await getChatListByUserId(localStorage.token, userId, 1, requestFilter);
+				if (!isCurrent(request, requestFilter, userId)) return;
+				chatList = results;
+				allChatsLoaded = results.length === 0;
+			} catch (error) {
+				if (isCurrent(request, requestFilter, userId)) chatListError = getErrorMessage(error);
+			} finally {
+				if (isCurrent(request, requestFilter, userId)) chatListLoading = false;
+			}
+		};
+		if (query) {
+			searchDebounceTimeout = setTimeout(() => {
+				void fetchChats();
+			}, 500);
+		} else {
+			await fetchChats();
+		}
+	};
+
+	const loadMoreChats = async (): Promise<void> => {
+		if (
+			!show ||
+			destroyed ||
+			chatList === null ||
+			chatListLoading ||
+			allChatsLoaded ||
+			chatListError
+		)
+			return;
+		const request = requestGeneration;
+		const requestFilter = { ...filter };
+		const userId = user.id;
+		const nextPage = page + 1;
+		chatListLoading = true;
+		try {
+			const results = await getChatListByUserId(
+				localStorage.token,
+				userId,
+				nextPage,
+				requestFilter
+			);
+			if (!isCurrent(request, requestFilter, userId)) return;
+			const existingIds = new Set((chatList ?? []).map((chat) => chat.id));
+			chatList = [...(chatList ?? []), ...results.filter((chat) => !existingIds.has(chat.id))];
+			page = nextPage;
+			allChatsLoaded = results.length === 0;
+		} catch (error) {
+			if (isCurrent(request, requestFilter, userId)) chatListError = getErrorMessage(error);
+		} finally {
+			if (isCurrent(request, requestFilter, userId)) chatListLoading = false;
+		}
+	};
+
+	const retryHandler = (): void => {
+		chatListError = null;
+		if (chatList === null) void searchHandler();
+		else void loadMoreChats();
+	};
+
+	onDestroy(() => {
+		destroyed = true;
+		requestGeneration += 1;
+		clearTimeout(searchDebounceTimeout);
+	});
+
+	$: searchHandler(show, filter, user.id);
 </script>
 
 <ChatsModal
@@ -117,8 +147,10 @@
 	{chatList}
 	{allChatsLoaded}
 	{chatListLoading}
+	{chatListError}
+	{retryHandler}
 	onUpdate={() => {
-		init();
+		searchHandler();
 	}}
 	loadHandler={loadMoreChats}
 ></ChatsModal>

@@ -160,3 +160,9 @@
   - Summary: последние три Function устранены; string/number source identifiers и Settings/GenerationParams/Model сохранены. Два присваивания stop объединены без новых механизмов.
   - Tests: 16/16 целевых, frontend 2355/2355; types 208/35, ESLint 320, новых 0; 3 exact JS/CSS scopes и 1 normalized scope, 5 сценариев настоящей формы. 328 CI targets имеют 99 прежних замечаний. Backend 1064 reused/565 hashes, 259 SDD valid; production/data preserved.
   - Pending: общие проверки, PR/CI, выпуск и реальные A/B; план 198/244, цель active.
+
+- [x] [BUG] Актуальность загрузки списков чатов (062).
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__chat-list-modals.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Actual-script 13/13, browser fixture 9/9, frontend 2368/2368. Types 191/34, ESLint 306, новых 0; scoped lint/format passed. Production сохранён; общие выпуск и A/B открыты, план 198/244.

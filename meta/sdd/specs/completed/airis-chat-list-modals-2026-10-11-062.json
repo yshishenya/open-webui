@@ -1,0 +1,141 @@
+{
+	"spec_id": "airis-chat-list-modals-2026-10-11-062",
+	"title": "AIRIS chat list modals lifecycle 2026-10-11 062",
+	"generated": "2026-10-11T14:55:23.615318Z",
+	"last_updated": "2026-10-11T15:16:39.884921Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 1,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__chat-list-modals.md",
+		"upstream_impact": [
+			"src/lib/components/layout/ChatsModal.svelte",
+			"src/lib/components/layout/SharedChatsModal.svelte",
+			"src/lib/components/admin/Users/UserList/UserChatsModal.svelte"
+		],
+		"status": "completed",
+		"activated_date": "2026-10-11T14:55:58.370130Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-11T15:16:39.884631Z",
+		"actual_hours": 0.345
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS chat list modals lifecycle 2026-10-11 062",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce list races and apply local lifecycle guards",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-11T15:04:18.337443Z",
+				"journaled_at": "2026-10-11T15:04:18.339497Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Check mounted components, full frontend and source preservation",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-11T15:16:39.462984Z",
+				"journaled_at": "2026-10-11T15:16:39.465304Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce list races and apply local lifecycle guards",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"category": "implementation",
+			"metadata": {
+				"started_at": "2026-10-11T14:55:58.602558Z",
+				"completed_at": "2026-10-11T15:04:18.337279Z",
+				"needs_journaling": false,
+				"status_note": "Actual-script red 4/4, fixed handlers 13/13; no shared request subsystem or dependency added.",
+				"actual_hours": 0.139,
+				"journaled_at": "2026-10-11T15:04:18.338565Z",
+				"file_path": "src/lib/components/layout/SharedChatsModal.svelte"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Check mounted components, full frontend and source preservation",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"category": "implementation",
+			"metadata": {
+				"started_at": "2026-10-11T15:04:18.542677Z",
+				"file_path": "tests/chat-list-modals-lifecycle.test.ts",
+				"completed_at": "2026-10-11T15:16:39.462831Z",
+				"needs_journaling": false,
+				"status_note": "Final frozen source: frontend 2368/2368, actual-script 13/13, browser fixture 9/9; new type/lint diagnostics zero; scoped lint/format passed; production/21 foreign files/262 volumes preserved. Global types191/34 and ESLint306 remain release gates.",
+				"actual_hours": 0.206,
+				"journaled_at": "2026-10-11T15:16:39.464242Z"
+			},
+			"completed_tasks": 1,
+			"total_tasks": 1
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-11T15:04:18.338561Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce list races and apply local lifecycle guards",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual-script red 4/4, fixed handlers 13/13; no shared request subsystem or dependency added.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-11T15:04:18.339491Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce list races and apply local lifecycle guards",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-11T15:16:39.464237Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Check mounted components, full frontend and source preservation",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Final frozen source: frontend 2368/2368, actual-script 13/13, browser fixture 9/9; new type/lint diagnostics zero; scoped lint/format passed; production/21 foreign files/262 volumes preserved. Global types191/34 and ESLint306 remain release gates.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-11T15:16:39.465299Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Check mounted components, full frontend and source preservation",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}
