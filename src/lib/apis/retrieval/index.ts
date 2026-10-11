@@ -1,4 +1,6 @@
 import { RETRIEVAL_API_BASE_URL } from '$lib/constants';
+import type { DocumentSettings } from '$lib/utils/airis/document-settings';
+import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 
 export const getRAGConfig = async (token: string) => {
 	let error = null;
@@ -50,12 +52,34 @@ type YoutubeConfigForm = {
 	proxy_url: string;
 };
 
-type RAGConfigForm = {
+type RAGConfigForm = Partial<
+	Omit<
+		DocumentSettings,
+		| 'ALLOWED_FILE_EXTENSIONS'
+		| 'CONTENT_EXTRACTION_SUPPORTED_MEDIA_MIME_TYPES'
+		| 'EXTERNAL_DOCUMENT_LOADER_HEADERS'
+		| 'DOCLING_PARAMS'
+		| 'MINERU_PARAMS'
+		| 'MINERU_FILE_EXTENSIONS'
+		| 'FILE_MAX_SIZE'
+		| 'FILE_MAX_COUNT'
+		| 'FILE_IMAGE_COMPRESSION_WIDTH'
+		| 'FILE_IMAGE_COMPRESSION_HEIGHT'
+	>
+> & {
+	ALLOWED_FILE_EXTENSIONS?: string[];
+	MINERU_FILE_EXTENSIONS?: string[];
+	DOCLING_PARAMS?: Record<string, unknown>;
+	MINERU_PARAMS?: Record<string, unknown>;
+	FILE_MAX_SIZE?: number | '' | null;
+	FILE_MAX_COUNT?: number | '' | null;
+	FILE_IMAGE_COMPRESSION_WIDTH?: number | '' | null;
+	FILE_IMAGE_COMPRESSION_HEIGHT?: number | '' | null;
 	PDF_EXTRACT_IMAGES?: boolean;
 	CONTENT_EXTRACTION_SUPPORTED_MEDIA_MIME_TYPES?: string[];
 	ENABLE_GOOGLE_DRIVE_INTEGRATION?: boolean;
 	ENABLE_ONEDRIVE_INTEGRATION?: boolean;
-	EXTERNAL_DOCUMENT_LOADER_HEADERS?: Record<string, string>;
+	EXTERNAL_DOCUMENT_LOADER_HEADERS?: Record<string, unknown>;
 	chunk?: ChunkConfigForm;
 	content_extraction?: ContentExtractConfigForm;
 	web_loader_ssl_verification?: boolean;
@@ -197,9 +221,12 @@ type AzureOpenAIConfigForm = {
 type EmbeddingModelUpdateForm = {
 	openai_config?: OpenAIConfigForm;
 	azure_openai_config?: AzureOpenAIConfigForm;
-	embedding_engine: string;
-	embedding_model: string;
-	embedding_batch_size?: number;
+	ollama_config?: OpenAIConfigForm;
+	RAG_EMBEDDING_ENGINE: string;
+	RAG_EMBEDDING_MODEL: string;
+	RAG_EMBEDDING_BATCH_SIZE?: number;
+	ENABLE_ASYNC_EMBEDDING?: boolean;
+	RAG_EMBEDDING_CONCURRENT_REQUESTS?: number;
 };
 
 export const updateEmbeddingConfig = async (token: string, payload: EmbeddingModelUpdateForm) => {
@@ -508,28 +535,14 @@ export const resetUploadDir = async (token: string) => {
 	return res;
 };
 
-export const resetVectorDB = async (token: string) => {
-	let error = null;
-
-	const res = await fetch(`${RETRIEVAL_API_BASE_URL}/reset/db`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			authorization: `Bearer ${token}`
+export const resetVectorDB = (token: string): Promise<boolean> =>
+	requestModelConnection(
+		`${RETRIEVAL_API_BASE_URL}/reset/db`,
+		{ method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } },
+		undefined,
+		async (response) => {
+			// The existing endpoint returns null on success; HTTP status confirms completion.
+			await response.text();
+			return true;
 		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
+	);
