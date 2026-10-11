@@ -1235,7 +1235,9 @@ export const updatePipelineValves = async (
 	return res;
 };
 
-export const getUsage = async (token: string = '') => {
+export const getUsage = async (
+	token: string = ''
+): Promise<{ model_ids: string[]; user_count: number }> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_BASE_URL}/api/usage`, {
@@ -1342,7 +1344,9 @@ export const getVersion = async (token: string) => {
 	return res;
 };
 
-export const getVersionUpdates = async (token: string) => {
+export const getVersionUpdates = async (
+	token: string
+): Promise<{ current: string; latest: string }> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_BASE_URL}/api/version/updates`, {

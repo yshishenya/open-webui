@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { onMount, tick, getContext } from 'svelte';
-	import { openDB, deleteDB } from 'idb';
+	import { onMount, onDestroy, tick, getContext } from 'svelte';
+	import { openDB, deleteDB, type IDBPDatabase } from 'idb';
+	import type { i18n as I18n } from 'i18next';
+	import type { Readable } from 'svelte/store';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -55,11 +57,19 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { loadKeybindings, matchKeybinding, Shortcut } from '$lib/shortcuts';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	let loaded = false;
-	let DB = null;
-	let localDBChats = [];
+	let appDestroyed = false;
+	const bootstrapCleanup: (() => void)[] = [];
+	let DB: IDBPDatabase<unknown> | null = null;
+	let localDBChats: unknown[] = [];
+
+	onDestroy(() => {
+		appDestroyed = true;
+		bootstrapCleanup.forEach((cleanup) => cleanup());
+		DB?.close();
+	});
 
 	let legalStatus: LegalStatusResponse | null = null;
 	let legalGateOpen = false;
@@ -73,7 +83,7 @@
 	};
 	type SettingsWithTerminals = { terminalServers?: EnabledTerminal[] };
 
-	let version;
+	let version: Awaited<ReturnType<typeof getVersionUpdates>> | null = null;
 	let handledSettingsUrl = '';
 
 	const clearChatInputStorage = () => {
@@ -89,12 +99,17 @@
 		try {
 			// Check if IndexedDB exists
 			DB = await openDB('Chats', 1);
+			if (appDestroyed) {
+				DB.close();
+				return;
+			}
 
 			if (!DB) {
 				return;
 			}
 
 			const chats = await DB.getAllFromIndex('chats', 'timestamp');
+			if (appDestroyed) return;
 			localDBChats = chats.map((item, idx) => chats[chats.length - 1 - idx]);
 
 			if (localDBChats.length === 0) {
@@ -110,6 +125,7 @@
 			console.error(error);
 			return null;
 		});
+		if (appDestroyed) return;
 
 		if (!userSettings) {
 			try {
@@ -133,16 +149,16 @@
 	};
 
 	const setModels = async () => {
-		models.set(
-			await getModels(
-				localStorage.token,
-				$config?.features?.enable_direct_connections ? ($settings?.directConnections ?? null) : null
-			)
+		const modelData = await getModels(
+			localStorage.token,
+			$config?.features?.enable_direct_connections ? ($settings?.directConnections ?? null) : null
 		);
+		if (!appDestroyed) models.set(modelData);
 	};
 
 	const setToolServers = async () => {
 		let toolServersData = await getToolServersData($settings?.toolServers ?? []);
+		if (appDestroyed) return;
 		toolServersData = toolServersData.filter((data) => {
 			if (!data || data.error) {
 				toast.error(
@@ -164,7 +180,8 @@
 
 		// Fetch terminal servers the user has access to (for FileNav + terminal_id)
 		const systemTerminals = await getTerminalServers(localStorage.token);
-		terminalServers.set([
+		if (appDestroyed) return;
+		const terminalData = [
 			...(enabledTerminals.length > 0
 				? (
 						await getToolServersData(
@@ -178,6 +195,7 @@
 						)
 					)
 						.filter((data) => {
+							if (appDestroyed) return false;
 							if (!data || data.error) {
 								toast.error(
 									$i18n.t(`Failed to connect to {{URL}} terminal server`, {
@@ -200,17 +218,18 @@
 				name: t.name,
 				key: localStorage.token
 			}))
-		]);
+		];
+		if (!appDestroyed) terminalServers.set(terminalData);
 	};
 
 	const setBanners = async () => {
 		const bannersData = await getBanners(localStorage.token);
-		banners.set(bannersData);
+		if (!appDestroyed) banners.set(bannersData);
 	};
 
 	const setTools = async () => {
 		const toolsData = await getTools(localStorage.token);
-		tools.set(toolsData);
+		if (!appDestroyed) tools.set(toolsData);
 	};
 
 	const openSettingsFromUrl = async () => {
@@ -261,6 +280,7 @@
 	};
 
 	const bootstrapApp = async (): Promise<void> => {
+		if (appDestroyed) return;
 		clearChatInputStorage();
 		await Promise.all([
 			checkLocalDBChats(),
@@ -270,12 +290,13 @@
 				await setModels().catch((e) => console.error('Failed to load models:', e));
 			}).catch((e) => console.error('Failed to load user settings:', e))
 		]);
+		if (appDestroyed) return;
 
 		selectedTerminalId.set(localStorage.selectedTerminalId ?? null);
 
 		const loadToolServers = setToolServers().catch((e) => {
 			console.error('Failed to load tool servers:', e);
-			terminalServers.set([]);
+			if (!appDestroyed) terminalServers.set([]);
 		});
 		if (
 			$page.url.searchParams.get('q') &&
@@ -283,9 +304,10 @@
 		) {
 			await loadToolServers;
 		}
+		if (appDestroyed) return;
 
 		const setupKeyboardShortcuts = () => {
-			document.addEventListener('keydown', async (event) => {
+			const handleKeyDown = async (event: KeyboardEvent): Promise<void> => {
 				if ($settings?.keyboardShortcuts === false) {
 					return;
 				}
@@ -306,11 +328,15 @@
 				} else if (shortcut === Shortcut.COPY_LAST_CODE_BLOCK) {
 					console.log('Shortcut triggered: COPY_LAST_CODE_BLOCK');
 					event.preventDefault();
-					[...document.getElementsByClassName('copy-code-button')]?.at(-1)?.click();
+					([...document.getElementsByClassName('copy-code-button')] as HTMLElement[])
+						?.at(-1)
+						?.click();
 				} else if (shortcut === Shortcut.COPY_LAST_RESPONSE) {
 					console.log('Shortcut triggered: COPY_LAST_RESPONSE');
 					event.preventDefault();
-					[...document.getElementsByClassName('copy-response-button')]?.at(-1)?.click();
+					([...document.getElementsByClassName('copy-response-button')] as HTMLElement[])
+						?.at(-1)
+						?.click();
 				} else if (shortcut === Shortcut.TOGGLE_SIDEBAR) {
 					console.log('Shortcut triggered: TOGGLE_SIDEBAR');
 					event.preventDefault();
@@ -369,14 +395,18 @@
 				) {
 					console.log('Shortcut triggered: REGENERATE_RESPONSE');
 					event.preventDefault();
-					[...document.getElementsByClassName('regenerate-response-button')]?.at(-1)?.click();
+					([...document.getElementsByClassName('regenerate-response-button')] as HTMLElement[])
+						?.at(-1)
+						?.click();
 				}
-			});
+			};
+			document.addEventListener('keydown', handleKeyDown);
+			bootstrapCleanup.push(() => document.removeEventListener('keydown', handleKeyDown));
 		};
 		setupKeyboardShortcuts();
 
 		if ($user?.role === 'admin' && ($settings?.showChangelog ?? true)) {
-			showChangelog.set($settings?.version !== $config.version);
+			showChangelog.set($settings?.version !== $config?.version);
 		}
 
 		if ($user?.role === 'admin' || ($user?.permissions?.chat?.temporary ?? true)) {
@@ -396,7 +426,7 @@
 				const dismissedUpdateToast = new Date(Number(localStorage.dismissedUpdateToast));
 				const now = new Date();
 
-				if (now - dismissedUpdateToast > 24 * 60 * 60 * 1000) {
+				if (now.getTime() - dismissedUpdateToast.getTime() > 24 * 60 * 60 * 1000) {
 					checkForVersionUpdates();
 				}
 			} else {
@@ -405,28 +435,33 @@
 		}
 		// Persist showControls: track open/close state separately from saved size
 		// chatControlsSize always retains the last width for openPane()
-		await showControls.set(!$mobile ? localStorage.showControls === 'true' : false);
-		showControls.subscribe((value) => {
-			localStorage.showControls = value ? 'true' : 'false';
-		});
+		showControls.set(!$mobile ? localStorage.showControls === 'true' : false);
+		bootstrapCleanup.push(
+			showControls.subscribe((value) => {
+				localStorage.showControls = value ? 'true' : 'false';
+			})
+		);
 
 		// Persist selectedTerminalId across page loads
-		selectedTerminalId.subscribe((value) => {
-			if (value === null) {
-				delete localStorage.selectedTerminalId;
-			} else {
-				localStorage.selectedTerminalId = value;
-			}
-		});
+		bootstrapCleanup.push(
+			selectedTerminalId.subscribe((value) => {
+				if (value === null) {
+					delete localStorage.selectedTerminalId;
+				} else {
+					localStorage.selectedTerminalId = value;
+				}
+			})
+		);
 
 		await tick();
 
-		loaded = true;
+		if (!appDestroyed) loaded = true;
 	};
 
 	const handleLegalAccepted = async (
 		event: CustomEvent<{ status: LegalStatusResponse }>
 	): Promise<void> => {
+		if (appDestroyed) return;
 		legalStatus = event.detail.status;
 		legalGateOpen = false;
 		if (!loaded) {
@@ -444,12 +479,15 @@
 		}
 
 		try {
-			legalStatus = await getLegalStatus(localStorage.token);
+			const status = await getLegalStatus(localStorage.token);
+			if (appDestroyed) return;
+			legalStatus = status;
 			if (legalStatus?.needs_accept) {
 				legalGateOpen = true;
 				return;
 			}
 		} catch (error) {
+			if (appDestroyed) return;
 			console.error(error);
 
 			if (error instanceof LegalApiError && error.status === 401) {
@@ -463,6 +501,7 @@
 			// Fail closed: if status cannot be loaded, still show required documents.
 			try {
 				const requirements = await getLegalRequirements();
+				if (appDestroyed) return;
 				legalStatus = {
 					docs: requirements.docs.map((doc) => ({
 						...doc,
@@ -475,6 +514,7 @@
 				legalGateOpen = true;
 				return;
 			} catch (requirementsError) {
+				if (appDestroyed) return;
 				console.error(requirementsError);
 				toast.error('Не удалось загрузить юридические документы. Попробуйте обновить страницу.');
 				legalStatus = {
@@ -566,7 +606,7 @@
 												});
 												saveAs(blob, `chat-export-${Date.now()}.json`);
 
-												const tx = DB.transaction('chats', 'readwrite');
+												const tx = DB!.transaction('chats', 'readwrite');
 												await Promise.all([tx.store.clear(), tx.done]);
 												await deleteDB('Chats');
 

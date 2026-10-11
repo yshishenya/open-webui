@@ -96,3 +96,18 @@
   - Done: 2026-10-11
   - Summary: Существующие типы токенов/lexer, прежний разбор и удаление неиспользуемого расширения команд.
   - Tests: 5 runtime scopes, 25 lexer/parser fixtures, 4/4 целевых; frontend 2338/2338; types 245/56, ESLint 382, новых 0; 283 цели CI без замечаний. SDD 2/2. Выпуск/общие проверки и реальные A/B открыты.
+
+- [ ] **[BUG][057]** Общий вход: обработчики и поздние ответы
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__app-bootstrap-lifecycle.md
+  - Owner: Codex
+  - Started: 2026-10-11
+  - Summary: Очистка существующих подписок/keydown и исключение записей после ухода из приложения.
+
+
+- [x] **[BUG]** App bootstrap lifecycle — локально принято
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__app-bootstrap-lifecycle.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: onDestroy снимает keydown/две подписки и закрывает DB; поздние bootstrap/legal ответы не стирают новую сессию/черновик. Существующие типы и алгоритмы сохранены.
+  - Tests: до0/6, после15/15; frontend2350/2350; types223/56, ESLint382,new0;287CIцелей lint0/0,6scoped files0/0,formatpassed;backend1064reused/565hashes;production/data preserved.
+  - Pending: общий выпуск и реальные A/B; план198/244,цельactive.

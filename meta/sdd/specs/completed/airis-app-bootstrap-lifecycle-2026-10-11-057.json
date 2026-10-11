@@ -1,0 +1,141 @@
+{
+  "spec_id": "airis-app-bootstrap-lifecycle-2026-10-11-057",
+  "title": "airis-app-bootstrap-lifecycle",
+  "generated": "2026-10-11T13:47:47.851366Z",
+  "last_updated": "2026-10-11T14:05:30.240708Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__app-bootstrap-lifecycle.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T13:47:49.695650Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T14:05:30.240449Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-app-bootstrap-lifecycle",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace bootstrap, API callers and reproduce cleanup and late writes",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T13:58:28.192438Z",
+        "journaled_at": "2026-10-11T13:58:28.194086Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Own existing handlers/subscriptions, retain types and verify all gates",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T14:05:29.822157Z",
+        "journaled_at": "2026-10-11T14:05:29.823864Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace bootstrap, API callers and reproduce cleanup and late writes",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T13:58:28.192278Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T13:58:28.193116Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Own existing handlers/subscriptions, retain types and verify all gates",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T14:05:29.821984Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T14:05:29.822904Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T13:58:28.193112Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace bootstrap, API callers and reproduce cleanup and late writes",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T13:58:28.194081Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace bootstrap, API callers and reproduce cleanup and late writes",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T14:05:29.822900Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Own existing handlers/subscriptions, retain types and verify all gates",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T14:05:29.823859Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Own existing handlers/subscriptions, retain types and verify all gates",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
