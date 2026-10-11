@@ -32,6 +32,12 @@ export type ChannelListItem = {
 	unread_count: number;
 };
 
+// Base ChannelModel returned by create/update; list-only fields are absent.
+export type ChannelModel = Omit<
+	ChannelListItem,
+	'user_ids' | 'users' | 'last_message_at' | 'unread_count'
+>;
+
 // GET /channels/{id}: ChannelFullResponse has no last_message_at field.
 export type ChannelDetail = Omit<ChannelListItem, 'last_message_at'> & {
 	is_manager: boolean;

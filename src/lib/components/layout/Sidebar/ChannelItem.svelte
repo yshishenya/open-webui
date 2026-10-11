@@ -8,6 +8,8 @@
 	import { channels, mobile, showSidebar, user } from '$lib/stores';
 	import { updateChannelById, updateChannelMemberActiveStatusById } from '$lib/apis/channels';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import type { ChannelForm } from '$lib/apis/channels';
+	import type { ChannelListItem } from '$lib/utils/airis/channel-types';
 
 	import ChannelModal from './ChannelModal.svelte';
 	import Emoji from '$lib/components/common/Emoji.svelte';
@@ -20,11 +22,12 @@
 	export let onUpdate: () => void | Promise<void> = () => {};
 
 	export let className = '';
-	export let channel;
+	export let channel: ChannelListItem;
 
 	let showEditChannelModal = false;
 
-	let itemElement;
+	let itemElement: HTMLDivElement;
+	let isHiding = false;
 
 	const hasPublicReadGrant = (grants: unknown): boolean =>
 		Array.isArray(grants) &&
@@ -40,11 +43,7 @@
 				grant.permission === 'read'
 		);
 
-	const isPublicChannel = (channel: {
-		type?: string;
-		is_private?: boolean | null;
-		access_grants?: unknown;
-	}): boolean => {
+	const isPublicChannel = (channel: ChannelListItem): boolean => {
 		if (channel?.type === 'group') {
 			if (typeof channel?.is_private === 'boolean') {
 				return !channel.is_private;
@@ -53,6 +52,44 @@
 		}
 		return hasPublicReadGrant(channel?.access_grants);
 	};
+	const saveChannel = async (payload: ChannelForm): Promise<boolean> => {
+		const id = channel.id;
+		const { name, is_private, access_grants, group_ids, user_ids } = payload;
+		const saved = await updateChannelById(localStorage.token, id, {
+			name,
+			is_private,
+			access_grants,
+			group_ids,
+			user_ids
+		}).catch((error: unknown) => {
+			toast.error(`${error}`);
+			return null;
+		});
+		if (!saved) return false;
+		if (channel.id === id) {
+			toast.success($i18n.t('Channel updated successfully'));
+			try {
+				await onUpdate();
+			} catch (error) {
+				toast.error(`${error}`);
+			}
+		}
+		return true;
+	};
+	const hideChannel = async (): Promise<void> => {
+		if (isHiding) return;
+		const id = channel.id;
+		isHiding = true;
+		try {
+			const confirmed = await updateChannelMemberActiveStatusById(localStorage.token, id, false);
+			if (!confirmed) throw new Error($i18n.t('Something went wrong :/'));
+			channels.update((chs) => chs.filter((ch) => ch.id !== id));
+		} catch (error) {
+			toast.error(`${error}`);
+		} finally {
+			isHiding = false;
+		}
+	};
 </script>
 
 <ChannelModal
@@ -60,24 +97,7 @@
 	{channel}
 	edit={true}
 	{onUpdate}
-	onSubmit={async (payload: Parameters<typeof updateChannelById>[2]) => {
-		const { name, is_private, access_grants, group_ids, user_ids } = payload ?? {};
-		const res = await updateChannelById(localStorage.token, channel.id, {
-			name,
-			is_private,
-			access_grants,
-			group_ids,
-			user_ids
-		}).catch((error) => {
-			toast.error(error.message);
-		});
-
-		if (res) {
-			toast.success($i18n.t('Channel updated successfully'));
-		}
-
-		onUpdate();
-	}}
+	onSubmit={saveChannel}
 />
 
 <div
@@ -211,28 +231,18 @@
 		</div>
 	</a>
 
-	{#if ['dm'].includes(channel?.type)}
+	{#if channel.type === 'dm'}
 		<div
 			class="ml-0.5 mr-1 invisible group-hover:visible self-center flex items-center dark:text-gray-300"
 		>
 			<button
 				type="button"
 				class="p-0.5 dark:hover:bg-gray-850 rounded-lg touch-auto"
-				on:click={async (e) => {
+				disabled={isHiding}
+				on:click={(e) => {
 					e.stopImmediatePropagation();
 					e.stopPropagation();
-
-					channels.update((chs) =>
-						chs.filter((ch) => {
-							return ch.id !== channel.id;
-						})
-					);
-
-					await updateChannelMemberActiveStatusById(localStorage.token, channel.id, false).catch(
-						(error) => {
-							toast.error(`${error}`);
-						}
-					);
+					hideChannel();
 				}}
 			>
 				<XMarkIcon className="size-3.5" />

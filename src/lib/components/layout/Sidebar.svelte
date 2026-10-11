@@ -70,6 +70,7 @@
 	import Tooltip from '../common/Tooltip.svelte';
 	import Folders from './Sidebar/Folders.svelte';
 	import { getChannels, createNewChannel } from '$lib/apis/channels';
+	import type { ChannelForm } from '$lib/apis/channels';
 	import ChannelModal from './Sidebar/ChannelModal.svelte';
 	import ChannelItem from './Sidebar/ChannelItem.svelte';
 	import SearchModal from './SearchModal.svelte';
@@ -110,6 +111,8 @@
 	$: selectedChatId = $chatId || null;
 
 	let showCreateChannel = false;
+	let channelCreationVersion = 0;
+	$: if (!showCreateChannel) channelCreationVersion++;
 
 	// Pagination variables
 	let chatListLoading = false;
@@ -871,48 +874,51 @@
 		await tick();
 	};
 
-	const isWindows = /Windows/i.test(navigator.userAgent);
-</script>
-
-<ChannelModal
-	bind:show={showCreateChannel}
-	onSubmit={async (payload: Parameters<typeof createNewChannel>[1]) => {
-		let { type, name, is_private, access_grants, group_ids, user_ids } = payload ?? {};
-		name = name?.trim();
-
-		if (type === 'dm') {
-			if (!user_ids || user_ids.length === 0) {
-				toast.error($i18n.t('Please select at least one user for Direct Message channel.'));
-				return;
-			}
-		} else {
-			if (!name) {
-				toast.error($i18n.t('Channel name cannot be empty.'));
-				return;
-			}
+	const createChannelHandler = async (payload: ChannelForm): Promise<boolean> => {
+		const { type, is_private, access_grants, group_ids, user_ids } = payload;
+		const name = payload.name.trim();
+		if (type === 'dm' && !user_ids?.length) {
+			toast.error($i18n.t('Please select at least one user for Direct Message channel.'));
+			return false;
 		}
-
-		const res = await createNewChannel(localStorage.token, {
-			type: type,
-			name: name,
-			is_private: is_private,
-			access_grants: access_grants,
-			group_ids: group_ids,
-			user_ids: user_ids
-		}).catch((error) => {
+		if (type !== 'dm' && !name) {
+			toast.error($i18n.t('Channel name cannot be empty.'));
+			return false;
+		}
+		const version = channelCreationVersion;
+		const created = await createNewChannel(localStorage.token, {
+			type,
+			name,
+			is_private,
+			access_grants,
+			group_ids,
+			user_ids
+		}).catch((error: unknown) => {
 			toast.error(`${error}`);
 			return null;
 		});
-
-		if (res) {
+		if (!created) return false;
+		try {
 			$socket?.emit('join-channels', { auth: { token: $user?.token } });
 			await initChannels();
-			showCreateChannel = false;
-			showChannels = true;
-			goto(`/channels/${res.id}`);
+		} catch (error) {
+			toast.error(`${error}`);
 		}
-	}}
-/>
+		if (showCreateChannel && version === channelCreationVersion) {
+			showChannels = true;
+			try {
+				await goto(`/channels/${created.id}`);
+			} catch (error) {
+				toast.error(`${error}`);
+			}
+		}
+		return true;
+	};
+
+	const isWindows = /Windows/i.test(navigator.userAgent);
+</script>
+
+<ChannelModal bind:show={showCreateChannel} onSubmit={createChannelHandler} />
 
 <FolderModal bind:show={showCreateFolderModal} onSubmit={createFolder} />
 

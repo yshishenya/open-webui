@@ -2,6 +2,7 @@ import { requestJSON } from '$lib/utils/airis/request_json';
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import type {
 	ChannelListItem,
+	ChannelModel,
 	ChannelDetail,
 	ChannelListMessage,
 	ChannelPinnedMessage,
@@ -13,78 +14,52 @@ import type {
 	ChannelMembership
 } from '$lib/utils/airis/channel-types';
 
-type ChannelForm = {
+export type ChannelForm = {
 	type?: string;
 	name: string;
 	is_private?: boolean | null;
 	data?: object;
 	meta?: object;
-	access_grants?: object[];
+	access_grants?: ChannelListItem['access_grants'];
 	group_ids?: string[];
 	user_ids?: string[];
 };
 
-export const createNewChannel = async (token: string = '', channel: ChannelForm) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/create`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({ ...channel })
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+const readChannelModel = (value: ChannelModel | null, id?: string): ChannelModel | null => {
+	if (value === null) return null;
+	if (
+		!value ||
+		typeof value.id !== 'string' ||
+		(id !== undefined && value.id !== id) ||
+		typeof value.user_id !== 'string' ||
+		typeof value.name !== 'string' ||
+		!Array.isArray(value.access_grants) ||
+		!Number.isFinite(value.created_at) ||
+		!Number.isFinite(value.updated_at)
+	)
+		throw new Error('Invalid channel response');
+	return value;
 };
-
+export const createNewChannel = async (
+	token: string = '',
+	channel: ChannelForm
+): Promise<ChannelModel | null> =>
+	readChannelModel(
+		await requestJSON<ChannelModel | null>(`${WEBUI_API_BASE_URL}/channels/create`, token, channel)
+	);
 export const getChannels = async (token: string = ''): Promise<ChannelListItem[] | null> => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	const result = await requestJSON<ChannelListItem[]>(`${WEBUI_API_BASE_URL}/channels/`, token);
+	if (
+		!Array.isArray(result) ||
+		result.some(
+			(channel) =>
+				!readChannelModel(channel) ||
+				!Number.isInteger(channel.unread_count) ||
+				channel.unread_count < 0
+		)
+	)
+		throw new Error('Invalid channel list response');
+	return result;
 };
 
 export const getChannelById = async (
@@ -190,36 +165,14 @@ export const updateChannelMemberActiveStatusById = async (
 	token: string = '',
 	channel_id: string,
 	is_active: boolean
-) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${channel_id}/members/active`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({ is_active })
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+): Promise<boolean> => {
+	const result = await requestJSON<boolean>(
+		`${WEBUI_API_BASE_URL}/channels/${channel_id}/members/active`,
+		token,
+		{ is_active }
+	);
+	if (typeof result !== 'boolean') throw new Error('Invalid channel activity acknowledgement');
+	return result;
 };
 
 type UpdateMembersForm = {
@@ -275,67 +228,29 @@ export const updateChannelById = async (
 	token: string = '',
 	channel_id: string,
 	channel: ChannelForm
-) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${channel_id}/update`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({ ...channel })
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const deleteChannelById = async (token: string = '', channel_id: string) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${channel_id}/delete`, {
-		method: 'DELETE',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.then((json) => {
-			return json;
-		})
-		.catch((err) => {
-			error = err.detail;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+): Promise<ChannelModel | null> =>
+	readChannelModel(
+		await requestJSON<ChannelModel | null>(
+			`${WEBUI_API_BASE_URL}/channels/${channel_id}/update`,
+			token,
+			channel
+		),
+		channel_id
+	);
+export const deleteChannelById = async (
+	token: string = '',
+	channel_id: string
+): Promise<boolean> => {
+	const result = await requestJSON<boolean>(
+		`${WEBUI_API_BASE_URL}/channels/${channel_id}/delete`,
+		token,
+		undefined,
+		undefined,
+		'Delete channel',
+		'DELETE'
+	);
+	if (typeof result !== 'boolean') throw new Error('Invalid channel deletion acknowledgement');
+	return result;
 };
 
 export const getChannelMessages = async (

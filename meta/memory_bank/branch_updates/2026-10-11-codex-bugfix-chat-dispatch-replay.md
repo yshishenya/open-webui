@@ -26,3 +26,10 @@
   - Done: 2026-10-11
   - Summary: Подтверждённые изменения, остаток очереди и актуальные списки текущего канала.
   - Validation: 29/29 целевых,2296/2296frontend;types367/63,ESLint495,new0;255CI lintцелей0/0,SDD3/3. Production/21чужойфайл/262тома сохранены; общиеquality/release/A/B открыты.
+
+- [x] **[BUG]** Создание, редактирование и скрытие каналов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__channel-lifecycle.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Сохранение полей при отказе и изменение списка только после подтверждения.
+  - Validation: 25/25 целевых,2321/2321frontend;types350/63,ESLint489,new0;257CI lintцелей0/0,SDD3/3. Production/21чужойфайл/262тома сохранены; общиеquality/release/A/B открыты.
