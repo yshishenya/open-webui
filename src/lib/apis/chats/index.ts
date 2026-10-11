@@ -4,7 +4,8 @@ import { requestJSON } from '$lib/utils/airis/request_json';
 import type {
 	ChatListItem,
 	ChatTitleIdResponse,
-	SharedChatTitleResponse
+	SharedChatTitleResponse,
+	SavedChat
 } from '$lib/utils/airis/frontend-contracts';
 
 export const getChatConfig = async (token: string) => {
@@ -774,7 +775,10 @@ export const getChatById = async (token: string, id: string) => {
 	}
 };
 
-export const getChatByShareId = async (token: string, share_id: string) => {
+export const getChatByShareId = async (
+	token: string,
+	share_id: string
+): Promise<SavedChat | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/chats/share/${share_id}`, {
@@ -1020,7 +1024,7 @@ export const forkChatById = async (token: string, id: string, messageId?: string
 	return res;
 };
 
-export const cloneSharedChatById = async (token: string, id: string) => {
+export const cloneSharedChatById = async (token: string, id: string): Promise<SavedChat | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/chats/${id}/clone/shared`, {

@@ -393,6 +393,7 @@ export type SavedChat = {
 	tasks?: { id: string; content: string; status: string }[] | null;
 	chat: {
 		title: string;
+		timestamp?: number | null;
 		models?: string[] | null;
 		history?: ChatHistory | null;
 		messages: ChatHistoryMessage[];

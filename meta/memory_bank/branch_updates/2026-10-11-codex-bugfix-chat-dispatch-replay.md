@@ -166,3 +166,9 @@
   - Owner: Codex
   - Done: 2026-10-11
   - Summary: Actual-script 13/13, browser fixture 9/9, frontend 2368/2368. Types 191/34, ESLint 306, новых 0; scoped lint/format passed. Production сохранён; общие выпуск и A/B открыты, план 198/244.
+
+- [x] [BUG] Актуальность загрузки общего чата (063).
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__bugfix__shared-route.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Actual-source 3/3 red → 11/11 pass; frontend2379/2379, browser route7/7 с Messages stub. Types178/34 ESLint302 new0, scoped lint/format passed. Production сохранён; выпуск/A/B открыты, план198/244.

@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { onMount, tick, getContext } from 'svelte';
+	import { tick, getContext, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { SavedChat } from '$lib/utils/airis/frontend-contracts';
+	import type {
+		ChatHistory,
+		ChatHistoryMessage,
+		ChatAttachment
+	} from '$lib/utils/airis/chat_history';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
@@ -12,32 +20,27 @@
 
 	import Messages from '$lib/components/chat/Messages.svelte';
 
-	import { getUserInfoById, getUserSettings } from '$lib/apis/users';
+	import { getUserInfoById, getUserSettings, type UserInfoResponse } from '$lib/apis/users';
 	import { getModels } from '$lib/apis';
 	import { toast } from 'svelte-sonner';
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 	dayjs.extend(localizedFormat);
 
 	let loaded = false;
 
 	let autoScroll = true;
-	let processing = '';
-	let messagesContainerElement: HTMLDivElement;
-
-	// let chatId = $page.params.id;
-	let showModelSelector = false;
 	let selectedModels = [''];
 
-	let chat = null;
-	let user = null;
+	let chat: SavedChat | null = null;
+	let user: UserInfoResponse | null = null;
 
 	let title = '';
-	let files = [];
+	const files: ChatAttachment[] = [];
 
-	let messages = [];
-	let history = {
+	let messages: ChatHistoryMessage[] = [];
+	let history: ChatHistory = {
 		messages: {},
 		currentId: null
 	};
@@ -47,49 +50,44 @@
 		$sessionUser &&
 		($sessionUser.role === 'admin' || ($sessionUser.permissions?.chat?.import ?? true));
 
-	$: if ($page.params.id) {
-		(async () => {
-			if (await loadSharedChat()) {
-				await tick();
-				loaded = true;
-			} else {
-				await goto('/');
-			}
-		})();
-	}
+	let loadGeneration = 0;
+	let destroyed = false;
+	const isCurrent = (request: number, shareId: string): boolean =>
+		!destroyed && request === loadGeneration && $page.params.id === shareId;
 
-	//////////////////////////
-	// Web functions
-	//////////////////////////
+	onDestroy(() => {
+		destroyed = true;
+		loadGeneration += 1;
+	});
 
-	const loadSharedChat = async () => {
+	const loadSharedChat = async (shareId = $page.params.id): Promise<void> => {
+		const request = ++loadGeneration;
+		loaded = false;
+		chat = null;
+		user = null;
+		title = '';
+		if (!shareId || destroyed) return;
 		const token = localStorage.token ?? '';
-		const shareId = $page.params.id;
-		if (!shareId) return null;
-
-		const userSettings = token
-			? await getUserSettings(token).catch((error) => {
-					console.error(error);
-					return null;
-				})
-			: null;
-
-		if (userSettings) {
-			settings.set(userSettings.ui);
-		} else {
-			let localStorageSettings = {} as Parameters<(typeof settings)['set']>[0];
-
-			try {
-				localStorageSettings = JSON.parse(localStorage.getItem('settings') ?? '{}');
-			} catch (e: unknown) {
-				console.error('Failed to parse settings from localStorage', e);
+		try {
+			const userSettings = token
+				? await getUserSettings(token).catch((error) => {
+						console.error(error);
+						return null;
+					})
+				: null;
+			if (!isCurrent(request, shareId)) return;
+			if (userSettings) {
+				settings.set(userSettings.ui);
+			} else {
+				let localSettings = {} as Parameters<(typeof settings)['set']>[0];
+				try {
+					localSettings = JSON.parse(localStorage.getItem('settings') ?? '{}');
+				} catch (error: unknown) {
+					console.error('Failed to parse settings from localStorage', error);
+				}
+				settings.set(localSettings);
 			}
-
-			settings.set(localStorageSettings);
-		}
-
-		await models.set(
-			token
+			const availableModels = token
 				? await getModels(
 						token,
 						$config?.features?.enable_direct_connections
@@ -99,53 +97,49 @@
 						console.error(error);
 						return [];
 					})
-				: []
-		);
-		await chatId.set(shareId);
-		chat = await getChatByShareId(token, shareId).catch(async (error) => {
-			await goto('/');
-			return null;
-		});
-
-		if (chat) {
-			user = token
-				? await getUserInfoById(token, chat.user_id).catch((error) => {
+				: [];
+			if (!isCurrent(request, shareId)) return;
+			models.set(availableModels);
+			chatId.set(shareId);
+			const sharedChat = await getChatByShareId(token, shareId);
+			if (!isCurrent(request, shareId)) return;
+			if (!sharedChat?.chat) {
+				await goto('/');
+				return;
+			}
+			const owner = token
+				? await getUserInfoById(token, sharedChat.user_id).catch((error) => {
 						console.error(error);
 						return null;
 					})
 				: null;
-
-			const chatContent = chat.chat;
-
-			if (chatContent) {
-				console.log(chatContent);
-
-				selectedModels =
-					(chatContent?.models ?? undefined) !== undefined
-						? chatContent.models
-						: [chatContent.models ?? ''];
-				history =
-					(chatContent?.history ?? undefined) !== undefined
-						? chatContent.history
-						: convertMessagesToHistory(chatContent.messages);
-				title = chatContent.title;
-
-				autoScroll = true;
-				await tick();
-
-				if (messages.length > 0 && messages.at(-1)?.id && messages.at(-1)?.id in history.messages) {
-					history.messages[messages.at(-1)?.id].done = true;
-				}
-				await tick();
-
-				return true;
-			} else {
-				return null;
+			if (!isCurrent(request, shareId)) return;
+			chat = sharedChat;
+			user = owner;
+			const chatContent = sharedChat.chat;
+			selectedModels = chatContent.models ?? [''];
+			history = chatContent.history ?? convertMessagesToHistory(chatContent.messages);
+			title = chatContent.title;
+			autoScroll = true;
+			await tick();
+			if (!isCurrent(request, shareId)) return;
+			const lastMessage = messages.at(-1);
+			if (lastMessage?.id && lastMessage.id in history.messages) {
+				history.messages[lastMessage.id].done = true;
+			}
+			await tick();
+			if (isCurrent(request, shareId)) loaded = true;
+		} catch (error) {
+			if (isCurrent(request, shareId)) {
+				console.error(error);
+				await goto('/');
 			}
 		}
 	};
 
-	const cloneSharedChat = async () => {
+	$: if ($page.params.id) loadSharedChat($page.params.id);
+
+	const cloneSharedChat = async (): Promise<void> => {
 		if (!canClone) {
 			toast.error($i18n.t('Access prohibited'));
 			return;
@@ -194,7 +188,7 @@
 								class="text-gray-400"
 								datetime={new Date(chat?.chat?.timestamp || Date.now()).toISOString()}
 							>
-								{dayjs(chat.chat.timestamp).format('LLL')}
+								{dayjs(chat?.chat?.timestamp ?? undefined).format('LLL')}
 							</time>
 						</div>
 					</div>
@@ -207,10 +201,11 @@
 							{user}
 							chatId={$chatId}
 							readOnly={true}
+							atSelectedModel={undefined}
+							mergeResponses={() => {}}
+							chatActionHandler={() => {}}
 							{selectedModels}
-							{processing}
 							bind:history
-							bind:messages
 							bind:autoScroll
 							bottomPadding={files.length > 0}
 							sendMessage={() => {}}

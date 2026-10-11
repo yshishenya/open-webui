@@ -4,6 +4,7 @@
 	import { refreshChatList } from '$lib/stores/chatList';
 	import { tick, getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { ComponentProps } from 'svelte';
 	import type { i18n as I18n } from 'i18next';
 	import type { Model } from '$lib/stores';
 	import type {
@@ -29,7 +30,7 @@
 	export let className = 'h-full flex pt-18';
 
 	export let chatId = '';
-	export let user = $_user;
+	export let user: ComponentProps<typeof Message>['user'] = $_user;
 
 	export let history: ChatHistory = { messages: {}, currentId: null };
 	export let selectedModels: string[];
