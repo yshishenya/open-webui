@@ -264,3 +264,11 @@
   - Done: 2026-10-11
   - Summary: Исправлены случайные переходы при закрытии/посторонних событиях; нативная кнопка открывает,6px порог сохранён, sanitizedHtml переиспользован. Локально принято, выпуска нет.
   - Tests: До3/12 pass, после17 targeted/2443 full; types145/24 ESLint199 новых0; scoped lint0/format pass;266 SDD valid/complete; будущий CI337 целей0 ошибок. Production/data сохранены; общие проверки/PR/CI/выпуск открыты, план198/244, цель active.
+
+- [x] **[REFACTOR][TYPES]** Данные чата и списков выбора
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__refactor__chat-list-selection-types.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Семь компонентов используют существующие типы; действия/права/данные сохранены. Локально принято, выпуска нет.
+  - Tests: 2443/2443 full,14 client/server JS/CSS сравнений pass; types124/24 ESLint195 новых0; scoped lint0/format pass;266 SDD valid; будущий CI343 целей0 ошибок. Production/data сохранены. Общие проверки/PR/CI/выпуск открыты, план198/244, цель active.

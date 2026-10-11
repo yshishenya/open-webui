@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { SavedChat } from '$lib/utils/airis/frontend-contracts';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getContext } from 'svelte';
 	import { chatId } from '$lib/stores';
 
@@ -8,10 +11,10 @@
 	import EditPencilIcon from '$lib/components/layout/Sidebar/icons/EditPencil.svelte';
 	import EmbeddedChatHistoryItem from './EmbeddedChatHistoryItem.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let title = '';
-	export let chats = [];
+	export let chats: SavedChat[] = [];
 	export let canCreateNew = false;
 	export let loading = false;
 

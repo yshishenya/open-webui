@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import type { SavedChat } from '$lib/utils/airis/frontend-contracts';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import { getContext } from 'svelte';
 	import { models, config, user } from '$lib/stores';
 
 	import { toast } from 'svelte-sonner';
@@ -17,16 +20,14 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import AccessControl from '$lib/components/workspace/common/AccessControl.svelte';
 
-	export let chatId;
+	export let chatId: string;
 
-	let chat = null;
-	let shareUrl = null;
-	let accessGrants: any[] = [];
-	const i18n = getContext('i18n');
+	let chat: SavedChat | null = null;
+	let shareUrl: string | null = null;
+	let accessGrants: unknown = [];
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	const shareLocalChat = async () => {
-		const _chat = chat;
-
 		const sharedChat = await shareChatById(localStorage.token, chatId);
 		shareUrl = `${window.location.origin}/s/${sharedChat.share_id}`;
 		console.log(shareUrl);
@@ -36,7 +37,7 @@
 	};
 
 	const shareChat = async () => {
-		const _chat = chat.chat;
+		const _chat = chat!.chat;
 		console.log('share', _chat);
 
 		toast.success($i18n.t('Redirecting you to Airis Community'));
@@ -49,10 +50,10 @@
 			(event) => {
 				if (event.origin !== url) return;
 				if (event.data === 'loaded') {
-					tab.postMessage(
+					tab!.postMessage(
 						JSON.stringify({
 							chat: _chat,
-							models: $models.filter((m) => _chat.models.includes(m.id))
+							models: $models.filter((m) => _chat.models!.includes(m.id))
 						}),
 						'*'
 					);
@@ -74,7 +75,7 @@
 
 	const saveAccessGrants = async () => {
 		try {
-			await updateChatAccessGrants(localStorage.token, chatId, accessGrants);
+			await updateChatAccessGrants(localStorage.token, chatId, accessGrants as object[]);
 			toast.success($i18n.t('Access updated'));
 		} catch (e) {
 			toast.error(`${e}`);
@@ -83,7 +84,7 @@
 
 	export let show = false;
 
-	const isDifferentChat = (_chat) => {
+	const isDifferentChat = (_chat: SavedChat | null | undefined): boolean => {
 		if (!chat) {
 			return true;
 		}

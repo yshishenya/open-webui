@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { SavedChat } from '$lib/utils/airis/frontend-contracts';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getContext } from 'svelte';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
@@ -7,9 +10,9 @@
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let item: any;
+	export let item: SavedChat;
 	export let title = '';
 	export let selected = false;
 	export let deleting = false;
