@@ -248,3 +248,11 @@
   - Summary: Существующий sanitizedHtml для трёх HTML-вставок, стандартная кнопка открытия файла и типы General; данные и действия сохраняются. Локально принято; PR/CI и выпуск открыты, план198/244, цель active.
   - Tests: 10 targeted/2426 full; 4 client/server компиляции, CSS прежний; types145/25 ESLint206 новых0, scoped lint0/Prettier pass; 265 SDD valid/complete. Будущий CI337 целей/7 ошибок остаются.
   - Risks: Низкий; DOM-очистка обязательна, новых сервисов или зависимостей нет.
+
+- [x] **[REFACTOR][TYPES]** Типы настроек веб-поиска
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__refactor__web-search-types.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Стираемые типы существующих полей и удаление неиспользуемого кода; старые преобразования и API сохраняются.
+  - Tests: 2426 full, compiled client/server JS/CSS exact после удалений; types145/25 ESLint201 новых0, scoped lint0/format pass;265 SDD valid. CI337 целей/2 ошибки остаются; production/data сохранены, выпуска нет. План198/244, цель active.
