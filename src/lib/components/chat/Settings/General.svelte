@@ -3,7 +3,7 @@
 	import { getLanguages, changeLanguage } from '$lib/i18n';
 	const dispatch = createEventDispatcher();
 
-	import { config, models, settings, theme, user, type Settings } from '$lib/stores';
+	import { config, settings, theme, user, type Settings } from '$lib/stores';
 	import type { GenerationParams } from '$lib/utils/airis/frontend-contracts';
 	import type { Model } from '$lib/utils/airis/model-types';
 
@@ -234,7 +234,7 @@
 					bind:value={lang}
 					ariaLabel={$i18n.t('Language')}
 					placeholder={$i18n.t('Select a language')}
-					on:change={(e) => {
+					on:change={() => {
 						changeLanguage(lang);
 					}}
 				>

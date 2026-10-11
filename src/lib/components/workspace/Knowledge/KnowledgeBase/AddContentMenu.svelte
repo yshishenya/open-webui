@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher } from 'svelte';
-	const dispatch = createEventDispatcher();
+	import { getContext } from 'svelte';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
@@ -11,7 +10,6 @@
 	import NewFolderAlt from '$lib/components/icons/NewFolderAlt.svelte';
 	import ArrowPath from '$lib/components/icons/ArrowPath.svelte';
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
-	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import ArrowUturnLeft from '$lib/components/icons/ArrowUturnLeft.svelte';
 
 	const i18n = getContext('i18n');
@@ -21,7 +19,7 @@
 	export let onSync: () => unknown = () => {};
 	export let onUpload: (data: {
 		type: 'new_directory' | 'files' | 'directory' | 'web' | 'text';
-	}) => unknown = (data) => {};
+	}) => unknown = () => {};
 	export let onReset: () => unknown = () => {};
 
 	let show = false;

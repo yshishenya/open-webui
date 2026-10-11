@@ -1,15 +1,12 @@
 <script lang="ts">
-	import { onMount, onDestroy, getContext } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { Terminal } from '@xterm/xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import { WebLinksAddon } from '@xterm/addon-web-links';
 	import '@xterm/xterm/css/xterm.css';
 
-	import { terminalServers, settings, selectedTerminalId, user } from '$lib/stores';
+	import { terminalServers, settings, selectedTerminalId } from '$lib/stores';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
-
-	const i18n = getContext('i18n');
 
 	export let overlay = false;
 	export let chatId: string | null = null;

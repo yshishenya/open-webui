@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { getContext, onDestroy, tick } from 'svelte';
-	import { slide } from 'svelte/transition';
-	import { quintOut } from 'svelte/easing';
 
 	import { basicSetup, EditorView } from 'codemirror';
 	import { keymap } from '@codemirror/view';
@@ -254,7 +252,7 @@
 	{:else}
 		<!-- Visual editor: playground-style rows -->
 		<div class="space-y-2 p-2 pt-3">
-			{#each displayItems as di, idx}
+			{#each displayItems as di}
 				<div class="flex gap-2 group">
 					<!-- Role label -->
 					<div class="flex items-start pt-1.5">

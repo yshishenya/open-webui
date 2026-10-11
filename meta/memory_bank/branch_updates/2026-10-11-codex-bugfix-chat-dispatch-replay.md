@@ -172,3 +172,9 @@
   - Owner: Codex
   - Done: 2026-10-11
   - Summary: Actual-source 3/3 red → 11/11 pass; frontend2379/2379, browser route7/7 с Messages stub. Types178/34 ESLint302 new0, scoped lint/format passed. Production сохранён; выпуск/A/B открыты, план198/244.
+
+- [x] [REFACTOR] Неиспользуемые объявления интерфейса (064).
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__frontend-unused-bindings.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Удалены26 unusedbindings в10компонентах; compiledscope/props/CSS проверены, frontend2379pass. Types178/34 unchanged, ESLint276 new0, CI69 remaining. Production сохранён, план198/244; выпуск/A/B открыты.

@@ -8,7 +8,7 @@
 
 	const i18n = getContext('i18n');
 
-	export let onRegenerate: (prompt?: string | null) => unknown = (prompt = null) => {};
+	export let onRegenerate: (prompt?: string | null) => unknown = () => {};
 	export let onClose: () => unknown = () => {};
 
 	let show = false;
