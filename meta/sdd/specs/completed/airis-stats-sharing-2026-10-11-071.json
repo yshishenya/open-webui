@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-stats-sharing-2026-10-11-071",
+  "title": "Airis Stats Sharing",
+  "generated": "2026-10-11T17:06:51.432759Z",
+  "last_updated": "2026-10-11T17:18:59.547981Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__stats-sharing.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T17:07:44.142389Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T17:18:59.547687Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Stats Sharing",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce unrestricted sharing and cancelled sync",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T17:10:59.726807Z",
+        "journaled_at": "2026-10-11T17:10:59.728555Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Constrain sharing to the consenting opener",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T17:14:03.351764Z",
+        "journaled_at": "2026-10-11T17:14:03.353774Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frontend, preservation and source",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T17:18:59.076043Z",
+        "journaled_at": "2026-10-11T17:18:59.078070Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce unrestricted sharing and cancelled sync",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T17:10:59.726670Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T17:10:59.727610Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Constrain sharing to the consenting opener",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T17:14:03.351577Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T17:14:03.352645Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify frontend, preservation and source",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T17:18:59.075875Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T17:18:59.076871Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T17:10:59.727606Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce unrestricted sharing and cancelled sync",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T17:10:59.728549Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce unrestricted sharing and cancelled sync",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T17:14:03.352639Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Constrain sharing to the consenting opener",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T17:14:03.353769Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Constrain sharing to the consenting opener",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T17:18:59.076866Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frontend, preservation and source",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T17:18:59.078065Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frontend, preservation and source",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

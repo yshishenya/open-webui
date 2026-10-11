@@ -5,50 +5,88 @@
 
 	import { exportChatStats, exportSingleChatStats, downloadChatStats } from '$lib/apis/chats';
 	import { getVersion } from '$lib/apis';
-	import { settings } from '$lib/stores';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let show = false;
-	export let eventData = null;
+	type SyncRequest = {
+		requestId?: string | number | null;
+		searchParams?: { updated_at?: number };
+		lastSyncedChatUpdatedAt?: number;
+	};
+	export let eventData: SyncRequest | 'export:stats' | null = null;
+	export let openerOrigin: string | null = null;
+	$: syncRequest = typeof eventData === 'object' ? eventData : null;
 
-	// Listen for verify:chat messages from opener
-	const handleMessage = async (event: MessageEvent) => {
-		// Community sends: { type: 'verify:chat', data: { id: ... } }
-		const chatId = event.data?.data?.id ?? event.data?.id;
-		if (event.data?.type === 'verify:chat' && chatId) {
-			try {
-				const res = await exportSingleChatStats(localStorage.token, chatId);
-				if (res && window.opener) {
-					window.opener.postMessage(
-						{
-							type: 'verify:chat:response',
-							data: res,
-							chatId: chatId,
-							requestId: event.data.requestId ?? null
-						},
-						'*'
-					);
-				}
-			} catch (err: any) {
-				console.error('Failed to verify chat:', err);
-				if (window.opener) {
-					window.opener.postMessage(
-						{
-							type: 'verify:chat:error',
-							error: err?.detail || err?.message || 'Failed to verify chat',
-							chatId: chatId,
-							requestId: event.data.requestId ?? null
-						},
-						'*'
-					);
-				}
+	// Consent belongs to this exact window/origin and is revoked by cancellation.
+	let sharingOpener: Window | null = null;
+	let sharingOrigin: string | null = null;
+	let sharingRequestId: string | number | null = null;
+	let operation = 0;
+	const allowedOrigin = (origin: string | null): boolean =>
+		origin !== null && [window.location.origin, 'http://localhost:9999'].includes(origin);
+	const revokeSharing = (): void => {
+		operation += 1;
+		sharingOpener = null;
+		sharingOrigin = null;
+	};
+
+	// Verification is allowed only after the user has chosen Sync.
+	const handleMessage = async (event: MessageEvent<unknown>): Promise<void> => {
+		if (
+			!sharingOrigin ||
+			event.origin !== sharingOrigin ||
+			event.source !== sharingOpener ||
+			window.opener !== sharingOpener ||
+			!allowedOrigin(event.origin)
+		)
+			return;
+		const data = event.data;
+		if (
+			typeof data !== 'object' ||
+			data === null ||
+			!('type' in data) ||
+			data.type !== 'verify:chat'
+		)
+			return;
+		const nested = 'data' in data ? data.data : null;
+		const nestedId =
+			typeof nested === 'object' && nested !== null && 'id' in nested ? nested.id : null;
+		const chatId = nestedId ?? ('id' in data ? data.id : null);
+		if (typeof chatId !== 'string' || !chatId) return;
+		const requestId =
+			'requestId' in data &&
+			(typeof data.requestId === 'string' || typeof data.requestId === 'number')
+				? data.requestId
+				: null;
+		const current = operation,
+			target = sharingOpener,
+			origin = sharingOrigin;
+		try {
+			const res = await exportSingleChatStats(localStorage.token, chatId);
+			if (current === operation && target === window.opener && res) {
+				target?.postMessage({ type: 'verify:chat:response', data: res, chatId, requestId }, origin);
 			}
+		} catch (err: unknown) {
+			if (current !== operation || target !== window.opener) return;
+			console.error('Failed to verify chat:', err);
+			target?.postMessage(
+				{
+					type: 'verify:chat:error',
+					error: getErrorMessage(err) || 'Failed to verify chat',
+					chatId,
+					requestId
+				},
+				origin
+			);
 		}
 	};
 
@@ -58,10 +96,19 @@
 	}
 
 	onMount(() => {
+		if (!openerOrigin && document.referrer) {
+			try {
+				const origin = new URL(document.referrer).origin;
+				if (allowedOrigin(origin)) openerOrigin = origin;
+			} catch {
+				// An invalid referrer cannot authorize sharing.
+			}
+		}
 		window.addEventListener('message', handleMessage);
 	});
 
 	onDestroy(() => {
+		cancelOperation();
 		window.removeEventListener('message', handleMessage);
 	});
 
@@ -87,14 +134,15 @@
 		total > 0 ? Math.min(Math.round((processedItemsCount / total) * 100), 100) : 0;
 
 	// Helper to send postMessage to opener
-	const postToOpener = (message: object) => {
-		if (window.opener) {
-			window.opener.postMessage({ ...message, requestId: eventData?.requestId ?? null }, '*');
+	const postToOpener = (message: object): void => {
+		if (sharingOpener && sharingOrigin && window.opener === sharingOpener) {
+			sharingOpener.postMessage({ ...message, requestId: sharingRequestId }, sharingOrigin);
 		}
 	};
 
 	// Reset all state
-	const resetState = () => {
+	const resetState = (): void => {
+		revokeSharing();
 		syncing = false;
 		downloading = false;
 		completed = false;
@@ -106,7 +154,7 @@
 	};
 
 	// Handle error state
-	const handleError = (message: string) => {
+	const handleError = (message: string): void => {
 		console.error('Sync error:', message);
 		errorMessage = message;
 		error = true;
@@ -116,19 +164,30 @@
 	};
 
 	// Cancel ongoing operations
-	const cancelOperation = () => {
+	const cancelOperation = (): void => {
+		if (syncing) postToOpener({ type: 'sync:error', error: 'User cancelled the operation' });
+		revokeSharing();
 		if (downloadController) {
 			downloadController.abort();
 			downloadController = null;
 		}
 		syncing = false;
 		downloading = false;
-
-		postToOpener({ type: 'sync:error', error: 'User cancelled the operation' });
 	};
 
 	// Sync stats to opener window
-	const syncStats = async () => {
+	const syncStats = async (): Promise<void> => {
+		if (syncing) return;
+		if (!window.opener || !allowedOrigin(openerOrigin)) {
+			handleError('Open synchronization from a trusted community window.');
+			return;
+		}
+		const current = ++operation;
+		sharingOpener = window.opener;
+		sharingOrigin = openerOrigin;
+		const request = syncRequest;
+		sharingRequestId = request?.requestId ?? null;
+		completed = false;
 		if (window.opener) {
 			window.opener.focus();
 		}
@@ -147,6 +206,8 @@
 				return null;
 			});
 
+			if (current !== operation) return;
+
 			if (versionRes) {
 				postToOpener({ type: 'sync:version', data: versionRes });
 			}
@@ -157,15 +218,16 @@
 
 			while (!allItemsLoaded) {
 				// Build search params, include updated_at for incremental mode
-				const searchParams = { ...(eventData?.searchParams ?? {}) };
-				if (syncMode === 'incremental' && eventData?.lastSyncedChatUpdatedAt) {
-					searchParams.updated_at = eventData.lastSyncedChatUpdatedAt;
+				const searchParams = { ...(request?.searchParams ?? {}) };
+				if (syncMode === 'incremental' && request?.lastSyncedChatUpdatedAt) {
+					searchParams.updated_at = request.lastSyncedChatUpdatedAt;
 				}
 
 				const res = await exportChatStats(localStorage.token, page, searchParams).catch((err) => {
 					throw new Error(err?.detail || err?.message || 'Failed to export chat stats');
 				});
 
+				if (current !== operation) return;
 				if (!res) {
 					throw new Error('Failed to fetch stats data');
 				}
@@ -176,6 +238,7 @@
 				// Allow UI to repaint
 				await tick();
 
+				if (current !== operation) return;
 				if (window.opener && res.items.length > 0) {
 					postToOpener({ type: 'sync:stats:chats', data: res });
 				}
@@ -191,18 +254,24 @@
 			postToOpener({ type: 'sync:complete' });
 			syncing = false;
 			completed = true;
-		} catch (err: any) {
-			handleError(err?.message || 'An unexpected error occurred');
+		} catch (err: unknown) {
+			if (current !== operation) return;
+			handleError(getErrorMessage(err) || 'An unexpected error occurred');
 		}
 	};
 
 	// Download stats as JSON file
-	const downloadHandler = async () => {
+	const downloadHandler = async (): Promise<void> => {
 		if (downloading) {
 			cancelOperation();
 			return;
 		}
 
+		if (syncing) return;
+		revokeSharing();
+		const current = operation;
+		let controller: AbortController | null = null;
+		completed = false;
 		downloading = true;
 		syncing = true;
 		error = false;
@@ -214,6 +283,7 @@
 			// Get total count first (no filters for download - get all)
 			const initialRes = await exportChatStats(localStorage.token, 1, {}).catch(() => null);
 
+			if (current !== operation) return;
 			if (initialRes?.total) {
 				total = initialRes.total;
 			}
@@ -223,12 +293,13 @@
 
 			// Get version for filename
 			const versionRes = await getVersion(localStorage.token).catch(() => null);
+			if (current !== operation) return;
 			const version = versionRes?.version ?? '0.0.0';
 			const filename = `airis-stats-${version}-${Date.now()}.json`;
 
 			// Start streaming download
-			const searchParams = eventData?.searchParams ?? {};
-			const [res, controller] = await downloadChatStats(
+			const searchParams = syncRequest?.searchParams ?? {};
+			const [res, responseController] = await downloadChatStats(
 				localStorage.token,
 				searchParams.updated_at
 			).catch((err) => {
@@ -237,19 +308,23 @@
 				);
 			});
 
+			controller = responseController;
+			if (current !== operation) return;
 			if (!res) {
 				throw new Error('Failed to start download. The server may be unavailable.');
 			}
 
 			downloadController = controller;
+			if (!res.ok || !res.body) throw new Error('Failed to download chat stats.');
 			const reader = res.body.getReader();
-			const decoder = new TextDecoder();
+			const decoder = new TextDecoder('utf-8', { fatal: true });
 
-			const items: any[] = [];
+			const items: unknown[] = [];
 			let buffer = '';
 
-			while (true) {
+			for (;;) {
 				const { done, value } = await reader.read();
+				if (current !== operation) return;
 				if (done) break;
 
 				buffer += decoder.decode(value, { stream: true });
@@ -258,12 +333,8 @@
 
 				for (const line of lines) {
 					if (line.trim() !== '') {
-						try {
-							items.push(JSON.parse(line));
-							processedItemsCount += 1;
-						} catch (e) {
-							console.error('Error parsing line:', e);
-						}
+						items.push(JSON.parse(line));
+						processedItemsCount += 1;
 					}
 				}
 
@@ -271,14 +342,12 @@
 				await tick();
 			}
 
+			buffer += decoder.decode();
+
 			// Process remaining buffer
 			if (buffer.trim() !== '') {
-				try {
-					items.push(JSON.parse(buffer));
-					processedItemsCount += 1;
-				} catch (e) {
-					console.error('Error parsing buffer:', e);
-				}
+				items.push(JSON.parse(buffer));
+				processedItemsCount += 1;
 			}
 
 			// Trigger download if not cancelled
@@ -293,23 +362,33 @@
 				document.body.removeChild(a);
 				window.URL.revokeObjectURL(url);
 			}
-		} catch (err: any) {
+		} catch (err: unknown) {
+			if (current !== operation) return;
 			// Don't show error if user cancelled the download
-			if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+			if (
+				(typeof err === 'object' && err !== null && 'name' in err && err.name === 'AbortError') ||
+				getErrorMessage(err).includes('aborted')
+			) {
 				// User cancelled - just reset state silently
 			} else {
-				handleError(err?.message || 'Download failed. Please try again.');
+				handleError(getErrorMessage(err) || 'Download failed. Please try again.');
 				toast.error(errorMessage);
 			}
 		} finally {
-			downloading = false;
-			syncing = false;
-			downloadController = null;
+			controller?.abort();
+			if (current === operation) {
+				downloading = false;
+				syncing = false;
+				downloadController = null;
+			}
 		}
 	};
 
+	$: if (!show && (sharingOrigin || syncing)) cancelOperation();
+
 	// Close modal and reset state
-	const closeModal = () => {
+	const closeModal = (): void => {
+		cancelOperation();
 		show = false;
 		resetState();
 	};
@@ -402,7 +481,7 @@
 					</ul>
 				</div>
 
-				{#if eventData?.lastSyncedChatUpdatedAt}
+				{#if syncRequest?.lastSyncedChatUpdatedAt}
 					<div class="mt-3">
 						<Tooltip
 							content={$i18n.t(

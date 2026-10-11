@@ -130,6 +130,8 @@
 
 	let showSyncStatsModal = false;
 	let syncStatsEventData = null;
+	/** @type {string | null} */
+	let syncStatsOrigin = null;
 
 	let heartbeatInterval = null;
 	let disconnectToastTimer = null;
@@ -564,8 +566,7 @@
 					if (acknowledged) responseSocket.emit(channel, failure);
 					else cb(failure);
 				} finally {
-					if (responseSocket.id === data.session_id)
-						responseSocket.emit(channel, { done: true });
+					if (responseSocket.id === data.session_id) responseSocket.emit(channel, { done: true });
 				}
 				return;
 			}
@@ -947,13 +948,19 @@
 		}
 	};
 
+	/** @param {MessageEvent} event @returns {Promise<void>} */
 	const windowMessageEventHandler = async (event) => {
-		if (![window.location.origin, 'http://localhost:9999'].includes(event.origin)) {
+		if (
+			event.source !== window.opener ||
+			!window.opener ||
+			![window.location.origin, 'http://localhost:9999'].includes(event.origin)
+		) {
 			return;
 		}
 
 		if (event.data === 'export:stats' || event.data?.type === 'export:stats') {
 			syncStatsEventData = event.data;
+			syncStatsOrigin = event.origin;
 			showSyncStatsModal = true;
 		}
 	};
@@ -1333,7 +1340,11 @@
 {/if}
 
 {#if $config?.features.enable_community_sharing}
-	<SyncStatsModal bind:show={showSyncStatsModal} eventData={syncStatsEventData} />
+	<SyncStatsModal
+		bind:show={showSyncStatsModal}
+		eventData={syncStatsEventData}
+		openerOrigin={syncStatsOrigin}
+	/>
 {/if}
 
 <Toaster

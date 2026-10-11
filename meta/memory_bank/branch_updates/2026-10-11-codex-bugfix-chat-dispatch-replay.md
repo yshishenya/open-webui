@@ -214,3 +214,11 @@
   - Owner: Codex
   - Done: 2026-10-11
   - Summary: 10 explicit any устранены; нормализация/bind/права/запросы и CSS сохранены, четыре сравнения компиляции прошли. Frontend 2393/2393; types 153/34, ESLint 235, новых 0; scoped lint/format прошли. CI 335 целей/35 ошибок. Backend 1064 reused/565 hashes, 263 SDD valid; production/данные сохранены. Выпуск/A/B открыты, план 198/244.
+
+- [x] **[BUG][PRIVACY]** Ограничить синхронизацию статистики согласившимся opener
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-11__bugfix__stats-sharing.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Done: 2026-10-11
+  - Summary: Проверить отправителя, закрепить origin после Sync, подавить поздние результаты отменённой операции; не сохранять повреждённый NDJSON.
+  - Tests: 26/26 targeted, frontend 2419/2419; types 146/34, ESLint 229, new 0; scoped lint 0/format pass; future CI 336/29. SDD lifecycle complete; production/data preserved.
