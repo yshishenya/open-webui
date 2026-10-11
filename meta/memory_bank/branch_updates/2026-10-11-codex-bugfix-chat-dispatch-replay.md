@@ -127,3 +127,19 @@
   - Summary:21обычный тег закрыт явно; production client/server JavaScript и CSS17компонентов побайтно совпали, новых механизмов нет.
   - Tests:frontend2350/2350;types223/35,ESLint361,new0;scopedformatpassed;304CI targets имеют46 прежних замечаний (не green);backend1064reused/565hashes,SDD0582/2,data preserved.
   - Pending:общие проверки/PR/CI/интеграция/выпуск/реальные A/B;план198/244,цельactive.
+
+
+- [ ] **[REFACTOR]** Оставшиеся аргументы mock — In Progress
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__test-mock-arguments.md
+  - Owner: Codex
+  - Started: 2026-10-11
+  - Summary: удалить7неподдерживаемых третьих аргументов vi.mock; сохранить2существующих тестовых модуля и их фабрики/проверки.
+
+
+- [x] **[REFACTOR]** Аргументы Vitest mock — локально принято
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__test-mock-arguments.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary:7неподдерживаемых третьих аргументов удалены из2тестовых файлов; фабрики/утверждения и runtime продукта сохранены.
+  - Tests:6/6целевых,2350/2350frontend;types216/35,ESLint361,new0;scopedlint0/0,formatpassed;306CIцелей46старыхошибок;1797product/testhashes совпали,backend1064reused/565hashes,259SDDvalid,data preserved.
+  - Pending:общиепроверки/PR/CI/интеграция/выпуск/реальныеA/B;план198/244,цельactive.
