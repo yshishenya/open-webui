@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { Model } from '$lib/utils/airis/model-types';
 	const i18n = getContext('i18n');
 
 	import Minus from '$lib/components/icons/Minus.svelte';
@@ -8,8 +9,8 @@
 
 	export let title = '';
 	export let tooltip = '';
-	export let models = [];
-	export let modelIds = [];
+	export let models: Model[] = [];
+	export let modelIds: string[] = [];
 
 	let selectedModelId = '';
 </script>

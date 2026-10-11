@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 	const i18n = getContext('i18n');
 
 	import { models, MODEL_DOWNLOAD_POOL, config, settings } from '$lib/stores';
@@ -30,11 +31,12 @@
 	// Models
 	export let urlIdx: number | null = null;
 
-	let ollamaModels = [];
+	let ollamaModels: Awaited<ReturnType<typeof getOllamaModels>> | null = [];
+	let catalogRequest = 0;
 
-	let updateModelId = null;
-	let updateProgress = null;
-	let updateModelsControllers = {};
+	let updateModelId: string | null = null;
+	let updateProgress: number | null = null;
+	let updateModelsControllers: Record<string, AbortController | null> = {};
 	let updateCancelled = false;
 	let showExperimentalOllama = false;
 
@@ -48,15 +50,22 @@
 	let createModelObject = '';
 
 	let createModelDigest = '';
-	let createModelPullProgress = null;
+	let createModelPullProgress: number | null = null;
 
 	let modelUploadMode = 'file';
-	let modelInputFile: File[] | null = null;
+	let modelInputFile: FileList | null = null;
 	let modelFileUrl = '';
-	let modelFileContent = `TEMPLATE """{{ .System }}\nUSER: {{ .Prompt }}\nASSISTANT: """\nPARAMETER num_ctx 4096\nPARAMETER stop "</s>"\nPARAMETER stop "USER:"\nPARAMETER stop "ASSISTANT:"`;
+	let modelFileContent = JSON.stringify(
+		{
+			template: '{{ .System }}\nUSER: {{ .Prompt }}\nASSISTANT: ',
+			parameters: { num_ctx: 4096, stop: ['</s>', 'USER:', 'ASSISTANT:'] }
+		},
+		null,
+		2
+	);
 	let modelFileDigest = '';
 
-	let uploadProgress = null;
+	let uploadProgress: number | null = null;
 	let uploadMessage = '';
 
 	let deleteModelTag = '';
@@ -68,12 +77,12 @@
 	const iconButtonClass =
 		'inline-flex h-7 items-center justify-center rounded-lg border border-gray-100/50 bg-gray-50/40 px-2.5 text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06]';
 
-	const updateModelsHandler = async () => {
+	const updateModelsHandler = async (): Promise<void> => {
 		updateCancelled = false;
 		let updateFailed = false;
 		toast.info('Checking for model updates...');
 
-		for (const model of ollamaModels) {
+		for (const model of ollamaModels ?? []) {
 			if (updateCancelled) {
 				break;
 			}
@@ -295,148 +304,108 @@
 		modelLoading = false;
 	};
 
-	const uploadModelHandler = async () => {
-		modelLoading = true;
-
-		let uploaded = false;
-		let fileResponse = null;
-		let name = '';
-
-		if (modelUploadMode === 'file') {
-			const file = modelInputFile ? modelInputFile[0] : null;
-
-			if (file) {
-				uploadMessage = 'Uploading...';
-
-				fileResponse = await uploadModel(localStorage.token, file, urlIdx).catch((error) => {
-					toast.error(`${error}`);
-					return null;
-				});
-			}
-		} else {
-			uploadProgress = 0;
-			fileResponse = await downloadModel(localStorage.token, modelFileUrl, urlIdx).catch(
-				(error) => {
-					toast.error(`${error}`);
-					return null;
-				}
-			);
+	const parseModelOptions = (value: string): Record<string, unknown> => {
+		const options: unknown = JSON.parse(value);
+		if (!options || typeof options !== 'object' || Array.isArray(options)) {
+			throw new Error('Model settings must be a JSON object');
 		}
-
-		if (fileResponse && fileResponse.ok) {
-			const reader = fileResponse.body
-				.pipeThrough(new TextDecoderStream())
-				.pipeThrough(splitStream('\n'))
-				.getReader();
-
-			for (;;) {
-				const { value, done } = await reader.read();
-				if (done) break;
-
-				try {
-					let lines = value.split('\n');
-
-					for (const line of lines) {
-						if (line !== '') {
-							let data = JSON.parse(line.replace(/^data: /, ''));
-
-							if (data.progress) {
-								if (uploadMessage) {
-									uploadMessage = '';
-								}
-								uploadProgress = data.progress;
-							}
-
-							if (data.error) {
-								throw data.error;
-							}
-
-							if (data.done) {
-								modelFileDigest = data.blob;
-								name = data.name;
-								uploaded = true;
-							}
-						}
-					}
-				} catch (err) {
-					console.error(err);
-				}
-			}
-		} else {
-			const error = await fileResponse?.json();
-			toast.error(error?.detail ?? error);
-		}
-
-		if (uploaded) {
-			const res = await createModel(
-				localStorage.token,
-				`${name}:latest`,
-				`FROM @${modelFileDigest}\n${modelFileContent}`
-			);
-
-			if (res && res.ok) {
-				const reader = res.body
-					.pipeThrough(new TextDecoderStream())
-					.pipeThrough(splitStream('\n'))
-					.getReader();
-
-				for (;;) {
-					const { value, done } = await reader.read();
-					if (done) break;
-
-					try {
-						let lines = value.split('\n');
-
-						for (const line of lines) {
-							if (line !== '') {
-								console.log(line);
-								let data = JSON.parse(line);
-								console.log(data);
-
-								if (data.error) {
-									throw data.error;
-								}
-								if (data.detail) {
-									throw data.detail;
-								}
-
-								if (data.status) {
-									if (
-										!data.digest &&
-										!data.status.includes('writing') &&
-										!data.status.includes('sha256')
-									) {
-										toast.success(data.status);
-									}
-								}
-							}
-						}
-					} catch (err) {
-						console.error(err);
-						toast.error(`${err}`);
-					}
-				}
-			}
-		}
-
-		modelFileUrl = '';
-
-		if (modelUploadInputElement) {
-			modelUploadInputElement.value = '';
-		}
-		modelInputFile = null;
-		modelLoading = false;
-		uploadProgress = null;
-
-		models.set(
-			await getModels(
-				localStorage.token,
-				$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
-			)
-		);
+		return options as Record<string, unknown>;
 	};
 
-	const deleteModelHandler = async () => {
+	async function* readModelResponse(
+		response: Response | null
+	): AsyncGenerator<Record<string, unknown>> {
+		if (!response?.ok || !response.body) throw new Error('Model operation failed');
+		const reader = response.body
+			.pipeThrough(new TextDecoderStream())
+			.pipeThrough(splitStream('\n'))
+			.getReader();
+		try {
+			for (;;) {
+				const { value, done } = await reader.read();
+				if (done) return;
+				for (const line of value.split('\n')) {
+					if (!line.trim()) continue;
+					const data: unknown = JSON.parse(line.replace(/^data: ?/, ''));
+					if (!data || typeof data !== 'object' || Array.isArray(data))
+						throw new Error('Invalid model response');
+					if ('error' in data || 'detail' in data) throw new Error(getErrorMessage(data));
+					yield data as Record<string, unknown>;
+				}
+			}
+		} finally {
+			await reader.cancel().catch(() => console.debug('Model stream already closed'));
+			reader.releaseLock();
+		}
+	}
+
+	const uploadModelHandler = async (): Promise<void> => {
+		if (modelLoading) return;
+		modelLoading = true;
+		const serverIdx = urlIdx;
+		try {
+			const options = parseModelOptions(modelFileContent);
+			const file = modelInputFile?.[0];
+			if (modelUploadMode === 'file' && !file) throw new Error('Select a model file');
+			uploadMessage = modelUploadMode === 'file' ? 'Uploading...' : '';
+			uploadProgress = 0;
+			const response =
+				modelUploadMode === 'file' && file
+					? await uploadModel(localStorage.token, file, serverIdx)
+					: await downloadModel(localStorage.token, modelFileUrl, serverIdx);
+			let name = '';
+			let createdModel: string | null = null;
+			for await (const data of readModelResponse(response)) {
+				if (typeof data.progress === 'number') {
+					uploadMessage = '';
+					uploadProgress = data.progress;
+				}
+				if (data.done) {
+					if (typeof data.blob !== 'string' || typeof data.name !== 'string')
+						throw new Error('Invalid model upload result');
+					modelFileDigest = data.blob;
+					name = data.name;
+					createdModel = typeof data.model_created === 'string' ? data.model_created : null;
+				}
+			}
+			if (!name || !modelFileDigest) throw new Error('Model upload did not complete');
+			let succeeded = createdModel !== null && Object.keys(options).length === 0;
+			if (!succeeded) {
+				const res = await createModel(
+					localStorage.token,
+					{
+						...options,
+						model: createdModel ?? `${name}:latest`,
+						files: { [name]: modelFileDigest },
+						stream: true
+					},
+					serverIdx
+				);
+				for await (const data of readModelResponse(res)) {
+					if (data.status === 'success') succeeded = true;
+				}
+			}
+			if (!succeeded) throw new Error('Model creation did not complete');
+			models.set(
+				await getModels(
+					localStorage.token,
+					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
+				)
+			);
+			toast.success($i18n.t('Model created successfully'));
+			modelFileUrl = '';
+			if (modelUploadInputElement) modelUploadInputElement.value = '';
+			modelInputFile = null;
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		} finally {
+			modelLoading = false;
+			uploadProgress = null;
+			uploadMessage = '';
+		}
+	};
+
+	const deleteModelHandler = async (): Promise<void> => {
 		const res = await deleteModel(localStorage.token, deleteModelTag, urlIdx).catch((error) => {
 			toast.error(`${error}`);
 		});
@@ -459,7 +428,8 @@
 		});
 	};
 
-	const cancelUpdateModelHandler = async (model: string) => {
+	const cancelUpdateModelHandler = async (model: string | null): Promise<void> => {
+		if (!model) return;
 		const controller = updateModelsControllers[model];
 		if (controller) {
 			controller.abort();
@@ -487,112 +457,62 @@
 		}
 	};
 
-	const createModelHandler = async () => {
+	const createModelHandler = async (): Promise<void> => {
+		if (createModelLoading) return;
 		createModelLoading = true;
-
-		let modelObject = {};
-		// parse createModelObject
 		try {
-			modelObject = JSON.parse(createModelObject);
-		} catch (error) {
-			toast.error(`${error}`);
-			createModelLoading = false;
-			return;
-		}
-
-		const res = await createModel(
-			localStorage.token,
-			{
-				model: createModelName,
-				...modelObject
-			},
-			urlIdx
-		).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res && res.ok) {
-			const reader = res.body
-				.pipeThrough(new TextDecoderStream())
-				.pipeThrough(splitStream('\n'))
-				.getReader();
-
-			for (;;) {
-				const { value, done } = await reader.read();
-				if (done) break;
-
-				try {
-					let lines = value.split('\n');
-
-					for (const line of lines) {
-						if (line !== '') {
-							console.log(line);
-							let data = JSON.parse(line);
-							console.log(data);
-
-							if (data.error) {
-								throw data.error;
-							}
-							if (data.detail) {
-								throw data.detail;
-							}
-
-							if (data.status) {
-								if (
-									!data.digest &&
-									!data.status.includes('writing') &&
-									!data.status.includes('sha256')
-								) {
-									toast.success(data.status);
-								} else {
-									if (data.digest) {
-										createModelDigest = data.digest;
-
-										if (data.completed) {
-											createModelPullProgress =
-												Math.round((data.completed / data.total) * 1000) / 10;
-										} else {
-											createModelPullProgress = 100;
-										}
-									}
-								}
-							}
-						}
-					}
-				} catch (err) {
-					console.error(err);
-					toast.error(`${err}`);
+			const modelObject = parseModelOptions(createModelObject);
+			const res = await createModel(
+				localStorage.token,
+				{ model: createModelName, ...modelObject },
+				urlIdx
+			);
+			let succeeded = false;
+			for await (const data of readModelResponse(res)) {
+				if (data.status === 'success') succeeded = true;
+				if (typeof data.digest === 'string') {
+					createModelDigest = data.digest;
+					createModelPullProgress =
+						typeof data.completed === 'number' && typeof data.total === 'number' && data.total > 0
+							? Math.round((data.completed / data.total) * 1000) / 10
+							: 100;
 				}
 			}
+			if (!succeeded) throw new Error('Model creation did not complete');
+			models.set(
+				await getModels(
+					localStorage.token,
+					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
+				)
+			);
+			toast.success($i18n.t('Model created successfully'));
+			createModelName = '';
+			createModelObject = '';
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		} finally {
+			createModelLoading = false;
+			createModelDigest = '';
+			createModelPullProgress = null;
 		}
-
-		models.set(
-			await getModels(
-				localStorage.token,
-				$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
-			)
-		);
-
-		createModelLoading = false;
-
-		createModelName = '';
-		createModelObject = '';
-		createModelDigest = '';
-		createModelPullProgress = null;
 	};
 
-	const init = async () => {
+	const init = async (): Promise<void> => {
+		const request = ++catalogRequest;
 		loading = true;
-		ollamaModels = await getOllamaModels(localStorage.token, urlIdx).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (ollamaModels) {
-			loading = false;
+		try {
+			const result = await getOllamaModels(localStorage.token, urlIdx);
+			if (request === catalogRequest) ollamaModels = result;
+		} catch (error) {
+			if (request === catalogRequest) toast.error(getErrorMessage(error));
+		} finally {
+			if (request === catalogRequest) loading = false;
 		}
 	};
+
+	onDestroy(() => {
+		catalogRequest++;
+	});
 
 	$: if (urlIdx !== null) {
 		init();
@@ -1073,7 +993,7 @@
 							<div>
 								<div>
 									<div class=" my-2.5 text-sm font-normal">
-										{$i18n.t('Modelfile Content')}
+										{$i18n.t('Model settings (JSON)')}
 									</div>
 									<textarea
 										bind:value={modelFileContent}
