@@ -45,9 +45,11 @@
 	import FolderModal from './Folders/FolderModal.svelte';
 	import Emoji from '$lib/components/common/Emoji.svelte';
 
+	/** @type {import('$lib/utils/airis/frontend-contracts').FolderRegistry} */
 	export let folderRegistry = {};
 	export let open = false;
 
+	/** @type {import('$lib/utils/airis/frontend-contracts').SidebarFolders} */
 	export let folders;
 	export let folderId;
 	export let shiftKey = false;
@@ -60,11 +62,13 @@
 
 	/** @type {(folderId: string) => void} */
 	export let onDelete = () => {};
+	/** @type {(event: import('$lib/utils/airis/frontend-contracts').FolderMoveEvent) => void} */
 	export let onItemMove = () => {};
 	/** @type {(counts: Record<string, number>) => void} */
 	export let onFolderUnreadCounts = () => {};
 
 	let folderElement;
+	const lifetime = { active: true };
 
 	let showFolderModal = false;
 	let showShareModal = false;
@@ -178,7 +182,7 @@
 		if (folderElement.contains(e.target)) {
 			console.log('Dropped on the Button');
 
-			if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+			if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
 				// Iterate over all items in the DataTransferItemList use functional programming
 				for (const item of Array.from(e.dataTransfer.items)) {
 					// If dropped items aren't files, reject them
@@ -189,17 +193,24 @@
 
 							// Read the JSON file with FileReader
 							const reader = new FileReader();
-							reader.onload = async function (event) {
+							reader.onload = function () {
+								if (!lifetime.active) return;
 								try {
-									const fileContent = JSON.parse(event.target.result);
+									const fileContent = JSON.parse(
+										typeof reader.result === 'string' ? reader.result : ''
+									);
 									open = true;
 									dispatch('import', {
 										folderId: folderId,
 										items: fileContent
 									});
-								} catch (error) {
-									console.error('Error parsing JSON file:', error);
+								} catch {
+									toast.error($i18n.t('Invalid file format.'));
 								}
+							};
+
+							reader.onerror = () => {
+								if (lifetime.active) toast.error($i18n.t('Invalid file format.'));
 							};
 
 							// Start reading the file
@@ -256,10 +267,12 @@
 											created_at: item?.created_at ?? null,
 											updated_at: item?.updated_at ?? null
 										}
-									]).catch((error) => {
-										toast.error(`${error}`);
-										return null;
-									});
+									])
+										.then(([chat]) => chat ?? null)
+										.catch((error) => {
+											toast.error(`${error}`);
+											return null;
+										});
 								}
 
 								if (chat) {
@@ -427,8 +440,9 @@
 	});
 
 	onDestroy(() => {
+		lifetime.active = false;
 		if (folderElement) {
-			folderElement.addEventListener('dragover', onDragOver);
+			folderElement.removeEventListener('dragover', onDragOver);
 			folderElement.removeEventListener('drop', onDrop);
 			folderElement.removeEventListener('dragleave', onDragLeave);
 

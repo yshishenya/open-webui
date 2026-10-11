@@ -345,6 +345,28 @@ export type SelectedFolder = FolderListItem & {
 	shared?: boolean;
 };
 
+export type SidebarFolders = Record<
+	string,
+	Partial<SelectedFolder> & { childrenIds?: string[]; new?: boolean }
+>;
+
+export type FolderRegistry = Record<
+	string,
+	{
+		setFolderItems?: () => unknown;
+		upsertChat?: (chat: Record<string, unknown>) => unknown;
+		setChatActive?: (chatId: string, active: boolean) => boolean;
+		setChatReadAt?: (chatId: string, lastReadAt: number) => boolean;
+		setAllChatsRead?: () => unknown;
+	}
+>;
+
+export type FolderMoveEvent = {
+	originFolderId?: string | null;
+	targetFolderId: string;
+	e: DragEvent;
+};
+
 export type ContextUsage = {
 	tokens: number;
 	estimated_tokens: number;

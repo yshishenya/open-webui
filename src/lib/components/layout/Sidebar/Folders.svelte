@@ -4,17 +4,22 @@
 	const dispatch = createEventDispatcher();
 
 	import RecursiveFolder from './RecursiveFolder.svelte';
+	import type {
+		SidebarFolders,
+		FolderRegistry,
+		FolderMoveEvent
+	} from '$lib/utils/airis/frontend-contracts';
 
-	export let folderRegistry = {};
+	export let folderRegistry: FolderRegistry = {};
 
-	export let folders = {};
+	export let folders: SidebarFolders = {};
 	export let shiftKey = false;
 
 	export let onDelete: (folderId: string) => void = () => {};
 	export let onFolderUnreadCounts: (counts: Record<string, number>) => void = () => {};
 
-	let ownedList = [];
-	let sharedList = [];
+	let ownedList: string[] = [];
+	let sharedList: string[] = [];
 
 	$: {
 		const rootKeys = Object.keys(folders)
@@ -37,9 +42,9 @@
 		sharedList = rootKeys.filter((key) => folders[key].shared);
 	}
 
-	const onItemMove = (e) => {
+	const onItemMove = (e: FolderMoveEvent): void => {
 		if (e.originFolderId) {
-			folderRegistry[e.originFolderId]?.setFolderItems();
+			folderRegistry[e.originFolderId]?.setFolderItems?.();
 		}
 	};
 </script>

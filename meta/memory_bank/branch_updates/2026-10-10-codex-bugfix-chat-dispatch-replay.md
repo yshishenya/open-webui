@@ -373,3 +373,12 @@
   - Done: 2026-10-10 (local source acceptance)
   - Tests: Одинаковые19новых4passed/15failed→19/19; с сохранением настроек35/35,frontend2176/2176;236CI lintцелей0/0,types557/63,ESLint538,new0. Настоящий DOM/Blob export проверены; backend1064 reused/565хешей; SDD0413/3.
   - Risks: Общие quality/PR/CI/интеграция/образ/выпуск/A/B открыты; план198/244,цельactive. Production/21чужойфайл/262тома сохранены.
+
+- [x] **[BUG]** Папки и импорт чатов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__folder-import.md
+  - Owner: Codex
+  - Started: 2026-10-10
+  - Summary: Общая проверка импорта, правильный массив API и очистка событий.
+  - Done: 2026-10-11 (local; release pending)
+  - Tests: own27/27,targeted75/75,frontend2203/2203;239CI lintцелей0/0; types528/63,ESLint533,new0. Backend1064 reused/565hashes.
+  - Risks: общий долг/PR/CI/интеграция/выпуск/A/B остаются открытыми; новые номерные закрытия0.

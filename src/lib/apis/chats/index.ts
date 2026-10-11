@@ -1,6 +1,8 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getTimeRange } from '$lib/utils';
+import { requestJSON } from '$lib/utils/airis/request_json';
 import type {
+	ChatListItem,
 	ChatTitleIdResponse,
 	SharedChatTitleResponse
 } from '$lib/utils/airis/frontend-contracts';
@@ -164,35 +166,18 @@ export const unshareAllChats = async (token: string) => {
 	return res;
 };
 
-export const importChats = async (token: string, chats: object[]) => {
-	let error = null;
-
-	const res = await fetch(`${WEBUI_API_BASE_URL}/chats/import`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			chats
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = err;
-			console.error(err);
-			return null;
-		});
-
-	if (error) {
-		throw error;
+export const importChats = async (token: string, chats: object[]): Promise<ChatListItem[]> => {
+	const rows = await requestJSON<ChatListItem[]>(
+		`${WEBUI_API_BASE_URL}/chats/import`,
+		token,
+		{ chats },
+		undefined,
+		'Chat import'
+	);
+	if (!Array.isArray(rows) || rows.some((row) => !row || typeof row.id !== 'string')) {
+		throw new Error('Invalid chat import response');
 	}
-
-	return res;
+	return rows;
 };
 
 export const getChatList = async (

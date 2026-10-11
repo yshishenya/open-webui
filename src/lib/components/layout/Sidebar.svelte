@@ -36,6 +36,7 @@
 		setChatReadAt
 	} from '$lib/stores/chatList';
 	import { onMount, getContext, tick } from 'svelte';
+	import type { SidebarFolders, FolderRegistry } from '$lib/utils/airis/frontend-contracts';
 
 	const i18n = getContext('i18n');
 
@@ -72,7 +73,6 @@
 	import ChannelModal from './Sidebar/ChannelModal.svelte';
 	import ChannelItem from './Sidebar/ChannelItem.svelte';
 	import SearchModal from './SearchModal.svelte';
-	import type { SelectedFolder } from '$lib/utils/airis/frontend-contracts';
 	import type { FolderForm } from '$lib/apis/folders';
 	import FolderModal from './Sidebar/Folders/FolderModal.svelte';
 	import PinnedModelList from './Sidebar/PinnedModelList.svelte';
@@ -128,18 +128,8 @@
 	let showFolders = false;
 	let showChatsMenu = false;
 
-	let folders: Record<string, Partial<SelectedFolder> & { childrenIds?: string[]; new?: boolean }> =
-		{};
-	let folderRegistry: Record<
-		string,
-		{
-			setFolderItems?: () => unknown;
-			upsertChat?: (chat: Record<string, unknown>) => unknown;
-			setChatActive?: (chatId: string, active: boolean) => boolean;
-			setChatReadAt?: (chatId: string, lastReadAt: number) => boolean;
-			setAllChatsRead?: () => unknown;
-		}
-	> = {};
+	let folders: SidebarFolders = {};
+	let folderRegistry: FolderRegistry = {};
 
 	let newFolderId: string | null = null;
 
@@ -497,7 +487,7 @@
 	};
 
 	const importChatHandler = async (
-		items: Record<string, unknown>[],
+		items: unknown,
 		pinned = false,
 		folderId: string | null = null
 	): Promise<void> => {
@@ -506,24 +496,38 @@
 			return;
 		}
 
-		console.log('importChatHandler', items, pinned, folderId);
-		for (const item of items) {
-			console.log(item);
-			if (item.chat) {
-				await importChats(localStorage.token, [
-					{
-						chat: item.chat,
-						meta: item?.meta ?? {},
-						pinned: pinned,
-						folder_id: folderId,
-						created_at: item?.created_at ?? null,
-						updated_at: item?.updated_at ?? null
-					}
-				]);
-			}
+		// Validate every row before the first write, including drops from all sections.
+		if (
+			!Array.isArray(items) ||
+			items.some(
+				(item: unknown) =>
+					item === null ||
+					typeof item !== 'object' ||
+					Array.isArray(item) ||
+					('chat' in item &&
+						(item.chat === null || typeof item.chat !== 'object' || Array.isArray(item.chat)))
+			)
+		) {
+			toast.error($i18n.t('Invalid file format.'));
+			return;
 		}
 
-		initChatList();
+		try {
+			const rows = items
+				.filter((item: Record<string, unknown>) => item.chat)
+				.map((item: Record<string, unknown>) => ({
+					chat: item.chat,
+					meta: item.meta ?? {},
+					pinned,
+					folder_id: folderId,
+					created_at: item.created_at ?? null,
+					updated_at: item.updated_at ?? null
+				}));
+			if (rows.length > 0) await importChats(localStorage.token, rows);
+			await initChatList();
+		} catch (error) {
+			toast.error(`${error}`);
+		}
 	};
 
 	const inputFilesHandler = async (files: File[]): Promise<void> => {
@@ -1443,7 +1447,12 @@
 										created_at: item?.created_at ?? null,
 										updated_at: item?.updated_at ?? null
 									}
-								]);
+								])
+									.then(([chat]) => chat ?? null)
+									.catch((error) => {
+										toast.error(`${error}`);
+										return null;
+									});
 							}
 
 							if (chat) {
@@ -1537,7 +1546,12 @@
 														created_at: item?.created_at ?? null,
 														updated_at: item?.updated_at ?? null
 													}
-												]);
+												])
+													.then(([chat]) => chat ?? null)
+													.catch((error) => {
+														toast.error(`${error}`);
+														return null;
+													});
 											}
 
 											if (chat) {

@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+	import { createEventDispatcher, onDestroy, onMount, getContext } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import Collapsible from '$lib/components/common/Collapsible.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -21,6 +25,7 @@
 	export let dragAndDrop = true;
 
 	let sectionElement: HTMLDivElement;
+	const lifetime = { active: true };
 	let loaded = false;
 	let draggedOver = false;
 
@@ -50,14 +55,20 @@
 					const file = item.getAsFile();
 					if (file && file.type === 'application/json') {
 						const reader = new FileReader();
-						reader.onload = async function (event) {
+						reader.onload = (): void => {
+							if (!lifetime.active) return;
 							try {
-								const fileContent = JSON.parse(event.target?.result as string);
+								const fileContent = JSON.parse(
+									typeof reader.result === 'string' ? reader.result : ''
+								);
 								open = true;
 								dispatch('import', fileContent);
-							} catch (error) {
-								console.error('Error parsing JSON file:', error);
+							} catch {
+								toast.error($i18n.t('Invalid file format.'));
 							}
+						};
+						reader.onerror = (): void => {
+							if (lifetime.active) toast.error($i18n.t('Invalid file format.'));
 						};
 						reader.readAsText(file);
 					}
@@ -105,13 +116,11 @@
 	});
 
 	onDestroy(() => {
-		if (!dragAndDrop) {
-			return;
-		}
+		lifetime.active = false;
 
-		sectionElement.removeEventListener('dragover', onDragOver);
-		sectionElement.removeEventListener('drop', onDrop);
-		sectionElement.removeEventListener('dragleave', onDragLeave);
+		sectionElement?.removeEventListener('dragover', onDragOver);
+		sectionElement?.removeEventListener('drop', onDrop);
+		sectionElement?.removeEventListener('dragleave', onDragLeave);
 	});
 </script>
 
