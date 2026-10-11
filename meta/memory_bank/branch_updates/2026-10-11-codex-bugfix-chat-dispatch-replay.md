@@ -178,3 +178,9 @@
   - Owner: Codex
   - Done: 2026-10-11
   - Summary: Удалены26 unusedbindings в10компонентах; compiledscope/props/CSS проверены, frontend2379pass. Types178/34 unchanged, ESLint276 new0, CI69 remaining. Production сохранён, план198/244; выпуск/A/B открыты.
+
+- [x] [REFACTOR] Типы строки выбора модели (065).
+  - Spec: meta/memory_bank/specs/work_items/2026-10-11__refactor__model-item-contract.md
+  - Owner: Codex
+  - Done: 2026-10-11
+  - Summary: Типы родителя/Model уточнены; runtime отличается только удалением пустого default. Frontend 2379 прошли, types 174/34, ESLint 274, новых 0. Production сохранён; общий выпуск/A/B открыты, план 198/244.

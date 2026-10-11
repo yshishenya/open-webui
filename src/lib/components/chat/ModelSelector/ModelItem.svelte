@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { marked } from 'marked';
 
-	import { getContext } from 'svelte';
+	import { getContext, type ComponentProps } from 'svelte';
+	import type Selector from './Selector.svelte';
+	import type { Model } from '$lib/utils/airis/model-types';
 	import dayjs from '$lib/dayjs';
 
 	import { user } from '$lib/stores';
@@ -20,7 +22,7 @@
 	const i18n = getContext('i18n');
 
 	export let selectedModelIdx: number = -1;
-	export let item: any = {};
+	export let item: NonNullable<ComponentProps<typeof Selector>['items']>[number];
 	export let index: number = -1;
 	export let value: string | null = '';
 	export let selectedValues: string[] = [];
@@ -28,12 +30,12 @@
 
 	export let unloadModelHandler: (modelValue: string) => void = () => {};
 	export let pinModelHandler: (modelId: string) => void = () => {};
-	export let deleteModelHandler: (model: any) => void = () => {};
+	export let deleteModelHandler: (model: Model) => void = () => {};
 	export let selectionOnly = false;
 
 	export let onClick: () => void = () => {};
 
-	const copyLinkHandler = async (model) => {
+	const copyLinkHandler = async (model: Model): Promise<void> => {
 		const baseUrl = window.location.origin;
 		const res = await copyToClipboard(`${baseUrl}/?model=${encodeURIComponent(model.id)}`);
 
@@ -92,7 +94,7 @@
 						class="flex size-4 items-center rounded-full"
 						loading="lazy"
 						on:error={(e) => {
-							e.currentTarget.src = '/favicon.png';
+							(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 						}}
 					/>
 				</Tooltip>
@@ -172,7 +174,7 @@
 					{#key item.model.id}
 						<Tooltip elementId="tags-{item.model.id}">
 							<div slot="tooltip" id="tags-{item.model.id}">
-								{#each item.model?.tags.sort((a, b) => a.name.localeCompare(b.name)) as tag}
+								{#each item.model?.tags!.sort((a, b) => a.name.localeCompare(b.name)) as tag}
 									<Tooltip content={tag.name} className="flex-shrink-0">
 										<div class=" text-xs font-normal rounded-sm uppercase text-white">
 											{tag.name}
