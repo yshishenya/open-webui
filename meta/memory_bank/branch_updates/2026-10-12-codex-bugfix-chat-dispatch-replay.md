@@ -59,3 +59,15 @@
   - Owner: Codex
   - Done: 2026-10-12
   - Summary: 25targeted/2582full pass;types3/17,ESLint167,new0;scoped6/PR377/format clean,10компиляций/CSS,5прежних scripts;production/данные сохранены,выпуска нет.
+
+- [ ] **[BUG][UI]** Типы просмотра файлов и нативные действия
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__file-viewer-types.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: Закрыть три ошибки declarations/className; переиспользовать типы API и standard sql.js declarations, сохранить действия файлов.
+
+- [x] [BUG] Типы просмотра файлов — выполнено.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__file-viewer-types.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: 2585/2585 frontend, 5/5 targeted; types 0/15, ESLint 148, новых 0. Четыре компиляции/CSS и два script сравнения; dev-only sql.js types, runtime и сервер сохранены.

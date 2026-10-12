@@ -146,11 +146,11 @@
 - **Transformers.js**: @huggingface/transformers 3.0.0 (browser inference)
 - **MediaPipe**: @mediapipe/tasks-vision 0.10.17 (vision tasks)
 - **Pyodide**: pyodide 314.0.3 (package-lock.json; Python 3.14, ABI 2026_0)
-  + @pyscript/core 0.4.32 (Python in browser). Checked 2026-10-10 against
-  installed dependencies and official 314.0.3 worker docs/release notes;
-  npm latest stable is 314.0.7. Compatibility exception: preserve the accepted
-  prepared static runtime for the Python host bug fix. Upgrade the npm pin and
-  prepared assets together in a separate work item, with both worker modes tested.
+  - @pyscript/core 0.4.32 (Python in browser). Checked 2026-10-10 against
+    installed dependencies and official 314.0.3 worker docs/release notes;
+    npm latest stable is 314.0.7. Compatibility exception: preserve the accepted
+    prepared static runtime for the Python host bug fix. Upgrade the npm pin and
+    prepared assets together in a separate work item, with both worker modes tested.
 
 ---
 
@@ -198,6 +198,12 @@
 - **Confetti**: svelte-confetti 2.3.2
 
 ### Document Processing
+
+- **sql.js**: runtime 1.14.1; **@types/sql.js 1.4.11** (dev-only, exact/latest
+  stable checked 2026-10-12) declares the existing Database/SqlValue APIs.
+  Existing dependency versions remain unchanged; sql.js 1.14.2 and KaTeX 0.19.0
+  upgrades require separate wasm/Markdown acceptance. KaTeX 0.16.38 mhchem is
+  a side-effect module; its local declaration exports nothing.
 
 - **PDF**:
   - Frontend: pdfjs-dist 5.4.149 (viewer)
