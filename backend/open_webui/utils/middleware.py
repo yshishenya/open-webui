@@ -12,7 +12,7 @@ from collections.abc import AsyncIterator
 from uuid import uuid4
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from open_webui.config import (
     CODE_INTERPRETER_BLOCKED_MODULES,
     CODE_INTERPRETER_PYODIDE_PROMPT,

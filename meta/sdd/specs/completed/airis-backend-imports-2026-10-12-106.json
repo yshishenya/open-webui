@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-backend-imports-2026-10-12-106",
+  "title": "AIRIS redundant imports and import placement",
+  "generated": "2026-10-12T18:13:42.111319Z",
+  "last_updated": "2026-10-12T18:23:58.455217Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__backend-imports-gate.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T18:13:42.368896Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T18:23:58.454978Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS redundant imports and import placement",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace imports and preserve native bindings with minimal edits",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T18:21:54.634144Z",
+        "journaled_at": "2026-10-12T18:21:54.636163Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify full backend, CI delta and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T18:23:57.991555Z",
+        "journaled_at": "2026-10-12T18:23:57.993359Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace imports and preserve native bindings with minimal edits",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T18:21:54.633864Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T18:21:54.635047Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify full backend, CI delta and preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T18:23:57.991411Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T18:23:57.992281Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T18:21:54.635043Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace imports and preserve native bindings with minimal edits",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:21:54.636158Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace imports and preserve native bindings with minimal edits",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:23:57.992276Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify full backend, CI delta and preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:23:57.993354Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify full backend, CI delta and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

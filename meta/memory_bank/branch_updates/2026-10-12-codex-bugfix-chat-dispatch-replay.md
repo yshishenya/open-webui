@@ -163,3 +163,12 @@
 
   - Done: 2026-10-12
   - Verification: 1064backend/0skips,25прежнихwarnings;Black465unchanged,Ruff547→526/new0,scope CI13files/new0. Весь branch CI38new остаётся открытым;frontend5040хешей совпали. Production/данные сохранены;выпуска нет,цельactive.
+
+- [x] **[REFACTOR][BACKEND]** Повторные импорты и размещение
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__backend-imports-gate.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: 17реальных CI замечаний; native imports/AST,полныйbackend,без новых подсистем.
+
+  - Done: 2026-10-12
+  - Verification: 1064backend/0skips,25прежнихwarnings;native9before/after,non-importAST/bindingsidentical;Black0diff,Ruff526→497/new0,scopeCI0new,branchCI38→21. Production/данныесохранены;выпускане было,цельactive.

@@ -1,12 +1,10 @@
+import time
 from collections import Counter
 from contextlib import nullcontext
-import time
 from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select, delete, func, cast, Integer, distinct
-from sqlalchemy.ext.asyncio import AsyncSession
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.task_success import SuccessCheckpoint, pending_checkpoints
 from open_webui.utils.response import merge_usage, normalize_usage
@@ -22,6 +20,7 @@ from sqlalchemy import (
     Text,
     cast,
     delete,
+    distinct,
     func,
     select,
 )

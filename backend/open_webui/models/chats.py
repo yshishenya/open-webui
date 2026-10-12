@@ -27,7 +27,6 @@ from sqlalchemy import (
     UniqueConstraint,
     and_,
     delete,
-    exists,
     func,
     or_,
     select,
