@@ -226,3 +226,12 @@
 - Scope: три метода и один pure helper; без новых dependencies/I/O, с прежним query→delete выбором.
 
 - Status: Done —112. Четыре метода и два маленьких pure helper,модуль короче на31строку. 10480filters/5080native-result-request-error-log/400unequal-query сравнений, native SDK Stubber и1069backend/25прежнихwarnings. Black0diff;Ruff489→485/new0;scopeCI6→2/new0;branchCI13→10. Frontend5040хешей прежние. Production/12из14соседей/21чужойфайл/262тома/33сети сохранены;два внешних terminal исчезли,причина неизвестна,серверных изменений задачей нет. Свои стенды/полныеbaselineкопии удалены. SDDclosed;commit/push подтверждается receipt. План198/244,цельactive,выпуска нет.
+
+
+##113 — простой MinerU Local API
+
+- Status: In Progress
+- Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__mineru-local.md
+- Scope: один метод и pure error-body helper; прежние multipart/params/timeout/document/error contracts, без изменений Cloud/polling/ZIP.
+
+- Status: Done —113. Один метод и маленький pure error-body helper;first result без полной копии списка. Один тест до/после,4962native-request-document-error-log сравнений,1070backend/25прежнихwarnings. Black0diff;Ruff485→484/new0;scopeCI3→2/new0;branchCI10→9. Frontend5040хешей прежние. Production/12прежнихсоседей/21чужойфайл/262тома/33сети сохранены;два новых внешнихterminal оставлены без изменений. Свои стенды/полныеbaselineкопии удалены. SDDclosed;commit/push подтверждается receipt. План198/244,цельactive,выпуска нет.

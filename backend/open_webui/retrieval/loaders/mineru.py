@@ -11,6 +11,15 @@ from langchain_core.documents import Document
 log = logging.getLogger(__name__)
 
 
+def _local_api_error_body(response: requests.Response | None) -> str:
+    if response is None:
+        return ''
+    try:
+        return f' - {response.json()}'
+    except Exception:
+        return f' - {response.text}'
+
+
 class MinerULoader:
     """
     MinerU document parser loader supporting both Cloud API and Local API modes.
@@ -115,13 +124,7 @@ class MinerULoader:
                 detail='MinerU Local API request timed out',
             )
         except requests.HTTPError as e:
-            error_detail = f'MinerU Local API request failed: {e}'
-            if e.response is not None:
-                try:
-                    error_data = e.response.json()
-                    error_detail += f' - {error_data}'
-                except Exception:
-                    error_detail += f' - {e.response.text}'
+            error_detail = f'MinerU Local API request failed: {e}' + _local_api_error_body(e.response)
             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=error_detail)
         except Exception as e:
             raise HTTPException(
@@ -153,7 +156,7 @@ class MinerULoader:
             )
 
         # Get the first (and typically only) result
-        file_result = list(results.values())[0]
+        file_result = next(iter(results.values()))
         markdown_content = file_result.get('md_content', '')
 
         if not markdown_content:
