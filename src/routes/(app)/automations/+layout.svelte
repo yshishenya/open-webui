@@ -6,6 +6,7 @@
 	import { config, mobile, showSidebar, user } from '$lib/stores';
 	import { getAutomationItems } from '$lib/apis/automations';
 	import type i18nType from '$lib/i18n';
+	import type { AutomationHeader } from '$lib/utils/airis/automation-layout';
 	import { formatNumber } from '$lib/utils';
 	import SidebarIcon from '$lib/components/icons/Sidebar.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -15,18 +16,14 @@
 	const total = writable<number | null>(null);
 
 	let itemName: string | null = null;
-	let HeaderActions: any = null;
-	let headerActionProps: Record<string, any> = {};
+	let HeaderActions: AutomationHeader['actions'] = null;
+	let headerActionProps: AutomationHeader['actionProps'] = {};
 
 	const setHeader = ({
 		itemName: nextItemName = null,
 		actions = null,
 		actionProps = {}
-	}: {
-		itemName?: string | null;
-		actions?: any;
-		actionProps?: Record<string, any>;
-	}) => {
+	}: AutomationHeader): void => {
 		itemName = nextItemName;
 		HeaderActions = actions;
 		headerActionProps = actionProps;
@@ -55,7 +52,7 @@
 
 	onMount(async () => {
 		if (
-			!($config?.features as any)?.enable_automations ||
+			!$config?.features?.enable_automations ||
 			($user?.role !== 'admin' && !($user?.permissions?.features?.automations ?? false))
 		) {
 			goto('/');

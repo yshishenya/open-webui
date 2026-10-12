@@ -6,6 +6,7 @@
 	import dayjs from 'dayjs';
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
 	import type i18nType from '$lib/i18n';
+	import type { AutomationLayout } from '$lib/utils/airis/automation-layout';
 
 	import { WEBUI_NAME, folders } from '$lib/stores';
 	import { getFolders } from '$lib/apis/folders';
@@ -29,7 +30,7 @@
 	dayjs.extend(localizedFormat);
 
 	const i18n: typeof i18nType = getContext('i18n');
-	const automationsLayout: any = getContext('automationsLayout');
+	const automationsLayout = getContext<AutomationLayout | undefined>('automationsLayout');
 
 	export let automation: AutomationResponse;
 

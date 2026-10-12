@@ -77,3 +77,9 @@
   - Owner: Codex
   - Done: 2026-10-12
   - Summary: удалены 12 unused import bindings из восьми файлов. 16 компиляций сохраняют JS body/CSS, 2585/2585 frontend; types 0/15, ESLint 136, новых 0. Lint/формат 8/388 без ошибок. Сервер/данные сохранены, выпуска нет.
+
+- [x] [BUG] Существующие контракты расписаний.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__scheduling-contracts.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Existing API/context typed;2585 frontend,types0/15,ESLint111/new0,scoped9/CI397 clean,14 compiled comparisons;backend563 reuse1064/25. Fresh Ruff547/Black diff0. Production/data preserved;release and real A/B pending.

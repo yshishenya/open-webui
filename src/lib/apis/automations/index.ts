@@ -12,16 +12,18 @@ export type AutomationData = {
 	terminal?: AutomationTerminalConfig;
 };
 
+export type AutomationMeta = Record<string, unknown> & {
+	system_prompt?: string;
+	temperature?: number;
+	max_tokens?: number;
+	webhook?: string;
+};
+
 export type AutomationForm = {
 	name: string;
 	folder_id?: string | null;
 	data: AutomationData;
-	meta?: {
-		system_prompt?: string;
-		temperature?: number;
-		max_tokens?: number;
-		webhook?: string;
-	};
+	meta?: AutomationMeta;
 	is_active?: boolean;
 };
 
@@ -40,7 +42,7 @@ export type AutomationResponse = {
 	folder_id: string | null;
 	name: string;
 	data: AutomationData;
-	meta: Record<string, any> | null;
+	meta: AutomationMeta | null;
 	is_active: boolean;
 	last_run_at: number | null;
 	next_run_at: number | null;
