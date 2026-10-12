@@ -33,3 +33,10 @@
   - Done: 2026-10-12
   - Summary: Сохранён источник действий папки; безопасное закрытие Changelog, заблокированные popup FileItem и отсутствующие квоты PlanForm.
   - Tests:27targeted/2554full pass;10compilations/CSS;types31/24,ESLint178,new0;scoped7/PR371/format clean. SDD3/3 completed;production/data preserved. Выпуска нет, цельactive.
+
+- [x] **[BUG]** Cell editor lifecycle (088)
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-12__bugfix__cell-editor-lifetime.md`
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Синхронный cleanup освобождает редактор/наблюдатель, поздняя загрузка языка безопасна, отказ сохраняет редактирование. Без флагов/менеджеров/повторов/зависимостей.
+  - Tests:7targeted/2557full pass;2компиляции/CSS;types30/24,ESLint178,new0;scoped2/PR371/format clean;backend565hashes reused,production/data preserved. SDD2/2 completed,выпуска нет,цельactive.

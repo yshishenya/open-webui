@@ -4,10 +4,10 @@
 	import { keymap } from '@codemirror/view';
 	import { Compartment, EditorState, Prec } from '@codemirror/state';
 	import { indentWithTab } from '@codemirror/commands';
-	import { indentUnit } from '@codemirror/language';
+	import { indentUnit, type LanguageSupport } from '@codemirror/language';
 	import { languages } from '@codemirror/language-data';
 	import { oneDark } from '@codemirror/theme-one-dark';
-	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
+	import { onMount, createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();
 
@@ -19,12 +19,12 @@
 	let editorTheme = new Compartment();
 	let editorLanguage = new Compartment();
 
-	const getLang = async () => {
+	const getLang = async (): Promise<LanguageSupport | undefined> => {
 		const language = languages.find((l) => l.alias.includes(lang));
 		return await language?.load();
 	};
 
-	onMount(async () => {
+	onMount(() => {
 		const isDark = document.documentElement.classList.contains('dark');
 
 		const extensions = [
@@ -74,10 +74,15 @@
 			parent: container
 		});
 
-		const language = await getLang();
-		if (language && editor) {
-			editor.dispatch({ effects: editorLanguage.reconfigure(language) });
-		}
+		getLang()
+			.then((language) => {
+				if (language && editor) {
+					editor.dispatch({ effects: editorLanguage.reconfigure(language) });
+				}
+			})
+			.catch(() => {
+				console.warn('Could not load cell editor language');
+			});
 
 		// Watch dark mode
 		const observer = new MutationObserver(() => {
@@ -93,11 +98,6 @@
 			editor?.destroy();
 			editor = null;
 		};
-	});
-
-	onDestroy(() => {
-		editor?.destroy();
-		editor = null;
 	});
 </script>
 
