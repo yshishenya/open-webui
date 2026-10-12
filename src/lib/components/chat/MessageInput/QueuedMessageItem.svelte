@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Image from '$lib/components/common/Image.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
@@ -11,7 +12,7 @@
 
 	export let id: string;
 	export let content: string;
-	export let files: any[] = [];
+	export let files: ChatAttachment[] = [];
 	export let onSendNow: (id: string) => void;
 	export let onEdit: (id: string) => void;
 	export let onDelete: (id: string) => void;
@@ -31,7 +32,7 @@
 					{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
 						{@const fileUrl =
 							file.url?.startsWith('data') || file.url?.startsWith('http')
-								? file.url
+								? file.url!
 								: `${WEBUI_API_BASE_URL}/files/${file.url}${file?.content_type ? '/content' : ''}`}
 						<Image src={fileUrl} alt="" imageClassName="size-6 rounded-md object-cover" />
 					{:else}

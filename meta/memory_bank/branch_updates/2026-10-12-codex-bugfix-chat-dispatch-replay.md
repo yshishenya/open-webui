@@ -89,3 +89,15 @@
   - Owner: Codex
   - Done: 2026-10-12
   - Summary:4 добавления/167 удалений приложения;active handlers и payloads сохранены.2585 frontend,types0/15,ESLint103/new0,scoped4/CI401 clean,8 retained compiled comparisons;backend563 reuse1064/25. Production/data preserved;release and real A/B pending.
+
+- [ ] [BUG] Действующие контракты малых представлений.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__existing-ui-contracts.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: переиспользовать действующие child/API/i18n types, сохранить все обработчики и отображение.
+
+- [x] **[BUG]** Контракты представлений096 проверены
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__existing-ui-contracts.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: 5 компонентов, готовые типы; runtime сохранён;2585 frontend,types0/15,ESLint92,new0. Общая цель active.

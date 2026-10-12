@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 
 	import {
 		getUserUsage,
@@ -15,7 +16,7 @@
 	import UserSettingSection from './UserSettingSection.svelte';
 	import UserSettingRow from './UserSettingRow.svelte';
 
-	const i18n: Writable<any> = getContext('i18n');
+	const i18n: Writable<i18nType> = getContext('i18n');
 
 	type HeatmapMode = 'daily' | 'weekly' | 'cumulative';
 	type HeatmapCell = UserUsageHeatmapEntry | null;

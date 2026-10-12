@@ -1,0 +1,143 @@
+{
+  "spec_id": "airis-existing-ui-contracts-2026-10-12-096",
+  "title": "AIRIS existing UI contracts",
+  "generated": "2026-10-12T03:52:57.723617Z",
+  "last_updated": "2026-10-12T04:17:25.907467Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__existing-ui-contracts.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T03:52:58.076388Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T04:17:25.907223Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS existing UI contracts",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reuse existing message, attachment and i18n contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T04:14:15.872678Z",
+        "journaled_at": "2026-10-12T04:14:15.874390Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify retained compiled output and general frontend checks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T04:17:25.476579Z",
+        "journaled_at": "2026-10-12T04:17:25.478426Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reuse existing message, attachment and i18n contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.25,
+        "completed_at": "2026-10-12T04:14:15.872503Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T04:14:15.873382Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify retained compiled output and general frontend checks",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.75,
+        "completed_at": "2026-10-12T04:17:25.476413Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T04:17:25.477314Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T04:14:15.873377Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse existing message, attachment and i18n contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T04:14:15.874386Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse existing message, attachment and i18n contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T04:17:25.477309Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify retained compiled output and general frontend checks",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T04:17:25.478416Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify retained compiled output and general frontend checks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
