@@ -51,7 +51,8 @@ function renderer(
 		.filter((s) => !ts.isImportDeclaration(s))
 		.map((s) => s.getText(ast))
 		.join('\n');
-	const hooks = 'const {getContext,onMount,onDestroy} = runtime;';
+	const hooks =
+		'const {getContext,onMount,onDestroy} = runtime; const settings = componentSettings;';
 	const api = vi.fn<[string, string, string], Promise<ChannelMessageData | null>>(fetchData);
 	const loadingMarkup = source
 		.slice(
@@ -72,6 +73,7 @@ function renderer(
 		'module',
 		'exports',
 		'runtime',
+		'componentSettings',
 		'getMessageData',
 		'dayjs',
 		'buildOutputDisplayItems',
@@ -85,6 +87,7 @@ function renderer(
 		mod,
 		mod.exports,
 		runtime,
+		readable({}),
 		api,
 		{ extend: () => {} },
 		() => [],

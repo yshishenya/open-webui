@@ -40,3 +40,10 @@
   - Done: 2026-10-12
   - Summary: Синхронный cleanup освобождает редактор/наблюдатель, поздняя загрузка языка безопасна, отказ сохраняет редактирование. Без флагов/менеджеров/повторов/зависимостей.
   - Tests:7targeted/2557full pass;2компиляции/CSS;types30/24,ESLint178,new0;scoped2/PR371/format clean;backend565hashes reused,production/data preserved. SDD2/2 completed,выпуска нет,цельactive.
+
+- [x] **[BUG]** Native UI attributes (089)
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-12__bugfix__native-ui-attributes.md`
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Подписи связаны с нужными полями; нативные iframe/textarea/dir и прежний className Clipboard исправлены. API/обработчики/CSS сохранены; без helpers/зависимостей.
+  - Tests:67targeted/2566full pass;10компиляций/CSS,6scripts unchanged;types21/24,ESLint178,new0;scoped7/PR371/format clean;backend565hashes reused,production/data preserved. SDD2/2 completed,выпуска нет,цельactive.

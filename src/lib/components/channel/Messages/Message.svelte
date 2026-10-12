@@ -79,6 +79,14 @@
 			: message.reply_to_message.id
 		: null;
 
+	let messageDirection: 'ltr' | 'rtl' | 'auto';
+	$: messageDirection =
+		$settings?.chatDirection === 'LTR'
+			? 'ltr'
+			: $settings?.chatDirection === 'RTL'
+				? 'rtl'
+				: 'auto';
+
 	// Swipe-to-reply state
 	let swipeStartX = 0;
 	let swipeStartY = 0;
@@ -416,7 +424,7 @@
 			<div
 				class=" flex w-full message-{message.id} "
 				id="message-{renderedMessageId}"
-				dir={$settings.chatDirection}
+				dir={messageDirection}
 			>
 				<div class={`shrink-0 mr-1 w-9`}>
 					{#if showUserProfile}
@@ -507,10 +515,7 @@
 							{/if}
 						</div>
 					{:else if (message?.data?.files ?? []).length > 0}
-						<div
-							class="my-2.5 w-full flex overflow-x-auto gap-2 flex-wrap"
-							dir={$settings?.chatDirection ?? 'auto'}
-						>
+						<div class="my-2.5 w-full flex overflow-x-auto gap-2 flex-wrap" dir={messageDirection}>
 							{#each message?.data?.files as file}
 								{@const fileUrl = getAttachmentSource(file)}
 								<div>

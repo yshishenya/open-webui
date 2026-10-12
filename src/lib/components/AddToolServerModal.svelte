@@ -546,9 +546,9 @@
 							<div class="flex flex-col w-full">
 								<div class="flex justify-between items-center">
 									<div class="flex gap-2 items-center">
-										<div for="select-bearer-or-session" class={`text-xs text-gray-500`}>
+										<label for="select-bearer-or-session" class={`text-xs text-gray-500`}>
 											{$i18n.t('Auth')}
-										</div>
+										</label>
 									</div>
 
 									{#if ['oauth_2.1', 'oauth_2.1_static'].includes(auth_type)}
@@ -700,16 +700,16 @@
 									<div class="flex flex-col w-full">
 										<div class="flex justify-between items-center mb-0.5">
 											<div class="flex gap-2 items-center">
-												<div for="select-bearer-or-session" class={`text-xs text-gray-500`}>
+												<label for="tool-server-spec-type" class={`text-xs text-gray-500`}>
 													{$i18n.t('OpenAPI Spec')}
-												</div>
+												</label>
 											</div>
 										</div>
 
 										<div class="flex gap-2">
 											<div class="flex-shrink-0 self-start">
 												<select
-													id="select-bearer-or-session"
+													id="tool-server-spec-type"
 													class={`w-full text-sm ${selectClass}`}
 													bind:value={spec_type}
 												>

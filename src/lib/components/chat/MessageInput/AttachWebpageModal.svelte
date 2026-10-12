@@ -10,7 +10,7 @@
 	import { isValidHttpUrl } from '$lib/utils';
 
 	export let show = false;
-	export let onSubmit: (e) => void;
+	export let onSubmit: (event: { type: 'web'; data: string[] }) => void;
 
 	let url = '';
 
@@ -72,7 +72,6 @@
 				<textarea
 					id="webpage-url"
 					class={`w-full flex-1 text-sm ${($settings?.highContrastMode ?? false) ? highContrastInputClass : 'bg-transparent outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-700'}`}
-					type="text"
 					bind:value={url}
 					rows="3"
 					placeholder={'https://example.com'}
