@@ -181,3 +181,12 @@
 
   - Done: 2026-10-12
   - Verification: Native12HTTPbefore/after,29paths/31routecontractsidentical,directimages/legacyURL сохранены.1064backend/0skips,25прежнихwarnings;Black0diff,Ruff497→495/new0,scopeCI0new,branchCI21→19.Production/данныесохранены,цельactive.
+
+- [x] **[REFACTOR][BACKEND]** Сохранение сообщений и история
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__message-persistence.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: ДваC901,короткиециклы/comprehension,прежниеsparse/alias/usage/transactionконтракты.
+
+  - Done: 2026-10-12
+  - Verification: 1065 backend, 0 ошибок/пропусков; до/после SQLite/PostgreSQL, 776 записей и 8 историй совпали, настоящие блокировки PostgreSQL 3/3. Black без изменений, Ruff 495 → 493, новые замечания ветки 19 → 17. Данные и production сохранены; общая цель active.

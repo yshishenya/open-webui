@@ -242,32 +242,13 @@ class ChatMessageTable:
             )
             if existing:
                 # Update existing
-                if 'role' in data:
-                    existing.role = data['role']
-                if 'parent_id' in data or 'parentId' in data:
-                    existing.parent_id = data.get('parent_id') or data.get('parentId')
-                if 'content' in data:
-                    existing.content = data.get('content')
-                if 'output' in data:
-                    existing.output = data.get('output')
-                if 'model_id' in data or 'model' in data:
-                    existing.model_id = data.get('model_id') or data.get('model')
-                if 'files' in data:
-                    existing.files = data.get('files')
-                if 'sources' in data:
-                    existing.sources = data.get('sources')
-                if 'embeds' in data:
-                    existing.embeds = data.get('embeds')
-                if 'meta' in data:
-                    existing.meta = data.get('meta')
-                if 'done' in data:
-                    existing.done = data.get('done', True)
-                if 'status_history' in data or 'statusHistory' in data:
-                    existing.status_history = data.get('status_history') or data.get('statusHistory')
-                if 'error' in data:
-                    existing.error = data.get('error')
-                if 'context_summary' in data or 'contextSummary' in data:
-                    existing.context_summary = data.get('context_summary') or data.get('contextSummary')
+                for key in ('role', 'content', 'output', 'files', 'sources', 'embeds', 'meta', 'done', 'error'):
+                    if key in data:
+                        setattr(existing, key, data[key])
+                for key in ('parent_id', 'model_id', 'status_history', 'context_summary'):
+                    alias = self.DB_TO_JSON_KEY_MAP[key]
+                    if key in data or alias in data:
+                        setattr(existing, key, data.get(key) or data.get(alias))
                 # Extract and normalize usage
                 usage = get_usage(data)
                 if usage:
@@ -371,15 +352,14 @@ class ChatMessageTable:
         for row in rows:
             msg_id = row.id[prefix_len:] if row.id.startswith(prefix) else row.id
 
-            msg: dict = {'id': msg_id}
-            for key in col_keys:
-                if key in self.EXCLUDED_COLUMNS:
-                    continue
-                val = getattr(row, key)
-                if val is None:
-                    continue
-                json_key = self.DB_TO_JSON_KEY_MAP.get(key, key)
-                msg[json_key] = val
+            msg: dict = {
+                'id': msg_id,
+                **{
+                    self.DB_TO_JSON_KEY_MAP.get(key, key): val
+                    for key in col_keys
+                    if key not in self.EXCLUDED_COLUMNS and (val := getattr(row, key)) is not None
+                },
+            }
 
             # Ensure content always has a value
             msg.setdefault('content', '')
@@ -404,8 +384,7 @@ class ChatMessageTable:
 
         # Ensure every message has a childrenIds list (leaf nodes get [])
         for msg in messages_map.values():
-            if 'childrenIds' not in msg:
-                msg['childrenIds'] = []
+            msg.setdefault('childrenIds', [])
 
         return messages_map
 
