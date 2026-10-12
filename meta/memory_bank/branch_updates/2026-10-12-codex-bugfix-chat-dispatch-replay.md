@@ -71,3 +71,9 @@
   - Owner: Codex
   - Done: 2026-10-12
   - Summary: 2585/2585 frontend, 5/5 targeted; types 0/15, ESLint 148, новых 0. Четыре компиляции/CSS и два script сравнения; dev-only sql.js types, runtime и сервер сохранены.
+
+- [x] [BUG] Неиспользуемые импорты.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__unused-imports.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: удалены 12 unused import bindings из восьми файлов. 16 компиляций сохраняют JS body/CSS, 2585/2585 frontend; types 0/15, ESLint 136, новых 0. Lint/формат 8/388 без ошибок. Сервер/данные сохранены, выпуска нет.
