@@ -243,3 +243,11 @@
   - Done: 2026-10-12
   - Summary: Удалить повторный поиск manual; сохранить языки, fallback, ошибки и proxy.
   - Tests: 12 native сценариев до/после;1071backend;Black0diff;Ruff484→483/new0;branchnewCI9→8;frontend5149hashes reused. Production/14neighbors/21foreignfiles/262volumes/33networks preserved. Общий PR/CI/выпуск впереди.
+
+
+- [x] **[REFACTOR]** Простая проверка списка адресов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__url-validation.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Объединить nested guard без изменения URL/DNS/SSRF политики.
+  - Tests: Native URL/IP/host policy до/после;1072backend;Black0diff;Ruff483→482/new0;branchnewCI8→7;frontend5149hashes reused. Сохранность по receipts;общий PR/CI/выпуск впереди.

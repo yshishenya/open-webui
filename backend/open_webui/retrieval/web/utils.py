@@ -94,7 +94,7 @@ def _is_global_addr(ip: str) -> bool:
     return all(ip.is_global for ip in embedded)
 
 
-def validate_url(url: str | Sequence[str]):
+def validate_url(url: str | Sequence[str]) -> bool:
     if isinstance(url, str):
         if isinstance(validators.url(url), validators.ValidationError):
             raise ValueError(ERROR_MESSAGES.INVALID_URL)
@@ -115,12 +115,11 @@ def validate_url(url: str | Sequence[str]):
             raise ValueError(ERROR_MESSAGES.INVALID_URL)
 
         # Blocklist check using unified filtering logic
-        if WEB_FETCH_FILTER_LIST:
-            # Match on the parsed hostname, not the full URL: a path component would
-            # otherwise let any URL slip past a hostname-based block/allow entry.
-            if not is_host_allowed(parsed_url.hostname, WEB_FETCH_FILTER_LIST):
-                log.warning(f'URL blocked by filter list: {url}')
-                raise ValueError(ERROR_MESSAGES.INVALID_URL)
+        # Match on the parsed hostname, not the full URL: a path component would
+        # otherwise let any URL slip past a hostname-based block/allow entry.
+        if WEB_FETCH_FILTER_LIST and not is_host_allowed(parsed_url.hostname, WEB_FETCH_FILTER_LIST):
+            log.warning(f'URL blocked by filter list: {url}')
+            raise ValueError(ERROR_MESSAGES.INVALID_URL)
 
         if not ENABLE_LOCAL_WEB_FETCH:
             # Local web fetch is disabled, filter out URLs that resolve to non-global IP addresses.
