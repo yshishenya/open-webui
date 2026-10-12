@@ -26,3 +26,10 @@
   - Done: 2026-10-12
   - Summary: Уточнить существующие типы обновления/модели/поиска/изображения; сохранить исполняемый JavaScript/CSS, без новых функций.
   - Tests:2532 full;8 compiled JS/CSS comparisons;types43/24,ESLint178,new0;scoped5/futureCI367/format clean;273 existing SDD valid;production/data preserved,no release.
+
+- [x] **[BUG]** UI action guards for missing and changing data (087)
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-12__bugfix__ui-action-guards.md`
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Сохранён источник действий папки; безопасное закрытие Changelog, заблокированные popup FileItem и отсутствующие квоты PlanForm.
+  - Tests:27targeted/2554full pass;10compilations/CSS;types31/24,ESLint178,new0;scoped7/PR371/format clean. SDD3/3 completed;production/data preserved. Выпуска нет, цельactive.

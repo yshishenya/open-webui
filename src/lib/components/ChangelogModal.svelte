@@ -38,11 +38,16 @@
 		});
 	};
 
-	const closeModal = async () => {
-		localStorage.version = $config.version;
-		await settings.set({ ...$settings, ...{ version: $config.version } });
-		await updateUserSettings(localStorage.token, { ui: $settings });
+	const closeModal = async (): Promise<void> => {
 		show = false;
+		const version = $config?.version ?? WEBUI_VERSION;
+		try {
+			localStorage.version = version;
+			await settings.set({ ...$settings, version });
+			await updateUserSettings(localStorage.token, { ui: $settings });
+		} catch {
+			console.warn('Could not save release notes preferences');
+		}
 	};
 
 	$: if (show) {
@@ -154,7 +159,7 @@
 													class="min-w-0 markdown-prose-sm !max-w-none !text-[0.8125rem] text-gray-600 dark:text-gray-300 [&_*]:!my-0 [&_b]:!font-normal [&_strong]:!font-normal"
 												>
 													<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-													{@html DOMPurify.sanitize(entry?.raw)}
+													{@html DOMPurify.sanitize(entry?.raw ?? '')}
 												</div>
 											</div>
 										{/each}

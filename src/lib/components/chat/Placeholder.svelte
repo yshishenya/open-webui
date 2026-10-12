@@ -100,10 +100,10 @@
 					onUpdate={async () => {
 						await refreshChatList(localStorage.token);
 					}}
-					onDelete={async () => {
+					onDelete={async (deletedFolder: ComponentProps<FolderTitle>['folder']): Promise<void> => {
 						await refreshChatList(localStorage.token);
 
-						selectedFolder.set(null);
+						if ($selectedFolder?.id === deletedFolder?.id) selectedFolder.set(null);
 					}}
 				/>
 			{:else}
