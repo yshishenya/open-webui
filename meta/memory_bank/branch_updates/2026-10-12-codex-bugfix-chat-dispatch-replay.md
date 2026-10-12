@@ -190,3 +190,12 @@
 
   - Done: 2026-10-12
   - Verification: 1065 backend, 0 ошибок/пропусков; до/после SQLite/PostgreSQL, 776 записей и 8 историй совпали, настоящие блокировки PostgreSQL 3/3. Black без изменений, Ruff 495 → 493, новые замечания ветки 19 → 17. Данные и production сохранены; общая цель active.
+
+- [x] **[REFACTOR][BACKEND]** Импорт цен из Excel
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__rate-card-import.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: Два C901; прежние суммы, optional fields и ошибки без новых подсистем.
+
+  - Done: 2026-10-12
+  - Verification: 1066 backend, 0 ошибок/пропусков; 2075 цен и 56 XLSX совпали; 10 случаев до/после SQLite/PostgreSQL. Black без diff, Ruff493 → 491, новые замечания ветки17 → 15. Данные и production сохранены; три новых внешних terminal-контейнера оставлены; цель active.

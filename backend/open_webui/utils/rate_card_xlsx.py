@@ -144,36 +144,22 @@ def parse_price_kopeks(value: object) -> tuple[int | None, str | None]:
     if isinstance(value, bool):
         return None, 'Price must be a number'
 
+    if not isinstance(value, (int, float)):
+        text = normalize_str(value)
+        if text == '':
+            return None, None
+        try:
+            value = float(text) if '.' in text else int(text)
+        except Exception:
+            return None, 'Price must be a number'
+
+    if value < 0:
+        return None, 'Price must be >= 0'
     if isinstance(value, int):
-        if value < 0:
-            return None, 'Price must be >= 0'
         return value, None
-
-    if isinstance(value, float):
-        if value < 0:
-            return None, 'Price must be >= 0'
-        if value.is_integer():
-            return int(value), None
-        return None, 'Price must be an integer (or *.0)'
-
-    text = normalize_str(value)
-    if text == '':
-        return None, None
-
-    try:
-        if '.' in text:
-            parsed_float = float(text)
-            if parsed_float < 0:
-                return None, 'Price must be >= 0'
-            if parsed_float.is_integer():
-                return int(parsed_float), None
-            return None, 'Price must be an integer (or *.0)'
-        parsed_int = int(text)
-        if parsed_int < 0:
-            return None, 'Price must be >= 0'
-        return parsed_int, None
-    except Exception:
-        return None, 'Price must be a number'
+    if value.is_integer():
+        return int(value), None
+    return None, 'Price must be an integer (or *.0)'
 
 
 def dump_scope_model_ids(scope_model_ids: Sequence[str]) -> str:
@@ -372,30 +358,17 @@ def parse_import_workbook(file_bytes: bytes) -> tuple[list[ParsedRateCardRow], l
         modality = normalize_str(row[header_map['modality']]).lower()
         unit = normalize_str(row[header_map['unit']]).lower()
 
-        is_active_val = None
-        if 'is_active' in header_map:
-            is_active_val = parse_bool(row[header_map['is_active']])
+        is_active_val = parse_bool(row[header_map['is_active']]) if 'is_active' in header_map else None
         is_active = True if is_active_val is None else bool(is_active_val)
 
         price_cell = row[header_map['raw_cost_per_unit_kopeks']]
         price, price_error = parse_price_kopeks(price_cell)
 
-        provider: str | None = None
-        if 'provider' in header_map:
-            provider_raw = row[header_map['provider']]
-            if not _is_empty(provider_raw):
-                provider = normalize_str(provider_raw)
-
-        model_tier: str | None = None
-        if 'model_tier' in header_map:
-            model_tier_raw = row[header_map['model_tier']]
-            if not _is_empty(model_tier_raw):
-                model_tier = normalize_str(model_tier_raw)
-
-        is_default: bool | None = None
-        if 'is_default' in header_map:
-            is_default_raw = row[header_map['is_default']]
-            is_default = parse_bool(is_default_raw)
+        provider_raw = row[header_map['provider']] if 'provider' in header_map else None
+        provider = None if _is_empty(provider_raw) else normalize_str(provider_raw)
+        model_tier_raw = row[header_map['model_tier']] if 'model_tier' in header_map else None
+        model_tier = None if _is_empty(model_tier_raw) else normalize_str(model_tier_raw)
+        is_default = parse_bool(row[header_map['is_default']]) if 'is_default' in header_map else None
 
         parsed_rows.append(
             ParsedRateCardRow(
@@ -411,56 +384,25 @@ def parse_import_workbook(file_bytes: bytes) -> tuple[list[ParsedRateCardRow], l
             )
         )
 
-        if not model_id:
-            errors.append(
-                XlsxError(
-                    code='missing_model_id',
-                    message='model_id is required',
-                    row_number=excel_idx,
-                    column='model_id',
-                )
-            )
-
-        if modality not in ALLOWED_MODALITIES:
-            errors.append(
-                XlsxError(
-                    code='invalid_modality',
-                    message='Invalid modality',
-                    row_number=excel_idx,
-                    column='modality',
-                )
-            )
-        else:
-            allowed_units = ALLOWED_UNITS_BY_MODALITY.get(modality, set())
-            if unit not in allowed_units:
-                errors.append(
-                    XlsxError(
-                        code='invalid_unit',
-                        message='Invalid unit for modality',
-                        row_number=excel_idx,
-                        column='unit',
-                    )
-                )
-
-        if price_error:
-            errors.append(
-                XlsxError(
-                    code='invalid_price',
-                    message=price_error,
-                    row_number=excel_idx,
-                    column='raw_cost_per_unit_kopeks',
-                )
-            )
-
-        if is_active and price is None:
-            errors.append(
-                XlsxError(
-                    code='missing_price',
-                    message='raw_cost_per_unit_kopeks is required when is_active is true',
-                    row_number=excel_idx,
-                    column='raw_cost_per_unit_kopeks',
-                )
-            )
+        for invalid, code, message, column in (
+            (not model_id, 'missing_model_id', 'model_id is required', 'model_id'),
+            (modality not in ALLOWED_MODALITIES, 'invalid_modality', 'Invalid modality', 'modality'),
+            (
+                modality in ALLOWED_MODALITIES and unit not in ALLOWED_UNITS_BY_MODALITY.get(modality, set()),
+                'invalid_unit',
+                'Invalid unit for modality',
+                'unit',
+            ),
+            (bool(price_error), 'invalid_price', price_error or '', 'raw_cost_per_unit_kopeks'),
+            (
+                is_active and price is None,
+                'missing_price',
+                'raw_cost_per_unit_kopeks is required when is_active is true',
+                'raw_cost_per_unit_kopeks',
+            ),
+        ):
+            if invalid:
+                errors.append(XlsxError(code=code, message=message, row_number=excel_idx, column=column))
 
     return parsed_rows, errors
 
