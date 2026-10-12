@@ -235,3 +235,11 @@
 - Scope: один метод и pure error-body helper; прежние multipart/params/timeout/document/error contracts, без изменений Cloud/polling/ZIP.
 
 - Status: Done —113. Один метод и маленький pure error-body helper;first result без полной копии списка. Один тест до/после,4962native-request-document-error-log сравнений,1070backend/25прежнихwarnings. Black0diff;Ruff485→484/new0;scopeCI3→2/new0;branchCI10→9. Frontend5040хешей прежние. Production/12прежнихсоседей/21чужойфайл/262тома/33сети сохранены;два новых внешнихterminal оставлены без изменений. Свои стенды/полныеbaselineкопии удалены. SDDclosed;commit/push подтверждается receipt. План198/244,цельactive,выпуска нет.
+
+
+- [x] **[REFACTOR]** Выбор субтитров YouTube через native SDK
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__youtube-transcripts.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Удалить повторный поиск manual; сохранить языки, fallback, ошибки и proxy.
+  - Tests: 12 native сценариев до/после;1071backend;Black0diff;Ruff484→483/new0;branchnewCI9→8;frontend5149hashes reused. Production/14neighbors/21foreignfiles/262volumes/33networks preserved. Общий PR/CI/выпуск впереди.

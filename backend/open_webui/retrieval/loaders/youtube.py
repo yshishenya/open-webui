@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Generator, Sequence
-from typing import Any
 from urllib.parse import parse_qs, urlparse
 from xml.etree.ElementTree import ParseError
 
@@ -102,18 +101,9 @@ class YoutubeLoader:
         for lang in self.language:
             try:
                 transcript = transcript_list.find_transcript([lang])
-                if transcript.is_generated:
-                    log.debug(f"Found generated transcript for language '{lang}'")
-                    try:
-                        transcript = transcript_list.find_manually_created_transcript([lang])
-                        log.debug(f"Found manual transcript for language '{lang}'")
-                    except NoTranscriptFound:
-                        log.debug(f"No manual transcript found for language '{lang}', using generated")
-                        pass
-
                 log.debug(f"Found transcript for language '{lang}'")
                 try:
-                    transcript_pieces: list[dict[str, Any]] = transcript.fetch()
+                    transcript_pieces = transcript.fetch()
                 except ParseError:
                     log.debug(f"Empty or invalid transcript for language '{lang}'")
                     continue
