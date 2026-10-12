@@ -146,3 +146,11 @@
   - Summary: переиспользовать Settings и существующие поля Memory; исполняемый код сохраняется.
   - Done: 2026-10-12
   - Acceptance:2598full,types0/0,ESLint10→8/new0,scoped3/CI456/format clean,5compiled-identical. Production/данные сохранены;цельactive.
+
+- [x] [BUG] Завершение frontend contracts и проверка устаревшей ручки списка.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__frontend-gate.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: последние8 ESLint diagnostics; сохранить runtime SDK и проверить актуальную позицию списка.
+  - Done: 2026-10-12
+  - Acceptance:9focused/2600full,types0/0,ESLint8→0,scoped6/CI462/format clean. Native stale handle failure исправлен, SDK executable preserved;fresh Ruff547. Production/данные сохранены;цельactive.

@@ -389,6 +389,11 @@ export function listDragHandlePlugin(options = {}) {
 		props: {
 			decorations: decorationsProp,
 			handleDOMEvents: {
+				/**
+				 * @param {import('prosemirror-view').EditorView} view
+				 * @param {MouseEvent} event
+				 * @returns {boolean}
+				 */
 				mousedown(view, event) {
 					const t = /** @type {HTMLElement} */ (event.target);
 					const handle = t.closest?.(`.${classHandle}`);
@@ -401,11 +406,18 @@ export function listDragHandlePlugin(options = {}) {
 					const posInside = getPos();
 					const fromStart = posInside - 1;
 
-					try {
-						view.dispatch(
-							view.state.tr.setSelection(NodeSelection.create(view.state.doc, fromStart))
-						);
-					} catch {}
+					// A removed widget can return undefined; never start dragging a stale position.
+					if (
+						!Number.isInteger(posInside) ||
+						fromStart < 0 ||
+						fromStart >= view.state.doc.content.size
+					)
+						return true;
+					const item = view.state.doc.nodeAt(fromStart);
+					if (!isListItem(item) || !NodeSelection.isSelectable(item)) return true;
+					view.dispatch(
+						view.state.tr.setSelection(NodeSelection.create(view.state.doc, fromStart))
+					);
 
 					const startMouse = { x: event.clientX, y: event.clientY };
 					const ghostEl = ensureGhost(view, fromStart);

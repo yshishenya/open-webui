@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ModelParams } from '$lib/apis';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -9,7 +10,7 @@
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	export let onChange: (params: any) => void = () => {};
+	export let onChange: (params: ModelParams) => void = () => {};
 
 	export let admin = false;
 	export let custom = false;
@@ -50,14 +51,18 @@
 		num_thread: null,
 		num_gpu: null
 	};
-	type RangeParamKey = keyof typeof defaultParams;
+	type RangeParamKey = {
+		[Key in keyof typeof defaultParams]: ModelParams[Key] extends number | null | undefined
+			? Key
+			: never;
+	}[keyof typeof defaultParams];
 
-	export let params: any = defaultParams;
+	export let params: ModelParams = defaultParams;
 	$: if (params) {
 		onChange(params);
 	}
 
-	const setTopK = (event: Event) => {
+	const setTopK = (event: Event): void => {
 		const input = event.currentTarget as HTMLInputElement;
 		const rawValue = input.value;
 		const value = Number(rawValue);
@@ -293,7 +298,7 @@
 					on:click={() => {
 						if ((params?.reasoning_tags ?? null) === null) {
 							params.reasoning_tags = ['', ''];
-						} else if ((params?.reasoning_tags ?? []).length === 2) {
+						} else if (Array.isArray(params.reasoning_tags) && params.reasoning_tags.length === 2) {
 							params.reasoning_tags = true;
 						} else if ((params?.reasoning_tags ?? null) !== false) {
 							params.reasoning_tags = false;
@@ -315,7 +320,7 @@
 			</div>
 		</Tooltip>
 
-		{#if ![true, false, null].includes(params?.reasoning_tags ?? null) && (params?.reasoning_tags ?? []).length === 2}
+		{#if Array.isArray(params.reasoning_tags) && params.reasoning_tags.length === 2}
 			<div class="flex mt-0.5 space-x-2">
 				<div class=" flex-1">
 					<input
@@ -1408,8 +1413,8 @@
 									on:change={(e) => {
 										const newKey = e.currentTarget.value.trim();
 										if (newKey && newKey !== key) {
-											params.custom_params[newKey] = params.custom_params[key];
-											delete params.custom_params[key];
+											params.custom_params![newKey] = params.custom_params![key];
+											delete params.custom_params![key];
 											params = {
 												...params,
 												custom_params: { ...params.custom_params }
@@ -1422,7 +1427,7 @@
 								class="p-1 px-3 text-xs flex rounded-sm transition shrink-0 outline-hidden"
 								type="button"
 								on:click={() => {
-									delete params.custom_params[key];
+									delete params.custom_params![key];
 									params = {
 										...params,
 										custom_params: { ...params.custom_params }
@@ -1435,7 +1440,7 @@
 						<div class="flex mt-0.5 space-x-2">
 							<div class=" flex-1">
 								<input
-									bind:value={params.custom_params[key]}
+									bind:value={params.custom_params![key]}
 									type="text"
 									class="text-sm w-full bg-transparent outline-hidden outline-none"
 									aria-label={$i18n.t('Custom Parameter Value')}

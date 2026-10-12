@@ -4,15 +4,12 @@ declare global {
 	const APP_VERSION: string;
 	const APP_BUILD_HASH: string;
 
-	// NOTE: some browser SDKs are loaded via <script> tags. We type them as any
-	// to keep TypeScript checks usable without pulling extra dependencies.
-	var gapi: any;
-	var google: any;
+	// Browser SDKs are installed by the existing script loaders.
+	let gapi: import('$lib/utils/google-drive-picker').GoogleDriveLoader | undefined;
+	const google: import('$lib/utils/google-drive-picker').GoogleDriveSdk;
 
 	// Some parts of the app treat dict as a generic map type.
 	type dict = Record<string, unknown>;
-
-	type TippyInstance = any;
 
 	interface Navigator {
 		gpu?: unknown;

@@ -1,3 +1,39 @@
+// Only the methods used below; runtime SDKs remain loaded from Google's existing URLs.
+interface GoogleDocsView {
+	setIncludeFolders(include: boolean): GoogleDocsView;
+	setSelectFolderEnabled(enabled: boolean): GoogleDocsView;
+	setMimeTypes(types: string): GoogleDocsView;
+}
+interface GooglePickerBuilder {
+	enableFeature(feature: string): GooglePickerBuilder;
+	addView(view: GoogleDocsView): GooglePickerBuilder;
+	setOAuthToken(token: string): GooglePickerBuilder;
+	setDeveloperKey(key: string): GooglePickerBuilder;
+	setCallback(callback: (data: Record<string, unknown>) => void): GooglePickerBuilder;
+	build(): { setVisible(visible: boolean): void };
+}
+export type GoogleDriveLoader = { load(name: string, ready: () => void): void };
+export type GoogleDriveSdk = {
+	accounts: {
+		oauth2: {
+			initTokenClient(options: {
+				client_id: string;
+				scope: string;
+				callback: (response: { access_token?: string }) => void;
+				error_callback: (error: { message?: string }) => void;
+			}): { requestAccessToken(): void };
+		};
+	};
+	picker: {
+		PickerBuilder: new () => GooglePickerBuilder;
+		DocsView: new () => GoogleDocsView;
+		Feature: { NAV_HIDDEN: string; MULTISELECT_ENABLED: string };
+		Response: { ACTION: string; DOCUMENTS: string };
+		Action: { PICKED: string; CANCEL: string };
+		Document: { ID: string; NAME: string; MIME_TYPE: string };
+	};
+};
+
 // Google Drive Picker API configuration
 let API_KEY = '';
 let CLIENT_ID = '';
@@ -40,7 +76,8 @@ export const loadGoogleDriveApi = () => {
 			const script = document.createElement('script');
 			script.src = 'https://apis.google.com/js/api.js';
 			script.onload = () => {
-				gapi?.load('picker', () => {
+				// The external script assigns gapi after the undefined check above.
+				(gapi as GoogleDriveLoader | undefined)?.load('picker', () => {
 					resolve(true);
 				});
 			};
