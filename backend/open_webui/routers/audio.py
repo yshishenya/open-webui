@@ -54,6 +54,7 @@ from open_webui.env import (
 )
 from open_webui.events import EVENTS, publish_event
 from open_webui.models.config import Config
+from open_webui.models.users import UserModel
 from open_webui.utils.access_control import has_permission
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.billing_integration import (
@@ -695,7 +696,9 @@ async def speech(request: Request, user=Depends(get_verified_user)):
     return response
 
 
-async def _transcribe_whisper(request, file_path, languages, file_dir, id):
+async def _transcribe_whisper(
+    request: Request, file_path: str, languages: list[str | None], file_dir: str, id: str
+) -> dict[str, str]:
     if request.app.state.faster_whisper_model is None:
         request.app.state.faster_whisper_model = await asyncio.to_thread(
             set_faster_whisper_model, await Config.get('audio.stt.whisper_model')
@@ -703,7 +706,7 @@ async def _transcribe_whisper(request, file_path, languages, file_dir, id):
 
     model = request.app.state.faster_whisper_model
 
-    def _run():
+    def _run() -> str:
         segments, info = model.transcribe(
             file_path,
             beam_size=5,
@@ -714,7 +717,13 @@ async def _transcribe_whisper(request, file_path, languages, file_dir, id):
         log.info("Detected language '%s' with probability %f" % (info.language, info.language_probability))
         return ''.join([segment.text for segment in list(segments)])
 
-    transcript = await asyncio.to_thread(_run)
+    worker = asyncio.create_task(asyncio.to_thread(_run))
+    try:
+        transcript = await asyncio.shield(worker)
+    except asyncio.CancelledError:
+        # A native worker cannot be cancelled; keep its input until it finishes.
+        await worker
+        raise
     data = {'text': transcript.strip()}
 
     async with aiofiles.open(os.path.join(file_dir, f'{id}.json'), 'w') as f:
@@ -1142,14 +1151,44 @@ async def _transcribe_mistral(request, file_path, filename, metadata, file_dir, 
         )
 
 
-async def transcribe(request: Request, file_path: str, metadata: dict | None = None, user=None):
+async def _transcribe_chunks(
+    request: Request, chunk_paths: list[str], metadata: dict[str, object] | None, user: UserModel | None
+) -> list[dict[str, object] | None]:
+    tasks = [asyncio.create_task(transcription_handler(request, path, metadata, user)) for path in chunk_paths]
+    try:
+        # Shield avoids cancelling children twice when the request is cancelled.
+        return await asyncio.shield(asyncio.gather(*tasks))
+    except HTTPException:
+        raise
+    except Exception as transcribe_exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f'Error transcribing chunk: {transcribe_exc}',
+        )
+    finally:
+        for task in tasks:
+            task.cancel()
+        completion = asyncio.gather(*tasks, return_exceptions=True)
+        cancelled = None
+        while not completion.done():
+            try:
+                await asyncio.shield(completion)
+            except asyncio.CancelledError as exc:
+                cancelled = exc
+        if cancelled is not None:
+            raise cancelled
+
+
+async def transcribe(
+    request: Request, file_path: str, metadata: dict[str, object] | None = None, user: UserModel | None = None
+) -> dict[str, str]:
     log.info(f'transcribe: {file_path} {metadata}')
 
     if BYPASS_PYDUB_PREPROCESSING:
         log.info('Bypassing pydub preprocessing (BYPASS_PYDUB_PREPROCESSING=true)')
         chunk_paths = [file_path]
     else:
-        if is_audio_conversion_required(file_path):
+        if await asyncio.to_thread(is_audio_conversion_required, file_path):
             file_path = await asyncio.to_thread(convert_audio_to_mp3, file_path)
             if not file_path:
                 raise HTTPException(
@@ -1174,24 +1213,15 @@ async def transcribe(request: Request, file_path: str, metadata: dict | None = N
             )
 
     try:
-        tasks = [transcription_handler(request, chunk_path, metadata, user) for chunk_path in chunk_paths]
-        # gather keeps results in chunk order, unlike as_completed
-        results = await asyncio.gather(*tasks)
-    except HTTPException:
-        raise
-    except Exception as transcribe_exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'Error transcribing chunk: {transcribe_exc}',
-        )
+        results = await _transcribe_chunks(request, chunk_paths, metadata, user)
     finally:
         # Clean up only the temporary chunks, never the original file
         for chunk_path in chunk_paths:
-            if chunk_path != file_path and os.path.isfile(chunk_path):
+            if chunk_path != file_path and await asyncio.to_thread(os.path.isfile, chunk_path):
                 try:
                     await asyncio.to_thread(os.remove, chunk_path)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.warning('Failed to remove temporary audio chunk: %s', exc)
 
     return {
         'text': ' '.join([result['text'] for result in results]),

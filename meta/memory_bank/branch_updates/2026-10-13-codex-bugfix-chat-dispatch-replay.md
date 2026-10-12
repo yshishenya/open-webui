@@ -1,0 +1,6 @@
+- [x] **[BUG]** Очистка аудиофрагментов после завершения handlers
+  - Spec: meta/memory_bank/specs/work_items/2026-10-13__bugfix__audio-chunk-lifecycle.md
+  - Owner: Codex
+  - Done: 2026-10-13
+  - Summary: Воспроизведено удаление ещё читаемого chunk после sibling HTTP failure; остановить и дождаться handlers до удаления.
+  - Tests: Native2failed→2passed;1074backend;Black0diff;Ruff482→481/new0;branchnewCI7→6;frontend5149hashes reused. Production/files/volumes/network config preserved;bridge ID and2external terminal IDs changed, cause unknown,taskmutations0. Своиfixtures removed;общий PR/CI/выпуск впереди.
