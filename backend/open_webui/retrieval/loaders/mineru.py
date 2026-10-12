@@ -291,7 +291,7 @@ class MinerULoader:
         """
         Upload file to presigned URL (no authentication needed).
         """
-        log.info(f'Uploading file to presigned URL')
+        log.info('Uploading file to presigned URL')
 
         try:
             with open(self.file_path, 'rb') as f:

@@ -626,7 +626,7 @@ async def verify_tool_servers_config(
                     log.debug(f'Failed to create MCP client: {e}')
                     raise HTTPException(
                         status_code=400,
-                        detail=f'Failed to create MCP client',
+                        detail='Failed to create MCP client',
                     )
                 finally:
                     if client:
@@ -669,7 +669,7 @@ async def verify_tool_servers_config(
         log.debug(f'Failed to connect to the tool server: {e}')
         raise HTTPException(
             status_code=400,
-            detail=f'Failed to connect to the tool server',
+            detail='Failed to connect to the tool server',
         )
 
 

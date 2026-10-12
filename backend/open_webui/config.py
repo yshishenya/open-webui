@@ -76,7 +76,7 @@ async def import_legacy_config_json():
     """Migrate legacy config.json → database on first run."""
     if not os.path.exists(f'{DATA_DIR}/config.json'):
         return
-    with open(f'{DATA_DIR}/config.json', 'r') as _f:
+    with open(f'{DATA_DIR}/config.json') as _f:
         await Config.upsert(json.load(_f))
     os.rename(f'{DATA_DIR}/config.json', f'{DATA_DIR}/old_config.json')
 
@@ -2849,8 +2849,8 @@ def load_oauth_providers():
             f'⚠️  OAuth providers configured ({provider_list}) but OPENID_PROVIDER_URL not set - logout will not work!'
         )
         log.warning(
-            f"Set OPENID_PROVIDER_URL to your OAuth provider's OpenID Connect discovery endpoint,"
-            f' or set OPENID_END_SESSION_ENDPOINT to a custom logout URL to fix logout functionality.'
+            "Set OPENID_PROVIDER_URL to your OAuth provider's OpenID Connect discovery endpoint,"
+            ' or set OPENID_END_SESSION_ENDPOINT to a custom logout URL to fix logout functionality.'
         )
 
 

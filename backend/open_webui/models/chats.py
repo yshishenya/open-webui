@@ -2118,7 +2118,7 @@ class ChatTable:
             log.info(f'DB dialect name: {dialect_name}')
             if dialect_name == 'sqlite':
                 stmt = stmt.filter(
-                    text(f"EXISTS (SELECT 1 FROM json_each(Chat.meta, '$.tags') WHERE json_each.value = :tag_id)")
+                    text("EXISTS (SELECT 1 FROM json_each(Chat.meta, '$.tags') WHERE json_each.value = :tag_id)")
                 ).params(tag_id=tag_id)
             elif dialect_name == 'postgresql':
                 stmt = stmt.filter(

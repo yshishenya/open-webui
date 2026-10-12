@@ -479,7 +479,7 @@ class PgvectorClient(VectorDBBase):
             subq = (
                 select(*result_fields)
                 .where(*where_clauses)
-                .order_by((DocumentChunk.vector.cosine_distance(query_vectors.c.q_vector)))
+                .order_by(DocumentChunk.vector.cosine_distance(query_vectors.c.q_vector))
             )
             if limit is not None:
                 subq = subq.limit(limit)

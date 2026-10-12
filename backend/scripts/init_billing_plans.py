@@ -66,7 +66,7 @@ def init_plans(include_annual=False, include_promo=False, force=False):
             created_count += 1
 
     print('\n' + '=' * 60)
-    print(f'Summary:')
+    print('Summary:')
     print(f'  Created: {created_count}')
     print(f'  Updated: {updated_count}')
     print(f'  Skipped: {skipped_count}')

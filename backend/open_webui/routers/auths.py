@@ -1677,7 +1677,7 @@ async def token_exchange(
     sub_claim = await Config.get('oauth.sub_claim')
     sub = user_data.get(sub_claim or OAUTH_PROVIDERS[provider].get('sub_claim', 'sub'))
     if not sub:
-        log.warning(f'Token exchange failed: sub claim missing from user data')
+        log.warning('Token exchange failed: sub claim missing from user data')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Token missing required 'sub' claim",
@@ -1685,7 +1685,7 @@ async def token_exchange(
 
     email = user_data.get(email_claim, '')
     if not email:
-        log.warning(f'Token exchange failed: email claim missing from user data')
+        log.warning('Token exchange failed: email claim missing from user data')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Token missing required email claim',
@@ -1697,7 +1697,7 @@ async def token_exchange(
     if isinstance(oauth_allowed_domains, str):
         oauth_allowed_domains = [domain.strip() for domain in oauth_allowed_domains.split(',') if domain.strip()]
     if '*' not in oauth_allowed_domains and email.split('@')[-1] not in oauth_allowed_domains:
-        log.warning(f'Token exchange denied: email domain not in allowed domains list')
+        log.warning('Token exchange denied: email domain not in allowed domains list')
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=ERROR_MESSAGES.ACCESS_PROHIBITED,

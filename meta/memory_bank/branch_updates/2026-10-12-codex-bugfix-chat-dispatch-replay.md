@@ -154,3 +154,12 @@
   - Summary: последние8 ESLint diagnostics; сохранить runtime SDK и проверить актуальную позицию списка.
   - Done: 2026-10-12
   - Acceptance:9focused/2600full,types0/0,ESLint8→0,scoped6/CI462/format clean. Native stale handle failure исправлен, SDK executable preserved;fresh Ruff547. Production/данные сохранены;цельactive.
+
+- [x] **[REFACTOR][BACKEND]** 21 механическое исправление для выпуска
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__backend-mechanical-gate.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: Строки, аннотации и лишние скобки; полный backend и доказательство эквивалентности, без новых подсистем.
+
+  - Done: 2026-10-12
+  - Verification: 1064backend/0skips,25прежнихwarnings;Black465unchanged,Ruff547→526/new0,scope CI13files/new0. Весь branch CI38new остаётся открытым;frontend5040хешей совпали. Production/данные сохранены;выпуска нет,цельactive.

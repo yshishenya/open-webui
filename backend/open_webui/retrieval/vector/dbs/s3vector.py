@@ -381,7 +381,7 @@ class S3VectorClient(VectorDBBase):
                     log.warning(f"Collection '{collection_name}' not found")
                     return None
                 elif error_code == 'ValidationException':
-                    log.error(f'Invalid query vector dimensions or parameters')
+                    log.error('Invalid query vector dimensions or parameters')
                     return None
                 elif error_code == 'AccessDeniedException':
                     log.error(f"Access denied for collection '{collection_name}'. Check permissions.")

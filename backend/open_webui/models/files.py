@@ -257,7 +257,7 @@ class FilesTable:
         skip: int = 0,
         limit: int = 50,
         db: AsyncSession | None = None,
-    ) -> 'FileListResponse':
+    ) -> FileListResponse:
         async with get_async_db_context(db) as db:
             stmt = select(File)
             if user_id:

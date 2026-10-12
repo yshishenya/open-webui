@@ -992,7 +992,7 @@ async def model_response_handler(request, channel, message, user, db=None):
                     MessageForm(
                         **{
                             'parent_id': response_parent_id,
-                            'content': f'',
+                            'content': '',
                             'data': {},
                             'meta': {
                                 'model_id': model_id,

@@ -12,7 +12,7 @@ class _StubAsyncClient:
     def __init__(self, outcome: httpx.Response | httpx.RequestError) -> None:
         self._outcome = outcome
 
-    async def __aenter__(self) -> "_StubAsyncClient":
+    async def __aenter__(self) -> _StubAsyncClient:
         return self
 
     async def __aexit__(

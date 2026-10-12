@@ -1720,7 +1720,7 @@ async def chat_image_generation_handler(
                 {
                     'type': 'status',
                     'data': {
-                        'description': f'An error occurred while generating an image',
+                        'description': 'An error occurred while generating an image',
                         'done': True,
                     },
                 }
@@ -1820,7 +1820,7 @@ async def chat_image_generation_handler(
                 {
                     'type': 'status',
                     'data': {
-                        'description': f'An error occurred while generating an image',
+                        'description': 'An error occurred while generating an image',
                         'done': True,
                     },
                 }

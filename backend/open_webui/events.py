@@ -30,7 +30,7 @@ class EventDefinition(BaseModel):
     message: str | None = None
 
     @model_validator(mode='after')
-    def defaults(self) -> 'EventDefinition':
+    def defaults(self) -> EventDefinition:
         title = self.name.replace('.', ' ').replace('_', ' ').title()
         if self.description is None:
             object.__setattr__(self, 'description', f'{title}.')
@@ -771,7 +771,7 @@ def event_filter_matches(webhook: dict[str, Any], event_name: str) -> bool:
     return False
 
 
-def event_user_ids(event: 'Event') -> set[str]:
+def event_user_ids(event: Event) -> set[str]:
     user_ids = set()
     actor = event.actor or {}
     subject = event.subject or {}
@@ -822,7 +822,7 @@ async def event_target_matches(
     return any(group_ids.intersection(target_group_ids) for group_ids in user_group_ids.values())
 
 
-async def event_webhook_matches(webhook: dict[str, Any], event: 'Event') -> bool:
+async def event_webhook_matches(webhook: dict[str, Any], event: Event) -> bool:
     if not event_filter_matches(webhook, event.event):
         return False
 
