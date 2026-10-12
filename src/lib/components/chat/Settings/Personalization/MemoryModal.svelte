@@ -11,6 +11,7 @@
 	const dispatch = createEventDispatcher();
 
 	export let show;
+	/** @type {import('$lib/apis/memories').MemoryEntry | null} */
 	export let memory = null;
 
 	const i18n = getContext('i18n');

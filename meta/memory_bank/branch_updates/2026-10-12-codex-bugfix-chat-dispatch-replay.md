@@ -138,3 +138,11 @@
   - Summary: реальные серверные поля/shared preview types; nullable/optional значения сохраняются.
   - Done: 2026-10-12
   - Acceptance: 1focused/2598full, types0/0, ESLint16→10/new0, scoped10/CI454/format clean;12compiled-identical. Production/данные сохранены;цельactive.
+
+- [x] Общий тип записи памяти и контракт сохранения персонализации.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__memory-view-contract.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: переиспользовать Settings и существующие поля Memory; исполняемый код сохраняется.
+  - Done: 2026-10-12
+  - Acceptance:2598full,types0/0,ESLint10→8/new0,scoped3/CI456/format clean,5compiled-identical. Production/данные сохранены;цельactive.
