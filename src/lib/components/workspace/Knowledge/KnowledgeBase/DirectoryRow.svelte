@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { parseKnowledgeDropId } from '$lib/utils/airis/file_drop';
 	import dayjs from '$lib/dayjs';
 	import duration from 'dayjs/plugin/duration';
 	import relativeTime from 'dayjs/plugin/relativeTime';
@@ -83,24 +84,14 @@
 		dragOver = false;
 		const fileRaw = e.dataTransfer?.getData('application/x-kb-file-move');
 		if (fileRaw) {
-			try {
-				const data = JSON.parse(fileRaw);
-				onFileDrop(data.fileId, directory.id);
-			} catch (error) {
-				console.warn('Ignoring malformed knowledge drag payload:', error);
-			}
+			const fileId = parseKnowledgeDropId(fileRaw, 'fileId');
+			if (fileId) onFileDrop(fileId, directory.id);
 			return;
 		}
 		const dirRaw = e.dataTransfer?.getData('application/x-kb-dir-move');
 		if (dirRaw) {
-			try {
-				const data = JSON.parse(dirRaw);
-				if (data.dirId !== directory.id) {
-					onDirDrop(data.dirId, directory.id);
-				}
-			} catch (error) {
-				console.warn('Ignoring malformed knowledge drag payload:', error);
-			}
+			const dirId = parseKnowledgeDropId(dirRaw, 'dirId');
+			if (dirId && dirId !== directory.id) onDirDrop(dirId, directory.id);
 		}
 	}}
 >

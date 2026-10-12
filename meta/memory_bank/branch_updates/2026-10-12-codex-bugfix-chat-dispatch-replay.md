@@ -109,3 +109,10 @@
   - Started: 2026-10-12
   - Done: 2026-10-12
   - Summary:18 замечаний устранены;frontend2585/2585,types0/15,ESLint55/new0;scoped11/CI419/format clean,compilation21/SSR7. Общая цель active;выпуска нет.
+
+- [x] [BUG] Проверка данных переноса файлов.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__file-drop-validation.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Done: 2026-10-12
+  - Summary: общий parser и четыре получателя;5focused/2590full,types0/15,ESLint45/new0,scoped7/CI426 clean,CSS8. Production/данные сохранены;цельactive.
