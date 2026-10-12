@@ -217,3 +217,12 @@
 - Scope: один pure method, без новых абстракций, I/O и зависимостей; точные SQL/params/ошибки и три caller paths должны сохраниться.
 
 - Status: Done —111. Один метод короче на11строк,без новых абстракций/зависимостей. 1125SQL/params/errors и9nativecaller сравнений,1+1регрессионныйтест,1068backend/25прежнихwarnings. Black0diff;Ruff490→489/new0;scopeCI5→4/new0;branchCI14→13. Frontend5040хешей прежние. Production/14из15соседей/21чужойфайл/262тома/33сети сохранены;внешний terminal исчез,причина неизвестна,серверных изменений задачей нет. Свои стенды иполныеbaselineкопии удалены. SDDclosed;commit/push подтверждаются receipt. План198/244,цельactive,выпуска нет.
+
+
+##112 — простые S3 filters
+
+- Status: In Progress
+- Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__s3-filters.md
+- Scope: три метода и один pure helper; без новых dependencies/I/O, с прежним query→delete выбором.
+
+- Status: Done —112. Четыре метода и два маленьких pure helper,модуль короче на31строку. 10480filters/5080native-result-request-error-log/400unequal-query сравнений, native SDK Stubber и1069backend/25прежнихwarnings. Black0diff;Ruff489→485/new0;scopeCI6→2/new0;branchCI13→10. Frontend5040хешей прежние. Production/12из14соседей/21чужойфайл/262тома/33сети сохранены;два внешних terminal исчезли,причина неизвестна,серверных изменений задачей нет. Свои стенды/полныеbaselineкопии удалены. SDDclosed;commit/push подтверждается receipt. План198/244,цельactive,выпуска нет.
