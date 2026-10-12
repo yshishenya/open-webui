@@ -116,3 +116,10 @@
   - Started: 2026-10-12
   - Done: 2026-10-12
   - Summary: общий parser и четыре получателя;5focused/2590full,types0/15,ESLint45/new0,scoped7/CI426 clean,CSS8. Production/данные сохранены;цельactive.
+
+- [x] [BUG] Нативные связи и свойства отображения.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__native-display-contracts.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Done: 2026-10-12
+  - Summary:2focused/2592full,types0/2,ESLint28/new0,scoped17/CI441 clean,CSS28/SSR18. Production/данные сохранены;цельactive.

@@ -25,6 +25,8 @@ export type ChatStatus = Record<string, unknown> & {
 	urls?: string[];
 	items?: { link: string; title?: string | null }[] | null;
 	query?: string;
+	queries?: string[];
+	count?: number;
 };
 
 export type ChatCodeExecution = Record<string, unknown> & {
