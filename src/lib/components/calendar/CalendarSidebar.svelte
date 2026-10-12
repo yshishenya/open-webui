@@ -74,10 +74,6 @@
 		return d.toDateString() === new Date().toDateString();
 	}
 
-	function isSelected(d: Date): boolean {
-		return d.toDateString() === currentDate.toDateString();
-	}
-
 	function navigateMini(delta: number) {
 		if (miniMonth + delta > 11) {
 			miniMonth = 0;

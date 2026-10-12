@@ -83,3 +83,9 @@
   - Owner: Codex
   - Done: 2026-10-12
   - Summary: Existing API/context typed;2585 frontend,types0/15,ESLint111/new0,scoped9/CI397 clean,14 compiled comparisons;backend563 reuse1064/25. Fresh Ruff547/Black diff0. Production/data preserved;release and real A/B pending.
+
+- [x] [BUG] Неиспользуемые объявления.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__unused-declarations.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary:4 добавления/167 удалений приложения;active handlers и payloads сохранены.2585 frontend,types0/15,ESLint103/new0,scoped4/CI401 clean,8 retained compiled comparisons;backend563 reuse1064/25. Production/data preserved;release and real A/B pending.
