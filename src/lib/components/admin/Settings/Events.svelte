@@ -19,11 +19,11 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { getGroups, getGroupInfoById } from '$lib/apis/groups';
-	import { getUserInfoById, searchUsers } from '$lib/apis/users';
+	import { getUserInfoById, searchUsers, type UserInfoResponse } from '$lib/apis/users';
+	import type { GroupDetails } from '$lib/utils/airis/group-types';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import Cog6 from '$lib/components/icons/Cog6.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
-	import { settings } from '$lib/stores';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
@@ -38,11 +38,11 @@
 	let targetUserIds: string[] = [];
 	let targetGroupIds: string[] = [];
 	let targetQuery = '';
-	let targetUserResults: any[] = [];
-	let targetGroupResults: any[] = [];
-	let groups: any[] = [];
-	let selectedUsers: Record<string, any> = {};
-	let selectedGroups: Record<string, any> = {};
+	let targetUserResults: Pick<UserInfoResponse, 'id' | 'name' | 'email'>[] = [];
+	let targetGroupResults: GroupDetails[] = [];
+	let groups: GroupDetails[] = [];
+	let selectedUsers: Record<string, Pick<UserInfoResponse, 'id' | 'name' | 'email'>> = {};
+	let selectedGroups: Record<string, GroupDetails> = {};
 	let targetSearchTimer: ReturnType<typeof setTimeout>;
 	let form = {
 		id: '',
@@ -284,15 +284,17 @@
 		}
 
 		targetGroupResults = groups
-			.filter((group: any) => group.name?.toLowerCase().includes(query))
-			.filter((group: any) => !targetGroupIds.includes(group.id))
+			.filter((group) => group.name?.toLowerCase().includes(query))
+			.filter((group) => !targetGroupIds.includes(group.id))
 			.slice(0, 5);
 
 		const res = await searchUsers(localStorage.token, targetQuery, 'name', 'asc', 1).catch(
 			() => null
 		);
 		targetUserResults = (res?.users ?? [])
-			.filter((user: any) => !targetUserIds.includes(user.id))
+			.filter(
+				(user: Pick<UserInfoResponse, 'id' | 'name' | 'email'>) => !targetUserIds.includes(user.id)
+			)
 			.slice(0, 5);
 	};
 
@@ -301,7 +303,7 @@
 		targetSearchTimer = setTimeout(searchTargets, 250);
 	};
 
-	const addTargetUser = (user: any) => {
+	const addTargetUser = (user: Pick<UserInfoResponse, 'id' | 'name' | 'email'>) => {
 		if (!targetUserIds.includes(user.id)) {
 			targetUserIds = [...targetUserIds, user.id];
 			selectedUsers = { ...selectedUsers, [user.id]: user };
@@ -311,7 +313,7 @@
 		targetGroupResults = [];
 	};
 
-	const addTargetGroup = (group: any) => {
+	const addTargetGroup = (group: GroupDetails) => {
 		if (!targetGroupIds.includes(group.id)) {
 			targetGroupIds = [...targetGroupIds, group.id];
 			selectedGroups = { ...selectedGroups, [group.id]: group };
