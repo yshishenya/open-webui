@@ -1,6 +1,74 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { requestJSON } from '$lib/utils/airis/request_json';
 
+export type AdminConfig = {
+	SHOW_ADMIN_DETAILS: boolean;
+	ADMIN_EMAIL: string | null;
+	WEBUI_URL: string;
+	ENABLE_SIGNUP: boolean;
+	ENABLE_API_KEYS: boolean;
+	ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS: boolean;
+	API_KEYS_ALLOWED_ENDPOINTS: string;
+	DEFAULT_USER_ROLE: string;
+	DEFAULT_GROUP_ID: string;
+	JWT_EXPIRES_IN: string;
+	ENABLE_COMMUNITY_SHARING: boolean;
+	ENABLE_MESSAGE_RATING: boolean;
+	ENABLE_FOLDERS: boolean;
+	FOLDER_MAX_FILE_COUNT: number | string | null;
+	AUTOMATION_MAX_COUNT: number | string | null;
+	AUTOMATION_MIN_INTERVAL: number | string | null;
+	ENABLE_AUTOMATIONS: boolean;
+	ENABLE_CHANNELS: boolean;
+	CHANNEL_MODEL_RESPONSE_MODE: string;
+	ENABLE_CALENDAR: boolean;
+	ENABLE_MEMORIES: boolean;
+	ENABLE_MEMORY_SYSTEM_CONTEXT: boolean;
+	ENABLE_NOTES: boolean;
+	ENABLE_USER_WEBHOOKS: boolean;
+	ENABLE_USER_STATUS: boolean;
+	PENDING_USER_OVERLAY_TITLE: string | null;
+	PENDING_USER_OVERLAY_CONTENT: string | null;
+	RESPONSE_WATERMARK: string | null;
+};
+
+export type OAuthConfig = {
+	ENABLE_OAUTH: boolean | null;
+	ENABLE_OAUTH_SIGNUP: boolean | null;
+	OAUTH_MERGE_ACCOUNTS_BY_EMAIL: boolean | null;
+	OAUTH_AUTO_REDIRECT: boolean | null;
+	OAUTH_ALLOWED_DOMAINS: string | null;
+	OAUTH_BLOCKED_GROUPS: string | null;
+	ENABLE_OAUTH_ROLE_MANAGEMENT: boolean | null;
+	OAUTH_ROLES_CLAIM: string | null;
+	OAUTH_ADMIN_ROLES: string | null;
+	OAUTH_ALLOWED_ROLES: string | null;
+	ENABLE_OAUTH_GROUP_MANAGEMENT: boolean | null;
+	ENABLE_OAUTH_GROUP_CREATION: boolean | null;
+	OAUTH_GROUP_CLAIM: string | null;
+	OAUTH_GROUP_DEFAULT_SHARE: boolean | string | null;
+	OAUTH_PROVIDER_NAME: string | null;
+	OPENID_PROVIDER_URL: string | null;
+	OAUTH_CLIENT_ID: string | null;
+	OAUTH_CLIENT_SECRET: string | null;
+	OPENID_REDIRECT_URI: string | null;
+	OAUTH_SCOPES: string | null;
+	OAUTH_CODE_CHALLENGE_METHOD: string | null;
+	OAUTH_TOKEN_ENDPOINT_AUTH_METHOD: string | null;
+	OPENID_END_SESSION_ENDPOINT: string | null;
+	OAUTH_TIMEOUT: number | string | null;
+	OAUTH_CLIENT_TIMEOUT: number | string | null;
+	OAUTH_EMAIL_CLAIM: string | null;
+	OAUTH_USERNAME_CLAIM: string | null;
+	OAUTH_PICTURE_CLAIM: string | null;
+	OAUTH_SUB_CLAIM: string | null;
+	OAUTH_AUDIENCE: string | null;
+	OAUTH_UPDATE_EMAIL_ON_LOGIN: boolean | null;
+	OAUTH_UPDATE_NAME_ON_LOGIN: boolean | null;
+	OAUTH_UPDATE_PICTURE_ON_LOGIN: boolean | null;
+	OAUTH_REFRESH_TOKEN_INCLUDE_SCOPE: boolean | null;
+};
+
 export type AdminDetails = { name: string | null; email: string | null };
 
 export const getAdminDetails = async (token: string): Promise<AdminDetails | null> => {
@@ -30,7 +98,7 @@ export const getAdminDetails = async (token: string): Promise<AdminDetails | nul
 	return res;
 };
 
-export const getAdminConfig = async (token: string) => {
+export const getAdminConfig = async (token: string): Promise<AdminConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/admin/config`, {
@@ -57,7 +125,10 @@ export const getAdminConfig = async (token: string) => {
 	return res;
 };
 
-export const updateAdminConfig = async (token: string, body: object) => {
+export const updateAdminConfig = async (
+	token: string,
+	body: AdminConfig
+): Promise<AdminConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/admin/config`, {
@@ -257,7 +328,7 @@ export const updateLdapServer = async (token: string = '', body: object) => {
 	return res;
 };
 
-export const getOAuthConfig = async (token: string) => {
+export const getOAuthConfig = async (token: string): Promise<OAuthConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/admin/config/oauth`, {
@@ -284,7 +355,10 @@ export const getOAuthConfig = async (token: string) => {
 	return res;
 };
 
-export const updateOAuthConfig = async (token: string, body: object) => {
+export const updateOAuthConfig = async (
+	token: string,
+	body: Partial<OAuthConfig>
+): Promise<OAuthConfig | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/admin/config/oauth`, {

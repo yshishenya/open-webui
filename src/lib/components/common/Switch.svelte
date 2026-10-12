@@ -7,7 +7,7 @@
 	import type { i18n as i18nType } from 'i18next';
 
 	import Tooltip from './Tooltip.svelte';
-	export let state = true;
+	export let state: boolean | null | undefined = true;
 	export let disabled = false;
 	export let id = '';
 	export let ariaLabelledbyId = '';
@@ -29,7 +29,7 @@
 	placement="top"
 >
 	<Switch.Root
-		bind:checked={state}
+		checked={state ?? false}
 		{disabled}
 		{id}
 		aria-labelledby={ariaLabelledbyId || undefined}
@@ -40,7 +40,8 @@
 			: 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:focus-visible:outline-gray-500'} {state
 			? 'bg-gray-900 dark:bg-white'
 			: 'bg-gray-300 dark:bg-gray-700'}"
-		onCheckedChange={async () => {
+		onCheckedChange={async (checked: boolean) => {
+			state = checked;
 			await tick();
 			dispatch('change', state);
 		}}

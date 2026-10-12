@@ -5,6 +5,7 @@
 	import { v4 as uuidv4 } from 'uuid';
 
 	import { getBackendConfig, getVersionUpdates } from '$lib/apis';
+	import type { AdminConfig } from '$lib/apis/auths';
 	import { getAdminConfig, updateAdminConfig } from '$lib/apis/auths';
 	import { setBanners } from '$lib/apis/configs';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
@@ -34,24 +35,7 @@
 		latest: WEBUI_VERSION
 	};
 
-	type AdminSettings = {
-		ENABLE_COMMUNITY_SHARING: boolean;
-		ENABLE_MESSAGE_RATING: boolean;
-		ENABLE_FOLDERS: boolean;
-		FOLDER_MAX_FILE_COUNT: number | string | null;
-		ENABLE_MEMORIES: boolean;
-		ENABLE_MEMORY_SYSTEM_CONTEXT: boolean;
-		ENABLE_NOTES: boolean;
-		ENABLE_CHANNELS: boolean;
-		CHANNEL_MODEL_RESPONSE_MODE: string;
-		ENABLE_CALENDAR: boolean;
-		ENABLE_AUTOMATIONS: boolean;
-		ENABLE_USER_WEBHOOKS: boolean;
-		ENABLE_USER_STATUS: boolean;
-		RESPONSE_WATERMARK: string | null;
-		WEBUI_URL: string;
-	};
-	let adminConfig: AdminSettings | null = null;
+	let adminConfig: AdminConfig | null = null;
 
 	let banners: Banner[] = [];
 	const inputClass =

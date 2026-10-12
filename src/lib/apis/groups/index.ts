@@ -1,3 +1,8 @@
+import type {
+	NamedAccessResource,
+	ResourceAccessPreview
+} from '$lib/utils/airis/frontend-contracts';
+import type { PermissionSettingsInput } from '$lib/utils/airis/permission-types';
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 export const createNewGroup = async (token: string, group: object) => {
@@ -268,7 +273,15 @@ export const removeUserFromGroup = async (token: string, id: string, userIds: st
 	return res;
 };
 
-export const getGroupPreview = async (token: string, id: string) => {
+export type GroupAccessPreview = ResourceAccessPreview & {
+	group: NamedAccessResource;
+	permissions: PermissionSettingsInput;
+};
+
+export const getGroupPreview = async (
+	token: string,
+	id: string
+): Promise<GroupAccessPreview | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/groups/id/${id}/preview`, {

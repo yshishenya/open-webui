@@ -1,3 +1,4 @@
+import type { GroupDetails } from './group-types';
 import type { Node, SvelteFlow } from '@xyflow/svelte';
 import type { SessionUser } from '$lib/stores';
 import type { ModelParams } from '$lib/apis';
@@ -456,4 +457,11 @@ export type ChatOverviewNode = Node<
 
 export type ChatOverviewClick = Omit<ComponentEvents<SvelteFlow>['nodeclick']['detail'], 'node'> & {
 	node: ChatOverviewNode;
+};
+
+export type NamedAccessResource = Pick<GroupDetails, 'id' | 'name'>;
+export type ResourceAccessPreview = {
+	models: { items: NamedAccessResource[]; total: number };
+	knowledge: { items: NamedAccessResource[]; total: number };
+	tools: { items: NamedAccessResource[]; total: number };
 };

@@ -1,18 +1,21 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { UserAccessPreview } from '$lib/apis/users';
 	import { getContext } from 'svelte';
 	import { getUserPreview } from '$lib/apis/users';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let show = false;
 	export let userId: string = '';
 	export let userName: string = '';
 
 	let loading = true;
-	let preview: any = null;
+	let preview: UserAccessPreview | null = null;
 	let error: string = '';
 
 	$: if (show && userId) {

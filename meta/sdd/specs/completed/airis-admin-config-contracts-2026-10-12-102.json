@@ -1,0 +1,141 @@
+{
+  "spec_id": "airis-admin-config-contracts-2026-10-12-102",
+  "title": "AIRIS admin configuration and access preview contracts",
+  "generated": "2026-10-12T10:22:41.825092Z",
+  "last_updated": "2026-10-12T17:15:00.384860Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 4,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__admin-config-contracts.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T10:52:00.815877Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T17:15:00.384603Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS admin configuration and access preview contracts",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reuse concrete server and shared access-preview contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T17:08:00.733269Z",
+        "journaled_at": "2026-10-12T17:08:00.735319Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify compiled equivalence and full frontend",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T17:14:59.957721Z",
+        "journaled_at": "2026-10-12T17:14:59.959485Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace server fields and all consumers; type admin configuration, previews and nullable switches",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T17:08:00.733104Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T17:08:00.734246Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run focused, compiler and full checks; preserve data and publish commit",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T17:14:59.957586Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T17:14:59.958415Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T17:08:00.734241Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace server fields and all consumers; type admin configuration, previews and nullable switches",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:08:00.735315Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse concrete server and shared access-preview contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:14:59.958411Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run focused, compiler and full checks; preserve data and publish commit",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:14:59.959481Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify compiled equivalence and full frontend",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

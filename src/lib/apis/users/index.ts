@@ -1,3 +1,7 @@
+import type {
+	NamedAccessResource,
+	ResourceAccessPreview
+} from '$lib/utils/airis/frontend-contracts';
 import { requestJSON } from '$lib/utils/airis/request_json';
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getUserPosition } from '$lib/utils';
@@ -627,7 +631,15 @@ export const getUserGroupsById = async (token: string, userId: string) => {
 	return res;
 };
 
-export const getUserPreview = async (token: string, userId: string) => {
+export type UserAccessPreview = ResourceAccessPreview & {
+	user: NamedAccessResource;
+	groups: NamedAccessResource[];
+};
+
+export const getUserPreview = async (
+	token: string,
+	userId: string
+): Promise<UserAccessPreview | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/users/${userId}/preview`, {

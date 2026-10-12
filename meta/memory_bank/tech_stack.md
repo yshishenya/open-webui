@@ -179,7 +179,12 @@
 
 ### Core UI
 
-- **Component Library**: bits-ui 0.21.15 (headless components)
+- **Component Library**: bits-ui 2.16.3 (headless components)
+  - Checked 2026-10-12 against lockfile and official 2.16.3 Switch source/types/
+    release notes; latest stable 2.19.5. Preserve 2.16.3 for the concrete API
+    contract work; upgrade all bits components separately with interaction checks.
+    Switch's native checked/onCheckedChange contract is boolean; the wrapper
+    displays nullable OAuth fields as unchecked without writing false on mount.
 - **Rich Text Editor**: TipTap 3.17.1 (ProseMirror-based)
   - Extensions: tables, code blocks, images, YouTube, mentions, file handling
 - **Code Editor**: CodeMirror 6.0.1
