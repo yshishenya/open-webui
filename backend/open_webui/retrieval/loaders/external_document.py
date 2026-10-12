@@ -55,9 +55,7 @@ class ExternalDocumentLoader(BaseLoader):
         if self.user is not None:
             headers = include_user_info_headers(headers, self.user)
 
-        url = self.url
-        if url.endswith('/'):
-            url = url[:-1]
+        url = self.url.removesuffix('/')
 
         try:
             response = requests.put(f'{url}/process', data=data, headers=headers)
@@ -76,15 +74,13 @@ class ExternalDocumentLoader(BaseLoader):
                         )
                     ]
                 elif isinstance(response_data, list):
-                    documents = []
-                    for document in response_data:
-                        documents.append(
-                            Document(
-                                page_content=document.get('page_content'),
-                                metadata=document.get('metadata'),
-                            )
+                    return [
+                        Document(
+                            page_content=document.get('page_content'),
+                            metadata=document.get('metadata'),
                         )
-                    return documents
+                        for document in response_data
+                    ]
                 else:
                     raise Exception('Error loading document: Unable to parse content')
 

@@ -199,3 +199,12 @@
 
   - Done: 2026-10-12
   - Verification: 1066 backend, 0 ошибок/пропусков; 2075 цен и 56 XLSX совпали; 10 случаев до/после SQLite/PostgreSQL. Black без diff, Ruff493 → 491, новые замечания ветки17 → 15. Данные и production сохранены; три новых внешних terminal-контейнера оставлены; цель active.
+
+- [x] **[REFACTOR][BACKEND]** Внешний загрузчик документов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__external-loader.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: Один C901, два обычных выражения Python, прежние запросы/документы/ошибки.
+
+  - Done: 2026-10-12
+  - Verification:1067backend/0ошибок и пропусков,304 сравнений совпали,2ASTпреобразования. Black0diff,Ruff491 → 490,new0,scopeCI0,branchCI15 → 14. Production/данные сохранены. Bridge имеет другойID/Created до стенда,config/attachments прежние;taskне рестартовалDocker/bridge,цельactive.

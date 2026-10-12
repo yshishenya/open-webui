@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-external-loader-2026-10-12-110",
+  "title": "AIRIS simpler external document loading",
+  "generated": "2026-10-12T19:34:56.328257Z",
+  "last_updated": "2026-10-12T19:46:21.867275Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__external-loader.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T19:34:56.632722Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T19:46:21.866893Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS simpler external document loading",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Preserve outgoing request and document/error contracts before refactoring",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T19:46:21.119699Z",
+        "journaled_at": "2026-10-12T19:46:21.121560Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify full backend, CI delta, data preservation and commit",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T19:46:21.369034Z",
+        "journaled_at": "2026-10-12T19:46:21.371250Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve outgoing request and document/error contracts before refactoring",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T19:46:21.119523Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T19:46:21.120550Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify full backend, CI delta, data preservation and commit",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T19:46:21.368841Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T19:46:21.370144Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T19:46:21.120540Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve outgoing request and document/error contracts before refactoring",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T19:46:21.121555Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Preserve outgoing request and document/error contracts before refactoring",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T19:46:21.370135Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify full backend, CI delta, data preservation and commit",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T19:46:21.371246Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify full backend, CI delta, data preservation and commit",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
