@@ -1,0 +1,143 @@
+{
+  "spec_id": "airis-component-prop-contracts-2026-10-12-091",
+  "title": "AIRIS component prop contracts",
+  "generated": "2026-10-12T02:27:36.370035Z",
+  "last_updated": "2026-10-12T02:36:44.050577Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__component-prop-contracts.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T02:27:36.672951Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T02:36:44.050291Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS component prop contracts",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Correct existing component prop contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T02:32:34.403086Z",
+        "journaled_at": "2026-10-12T02:32:34.404787Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify rendered output and preserve source/runtime",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T02:36:43.558831Z",
+        "journaled_at": "2026-10-12T02:36:43.560970Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Correct existing component prop contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T02:32:34.402947Z",
+        "needs_journaling": false,
+        "status_note": "7type errors from accepted baseline;original4DOM passed;25targeted pass;scoped6/PR377/format clean;10compilations,effective CSS and5existing scripts preserved",
+        "journaled_at": "2026-10-12T02:32:34.403815Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify rendered output and preserve source/runtime",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T02:36:43.558668Z",
+        "needs_journaling": false,
+        "status_note": "2582full/25targeted pass;types3/17,ESLint167,new0;scoped6/PR377/format clean;10compilations,effective CSS and5scripts preserved;backend565hashes reused;production/data preserved",
+        "journaled_at": "2026-10-12T02:36:43.559701Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T02:32:34.403810Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Correct existing component prop contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 7type errors from accepted baseline;original4DOM passed;25targeted pass;scoped6/PR377/format clean;10compilations,effective CSS and5existing scripts preserved",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T02:32:34.404783Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Correct existing component prop contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T02:36:43.559695Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify rendered output and preserve source/runtime",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 2582full/25targeted pass;types3/17,ESLint167,new0;scoped6/PR377/format clean;10compilations,effective CSS and5scripts preserved;backend565hashes reused;production/data preserved",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T02:36:43.560964Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify rendered output and preserve source/runtime",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

@@ -53,3 +53,9 @@
   - Owner: Codex
   - Done: 2026-10-12
   - Summary: Простые guards в существующих обработчиках;30targeted/2578full pass;types10/24,ESLint177,new0;scoped6/PR374/format clean,8компиляций/CSS;production/данные сохранены,выпуска нет.
+
+- [x] **[BUG][UI]** Согласовать свойства существующих компонентов
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__component-prop-contracts.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: 25targeted/2582full pass;types3/17,ESLint167,new0;scoped6/PR377/format clean,10компиляций/CSS,5прежних scripts;production/данные сохранены,выпуска нет.

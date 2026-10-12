@@ -558,7 +558,7 @@
 		</div>
 		<Textarea
 			className={variableValueClass}
-			rows="6"
+			rows={6}
 			minSize={132}
 			bind:value={variableFormValue}
 			ariaLabel={$i18n.t('Variable value')}

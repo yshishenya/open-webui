@@ -9,12 +9,12 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
-	export let className = 'max-w-[170px]';
+	export const className = 'max-w-[170px]';
 
 	export let onEdit = () => {};
 	export let onChat = () => {};
 
-	export let onChange = () => {};
+	export let onChange: (state: boolean) => void = () => {};
 </script>
 
 <Dropdown

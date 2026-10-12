@@ -255,7 +255,7 @@
 					<Textarea
 						bind:value={system}
 						className={systemPromptTextareaClass}
-						rows="4"
+						rows={4}
 						placeholder={$i18n.t('Enter system prompt here')}
 					/>
 				</UserSettingField>
