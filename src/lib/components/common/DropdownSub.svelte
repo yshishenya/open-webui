@@ -152,13 +152,17 @@
 
 <svelte:window on:scroll|capture={positionContent} on:resize={positionContent} />
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<div use:trigger class="w-full" on:mouseenter={handleMouseEnter} on:mouseleave={handleMouseLeave}>
+<div
+	role="presentation"
+	use:trigger
+	class="w-full"
+	on:mouseenter={handleMouseEnter}
+	on:mouseleave={handleMouseLeave}
+>
 	<slot name="trigger" />
 </div>
 
 {#if open}
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<!-- Outer wrapper: positioned flush with trigger, invisible padding bridges the gap -->
 	<div
 		use:portal

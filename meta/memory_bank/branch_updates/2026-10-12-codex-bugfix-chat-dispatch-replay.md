@@ -102,3 +102,10 @@
   - Started: 2026-10-12
   - Done: 2026-10-12
   - Summary: 2 компонента; готовые типы/runtime сохранён;2585 frontend,types0/15,ESLint73/new0;scoped2/CI408/format чистые. Общая цель active.
+
+- [x] [BUG] Оставшиеся мёртвые объявления и архивный список.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__remaining-dead-bindings.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Done: 2026-10-12
+  - Summary:18 замечаний устранены;frontend2585/2585,types0/15,ESLint55/new0;scoped11/CI419/format clean,compilation21/SSR7. Общая цель active;выпуска нет.

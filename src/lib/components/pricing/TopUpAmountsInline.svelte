@@ -18,7 +18,7 @@
 	const formatAmount = (amount: number): string => {
 		try {
 			return new Intl.NumberFormat('ru-RU').format(amount);
-		} catch (error) {
+		} catch {
 			return amount.toString();
 		}
 	};

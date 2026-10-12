@@ -21,7 +21,7 @@
 
 	{#if variant === 'image'}
 		<div class="grid grid-cols-2 gap-3">
-			{#each Array.from({ length: 4 }) as _, index}
+			{#each Array(4).keys() as placeholder (placeholder)}
 				<div
 					class="h-20 rounded-xl border border-gray-200 bg-[linear-gradient(135deg,#f3f4f6,#e5e7eb)]"
 					aria-hidden="true"
