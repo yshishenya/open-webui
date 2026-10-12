@@ -44,6 +44,7 @@
 	};
 
 	export function alertComponent(token: Token): AlertData | false {
+		if (!('text' in token)) return false;
 		const regExpStr = `^(?:\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\])\\s*?\n*`;
 		const regExp = new RegExp(regExpStr);
 		const matches = token.text?.match(regExp);

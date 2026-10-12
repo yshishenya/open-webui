@@ -520,9 +520,9 @@
 
 	let downloading = false;
 
-	const downloadFile = async (path: string) => {
+	const downloadFile = async (path: string | null): Promise<void> => {
 		const terminal = selectedTerminal;
-		if (!terminal || downloading) return;
+		if (!path || !terminal || downloading) return;
 
 		downloading = true;
 		const toastId = toast.loading($i18n.t('Preparing download...'));

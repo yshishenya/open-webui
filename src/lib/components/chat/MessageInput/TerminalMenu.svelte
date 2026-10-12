@@ -59,7 +59,8 @@
 		await refreshTerminalServersStore(updatedServers);
 	};
 
-	const selectSystem = async (terminal: (typeof systemTerminals)[0]) => {
+	const selectSystem = async (terminal: (typeof systemTerminals)[0]): Promise<void> => {
+		if (!terminal.id) return;
 		selectedTerminalId.set($selectedTerminalId === terminal.id ? null : terminal.id);
 
 		// Disable all direct terminals when switching to a system terminal

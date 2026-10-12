@@ -17,10 +17,7 @@
 		type Plan,
 		type UserWalletSummaryResponse
 	} from '$lib/apis/admin/billing';
-	import {
-		formatCompactNumber,
-		getUsageColor
-	} from '$lib/utils/billing-formatters';
+	import { formatCompactNumber, getUsageColor } from '$lib/utils/billing-formatters';
 	import {
 		buildWalletAdjustmentRequest,
 		parseRubleAmountToKopeks,
@@ -290,7 +287,9 @@
 			toast.success($i18n.t('Wallet adjusted successfully'));
 		} catch (error: unknown) {
 			const errorMessage =
-				error instanceof Error ? error.message : String(error) || $i18n.t('Failed to adjust wallet');
+				error instanceof Error
+					? error.message
+					: String(error) || $i18n.t('Failed to adjust wallet');
 			toast.error(errorMessage);
 		} finally {
 			walletAdjusting = false;
@@ -334,7 +333,7 @@
 							<div class=" flex-1 min-w-0">
 								<div class="overflow-hidden w-ful mb-2">
 									<div class=" self-center capitalize font-normal truncate">
-										{selectedUser.name}
+										{selectedUser?.name ?? ''}
 									</div>
 
 									<div class="text-xs text-gray-500">
@@ -495,7 +494,10 @@
 
 												<div class="mt-2 grid grid-cols-2 gap-1.5">
 													<div class="flex flex-col">
-														<label for="wallet-delta-topup" class="mb-0.5 text-[11px] text-gray-500">
+														<label
+															for="wallet-delta-topup"
+															class="mb-0.5 text-[11px] text-gray-500"
+														>
 															{$i18n.t('Topup delta (RUB)')}
 														</label>
 														<input
@@ -509,7 +511,10 @@
 														/>
 													</div>
 													<div class="flex flex-col">
-														<label for="wallet-delta-included" class="mb-0.5 text-[11px] text-gray-500">
+														<label
+															for="wallet-delta-included"
+															class="mb-0.5 text-[11px] text-gray-500"
+														>
 															{$i18n.t('Included delta (RUB)')}
 														</label>
 														<input
@@ -525,7 +530,9 @@
 												</div>
 
 												<div class="mt-1 text-[11px] text-gray-500">
-													{$i18n.t('Enter deltas in rubles (e.g. 1000,50). Use negative values to subtract.')}
+													{$i18n.t(
+														'Enter deltas in rubles (e.g. 1000,50). Use negative values to subtract.'
+													)}
 												</div>
 
 												<div class="mt-1.5 flex flex-col">
@@ -555,7 +562,9 @@
 													</button>
 												</div>
 											{:else}
-												<div class="text-xs text-gray-400">{$i18n.t('Wallet data unavailable')}</div>
+												<div class="text-xs text-gray-400">
+													{$i18n.t('Wallet data unavailable')}
+												</div>
 											{/if}
 										</div>
 									{/if}
@@ -568,7 +577,7 @@
 												class="w-full text-sm bg-transparent disabled:text-gray-500 dark:disabled:text-gray-500 outline-hidden"
 												bind:value={_user.role}
 												aria-label={$i18n.t('Role')}
-												disabled={_user.id == sessionUser.id}
+												disabled={!sessionUser || _user.id === sessionUser.id}
 												required
 											>
 												<option value="admin">{$i18n.t('Admin')}</option>
@@ -675,5 +684,4 @@
 		-ms-overflow-style: none; /* IE and Edge */
 		scrollbar-width: none; /* Firefox */
 	}
-
-	</style>
+</style>

@@ -47,3 +47,9 @@
   - Done: 2026-10-12
   - Summary: Подписи связаны с нужными полями; нативные iframe/textarea/dir и прежний className Clipboard исправлены. API/обработчики/CSS сохранены; без helpers/зависимостей.
   - Tests:67targeted/2566full pass;10компиляций/CSS,6scripts unchanged;types21/24,ESLint178,new0;scoped7/PR371/format clean;backend565hashes reused,production/data preserved. SDD2/2 completed,выпуска нет,цельactive.
+
+- [x] **[BUG][UI]** Безопасно обработать отсутствующие значения действий
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__nullable-action-inputs.md
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Простые guards в существующих обработчиках;30targeted/2578full pass;types10/24,ESLint177,new0;scoped6/PR374/format clean,8компиляций/CSS;production/данные сохранены,выпуска нет.
