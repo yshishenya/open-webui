@@ -23,6 +23,7 @@ export type ChatStatus = Record<string, unknown> & {
 	hidden?: boolean;
 	description?: string;
 	urls?: string[];
+	items?: { link: string; title?: string | null }[] | null;
 	query?: string;
 };
 

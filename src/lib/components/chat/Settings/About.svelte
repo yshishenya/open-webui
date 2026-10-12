@@ -14,7 +14,7 @@
 
 	let ollamaVersion = '';
 
-	let updateAvailable = null;
+	let updateAvailable: boolean | null = null;
 	let version = {
 		current: '',
 		latest: ''
@@ -22,9 +22,9 @@
 	const actionButtonClass =
 		'text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-500 dark:hover:text-white';
 
-	const checkForVersionUpdates = async () => {
+	const checkForVersionUpdates = async (): Promise<void> => {
 		updateAvailable = null;
-		version = await getVersionUpdates(localStorage.token).catch((error) => {
+		version = await getVersionUpdates(localStorage.token).catch(() => {
 			return {
 				current: WEBUI_VERSION,
 				latest: WEBUI_VERSION
@@ -38,7 +38,7 @@
 	};
 
 	onMount(async () => {
-		ollamaVersion = await getOllamaVersion(localStorage.token).catch((error) => {
+		ollamaVersion = await getOllamaVersion(localStorage.token).catch(() => {
 			return '';
 		});
 

@@ -19,3 +19,10 @@
   - Done: 2026-10-12
   - Summary: Отказ проверки статуса не должен возвращать файл как готовый; readers закрываются; wire usage/metadata и multipart сохраняются; private logs убираются.
   - Tests:17 focused/22 combined/18 browser/2532 full pass; types51/24,ESLint183,new0;scoped6/futureCI363/format clean; backend565hashes reused,production/data preserved; no release.
+
+- [x] **[REFACTOR]** Existing types in small UI components (086)
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-12__refactor__small-ui-types.md`
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Уточнить существующие типы обновления/модели/поиска/изображения; сохранить исполняемый JavaScript/CSS, без новых функций.
+  - Tests:2532 full;8 compiled JS/CSS comparisons;types43/24,ESLint178,new0;scoped5/futureCI367/format clean;273 existing SDD valid;production/data preserved,no release.

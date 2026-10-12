@@ -31,7 +31,7 @@
 		toast.success($i18n.t('Default model updated'));
 	};
 
-	const pinModelHandler = async (modelId) => {
+	const pinModelHandler = async (modelId: string): Promise<void> => {
 		let pinnedModels = $settings?.pinnedModels ?? [];
 
 		if (pinnedModels.includes(modelId)) {

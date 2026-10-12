@@ -3,8 +3,9 @@
 	import ChevronUp from '$lib/components/icons/ChevronUp.svelte';
 	import Search from '$lib/components/icons/Search.svelte';
 	import Collapsible from '$lib/components/common/Collapsible.svelte';
+	import type { ChatStatus } from '$lib/utils/airis/chat_history';
 
-	export let status = { urls: [], query: '' };
+	export let status: ChatStatus = { urls: [], query: '' };
 	let state = false;
 </script>
 
@@ -57,7 +58,7 @@
 		{/if}
 
 		{#if status?.items}
-			{#each status.items as item, itemIdx}
+			{#each status.items as item}
 				<a
 					href={item.link}
 					target="_blank"
@@ -97,7 +98,7 @@
 				</a>
 			{/each}
 		{:else if status?.urls}
-			{#each status.urls as url, urlIdx}
+			{#each status.urls as url}
 				<a
 					href={url}
 					target="_blank"

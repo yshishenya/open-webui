@@ -1,5 +1,6 @@
 import { mergeAttributes, Node, nodeInputRule } from '@tiptap/core';
 import { safeImageUrl } from '$lib/utils/safeImageUrl';
+import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 
 export interface ImageOptions {
 	/**
@@ -22,7 +23,7 @@ export interface ImageOptions {
 	 * @default {}
 	 * @example { class: 'foo' }
 	 */
-	HTMLAttributes: Record<string, any>;
+	HTMLAttributes: Record<string, unknown>;
 }
 
 export interface SetImageOptions {
@@ -133,7 +134,7 @@ export const Image = Node.create<ImageOptions>({
 
 			img.classList.add('rounded-md', 'max-h-72', 'w-fit', 'object-contain');
 
-			const editorFiles = editor.storage?.files || [];
+			const editorFiles: ChatAttachment[] = editor.storage?.files || [];
 
 			if (editorFiles && node.attrs.src.startsWith('data://')) {
 				const file = editorFiles.find((f) => f.id === fileId);
@@ -150,7 +151,8 @@ export const Image = Node.create<ImageOptions>({
 			img.setAttribute('title', node.attrs.title || '');
 
 			img.addEventListener('data', (e) => {
-				const files = e?.files || editor.storage?.files || [];
+				const files: ChatAttachment[] =
+					(e as Event & { files?: ChatAttachment[] })?.files || editor.storage?.files || [];
 				if (files && node.attrs.src.startsWith('data://')) {
 					const file = files.find((f) => f.id === fileId);
 					if (file) {
