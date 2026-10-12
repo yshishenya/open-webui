@@ -242,7 +242,7 @@ class MariaDBVectorClient(VectorDBBase):
             return score
         return 1.0 / (1.0 + max(0.0, dist))
 
-    def _build_filter_sql_qmark(self, expr: Any) -> tuple[str, list[Any]]:
+    def _build_filter_sql_qmark(self, expr: object) -> tuple[str, list[str]]:
         """
         Build a WHERE-clause fragment and qmark params from a minimal Mongo-like filter.
 
@@ -255,28 +255,19 @@ class MariaDBVectorClient(VectorDBBase):
         if not expr or not isinstance(expr, dict):
             return '', []
 
-        if '$and' in expr:
-            parts: list[str] = []
-            params: list[Any] = []
-            for e in expr.get('$and') or []:
-                s, p = self._build_filter_sql_qmark(e)
-                if s:
-                    parts.append(s)
-                    params.extend(p)
-            return ('(' + ' AND '.join(parts) + ')') if parts else '', params
-
-        if '$or' in expr:
-            parts: list[str] = []
-            params: list[Any] = []
-            for e in expr.get('$or') or []:
-                s, p = self._build_filter_sql_qmark(e)
-                if s:
-                    parts.append(s)
-                    params.extend(p)
-            return ('(' + ' OR '.join(parts) + ')') if parts else '', params
+        for operator, separator in (('$and', ' AND '), ('$or', ' OR ')):
+            if operator in expr:
+                parts: list[str] = []
+                params: list[str] = []
+                for e in expr.get(operator) or []:
+                    s, p = self._build_filter_sql_qmark(e)
+                    if s:
+                        parts.append(s)
+                        params.extend(p)
+                return ('(' + separator.join(parts) + ')') if parts else '', params
 
         clauses: list[str] = []
-        params: list[Any] = []
+        params: list[str] = []
         for key, value in expr.items():
             if key.startswith('$'):
                 continue
@@ -286,10 +277,8 @@ class MariaDBVectorClient(VectorDBBase):
                 if not vals:
                     clauses.append('0=1')
                     continue
-                ors = []
-                for v in vals:
-                    ors.append(f'{json_expr} = ?')
-                    params.append(v)
+                ors = [f'{json_expr} = ?'] * len(vals)
+                params.extend(vals)
                 clauses.append('(' + ' OR '.join(ors) + ')')
             else:
                 clauses.append(f'{json_expr} = ?')

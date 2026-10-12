@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-mariadb-filter-2026-10-12-111",
+  "title": "AIRIS simpler MariaDB metadata filters",
+  "generated": "2026-10-12T19:54:06.264356Z",
+  "last_updated": "2026-10-12T20:04:18.232850Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__mariadb-filter.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T19:56:23.905064Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T20:04:18.232605Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS simpler MariaDB metadata filters",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Preserve SQL, binding order, operator priority and errors",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T20:04:17.485442Z",
+        "journaled_at": "2026-10-12T20:04:17.487331Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify backend, lint delta, preservation and commit",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T20:04:17.723244Z",
+        "journaled_at": "2026-10-12T20:04:17.725146Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve SQL, binding order, operator priority and errors",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T20:04:17.485304Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T20:04:17.486228Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify backend, lint delta, preservation and commit",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T20:04:17.723102Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T20:04:17.724088Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T20:04:17.486223Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve SQL, binding order, operator priority and errors",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T20:04:17.487326Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Preserve SQL, binding order, operator priority and errors",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T20:04:17.724083Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify backend, lint delta, preservation and commit",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T20:04:17.725142Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify backend, lint delta, preservation and commit",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

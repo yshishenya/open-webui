@@ -208,3 +208,12 @@
 
   - Done: 2026-10-12
   - Verification:1067backend/0ошибок и пропусков,304 сравнений совпали,2ASTпреобразования. Black0diff,Ruff491 → 490,new0,scopeCI0,branchCI15 → 14. Production/данные сохранены. Bridge имеет другойID/Created до стенда,config/attachments прежние;taskне рестартовалDocker/bridge,цельactive.
+
+
+## 111 — простые фильтры MariaDB
+
+- Status: In Progress
+- Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__mariadb-filter.md
+- Scope: один pure method, без новых абстракций, I/O и зависимостей; точные SQL/params/ошибки и три caller paths должны сохраниться.
+
+- Status: Done —111. Один метод короче на11строк,без новых абстракций/зависимостей. 1125SQL/params/errors и9nativecaller сравнений,1+1регрессионныйтест,1068backend/25прежнихwarnings. Black0diff;Ruff490→489/new0;scopeCI5→4/new0;branchCI14→13. Frontend5040хешей прежние. Production/14из15соседей/21чужойфайл/262тома/33сети сохранены;внешний terminal исчез,причина неизвестна,серверных изменений задачей нет. Свои стенды иполныеbaselineкопии удалены. SDDclosed;commit/push подтверждаются receipt. План198/244,цельactive,выпуска нет.
