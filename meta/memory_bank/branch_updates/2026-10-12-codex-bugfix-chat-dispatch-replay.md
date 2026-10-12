@@ -172,3 +172,12 @@
 
   - Done: 2026-10-12
   - Verification: 1064backend/0skips,25прежнихwarnings;native9before/after,non-importAST/bindingsidentical;Black0diff,Ruff526→497/new0,scopeCI0new,branchCI38→21. Production/данныесохранены;выпускане было,цельactive.
+
+- [x] **[REFACTOR][BACKEND]** Уникальные имена обработчиков
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__refactor__backend-route-names.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Summary: Два F811 без изменения route names/OpenAPI/прямых вызовов.
+
+  - Done: 2026-10-12
+  - Verification: Native12HTTPbefore/after,29paths/31routecontractsidentical,directimages/legacyURL сохранены.1064backend/0skips,25прежнихwarnings;Black0diff,Ruff497→495/new0,scopeCI0new,branchCI21→19.Production/данныесохранены,цельactive.

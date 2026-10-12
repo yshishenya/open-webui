@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-backend-route-names-2026-10-12-107",
+  "title": "AIRIS distinct handler symbols with stable route contracts",
+  "generated": "2026-10-12T18:33:40.491697Z",
+  "last_updated": "2026-10-12T18:41:48.151932Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__backend-route-names.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T18:35:57.403764Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T18:41:48.151668Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS distinct handler symbols with stable route contracts",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Verify native route contracts and apply two minimal renames",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T18:41:03.000540Z",
+        "journaled_at": "2026-10-12T18:41:03.002519Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify full backend, CI delta and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T18:41:47.639457Z",
+        "journaled_at": "2026-10-12T18:41:47.641278Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Verify native route contracts and apply two minimal renames",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T18:41:03.000380Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T18:41:03.001339Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify full backend, CI delta and preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T18:41:47.639292Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T18:41:47.640234Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T18:41:03.001334Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify native route contracts and apply two minimal renames",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:41:03.002509Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify native route contracts and apply two minimal renames",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:41:47.640229Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify full backend, CI delta and preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:41:47.641274Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify full backend, CI delta and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

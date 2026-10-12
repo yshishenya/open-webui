@@ -18,6 +18,7 @@ from open_webui.models.functions import (
     FunctionUserResponse,
     FunctionWithValvesModel,
 )
+from open_webui.models.users import UserModel
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.plugin import (
     get_function_module_from_cache,
@@ -41,8 +42,10 @@ router = APIRouter()
 ############################
 
 
-@router.get('/', response_model=list[FunctionResponse])
-async def get_functions(user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
+@router.get('/', response_model=list[FunctionResponse], name='get_functions')
+async def list_functions(
+    user: UserModel = Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
+) -> list[FunctionModel | FunctionWithValvesModel]:
     if not ENABLE_PLUGINS:
         return []
 

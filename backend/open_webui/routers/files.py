@@ -776,13 +776,13 @@ async def update_file_data_content_by_id(
 ############################
 
 
-@router.get('/{id}/content')
-async def get_file_content_by_id(
+@router.get('/{id}/content', name='get_file_content_by_id')
+async def get_file_content(
     id: str,
-    user=Depends(get_verified_user),
+    user: UserModel = Depends(get_verified_user),
     attachment: bool = Query(False),
     db: AsyncSession = Depends(get_async_session),
-):
+) -> Response:
     file = await Files.get_file_by_id(id, db=db)
 
     if not file:
