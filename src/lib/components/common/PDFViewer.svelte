@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import type { PDFDocumentProxy, PDFDocumentLoadingTask, RenderTask, TextLayer } from 'pdfjs-dist';
 	import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
 	import panzoom, { type PanZoom } from 'panzoom';
 	import Spinner from './Spinner.svelte';
@@ -12,14 +13,26 @@
 	let sceneElement: HTMLDivElement;
 	let loading = true;
 	let error = '';
-	let pdfDoc: any = null;
+	let pdfDoc: PDFDocumentProxy | null = null;
+	let loadingTask: PDFDocumentLoadingTask | null = null;
+	let renderTask: RenderTask | null = null;
+	const fetchController = new AbortController();
+	let disposed = false;
+	let renderGeneration = 0;
 	let pzInstance: PanZoom | null = null;
 	let zoomLevel = 1;
 	let rerenderTimer: ReturnType<typeof setTimeout> | null = null;
 	let lastRenderedZoom = 1;
 
 	// Keep a reference to TextLayer instances so we can update/cancel them
-	let textLayerInstances: any[] = [];
+	let textLayerInstances: TextLayer[] = [];
+
+	const cancelRender = (): void => {
+		renderTask?.cancel();
+		renderTask = null;
+		for (const layer of textLayerInstances) layer.cancel();
+		textLayerInstances = [];
+	};
 
 	const initPanzoom = () => {
 		if (pzInstance) {
@@ -37,7 +50,7 @@
 					}
 					return false;
 				},
-				beforeMouseDown: (e) => {
+				beforeMouseDown: () => {
 					// Only allow drag-to-pan when zoomed in (not at default scale)
 					const transform = pzInstance?.getTransform();
 					if (transform && Math.abs(transform.scale - 1) < 0.01) {
@@ -85,24 +98,32 @@
 	};
 
 	// Re-render existing canvases at a new zoom level (preserves panzoom transform)
-	const rerenderPages = async (forZoom: number) => {
-		if (!pdfDoc || !sceneElement) return;
+	const rerenderPages = async (forZoom: number): Promise<void> => {
+		const generation = ++renderGeneration;
+		cancelRender();
+		try {
+			await renderPagesAtZoom(forZoom, generation);
+		} catch (cause) {
+			if (!disposed && generation === renderGeneration) {
+				console.error('PDF render error:', cause);
+				error = 'Failed to load PDF.';
+			}
+		}
+	};
+
+	const renderPagesAtZoom = async (forZoom: number, generation: number): Promise<void> => {
+		const doc = pdfDoc;
+		if (disposed || !doc || !sceneElement) return;
 		const pdfjs = await import('pdfjs-dist');
+		if (disposed || generation !== renderGeneration) return;
 		const dpr = window.devicePixelRatio || 1;
 		const containerWidth = outerContainer?.clientWidth || 800;
 
 		const pageWrappers = sceneElement.querySelectorAll('.pdf-page-wrapper');
 
-		// Cancel old text layers
-		for (const tl of textLayerInstances) {
-			try {
-				tl.cancel();
-			} catch (_) {}
-		}
-		textLayerInstances = [];
-
 		for (let i = 0; i < pageWrappers.length; i++) {
-			const page = await pdfDoc.getPage(i + 1);
+			const page = await doc.getPage(i + 1);
+			if (disposed || generation !== renderGeneration) return;
 			const viewport = page.getViewport({ scale: 1 });
 			const cssScale = containerWidth / viewport.width;
 			const renderScale = cssScale * forZoom * dpr;
@@ -119,7 +140,10 @@
 
 			const ctx = canvas.getContext('2d');
 			if (ctx) {
-				await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+				renderTask = page.render({ canvas, canvasContext: ctx, viewport: scaledViewport });
+				await renderTask.promise;
+				if (disposed || generation !== renderGeneration) return;
+				renderTask = null;
 			}
 
 			// Rebuild text layer
@@ -128,37 +152,37 @@
 				textLayerDiv.innerHTML = '';
 
 				const textContent = await page.getTextContent();
+				if (disposed || generation !== renderGeneration) return;
 				const textLayer = new pdfjs.TextLayer({
 					textContentSource: textContent,
 					container: textLayerDiv,
 					viewport: cssViewport
 				});
-				await textLayer.render();
 				textLayerInstances.push(textLayer);
+				await textLayer.render();
+				if (disposed || generation !== renderGeneration) return;
 			}
 		}
 		lastRenderedZoom = forZoom;
 	};
 
-	const renderAllPages = async () => {
-		if (!pdfDoc || !sceneElement) return;
+	const renderAllPages = async (): Promise<void> => {
+		const doc = pdfDoc;
+		if (disposed || !doc || !sceneElement) return;
+		const generation = ++renderGeneration;
 
 		// Clear previous content
 		sceneElement.innerHTML = '';
 
-		// Cancel old text layers
-		for (const tl of textLayerInstances) {
-			try {
-				tl.cancel();
-			} catch (_) {}
-		}
-		textLayerInstances = [];
+		cancelRender();
 
 		const pdfjs = await import('pdfjs-dist');
+		if (disposed || generation !== renderGeneration) return;
 		const dpr = window.devicePixelRatio || 1;
 
-		for (let i = 1; i <= pdfDoc.numPages; i++) {
-			const page = await pdfDoc.getPage(i);
+		for (let i = 1; i <= doc.numPages; i++) {
+			const page = await doc.getPage(i);
+			if (disposed || generation !== renderGeneration) return;
 			const viewport = page.getViewport({ scale: 1 });
 
 			// Scale to fit container width
@@ -194,10 +218,11 @@
 			wrapper.appendChild(canvas);
 
 			const ctx = canvas.getContext('2d');
-			await page.render({
-				canvasContext: ctx,
-				viewport: scaledViewport
-			}).promise;
+			if (!ctx) throw new Error('PDF canvas context unavailable');
+			renderTask = page.render({ canvas, canvasContext: ctx, viewport: scaledViewport });
+			await renderTask.promise;
+			if (disposed || generation !== renderGeneration) return;
+			renderTask = null;
 
 			// Create text layer overlay — pdfjs setLayerDimensions handles its sizing
 			const textLayerDiv = document.createElement('div');
@@ -205,13 +230,15 @@
 			wrapper.appendChild(textLayerDiv);
 
 			const textContent = await page.getTextContent();
+			if (disposed || generation !== renderGeneration) return;
 			const textLayer = new pdfjs.TextLayer({
 				textContentSource: textContent,
 				container: textLayerDiv,
 				viewport: cssViewport
 			});
-			await textLayer.render();
 			textLayerInstances.push(textLayer);
+			await textLayer.render();
+			if (disposed || generation !== renderGeneration) return;
 
 			sceneElement.appendChild(wrapper);
 		}
@@ -220,7 +247,7 @@
 		initPanzoom();
 	};
 
-	const loadPdf = async () => {
+	const loadPdf = async (): Promise<void> => {
 		if (!url && !data) return;
 
 		loading = true;
@@ -228,6 +255,7 @@
 
 		try {
 			const pdfjs = await import('pdfjs-dist');
+			if (disposed) return;
 			pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 			let pdfData: ArrayBuffer | Uint8Array;
@@ -235,17 +263,22 @@
 				pdfData = data;
 			} else {
 				// Fetch with credentials so auth cookies are sent
-				const res = await fetch(url!, { credentials: 'include' });
+				const res = await fetch(url!, { credentials: 'include', signal: fetchController.signal });
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				pdfData = await res.arrayBuffer();
 			}
-			pdfDoc = await pdfjs.getDocument({ data: pdfData }).promise;
+			if (disposed) return;
+			loadingTask = pdfjs.getDocument({ data: pdfData });
+			const doc = await loadingTask.promise;
+			if (disposed) return;
+			pdfDoc = doc;
 			await renderAllPages();
 		} catch (e) {
+			if (disposed) return;
 			console.error('PDF render error:', e);
 			error = 'Failed to load PDF.';
 		} finally {
-			loading = false;
+			if (!disposed) loading = false;
 		}
 	};
 
@@ -254,18 +287,16 @@
 	});
 
 	onDestroy(() => {
+		disposed = true;
+		renderGeneration++;
+		fetchController.abort();
 		if (rerenderTimer) clearTimeout(rerenderTimer);
 		pzInstance?.dispose();
-		for (const tl of textLayerInstances) {
-			try {
-				tl.cancel();
-			} catch (_) {}
-		}
-		textLayerInstances = [];
-		if (pdfDoc) {
-			pdfDoc.destroy();
-			pdfDoc = null;
-		}
+		cancelRender();
+		loadingTask?.destroy().catch((cause: unknown) => {
+			console.error('PDF cleanup error:', cause);
+		});
+		pdfDoc = null;
 	});
 </script>
 

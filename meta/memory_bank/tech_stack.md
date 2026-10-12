@@ -187,13 +187,19 @@
   - Theme: One Dark
 - **Markdown**: marked 9.1.0 + turndown 7.2.0 (MD ↔ HTML)
 - **Diagrams**: mermaid 11.10.1
-- **Math**: katex 0.16.22
+- **Math**: katex 0.16.38
 - **Charts**: chart.js 4.5.0
 - **Maps**: leaflet 1.9.4
 - **Drag & Drop**: sortablejs 1.15.6
 - **Notifications**: svelte-sonner 0.3.19
 - **Tooltips**: tippy.js 6.3.7
 - **Zoom/Pan**: panzoom 9.4.3
+  - Preview compatibility checked 2026-10-12: PDF.js 6.4.299, KaTeX 0.19.0,
+    panzoom 9.4.4 are latest stable. Preserve PDF.js 5.5.207/KaTeX 0.16.38/
+    panzoom 9.4.3 for this lifecycle fix; upgrade PDF main/worker/text styles and
+    formula/mhchem together in a separate work item with native browser checks.
+    DOMPurify 3.4.16 is latest stable; upgrade includes risky-tag and XML hardening
+    relevant to the existing SVG style/foreignObject policy.
 - **Flow Charts**: @xyflow/svelte 1.5.0
 - **Confetti**: svelte-confetti 2.3.2
 
@@ -206,7 +212,7 @@
   a side-effect module; its local declaration exports nothing.
 
 - **PDF**:
-  - Frontend: pdfjs-dist 5.4.149 (viewer)
+  - Frontend: pdfjs-dist 5.5.207 (viewer)
   - Backend: Generate with jsPDF or server-side tools
 - **Images**:
   - HEIC conversion: heic2any 0.0.4
@@ -364,7 +370,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 4. **Password security** - bcrypt/argon2, never plain text
 5. **HTTPS only** - all external API calls
 6. **CORS configuration** - explicit allowed origins
-7. **XSS prevention** - DOMPurify 3.2.6 (HTML sanitization)
+7. **XSS prevention** - DOMPurify 3.4.16 (exact runtime pin; HTML/MathML/SVG sanitization)
 8. **Dependencies** - regular updates and security audits
 
 ---

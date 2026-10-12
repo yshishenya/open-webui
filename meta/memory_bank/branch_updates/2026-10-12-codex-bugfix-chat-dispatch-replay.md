@@ -123,3 +123,10 @@
   - Started: 2026-10-12
   - Done: 2026-10-12
   - Summary:2focused/2592full,types0/2,ESLint28/new0,scoped17/CI441 clean,CSS28/SSR18. Production/данные сохранены;цельactive.
+
+- [x] [BUG] Срок жизни просмотра и очищенная разметка.
+  - Spec: meta/memory_bank/specs/work_items/2026-10-12__bugfix__preview-lifecycle.md
+  - Owner: Codex
+  - Started: 2026-10-12
+  - Done: 2026-10-12
+  - Summary:5focused/2597full,types0/0,ESLint16/new0,scoped8/CI449 clean;real PDF/KaTeX/SVG;DOMPurify3.4.16. Production/данные сохранены;цельactive.

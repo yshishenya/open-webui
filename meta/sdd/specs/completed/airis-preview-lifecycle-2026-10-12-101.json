@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-preview-lifecycle-2026-10-12-101",
+  "title": "AIRIS preview lifecycle and sanitized markup",
+  "generated": "2026-10-12T06:43:47.471806Z",
+  "last_updated": "2026-10-12T07:08:56.470792Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__preview-lifecycle.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T06:43:47.785287Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T07:08:56.470484Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS preview lifecycle and sanitized markup",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Fix preview lifecycle using the installed native APIs",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T07:08:55.841467Z",
+        "journaled_at": "2026-10-12T07:08:55.843226Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify real previews and full frontend",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T07:08:56.053165Z",
+        "journaled_at": "2026-10-12T07:08:56.054968Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce and fix closed PDF work and concurrent canvas renders; reuse sanitized actions",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T07:08:55.841320Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T07:08:55.842186Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run focused/browser/full checks and preserve production",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T07:08:56.052991Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T07:08:56.053944Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T07:08:55.842181Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce and fix closed PDF work and concurrent canvas renders; reuse sanitized actions",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T07:08:55.843221Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix preview lifecycle using the installed native APIs",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T07:08:56.053939Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run focused/browser/full checks and preserve production",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T07:08:56.054963Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify real previews and full frontend",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
