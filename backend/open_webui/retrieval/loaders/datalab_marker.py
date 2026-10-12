@@ -139,55 +139,7 @@ class DatalabMarkerLoader:
 
         # Check if this is a direct response (self-hosted) or polling response (DataLab)
         if check_url:
-            # DataLab polling pattern
-            for _ in range(300):  # Up to 10 minutes
-                time.sleep(2)
-                try:
-                    poll_response = requests.get(check_url, headers=headers)
-                    poll_response.raise_for_status()
-                    poll_result = poll_response.json()
-                except (requests.HTTPError, ValueError) as e:
-                    raw_body = poll_response.text
-                    log.error(f'Polling error: {e}, response body: {raw_body}')
-                    raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=f'Polling failed: {e}')
-
-                status_val = poll_result.get('status')
-                success_val = poll_result.get('success')
-
-                if status_val == 'complete':
-                    summary = {
-                        k: poll_result.get(k)
-                        for k in (
-                            'status',
-                            'output_format',
-                            'success',
-                            'error',
-                            'page_count',
-                            'total_cost',
-                        )
-                    }
-                    log.info(f'Marker processing completed successfully: {json.dumps(summary, indent=2)}')
-                    break
-
-                if status_val == 'failed' or success_val is False:
-                    log.error(f'Marker poll failed full response: {json.dumps(poll_result, indent=2)}')
-                    error_msg = poll_result.get('error') or 'Marker returned failure without error message'
-                    raise HTTPException(
-                        status.HTTP_400_BAD_REQUEST,
-                        detail=f'Marker processing failed: {error_msg}',
-                    )
-            else:
-                raise HTTPException(
-                    status.HTTP_504_GATEWAY_TIMEOUT,
-                    detail='Marker processing timed out',
-                )
-
-            if not poll_result.get('success', False):
-                error_msg = poll_result.get('error') or 'Unknown processing error'
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    detail=f'Final processing failed: {error_msg}',
-                )
+            poll_result = self._poll_result(check_url, headers)
 
             # DataLab format - content in format-specific fields
             content_key = self.output_format.lower()
@@ -206,6 +158,68 @@ class DatalabMarkerLoader:
                     detail=f"Custom Marker endpoint returned success but no 'output' field found. Available fields: {available_fields}. Expected either 'request_check_url' for polling or 'output' field for direct response.",
                 )
 
+        return [self._make_document(raw_content, final_result, filename, request_id)]
+
+    def _poll_result(self, check_url: str, headers: dict[str, str]) -> dict[str, object]:
+        # DataLab polling pattern
+        for _ in range(300):  # Up to 10 minutes
+            time.sleep(2)
+            try:
+                poll_response = requests.get(check_url, headers=headers)
+                poll_response.raise_for_status()
+                poll_result = poll_response.json()
+            except (requests.HTTPError, ValueError) as e:
+                raw_body = poll_response.text
+                log.error(f'Polling error: {e}, response body: {raw_body}')
+                raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=f'Polling failed: {e}')
+
+            status_val = poll_result.get('status')
+            success_val = poll_result.get('success')
+
+            if status_val == 'complete':
+                summary = {
+                    k: poll_result.get(k)
+                    for k in (
+                        'status',
+                        'output_format',
+                        'success',
+                        'error',
+                        'page_count',
+                        'total_cost',
+                    )
+                }
+                log.info(f'Marker processing completed successfully: {json.dumps(summary, indent=2)}')
+                break
+
+            if status_val == 'failed' or success_val is False:
+                log.error(f'Marker poll failed full response: {json.dumps(poll_result, indent=2)}')
+                error_msg = poll_result.get('error') or 'Marker returned failure without error message'
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail=f'Marker processing failed: {error_msg}',
+                )
+        else:
+            raise HTTPException(
+                status.HTTP_504_GATEWAY_TIMEOUT,
+                detail='Marker processing timed out',
+            )
+
+        if not poll_result.get('success', False):
+            error_msg = poll_result.get('error') or 'Unknown processing error'
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f'Final processing failed: {error_msg}',
+            )
+
+        return poll_result
+
+    def _make_document(
+        self,
+        raw_content: object,
+        final_result: dict[str, object],
+        filename: str,
+        request_id: object,
+    ) -> Document:
         if self.output_format.lower() == 'json':
             full_text = json.dumps(raw_content, indent=2)
         elif self.output_format.lower() in {'markdown', 'html'}:
@@ -256,4 +270,4 @@ class DatalabMarkerLoader:
             elif v is None:
                 metadata[k] = ''
 
-        return [Document(page_content=full_text, metadata=metadata)]
+        return Document(page_content=full_text, metadata=metadata)

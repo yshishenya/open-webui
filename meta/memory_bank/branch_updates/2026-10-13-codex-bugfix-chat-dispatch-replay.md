@@ -4,3 +4,9 @@
   - Done: 2026-10-13
   - Summary: Воспроизведено удаление ещё читаемого chunk после sibling HTTP failure; остановить и дождаться handlers до удаления.
   - Tests: Native2failed→2passed;1074backend;Black0diff;Ruff482→481/new0;branchnewCI7→6;frontend5149hashes reused. Production/files/volumes/network config preserved;bridge ID and2external terminal IDs changed, cause unknown,taskmutations0. Своиfixtures removed;общий PR/CI/выпуск впереди.
+
+- [x] DatalabMarker: два естественных этапа без смены поведения
+  - Spec: meta/memory_bank/specs/work_items/2026-10-13__refactor__datalab-marker.md
+  - Owner: Codex
+  - Done: 2026-10-13
+  - Summary:28native сценариев до/после и механический AST совпали. Backend1102/0ошибок/пропусков/25прежнихwarnings;Black0diff;Ruff481→480/new0;branchnew6→5. Production/14соседей/21чужойфайл/262тома/33сети сохранены;своиfixtures удалены. Новых dependencies/config/I/O нет;план198/244,цельactive,выпуска нет.
