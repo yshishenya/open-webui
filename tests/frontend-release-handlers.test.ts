@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
+import { getErrorMessage } from '../src/lib/utils/airis/error_message';
 
 const root = process.env.AIRIS_HANDLER_SOURCE ?? '.';
 const read = (file: string): string => readFileSync(`${root}/${file}`, 'utf8');
@@ -67,18 +68,20 @@ it('serializes real worker results, proxies and failing getters without losing s
 	expect(serialize(Symbol('x'))).toBeUndefined();
 });
 
-it('reads the actual upload stream through DONE and EOF, retaining processing errors', async () => {
+it('finishes the actual upload stream on failure, retaining the error and closing the reader', async () => {
 	const source = read('src/lib/apis/files/index.ts');
 	const response = { id: 'file', data: {}, error: undefined };
 	const chunks = [
 		'data: {"status":"processing"}\n',
-		'data: {"error":"failed"}\n',
+		'data: {"status":"failed","error":"failed"}\n',
 		'data: [DONE]\n'
 	];
 	const reader = {
 		read: vi.fn(async () =>
 			chunks.length ? { value: chunks.shift(), done: false } : { done: true }
-		)
+		),
+		cancel: vi.fn(async () => {}),
+		releaseLock: vi.fn()
 	};
 	const stream = { pipeThrough: () => stream, getReader: () => reader };
 	const fetch = vi.fn(async () => ({ ok: true, json: async () => response }));
@@ -90,11 +93,14 @@ it('reads the actual upload stream through DONE and EOF, retaining processing er
 		splitStream: () => ({}),
 		WEBUI_API_BASE_URL: '/api',
 		getFileProcessStatus: async () => ({ ok: true, body: stream }),
-		console: { log: vi.fn(), error: vi.fn() }
+		getErrorMessage,
+		console: { log: vi.fn(), error: vi.fn(), warn: vi.fn() }
 	}) as (token: string, file: Blob) => Promise<typeof response>;
 	expect(await upload('token', new Blob(['test']))).toBe(response);
 	expect(response.error).toBe('failed');
-	expect(reader.read).toHaveBeenCalledTimes(4);
+	expect(reader.read).toHaveBeenCalledTimes(2);
+	expect(reader.cancel).toHaveBeenCalledOnce();
+	expect(reader.releaseLock).toHaveBeenCalledOnce();
 	expect(fetch).toHaveBeenCalledTimes(1);
 });
 

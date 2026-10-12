@@ -12,3 +12,10 @@
   - Done: 2026-10-12
   - Summary: Уточнить7 ошибок через уже объявленные ComponentProps/LeadMagnetUsage без изменения поведения; проверить compiled JS/CSS.
   - Tests:2515 full;4 compiled JS/CSS comparisons pass;types53/24,ESLint184,new0;scoped2/futureCI360/format clean;272 SDD valid. Backend reused after565 hashes; production/data preserved; no release.
+
+- [x] **[BUG]** Shared response/file status inputs (085)
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-12__bugfix__stream-file-status.md`
+  - Owner: Codex
+  - Done: 2026-10-12
+  - Summary: Отказ проверки статуса не должен возвращать файл как готовый; readers закрываются; wire usage/metadata и multipart сохраняются; private logs убираются.
+  - Tests:17 focused/22 combined/18 browser/2532 full pass; types51/24,ESLint183,new0;scoped6/futureCI363/format clean; backend565hashes reused,production/data preserved; no release.

@@ -4,7 +4,7 @@ import type { OutputItem } from '$lib/components/chat/Messages/structuredOutput'
 
 export type ChatAttachment = Record<string, unknown> & {
 	type?: string;
-	content_type?: string;
+	content_type?: string | null;
 	id?: string | null;
 	url?: string | null;
 	name?: string;

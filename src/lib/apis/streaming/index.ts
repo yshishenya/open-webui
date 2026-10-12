@@ -4,29 +4,16 @@ import type { ParsedEvent } from 'eventsource-parser';
 type TextStreamUpdate = {
 	done: boolean;
 	value: string;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	sources?: any;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	selectedModelId?: any;
-	error?: any;
-	usage?: ResponseUsage;
-};
-
-type ResponseUsage = {
-	/** Including images and tools if any */
-	prompt_tokens: number;
-	/** The tokens generated */
-	completion_tokens: number;
-	/** Sum of the above two fields */
-	total_tokens: number;
-	/** Any other fields that aren't part of the base OpenAI spec */
-	[other: string]: unknown;
+	sources?: unknown;
+	selectedModelId?: unknown;
+	error?: unknown;
+	usage?: unknown;
 };
 
 // createOpenAITextStream takes a responseBody with a SSE response,
 // and returns an async generator that emits delta updates with large deltas chunked into random sized chunks
 export async function createOpenAITextStream(
-	responseBody: ReadableStream<Uint8Array>,
+	responseBody: ReadableStream<Uint8Array<ArrayBuffer>>,
 	splitLargeDeltas: boolean
 ): Promise<AsyncGenerator<TextStreamUpdate>> {
 	const eventStream = responseBody
@@ -43,52 +30,61 @@ export async function createOpenAITextStream(
 async function* openAIStreamToIterator(
 	reader: ReadableStreamDefaultReader<ParsedEvent>
 ): AsyncGenerator<TextStreamUpdate> {
-	while (true) {
-		const { value, done } = await reader.read();
-		if (done) {
-			yield { done: true, value: '' };
-			break;
-		}
-		if (!value) {
-			continue;
-		}
-		const data = value.data;
-		if (data.startsWith('[DONE]')) {
-			yield { done: true, value: '' };
-			break;
-		}
-
-		try {
-			const parsedData = JSON.parse(data);
-			console.log(parsedData);
-
-			if (parsedData.error) {
-				yield { done: true, value: '', error: parsedData.error };
+	try {
+		while (true) {
+			const { value, done } = await reader.read();
+			if (done) {
+				yield { done: true, value: '' };
+				break;
+			}
+			if (!value) {
+				continue;
+			}
+			const data = value.data;
+			if (data.startsWith('[DONE]')) {
+				yield { done: true, value: '' };
 				break;
 			}
 
-			if (parsedData.sources) {
-				yield { done: false, value: '', sources: parsedData.sources };
-				continue;
-			}
+			try {
+				const parsed: unknown = JSON.parse(data);
+				if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
+				const parsedData = parsed as Record<string, unknown>;
 
-			if (parsedData.selected_model_id) {
-				yield { done: false, value: '', selectedModelId: parsedData.selected_model_id };
-				continue;
-			}
+				if (parsedData.error) {
+					yield { done: true, value: '', error: parsedData.error };
+					break;
+				}
 
-			if (parsedData.usage) {
-				yield { done: false, value: '', usage: parsedData.usage };
-				continue;
-			}
+				if (parsedData.sources) {
+					yield { done: false, value: '', sources: parsedData.sources };
+					continue;
+				}
 
-			yield {
-				done: false,
-				value: parsedData.choices?.[0]?.delta?.content ?? ''
-			};
-		} catch (e) {
-			console.error('Error extracting delta from SSE event:', e);
+				if (parsedData.selected_model_id) {
+					yield { done: false, value: '', selectedModelId: parsedData.selected_model_id };
+					continue;
+				}
+
+				if (parsedData.usage) {
+					yield { done: false, value: '', usage: parsedData.usage };
+					continue;
+				}
+
+				const choice = Array.isArray(parsedData.choices) ? parsedData.choices[0] : undefined;
+				const content: unknown = choice?.delta?.content;
+				yield { done: false, value: typeof content === 'string' ? content : '' };
+			} catch {
+				console.warn('Invalid response stream event');
+			}
 		}
+	} finally {
+		try {
+			await reader.cancel();
+		} catch {
+			console.warn('Unable to cancel response stream');
+		}
+		reader.releaseLock();
 	}
 }
 
@@ -139,4 +135,4 @@ async function* streamLargeDeltasAsRandomChunks(
 	}
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

@@ -74,6 +74,7 @@ export type KnowledgeFile = {
 	meta: {
 		name?: string | null;
 		content_type?: string | null;
+		collection_name?: string | null;
 		size?: number | null;
 		[key: string]: unknown;
 	} | null;
@@ -82,6 +83,8 @@ export type KnowledgeFile = {
 	user?: KnowledgeListItem['user'];
 	collection?: KnowledgeRecord | null;
 	description?: string | null;
+	collection_name?: string | null;
+	content_type?: string | null;
 	error?: string;
 };
 

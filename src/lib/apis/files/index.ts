@@ -1,5 +1,6 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { splitStream } from '$lib/utils';
+import { getErrorMessage } from '$lib/utils/airis/error_message';
 import type { KnowledgeFile } from '$lib/utils/airis/knowledge-types';
 
 export const uploadFile = async (
@@ -8,7 +9,7 @@ export const uploadFile = async (
 	metadata?: object | null,
 	process?: boolean | null,
 	stream: boolean = true
-) => {
+): Promise<KnowledgeFile | null> => {
 	const data = new FormData();
 	data.append('file', file);
 	if (metadata) {
@@ -22,21 +23,24 @@ export const uploadFile = async (
 
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/files/?${searchParams.toString()}`, {
-		method: 'POST',
-		headers: {
-			Accept: 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		body: data
-	})
+	const res: KnowledgeFile | null = await fetch(
+		`${WEBUI_API_BASE_URL}/files/?${searchParams.toString()}`,
+		{
+			method: 'POST',
+			headers: {
+				Accept: 'application/json',
+				authorization: `Bearer ${token}`
+			},
+			body: data
+		}
+	)
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
 			return res.json();
 		})
 		.catch((err) => {
-			error = err.detail || err.message;
-			console.error(err);
+			error = getErrorMessage(err);
+			console.warn('File upload request failed');
 			return null;
 		});
 
@@ -47,45 +51,48 @@ export const uploadFile = async (
 	if (res && stream) {
 		const status = await getFileProcessStatus(token, res.id);
 
-		if (status && status.ok) {
-			const reader = status.body
-				.pipeThrough(new TextDecoderStream())
-				.pipeThrough(splitStream('\n'))
-				.getReader();
-
-			for (;;) {
+		if (!status.body) throw new Error('Failed to read file processing status.');
+		const reader = status.body
+			.pipeThrough(new TextDecoderStream())
+			.pipeThrough(splitStream('\n'))
+			.getReader();
+		try {
+			processing: for (;;) {
 				const { value, done } = await reader.read();
-				if (done) {
-					break;
-				}
-
-				try {
-					const lines = value.split('\n');
-
-					for (const line of lines) {
-						if (line !== '') {
-							console.log(line);
-							if (line === 'data: [DONE]') {
-								console.log(line);
-							} else {
-								const data = JSON.parse(line.replace(/^data: /, ''));
-								console.log(data);
-
-								if (data?.error) {
-									console.error(data.error);
-									res.error = data.error;
-								}
-
-								if (res?.data) {
-									res.data = data;
-								}
-							}
-						}
+				if (done) break;
+				for (const line of value.split('\n')) {
+					if (line === 'data: [DONE]') break processing;
+					if (!line) continue;
+					try {
+						const data: unknown = JSON.parse(line.replace(/^data: /, ''));
+						if (!data || typeof data !== 'object' || Array.isArray(data)) continue;
+						const event = data as NonNullable<KnowledgeFile['data']>;
+						if (
+							typeof event.status !== 'string' ||
+							(event.content != null && typeof event.content !== 'string')
+						)
+							continue;
+						if (event.error) res.error = getErrorMessage(event.error);
+						if (event.status === 'failed' && !res.error) res.error = 'File processing failed.';
+						res.data = event;
+						if (event.status === 'completed' || event.status === 'failed') return res;
+					} catch {
+						console.warn('Invalid file processing event');
 					}
-				} catch (error) {
-					console.log(error);
 				}
 			}
+		} catch {
+			throw new Error('Failed to read file processing status.');
+		} finally {
+			try {
+				await reader.cancel();
+			} catch {
+				console.warn('Unable to cancel file processing stream');
+			}
+			reader.releaseLock();
+		}
+		if (res.data?.status && !['completed', 'failed'].includes(res.data.status)) {
+			throw new Error('Failed to read file processing status.');
 		}
 	}
 
@@ -96,28 +103,26 @@ export const uploadFile = async (
 	return res;
 };
 
-export const getFileProcessStatus = async (token: string, id: string) => {
+export const getFileProcessStatus = async (token: string, id: string): Promise<Response> => {
 	const queryParams = new URLSearchParams();
 	queryParams.append('stream', 'true');
-
-	let error = null;
-	const res = await fetch(`${WEBUI_API_BASE_URL}/files/${id}/process/status?${queryParams}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			authorization: `Bearer ${token}`
-		}
-	}).catch((err) => {
-		error = err.detail;
-		console.error(err);
-		return null;
-	});
-
-	if (error) {
-		throw error;
+	const controller = new AbortController();
+	// Only bound the connection: processing may legitimately take longer than a minute.
+	const timeout = setTimeout(() => controller.abort(), 60_000);
+	try {
+		const res = await fetch(`${WEBUI_API_BASE_URL}/files/${id}/process/status?${queryParams}`, {
+			method: 'GET',
+			signal: controller.signal,
+			headers: { Accept: 'application/json', authorization: `Bearer ${token}` }
+		});
+		if (!res.ok) throw new Error('Failed to read file processing status.');
+		return res;
+	} catch {
+		console.warn('File processing status request failed');
+		throw new Error('Failed to read file processing status.');
+	} finally {
+		clearTimeout(timeout);
 	}
-
-	return res;
 };
 
 export const uploadDir = async (token: string) => {

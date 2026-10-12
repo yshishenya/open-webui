@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-stream-file-status-2026-10-12-085",
+  "title": "AIRIS stream and file status",
+  "generated": "2026-10-11T22:56:26.473312Z",
+  "last_updated": "2026-10-12T00:02:31.958365Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__stream-file-status.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T22:57:45.138436Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T00:02:31.958129Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS stream and file status",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce missing status and unreleased response readers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T23:27:01.241092Z",
+        "journaled_at": "2026-10-11T23:27:01.242908Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Guard shared file status and close response readers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T23:27:01.467225Z",
+        "journaled_at": "2026-10-11T23:27:01.469234Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce missing status and unreleased response readers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T23:27:01.240929Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T23:27:01.241836Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Guard shared file status and close response readers",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T23:27:01.467033Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T23:27:01.468093Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify streams uploads and preserved application state",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T00:02:31.548157Z",
+        "journaled_at": "2026-10-12T00:02:31.550010Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify streams uploads and preserved application state",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T00:02:31.548019Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T00:02:31.548911Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T23:27:01.241831Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce missing status and unreleased response readers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T23:27:01.242903Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce missing status and unreleased response readers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T23:27:01.468088Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Guard shared file status and close response readers",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T23:27:01.469229Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Guard shared file status and close response readers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-12T00:02:31.548907Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify streams uploads and preserved application state",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-12T00:02:31.550006Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify streams uploads and preserved application state",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}
