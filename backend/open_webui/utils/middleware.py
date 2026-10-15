@@ -3243,13 +3243,203 @@ async def get_system_oauth_token(request, user):
     return oauth_token
 
 
+def _get_background_message_content(message: dict[str, object]) -> object:
+    content = message.get('content', '')
+    if isinstance(content, list):
+        for item in content:
+            if item.get('type') == 'text':
+                content = item['text']
+                break
+
+    if isinstance(content, str):
+        content = re.sub(
+            r'<details\b[^>]*>.*?<\/details>|!\[.*?\]\(.*?\)',
+            '',
+            content,
+            flags=re.S | re.I,
+        ).strip()
+
+    return content
+
+
+async def _generate_background_follow_ups(
+    ctx: dict[str, object], message: dict[str, object], messages: list[dict[str, object]]
+) -> None:
+    request = ctx['request']
+    user = ctx['user']
+    metadata = ctx['metadata']
+    event_emitter = ctx['event_emitter']
+    tasks = ctx['tasks']
+    if TASKS.FOLLOW_UP_GENERATION in tasks and tasks[TASKS.FOLLOW_UP_GENERATION]:
+        res = await generate_follow_ups(
+            request,
+            {
+                'model': message['model'],
+                'messages': messages,
+                'message_id': metadata['message_id'],
+                'chat_id': metadata['chat_id'],
+            },
+            user,
+        )
+
+        if res and isinstance(res, dict):
+            if len(res.get('choices', [])) == 1:
+                response_message = res.get('choices', [])[0].get('message', {})
+
+                follow_ups_string = response_message.get('content') or response_message.get('reasoning_content', '')
+            else:
+                follow_ups_string = ''
+
+            follow_ups_string = follow_ups_string[follow_ups_string.find('{') : follow_ups_string.rfind('}') + 1]
+
+            try:
+                follow_ups = JSONCodec.loads(follow_ups_string).get('follow_ups', [])
+                await event_emitter(
+                    {
+                        'type': 'chat:message:follow_ups',
+                        'data': {
+                            'follow_ups': follow_ups,
+                        },
+                    }
+                )
+
+                if is_saved_chat_id(metadata.get('chat_id')):
+                    await Chats.upsert_message_to_chat_by_id_and_message_id(
+                        metadata['chat_id'],
+                        metadata['message_id'],
+                        {
+                            'followUps': follow_ups,
+                        },
+                        touch=False,
+                    )
+
+            except Exception as e:
+                log.debug('Background task result handling failed (%s)', type(e).__name__)
+
+
+async def _generate_background_title(
+    ctx: dict[str, object],
+    message: dict[str, object],
+    messages: list[dict[str, object]],
+    messages_map: dict[str, dict[str, object]],
+) -> None:
+    request = ctx['request']
+    user = ctx['user']
+    metadata = ctx['metadata']
+    event_emitter = ctx['event_emitter']
+    tasks = ctx['tasks']
+    if TASKS.TITLE_GENERATION in tasks:
+        user_message = get_last_user_message(messages)
+        if user_message and len(user_message) > 100:
+            user_message = user_message[:100] + '...'
+
+        title = None
+        if tasks[TASKS.TITLE_GENERATION]:
+            res = await generate_title(
+                request,
+                {
+                    'model': message['model'],
+                    'messages': messages,
+                    'chat_id': metadata['chat_id'],
+                },
+                user,
+            )
+
+            if res and isinstance(res, dict):
+                if len(res.get('choices', [])) == 1:
+                    response_message = res.get('choices', [])[0].get('message', {})
+
+                    title_string = (
+                        response_message.get('content')
+                        or response_message.get(
+                            'reasoning_content',
+                        )
+                        or message.get('content', user_message)
+                    )
+                else:
+                    title_string = ''
+
+                title_string = title_string[title_string.find('{') : title_string.rfind('}') + 1]
+
+                try:
+                    title = JSONCodec.loads(title_string).get('title', user_message)
+                except Exception:
+                    title = ''
+
+                if not title:
+                    title = messages[0].get('content', user_message)
+
+                await Chats.update_chat_title_by_id(metadata['chat_id'], title)
+
+                await event_emitter(
+                    {
+                        'type': 'chat:title',
+                        'data': title,
+                    }
+                )
+
+        if title is None and len(messages) == 2 and (not messages_map or len(messages_map) <= 2):
+            title = messages[0].get('content', user_message)
+
+            await Chats.update_chat_title_by_id(metadata['chat_id'], title)
+
+            await event_emitter(
+                {
+                    'type': 'chat:title',
+                    'data': message.get('content', user_message),
+                }
+            )
+
+
+async def _generate_background_tags(
+    ctx: dict[str, object], message: dict[str, object], messages: list[dict[str, object]]
+) -> None:
+    request = ctx['request']
+    user = ctx['user']
+    metadata = ctx['metadata']
+    event_emitter = ctx['event_emitter']
+    tasks = ctx['tasks']
+    if TASKS.TAGS_GENERATION in tasks and tasks[TASKS.TAGS_GENERATION]:
+        res = await generate_chat_tags(
+            request,
+            {
+                'model': message['model'],
+                'messages': messages,
+                'chat_id': metadata['chat_id'],
+            },
+            user,
+        )
+
+        if res and isinstance(res, dict):
+            if len(res.get('choices', [])) == 1:
+                response_message = res.get('choices', [])[0].get('message', {})
+
+                tags_string = response_message.get('content') or response_message.get('reasoning_content', '')
+            else:
+                tags_string = ''
+
+            tags_string = tags_string[tags_string.find('{') : tags_string.rfind('}') + 1]
+
+            try:
+                tags = JSONCodec.loads(tags_string).get('tags', [])
+                await Chats.update_chat_tags_by_id(metadata['chat_id'], tags, user)
+
+                await event_emitter(
+                    {
+                        'type': 'chat:tags',
+                        'data': tags,
+                    }
+                )
+            except Exception as e:
+                log.debug('Background task result handling failed (%s)', type(e).__name__)
+
+
 async def background_tasks_handler(ctx: dict[str, object]) -> None:
     request = ctx['request']
     form_data = ctx['form_data']
     user = ctx['user']
     metadata = ctx['metadata']
     tasks = ctx['tasks']
-    event_emitter = ctx['event_emitter']
 
     message = None
     messages = []
@@ -3269,20 +3459,7 @@ async def background_tasks_handler(ctx: dict[str, object]) -> None:
 
         messages = []
         for message in message_list:
-            content = message.get('content', '')
-            if isinstance(content, list):
-                for item in content:
-                    if item.get('type') == 'text':
-                        content = item['text']
-                        break
-
-            if isinstance(content, str):
-                content = re.sub(
-                    r'<details\b[^>]*>.*?<\/details>|!\[.*?\]\(.*?\)',
-                    '',
-                    content,
-                    flags=re.S | re.I,
-                ).strip()
+            content = _get_background_message_content(message)
 
             messages.append(
                 {
@@ -3300,154 +3477,12 @@ async def background_tasks_handler(ctx: dict[str, object]) -> None:
 
     if message and 'model' in message:
         if tasks and messages:
-            if TASKS.FOLLOW_UP_GENERATION in tasks and tasks[TASKS.FOLLOW_UP_GENERATION]:
-                res = await generate_follow_ups(
-                    request,
-                    {
-                        'model': message['model'],
-                        'messages': messages,
-                        'message_id': metadata['message_id'],
-                        'chat_id': metadata['chat_id'],
-                    },
-                    user,
-                )
-
-                if res and isinstance(res, dict):
-                    if len(res.get('choices', [])) == 1:
-                        response_message = res.get('choices', [])[0].get('message', {})
-
-                        follow_ups_string = response_message.get('content') or response_message.get(
-                            'reasoning_content', ''
-                        )
-                    else:
-                        follow_ups_string = ''
-
-                    follow_ups_string = follow_ups_string[
-                        follow_ups_string.find('{') : follow_ups_string.rfind('}') + 1
-                    ]
-
-                    try:
-                        follow_ups = JSONCodec.loads(follow_ups_string).get('follow_ups', [])
-                        await event_emitter(
-                            {
-                                'type': 'chat:message:follow_ups',
-                                'data': {
-                                    'follow_ups': follow_ups,
-                                },
-                            }
-                        )
-
-                        if is_saved_chat_id(metadata.get('chat_id')):
-                            await Chats.upsert_message_to_chat_by_id_and_message_id(
-                                metadata['chat_id'],
-                                metadata['message_id'],
-                                {
-                                    'followUps': follow_ups,
-                                },
-                                touch=False,
-                            )
-
-                    except Exception:
-                        pass
+            await _generate_background_follow_ups(ctx, message, messages)
 
             if is_saved_chat_id(metadata.get('chat_id')):  # Only update titles and tags for saved chats
-                if TASKS.TITLE_GENERATION in tasks:
-                    user_message = get_last_user_message(messages)
-                    if user_message and len(user_message) > 100:
-                        user_message = user_message[:100] + '...'
+                await _generate_background_title(ctx, message, messages, messages_map)
 
-                    title = None
-                    if tasks[TASKS.TITLE_GENERATION]:
-                        res = await generate_title(
-                            request,
-                            {
-                                'model': message['model'],
-                                'messages': messages,
-                                'chat_id': metadata['chat_id'],
-                            },
-                            user,
-                        )
-
-                        if res and isinstance(res, dict):
-                            if len(res.get('choices', [])) == 1:
-                                response_message = res.get('choices', [])[0].get('message', {})
-
-                                title_string = (
-                                    response_message.get('content')
-                                    or response_message.get(
-                                        'reasoning_content',
-                                    )
-                                    or message.get('content', user_message)
-                                )
-                            else:
-                                title_string = ''
-
-                            title_string = title_string[title_string.find('{') : title_string.rfind('}') + 1]
-
-                            try:
-                                title = JSONCodec.loads(title_string).get('title', user_message)
-                            except Exception:
-                                title = ''
-
-                            if not title:
-                                title = messages[0].get('content', user_message)
-
-                            await Chats.update_chat_title_by_id(metadata['chat_id'], title)
-
-                            await event_emitter(
-                                {
-                                    'type': 'chat:title',
-                                    'data': title,
-                                }
-                            )
-
-                    if title == None and len(messages) == 2 and (not messages_map or len(messages_map) <= 2):
-                        title = messages[0].get('content', user_message)
-
-                        await Chats.update_chat_title_by_id(metadata['chat_id'], title)
-
-                        await event_emitter(
-                            {
-                                'type': 'chat:title',
-                                'data': message.get('content', user_message),
-                            }
-                        )
-
-                if TASKS.TAGS_GENERATION in tasks and tasks[TASKS.TAGS_GENERATION]:
-                    res = await generate_chat_tags(
-                        request,
-                        {
-                            'model': message['model'],
-                            'messages': messages,
-                            'chat_id': metadata['chat_id'],
-                        },
-                        user,
-                    )
-
-                    if res and isinstance(res, dict):
-                        if len(res.get('choices', [])) == 1:
-                            response_message = res.get('choices', [])[0].get('message', {})
-
-                            tags_string = response_message.get('content') or response_message.get(
-                                'reasoning_content', ''
-                            )
-                        else:
-                            tags_string = ''
-
-                        tags_string = tags_string[tags_string.find('{') : tags_string.rfind('}') + 1]
-
-                        try:
-                            tags = JSONCodec.loads(tags_string).get('tags', [])
-                            await Chats.update_chat_tags_by_id(metadata['chat_id'], tags, user)
-
-                            await event_emitter(
-                                {
-                                    'type': 'chat:tags',
-                                    'data': tags,
-                                }
-                            )
-                        except Exception:
-                            pass
+                await _generate_background_tags(ctx, message, messages)
 
         if messages:
             await review_memory_after_turn(
