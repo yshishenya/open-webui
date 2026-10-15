@@ -38,7 +38,7 @@ const prepare = async (
 	await page.route('**/api/models**', (route) =>
 		route.fulfill({
 			json: {
-				data: [{ id: 'gpt-5.6-luna', name: 'gpt-5.6-luna', owned_by: 'openai' }]
+				data: [{ id: 'gpt-6-luna', name: 'gpt-6-luna', owned_by: 'openai' }]
 			}
 		})
 	);
@@ -65,7 +65,7 @@ const openQuery = async (
 			query
 		);
 	} else {
-		await page.goto(`/?model=gpt-5.6-luna&q=${encodeURIComponent(query)}&submit=${submit}`);
+		await page.goto(`/?model=gpt-6-luna&q=${encodeURIComponent(query)}&submit=${submit}`);
 	}
 	await expect(page.getByRole('button', { name: 'Selected model' })).toBeVisible();
 };

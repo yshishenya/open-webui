@@ -74,11 +74,11 @@ test('model settings remove listeners across repeated visits and delayed initial
 	const modifierBaseline = await modifierCount();
 	for (let visit = 0; visit < 3; visit++) {
 		await modelsTab.click();
-		await expect(page.locator('[id="model-item-gpt-5.6-luna"]')).toBeVisible();
+		await expect(page.locator('[id="model-item-gpt-6-luna"]')).toBeVisible();
 		await expect.poll(modifierCount).toBe(modifierBaseline + 2);
 		await expect.poll(count).toBeGreaterThanOrEqual(baseline + 3);
 		await generalTab.click();
-		await expect(page.locator('[id="model-item-gpt-5.6-luna"]')).toHaveCount(0);
+		await expect(page.locator('[id="model-item-gpt-6-luna"]')).toHaveCount(0);
 		await expect.poll(count).toBe(baseline);
 	}
 	let release: () => void = () => {};

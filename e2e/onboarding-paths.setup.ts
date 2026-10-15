@@ -33,12 +33,12 @@ export default async function setup(config: FullConfig): Promise<void> {
 		expect(registration.ok()).toBe(true);
 		const models = await client.get('/api/v1/models/base', { headers });
 		expect(models.ok()).toBe(true);
-		if (!((await models.json()) as { id: string }[]).some((model) => model.id === 'gpt-5.6-luna')) {
+		if (!((await models.json()) as { id: string }[]).some((model) => model.id === 'gpt-6-luna')) {
 			const created = await client.post('/api/v1/models/create', {
 				headers,
 				data: {
-					id: 'gpt-5.6-luna',
-					name: 'gpt-5.6-luna',
+					id: 'gpt-6-luna',
+					name: 'gpt-6-luna',
 					meta: { lead_magnet: true },
 					params: {},
 					access_grants: [{ principal_type: 'user', principal_id: '*', permission: 'read' }]
@@ -49,14 +49,14 @@ export default async function setup(config: FullConfig): Promise<void> {
 		for (const unit of ['token_in', 'token_out']) {
 			const existing = await client.get('/api/v1/admin/billing/rate-card', {
 				headers,
-				params: { model_id: 'gpt-5.6-luna', unit, is_active: true }
+				params: { model_id: 'gpt-6-luna', unit, is_active: true }
 			});
 			expect(existing.ok()).toBe(true);
 			if (((await existing.json()) as { items: object[] }).items.length) continue;
 			const created = await client.post('/api/v1/admin/billing/rate-card', {
 				headers,
 				data: {
-					model_id: 'gpt-5.6-luna',
+					model_id: 'gpt-6-luna',
 					modality: 'text',
 					unit,
 					raw_cost_per_unit_kopeks: 1,
@@ -74,7 +74,7 @@ export default async function setup(config: FullConfig): Promise<void> {
 				headers,
 				data: {
 					id: 'airis-constructor-form',
-					base_model_id: 'gpt-5.6-luna',
+					base_model_id: 'gpt-6-luna',
 					name: 'Constructor form fixture',
 					meta: {},
 					params: { system: '{{ chat.variables.constructor | text:required }}' },

@@ -28,7 +28,7 @@ for (const example of ['написать текст', 'разобраться в
 		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 			draft
 		);
-		await expect(page.getByRole('button', { name: 'Selected model: gpt-5.6-luna' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Selected model: gpt-6-luna' })).toBeVisible();
 		expect((await state(request)).calls.length).toBe(providerBefore);
 		await expect(page.getByRole('log').getByRole('listitem')).toHaveCount(0);
 		await page.getByLabel(/^(Send a Message|How can I help you today\?)$/).press('Enter');
@@ -40,7 +40,7 @@ for (const example of ['написать текст', 'разобраться в
 			.poll(() => facts(request, account))
 			.toEqual({
 				successes: 1,
-				usage: [{ model: 'gpt-5.6-luna', input: 17, output: 3, source: 'lead_magnet', charged: 0 }],
+				usage: [{ model: 'gpt-6-luna', input: 17, output: 3, source: 'lead_magnet', charged: 0 }],
 				ledger: []
 			});
 		const usage = (await billing(request, account, 'lead-magnet')).usage as {
@@ -52,7 +52,7 @@ for (const example of ['написать текст', 'разобраться в
 		expect((await billing(request, account, 'balance')).balance_topup_kopeks).toBe(0);
 		expect((await state(request)).calls.slice(providerBefore)).toEqual([
 			{
-				model: 'gpt-5.6-luna',
+				model: 'gpt-6-luna',
 				failed: false,
 				usage: { prompt_tokens: 17, completion_tokens: 3, total_tokens: 20 }
 			}
@@ -79,7 +79,7 @@ test('failed provider response consumes no quota, money or completed success', a
 }) => {
 	await page.goto('/auth?form=1');
 	await signIn(page, account);
-	await page.goto('/?model=gpt-5.6-luna&q=E2E_FORCE_ERROR&submit=false');
+	await page.goto('/?model=gpt-6-luna&q=E2E_FORCE_ERROR&submit=false');
 	await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 		'E2E_FORCE_ERROR'
 	);
@@ -118,7 +118,7 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 				...row,
 				chat: {
 					title: row.title,
-					models: ['gpt-5.6-luna'],
+					models: ['gpt-6-luna'],
 					history: { messages: {}, currentId: null }
 				}
 			}
@@ -255,7 +255,7 @@ test('checkout → exact credit → visible history → one service email, repla
 	const providerBefore = (await state(request)).calls.length;
 	await page.goto('/auth?form=1');
 	await signIn(page, account);
-	await page.goto('/?model=gpt-5.6-luna&q=Payment%20return%20test&submit=false');
+	await page.goto('/?model=gpt-6-luna&q=Payment%20return%20test&submit=false');
 	await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 		'Payment return test'
 	);

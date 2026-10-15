@@ -34,7 +34,7 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
-MODEL = 'gpt-5.6-luna'
+MODEL = 'gpt-6-luna'
 ANSWER = 'AIRIS deterministic answer.'
 USAGE = {'prompt_tokens': 17, 'completion_tokens': 3, 'total_tokens': 20}
 calls: list[dict[str, object]] = []

@@ -22,7 +22,7 @@ for (const mode of ['create', 'edit'] as const) {
 		const model = {
 			id: initialId,
 			name: `Retry ${suffix}`,
-			base_model_id: 'gpt-5.6-luna',
+			base_model_id: 'gpt-6-luna',
 			meta: { description: '', tags: [] },
 			params: { system: 'Preserve instruction' },
 			access_grants: []

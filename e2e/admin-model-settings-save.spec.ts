@@ -44,7 +44,7 @@ test('model defaults retain failed edits, recover Save and persist retry', async
 		});
 		await page.goto('/?settings=admin%3Ageneral');
 		await page.locator('[role="tab"][aria-controls="tab-admin-models"]').click();
-		await expect(page.locator('[id="model-item-gpt-5.6-luna"]')).toBeVisible();
+		await expect(page.locator('[id="model-item-gpt-6-luna"]')).toBeVisible();
 		await page.getByRole('button', { name: 'Model Defaults', exact: true }).click();
 		await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
 		await expect(page.getByRole('button', { name: /^Model Capabilities/ })).toHaveCount(0);

@@ -22,7 +22,7 @@ test('long composer and image survive reload; accepted guide draft does not retu
 }) => {
 	await page.goto('/auth?form=1');
 	await signIn(page, account);
-	await page.goto('/?model=gpt-5.6-luna&submit=false');
+	await page.goto('/?model=gpt-6-luna&submit=false');
 	const text = 'Draft: ' + 'x'.repeat(6000);
 	await composer(page).fill(text);
 	await page.locator('input[type="file"][multiple]').setInputFiles('static/favicon.png');
@@ -30,7 +30,7 @@ test('long composer and image survive reload; accepted guide draft does not retu
 		.poll(() => saved(page, account.id, 'home'))
 		.toMatchObject({
 			prompt: text,
-			selectedModels: ['gpt-5.6-luna'],
+			selectedModels: ['gpt-6-luna'],
 			files: [{ type: 'file', content_type: 'image/png', status: 'uploaded' }]
 		});
 	const snapshot = await saved(page, account.id, 'home');
@@ -55,7 +55,7 @@ for (const accepted of [true, false]) {
 	}) => {
 		await page.goto('/auth?form=1');
 		await signIn(page, account);
-		await page.goto('/?model=gpt-5.6-luna&submit=false');
+		await page.goto('/?model=gpt-6-luna&submit=false');
 		const callsBefore = (await state(request)).calls.length;
 		const bodies: Record<string, unknown>[] = [];
 		await page.route('**/api/chat/completions', async (route) => {
@@ -86,7 +86,7 @@ for (const accepted of [true, false]) {
 			.poll(() => facts(request, account))
 			.toEqual({
 				successes: 1,
-				usage: [{ model: 'gpt-5.6-luna', input: 17, output: 3, source: 'lead_magnet', charged: 0 }],
+				usage: [{ model: 'gpt-6-luna', input: 17, output: 3, source: 'lead_magnet', charged: 0 }],
 				ledger: []
 			});
 		expect((await state(request)).calls.length).toBe(callsBefore + 1);
@@ -157,7 +157,7 @@ test('lost note creation acknowledgement reuses its UUID and keeps the draft on 
 		.toEqual({
 			successes: 2,
 			usage: [0, 1].map(() => ({
-				model: 'gpt-5.6-luna',
+				model: 'gpt-6-luna',
 				input: 17,
 				output: 3,
 				source: 'lead_magnet',
@@ -179,7 +179,7 @@ for (const accepted of [true, false]) {
 	}) => {
 		await page.goto('/auth?form=1');
 		await signIn(page, account);
-		await page.goto('/?model=gpt-5.6-luna&temporary-chat=true&submit=false');
+		await page.goto('/?model=gpt-6-luna&temporary-chat=true&submit=false');
 		let posts = 0;
 		const before = (await state(request)).calls.length;
 		await page.route('**/api/chat/completions', async (route) => {
@@ -216,7 +216,7 @@ for (const accepted of [true, false]) {
 			.toEqual({
 				successes: accepted ? 1 : 0,
 				usage: accepted
-					? [{ model: 'gpt-5.6-luna', input: 17, output: 3, source: 'lead_magnet', charged: 0 }]
+					? [{ model: 'gpt-6-luna', input: 17, output: 3, source: 'lead_magnet', charged: 0 }]
 					: [],
 				ledger: []
 			});

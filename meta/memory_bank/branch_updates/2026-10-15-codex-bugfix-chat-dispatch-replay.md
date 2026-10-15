@@ -69,3 +69,9 @@
 
   - Done: 2026-10-15
   - Tests: Все обязательные CI на1efbbaadab212f73552e594316dd80a1a34c6841 прошли, CodeQL0PR alerts, actionable7 fixed без dismiss; SDD126 завершён2/2. Первый чистый образ проверен, repeat/browser/deploy открыты.
+
+- [ ] Первая задача: синхронизировать ID с действующим каталогом до выпуска.
+  Spec: meta/memory_bank/specs/work_items/2026-10-15__bugfix__guide-current-model.md
+  Owner: Codex
+  Started: 2026-10-15
+  Summary: Рабочий браузер воспроизвёл недоступность прежнего ID; одна константа руководства и существующий тестовый каталог обновляются без смены тарифа/политики.
