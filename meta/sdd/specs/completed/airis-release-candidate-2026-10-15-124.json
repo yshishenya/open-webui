@@ -2,7 +2,7 @@
 	"spec_id": "airis-release-candidate-2026-10-15-124",
 	"title": "AIRIS release candidate 2026-10-15-124",
 	"generated": "2026-10-15T10:09:24.069814Z",
-	"last_updated": "2026-10-15T13:05:30.895974Z",
+	"last_updated": "2026-10-15T21:13:44.247539Z",
 	"metadata": {
 		"template": "simple",
 		"complexity": "low",
@@ -11,19 +11,21 @@
 		"security_sensitive": false,
 		"default_category": "investigation",
 		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__ops__release-candidate.md",
-		"status": "active",
+		"status": "completed",
 		"activated_date": "2026-10-15T10:10:34.845028Z",
-		"progress_percentage": 50
+		"progress_percentage": 100,
+		"completed_date": "2026-10-15T21:13:44.246483Z",
+		"actual_hours": 10.695
 	},
 	"hierarchy": {
 		"spec-root": {
 			"type": "spec",
 			"title": "AIRIS release candidate 2026-10-15-124",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": null,
 			"children": ["phase-1", "phase-2"],
 			"total_tasks": 2,
-			"completed_tasks": 1,
+			"completed_tasks": 2,
 			"metadata": {}
 		},
 		"phase-1": {
@@ -43,12 +45,16 @@
 		"phase-2": {
 			"type": "phase",
 			"title": "Accept backend browsers and migration rehearsal",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "spec-root",
 			"children": ["task-2-1"],
 			"total_tasks": 1,
-			"completed_tasks": 0,
-			"metadata": {}
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-15T21:13:42.286119Z",
+				"journaled_at": "2026-10-15T21:13:42.296227Z"
+			}
 		},
 		"task-1-1": {
 			"type": "task",
@@ -75,7 +81,7 @@
 		"task-2-1": {
 			"type": "task",
 			"title": "Accept backend browsers and migration rehearsal",
-			"status": "in_progress",
+			"status": "completed",
 			"parent": "phase-2",
 			"children": [],
 			"dependencies": {
@@ -84,10 +90,14 @@
 				"depends": []
 			},
 			"total_tasks": 1,
-			"completed_tasks": 0,
+			"completed_tasks": 1,
 			"metadata": {
 				"started_at": "2026-10-15T10:53:08.502745Z",
-				"status_note": "Source2d65: frontend2603; verified backend1296 and migration parity reused; browser147/mandatory86 passed. Independent dev-p4 build/native checks passed; all4915 compiled files/Python/OS/backend/static/models match tested125. Rebuild parity accepted, P4 SIGILL cause unresolved. Exact-head CI/security unavailable; production unchanged; release remains open."
+				"status_note": "Accepted replacement127 source76031ee6dd360459f23a6562f1a58bc95173f105: frontend2604/backend1297 by exact file parity; browser147 with86mandatory,4explicit external skips; independent build/native/package/file parity; migration rehearsal and guarded production rollout passed. PR368 merged55dfd3f90a1acfb190254dd190351e385384412b, exact source CI/security passed. Live3 real free responses with exact13969/1205 quota and0kopeks; pilot0ready remains separate. Historical full Ruff474 retained as documented debt.",
+				"completed_at": "2026-10-15T21:13:42.285179Z",
+				"needs_journaling": false,
+				"actual_hours": 10.343,
+				"journaled_at": "2026-10-15T21:13:42.292411Z"
 			}
 		}
 	},
@@ -109,6 +119,24 @@
 			"content": "All child tasks in phase phase-1 have been completed.",
 			"metadata": {},
 			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-15T21:13:42.292385Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept backend browsers and migration rehearsal",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Accepted replacement127 source76031ee6dd360459f23a6562f1a58bc95173f105: frontend2604/backend1297 by exact file parity; browser147 with86mandatory,4explicit external skips; independent build/native/package/file parity; migration rehearsal and guarded production rollout passed. PR368 merged55dfd3f90a1acfb190254dd190351e385384412b, exact source CI/security passed. Live3 real free responses with exact13969/1205 quota and0kopeks; pilot0ready remains separate. Historical full Ruff474 retained as documented debt.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-15T21:13:42.296212Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept backend browsers and migration rehearsal",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
 		}
 	]
 }
