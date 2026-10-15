@@ -1358,21 +1358,9 @@ async def chat_completion_tools_handler(
     return body, {'sources': sources}
 
 
-async def chat_web_search_handler(
+async def _get_chat_web_search_queries(
     request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
-) -> dict[str, object]:
-    event_emitter = extra_params['__event_emitter__']
-    await event_emitter(
-        {
-            'type': 'status',
-            'data': {
-                'action': 'web_search',
-                'description': 'Searching the web',
-                'done': False,
-            },
-        }
-    )
-
+) -> list[str]:
     messages = form_data['messages']
     user_message = get_last_user_message(messages)
 
@@ -1417,16 +1405,41 @@ async def chat_web_search_handler(
         except Exception:
             queries = [response]
 
+        queries = SearchForm(queries=queries).queries
+
         if ENABLE_QUERIES_CACHE:
             request.state.cached_queries = queries
 
     except Exception as e:
-        log.exception(e)
+        log.warning(
+            'Web search query generation failed (%s); using user input',
+            type(e).__name__,
+        )
         queries = [user_message or '']
 
     # Check if generated queries are empty
     if len(queries) == 1 and queries[0].strip() == '':
         queries = [user_message or '']
+
+    return queries
+
+
+async def chat_web_search_handler(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> dict[str, object]:
+    event_emitter = extra_params['__event_emitter__']
+    await event_emitter(
+        {
+            'type': 'status',
+            'data': {
+                'action': 'web_search',
+                'description': 'Searching the web',
+                'done': False,
+            },
+        }
+    )
+
+    queries = await _get_chat_web_search_queries(request, form_data, extra_params, user)
 
     # Check if queries are not found
     if len(queries) == 0:
@@ -1871,9 +1884,9 @@ async def chat_completion_files_handler(
                 except Exception:
                     queries_response = {'queries': [queries_response]}
 
-                queries = queries_response.get('queries', [])
-            except Exception:
-                pass
+                queries = SearchForm(queries=queries_response.get('queries', [])).queries
+            except Exception as e:
+                log.debug('File search query generation failed (%s); using user input', type(e).__name__)
 
             await __event_emitter__(
                 {
