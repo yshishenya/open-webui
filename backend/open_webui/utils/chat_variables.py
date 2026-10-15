@@ -5,8 +5,9 @@ import re
 from typing import Any
 
 CHAT_VARIABLE_KEY_RE = re.compile(r'^[a-z][a-z0-9_]*$')
-CHAT_VARIABLE_ANY_RE = re.compile(r'{{\s*chat\.variables\.([^\s|}]+)(?:\s*\|\s*([^}]*))?\s*}}')
-USER_VARIABLE_ANY_RE = re.compile(r'{{\s*user\.variables\.([^\s|}]+)(?:\s*\|\s*([^}]*))?\s*}}')
+# Do not scan across another token opener or backtrack over an unfinished token.
+CHAT_VARIABLE_ANY_RE = re.compile(r'{{\s*+chat\.variables\.([^\s|{}]++)(?:\s*+\|\s*+((?:(?!{{)[^}])*+))?\s*+}}')
+USER_VARIABLE_ANY_RE = re.compile(r'{{\s*+user\.variables\.([^\s|{}]++)(?:\s*+\|\s*+((?:(?!{{)[^}])*+))?\s*+}}')
 MAX_VARIABLE_VALUE_LENGTH = 20_000
 MAX_VARIABLES_JSON_LENGTH = 100_000
 

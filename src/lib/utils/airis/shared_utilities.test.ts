@@ -6,12 +6,23 @@ import {
 	convertOpenApiToToolPayload,
 	getGravatarURL,
 	getImportOrigin,
-	getPromptVariables
+	getPromptVariables,
+	isYoutubeUrl
 } from '$lib/utils';
 
 vi.hoisted(() => {
 	vi.stubGlobal('APP_VERSION', 'test');
 	vi.stubGlobal('APP_BUILD_HASH', 'test');
+});
+
+it('recognizes YouTube hosts without accepting a lookalike domain', () => {
+	for (const host of ['www.youtube.com', 'youtu.be', 'youtube.com', 'm.youtube.com']) {
+		expect(isYoutubeUrl(`https://${host}/watch?v=example`)).toBe(true);
+		expect(isYoutubeUrl(`https://${host}.example.org/watch?v=example`)).toBe(false);
+		expect(isYoutubeUrl(`https://${host}@example.org/watch?v=example`)).toBe(false);
+	}
+	expect(isYoutubeUrl('http://youtube.com/watch?v=example')).toBe(false);
+	expect(isYoutubeUrl('not a URL')).toBe(false);
 });
 
 it('uses the documented hash export and preserves email normalization', () => {

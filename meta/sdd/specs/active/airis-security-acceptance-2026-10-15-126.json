@@ -1,0 +1,122 @@
+{
+  "spec_id": "airis-security-acceptance-2026-10-15-126",
+  "title": "AIRIS CodeQL acceptance 2026-10-15-126",
+  "generated": "2026-10-15T18:56:32.275676Z",
+  "last_updated": "2026-10-15T19:15:26.823719Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__bugfix__security-acceptance.md",
+    "status": "active",
+    "activated_date": "2026-10-15T18:57:18.619318Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS CodeQL acceptance 2026-10-15-126",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and minimally fix actionable findings",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T19:15:26.571773Z",
+        "journaled_at": "2026-10-15T19:15:26.574465Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify CI and document intended privileged features",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce and minimally fix actionable findings",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "metadata": {
+        "started_at": "2026-10-15T18:57:18.865597Z",
+        "file_path": "backend/open_webui/utils/chat_variables.py",
+        "completed_at": "2026-10-15T19:15:26.571616Z",
+        "needs_journaling": false,
+        "status_note": "Reproduced regex timeout before fix; frontend 2604 and backend 1297 passed after fix; no new focused Ruff diagnostics.",
+        "actual_hours": 0.302,
+        "journaled_at": "2026-10-15T19:15:26.573216Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify CI and document intended privileged features",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "metadata": {
+        "task_category": "investigation",
+        "started_at": "2026-10-15T19:15:26.823522Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-15T19:15:26.573212Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce and minimally fix actionable findings",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Reproduced regex timeout before fix; frontend 2604 and backend 1297 passed after fix; no new focused Ruff diagnostics.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-15T19:15:26.574460Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and minimally fix actionable findings",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

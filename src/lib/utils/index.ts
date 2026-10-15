@@ -1014,13 +1014,16 @@ export const isValidHttpUrl = (string: string) => {
 	return url.protocol === 'http:' || url.protocol === 'https:';
 };
 
-export const isYoutubeUrl = (url: string) => {
-	return (
-		url.startsWith('https://www.youtube.com') ||
-		url.startsWith('https://youtu.be') ||
-		url.startsWith('https://youtube.com') ||
-		url.startsWith('https://m.youtube.com')
-	);
+export const isYoutubeUrl = (url: string): boolean => {
+	try {
+		const parsed = new URL(url);
+		return (
+			parsed.protocol === 'https:' &&
+			['www.youtube.com', 'youtu.be', 'youtube.com', 'm.youtube.com'].includes(parsed.hostname)
+		);
+	} catch {
+		return false;
+	}
 };
 
 export const removeEmojis = (str: string) => {

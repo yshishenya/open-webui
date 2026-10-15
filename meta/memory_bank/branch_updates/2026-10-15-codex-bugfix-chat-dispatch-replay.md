@@ -58,3 +58,11 @@
   - Started: 2026-10-15
   - Summary: dev-p4 собрал тот же source2d65 без изменений; штатные native операции прошли, все4915 compiled файлов/Python/OS/backend/static/models совпали с проверенным125. Повторяемость принята; причина P4 SIGILL неизвестна.
   - Tests: frontend2603, backend1296 по точному паритету, browser147/mandatory86; CI/security на точном SHA и выпуск остаются открыты. Production healthy/restarts0, чужие21файл и соседи сохранены.
+
+- [ ] **[BUG]** Приёмка замечаний CodeQL
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-15__bugfix__security-acceptance.md`
+  - Owner: Codex
+  - Started: 2026-10-15
+  - Summary: Actions включены через GitHub; штатный CI запущен на8ad. CodeQL выявил23 замечания, проверяются конкретные пути и минимальные исправления. Выпуск остаётся закрыт.
+
+  - Update: Из23 CodeQL замечаний7 реальных исправлены в общих функциях;16 проверенных ложных срабатываний классифицированы индивидуально без отключения правил. Compose frontend2604/backend1297 прошли, новых Ruff замечаний0; новый точный SHA/CodeQL и чистый образ126 остаются открыты.
