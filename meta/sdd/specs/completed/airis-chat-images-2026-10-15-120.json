@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-chat-images-2026-10-15-120",
+  "title": "AIRIS chat images",
+  "generated": "2026-10-15T08:54:36.813488Z",
+  "last_updated": "2026-10-15T09:05:09.118629Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__refactor__chat-images.md",
+    "status": "completed",
+    "activated_date": "2026-10-15T08:56:46.290147Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-15T09:05:09.118215Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS chat images",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Preserve image generation, edits, billing and prompt behavior",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T09:02:42.865582Z",
+        "journaled_at": "2026-10-15T09:02:42.867473Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify backend, quality, preservation and source delivery",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T09:05:08.631633Z",
+        "journaled_at": "2026-10-15T09:05:08.633435Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve image generation, edits, billing and prompt behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-15T09:02:42.865412Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-15T09:02:42.866384Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify backend, quality, preservation and source delivery",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-15T09:05:08.631482Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-15T09:05:08.632371Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-15T09:02:42.866378Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve image generation, edits, billing and prompt behavior",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-15T09:02:42.867468Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Preserve image generation, edits, billing and prompt behavior",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-15T09:05:08.632366Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify backend, quality, preservation and source delivery",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-15T09:05:08.633431Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify backend, quality, preservation and source delivery",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

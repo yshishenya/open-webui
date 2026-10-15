@@ -1640,6 +1640,67 @@ async def add_file_context(messages: list, chat_id: str, user) -> list:
     return messages
 
 
+async def _get_chat_image_prompt(
+    request: Request,
+    form_data: dict[str, object],
+    metadata: dict[str, object],
+    user: UserModel,
+    user_message: object,
+) -> object:
+    prompt = user_message
+    if await Config.get('image_generation.prompt.enable'):
+        try:
+            res = await generate_image_prompt(
+                request,
+                {
+                    'model': form_data['model'],
+                    'messages': form_data['messages'],
+                    'chat_id': metadata.get('chat_id'),
+                },
+                user,
+            )
+
+            # Handle JSONResponse from error paths
+            if isinstance(res, JSONResponse):
+                try:
+                    error_body = JSONCodec.loads(res.body)
+                    detail = error_body.get('detail', 'Image prompt generation failed')
+                except Exception:
+                    detail = 'Image prompt generation failed'
+                raise Exception(detail)
+
+            response = res['choices'][0]['message']['content']
+
+            try:
+                bracket_start = response.rfind('{')
+                bracket_end = response.rfind('}') + 1
+
+                if bracket_start == -1 or bracket_end == -1:
+                    raise Exception('No JSON object found in the response')
+
+                response = response[bracket_start:bracket_end]
+                response = JSONCodec.loads(response)
+                prompt = response.get('prompt', [])
+            except Exception:
+                prompt = user_message
+
+        except Exception as e:
+            log.exception(e)
+            prompt = user_message
+
+    return prompt
+
+
+def _get_chat_image_error_message(e: Exception) -> object:
+    error_message = ''
+    if isinstance(e, HTTPException):
+        if e.detail and isinstance(e.detail, dict):
+            error_message = e.detail.get('message', str(e.detail))
+        else:
+            error_message = str(e.detail)
+    return error_message
+
+
 async def chat_image_generation_handler(
     request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
 ) -> dict[str, object]:
@@ -1672,12 +1733,7 @@ async def chat_image_generation_handler(
 
     # Limit to first 2 sets of images
     # We may want to change this in the future to allow more images
-    input_images = []
-    for idx, images in enumerate(message_images):
-        if idx >= 2:
-            break
-        for image in images:
-            input_images.append(image)
+    input_images = [image for images in message_images[:2] for image in images]
 
     system_message_content = ''
 
@@ -1722,12 +1778,7 @@ async def chat_image_generation_handler(
                 raise
             log.debug(e)
 
-            error_message = ''
-            if isinstance(e, HTTPException):
-                if e.detail and isinstance(e.detail, dict):
-                    error_message = e.detail.get('message', str(e.detail))
-                else:
-                    error_message = str(e.detail)
+            error_message = _get_chat_image_error_message(e)
 
             await __event_emitter__(
                 {
@@ -1743,45 +1794,7 @@ async def chat_image_generation_handler(
 
     else:
         # Create image(s)
-        if await Config.get('image_generation.prompt.enable'):
-            try:
-                res = await generate_image_prompt(
-                    request,
-                    {
-                        'model': form_data['model'],
-                        'messages': form_data['messages'],
-                        'chat_id': metadata.get('chat_id'),
-                    },
-                    user,
-                )
-
-                # Handle JSONResponse from error paths
-                if isinstance(res, JSONResponse):
-                    try:
-                        error_body = JSONCodec.loads(res.body)
-                        detail = error_body.get('detail', 'Image prompt generation failed')
-                    except Exception:
-                        detail = 'Image prompt generation failed'
-                    raise Exception(detail)
-
-                response = res['choices'][0]['message']['content']
-
-                try:
-                    bracket_start = response.rfind('{')
-                    bracket_end = response.rfind('}') + 1
-
-                    if bracket_start == -1 or bracket_end == -1:
-                        raise Exception('No JSON object found in the response')
-
-                    response = response[bracket_start:bracket_end]
-                    response = JSONCodec.loads(response)
-                    prompt = response.get('prompt', [])
-                except Exception:
-                    prompt = user_message
-
-            except Exception as e:
-                log.exception(e)
-                prompt = user_message
+        prompt = await _get_chat_image_prompt(request, form_data, metadata, user, user_message)
 
         try:
             images = await image_generations(
@@ -1822,12 +1835,7 @@ async def chat_image_generation_handler(
                 raise
             log.debug(e)
 
-            error_message = ''
-            if isinstance(e, HTTPException):
-                if e.detail and isinstance(e.detail, dict):
-                    error_message = e.detail.get('message', str(e.detail))
-                else:
-                    error_message = str(e.detail)
+            error_message = _get_chat_image_error_message(e)
 
             await __event_emitter__(
                 {
