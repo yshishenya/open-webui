@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { config, models, settings } from '$lib/stores';
+	import { config, models, settings, type Model } from '$lib/stores';
+	import type { ValveValues, ValveSpec } from '$lib/utils/airis/userValves';
 	import { getContext, onMount, tick } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
@@ -25,20 +26,30 @@
 
 	const i18n: Writable<i18nType> = getContext('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let downloading = false;
 	let uploading = false;
 
-	let pipelineFiles: any = null;
+	let pipelineFiles: FileList | null = null;
 
-	let PIPELINES_LIST: any[] | null = null;
+	let PIPELINES_LIST: { idx: number; url: string }[] | null = null;
 	let selectedPipelinesUrlIdx = '';
 
-	let pipelines: any[] | null = null;
+	let pipelines: (Pick<Model, 'id' | 'name'> & { type?: string; valves?: unknown })[] | null = null;
 
-	let valves: any = null;
-	let valves_spec: any = null;
+	type PipelineValveSpec = {
+		properties: Record<
+			string,
+			NonNullable<ValveSpec['properties']>[string] & {
+				title: string;
+				description?: string;
+				enum?: unknown[];
+			}
+		>;
+	};
+	let valves: ValveValues | null = null;
+	let valves_spec: PipelineValveSpec | null = null;
 	let selectedPipelineIdx = 0;
 
 	let pipelineDownloadUrl = '';
@@ -48,7 +59,7 @@
 		'shrink-0 text-xs text-gray-500 transition-colors hover:text-gray-900 disabled:opacity-50 dark:text-gray-500 dark:hover:text-white';
 	const mutedMessageClass = 'text-xs text-gray-400 dark:text-gray-600';
 
-	const updateHandler = async () => {
+	const updateHandler = async (): Promise<void> => {
 		if (!pipelines) {
 			toast.error($i18n.t('No valves to update'));
 			return;
@@ -57,16 +68,18 @@
 		const pipeline = pipelines[selectedPipelineIdx];
 
 		if (pipeline && (pipeline?.valves ?? false)) {
-			for (const property in valves_spec.properties) {
-				if (valves_spec.properties[property]?.type === 'array') {
-					valves[property] = (valves[property] ?? '').split(',').map((v: string) => v.trim());
+			for (const property in valves_spec!.properties) {
+				if (valves_spec!.properties[property]?.type === 'array') {
+					valves![property] = ((valves![property] ?? '') as string)
+						.split(',')
+						.map((v: string) => v.trim());
 				}
 			}
 
 			const res = await updatePipelineValves(
 				localStorage.token,
 				pipeline.id,
-				valves,
+				valves!,
 				selectedPipelinesUrlIdx
 			).catch((error) => {
 				toast.error(`${error}`);
@@ -90,7 +103,7 @@
 		}
 	};
 
-	const getValves = async (idx: number) => {
+	const getValves = async (idx: number): Promise<void> => {
 		if (!pipelines?.[idx]) {
 			return;
 		}
@@ -109,9 +122,9 @@
 			selectedPipelinesUrlIdx
 		);
 
-		for (const property in valves_spec.properties) {
-			if (valves_spec.properties[property]?.type === 'array') {
-				valves[property] = valves[property].join(',');
+		for (const property in valves_spec!.properties) {
+			if (valves_spec!.properties[property]?.type === 'array') {
+				valves![property] = (valves![property] as unknown[]).join(',');
 			}
 		}
 	};
@@ -399,39 +412,47 @@
 													class={actionButtonClass}
 													type="button"
 													on:click={() => {
-														valves[property] = (valves[property] ?? null) === null ? '' : null;
+														valves![property] = (valves![property] ?? null) === null ? '' : null;
 													}}
 												>
-													{(valves[property] ?? null) === null
+													{(valves![property] ?? null) === null
 														? $i18n.t('None')
 														: $i18n.t('Custom')}
 												</button>
 											</AdminSettingRow>
 
-											{#if (valves[property] ?? null) !== null}
+											{#if (valves![property] ?? null) !== null}
 												<div class="mt-1">
 													{#if valves_spec.properties[property]?.enum ?? null}
-														<SettingsSelect bind:value={valves[property]} className="w-full">
+														<SettingsSelect
+															bind:value={
+																valves![property] as string | number | boolean | null | undefined
+															}
+															className="w-full"
+														>
 															{#each valves_spec.properties[property].enum as option}
-																<option value={option} selected={option === valves[property]}>
+																<option value={option} selected={option === valves![property]}>
 																	{option}
 																</option>
 															{/each}
 														</SettingsSelect>
 													{:else if (valves_spec.properties[property]?.type ?? null) === 'boolean'}
 														<AdminSettingRow
-															label={valves[property] ? $i18n.t('Enabled') : $i18n.t('Disabled')}
+															label={valves![property] ? $i18n.t('Enabled') : $i18n.t('Disabled')}
 															labelClassName="text-gray-400 dark:text-gray-600"
 															let:labelId
 														>
-															<Switch bind:state={valves[property]} ariaLabelledbyId={labelId} />
+															<Switch
+																bind:state={valves![property] as boolean}
+																ariaLabelledbyId={labelId}
+															/>
 														</AdminSettingRow>
 													{:else}
 														<input
 															class={inputClass}
 															type="text"
 															placeholder={valves_spec.properties[property].title}
-															bind:value={valves[property]}
+															bind:value={valves![property] as string}
 															autocomplete="off"
 															required
 														/>

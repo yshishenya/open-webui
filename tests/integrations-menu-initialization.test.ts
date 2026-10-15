@@ -1,11 +1,18 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getTools as fetchTools } from '$lib/apis/tools';
+import { getSkills as fetchSkills } from '$lib/apis/skills';
+import { deleteOAuthSession } from '$lib/apis/auths';
+vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
 import { transpileModule, ScriptTarget } from 'typescript';
 
 type Item = {
 	id: string;
 	name: string;
-	meta: { description: string | null };
+	meta: { description?: string | null; tags?: string[] | null };
 	description?: string | null;
 	is_active?: boolean;
 	authenticated?: boolean;
@@ -24,8 +31,8 @@ type State = {
 type FetchList = () => Promise<Item[] | null>;
 type InitFactory = (
 	state: State,
-	getTools: FetchList,
-	getSkills: FetchList,
+	getTools: () => Promise<Item[]>,
+	getSkills: () => Promise<Item[]>,
 	toast: { error: (message: string) => void }
 ) => () => Promise<void>;
 
@@ -65,7 +72,14 @@ const state = (): State => ({
 	tools: null,
 	skills: null
 });
-const fetched: FetchList = async () => [];
+const fetched = async (): Promise<Item[]> => [];
+const toolsResponse = (
+	result: FetchList,
+	kind: 'tools' | 'skills' = 'tools'
+): (() => Promise<Item[]>) => {
+	vi.stubGlobal('fetch', async () => new Response(JSON.stringify(await result())));
+	return () => (kind === 'tools' ? fetchTools('fixture') : fetchSkills('fixture'));
+};
 
 describe('integration menu list recovery', () => {
 	it.each(['reject', 'null'] as const)(
@@ -77,7 +91,9 @@ describe('integration menu list recovery', () => {
 				if (mode === 'reject') throw new Error('temporarily unavailable');
 				return null;
 			};
-			const init = createInit(value, failed, fetched, { error: (message) => errors.push(message) });
+			const init = createInit(value, toolsResponse(failed), fetched, {
+				error: (message) => errors.push(message)
+			});
 			await init();
 			expect(value.tools).toMatchObject({ 'direct_server:0': { name: 'Direct', enabled: true } });
 			expect(value.selectedTools).toEqual(['saved', 'direct_server:0']);
@@ -92,7 +108,12 @@ describe('integration menu list recovery', () => {
 		const value = state();
 		value.toolList = [];
 		value.skillList = null;
-		const init = createInit(value, fetched, async () => null, { error: () => {} });
+		const init = createInit(
+			value,
+			fetched,
+			toolsResponse(async () => null, 'skills'),
+			{ error: () => {} }
+		);
 		await init();
 		expect(value.skills).toEqual({});
 		expect(value.selectedSkills).toEqual(['saved-skill']);
@@ -107,8 +128,8 @@ describe('integration menu list recovery', () => {
 		value.skillList = [{ ...item('removed-skill'), is_active: true }];
 		const init = createInit(
 			value,
-			async () => null,
-			async () => null,
+			toolsResponse(async () => null),
+			toolsResponse(async () => null, 'skills'),
 			{ error: () => {} }
 		);
 		await init();
@@ -151,3 +172,85 @@ describe('integration menu list recovery', () => {
 		expect(value.selectedSkills).toEqual(['active']);
 	});
 });
+
+// Run the actual disconnect handler and native API adapter, controlling only fetch/store boundaries.
+const disconnectStart = source.lastIndexOf(
+	'on:click={async (e) => {',
+	source.indexOf('await deleteOAuthSession')
+);
+const disconnectCode = source.slice(
+	disconnectStart + 'on:click={'.length,
+	source.indexOf('}}', source.indexOf('await deleteOAuthSession')) + 1
+);
+type DisconnectState = {
+	selected: string[];
+	items: Item[];
+	success: string[];
+	errors: string[];
+	refreshes: number;
+};
+const disconnectFactory = new Function(
+	'state',
+	'deleteOAuthSession',
+	'getTools',
+	`
+ const localStorage = { token: 'fixture' }, $i18n = { t: value => value }, toolId = 'server:mcp:one';
+ let selectedToolIds = state.selected;
+ const _tools = { update: fn => state.items = fn(state.items), set: value => state.items = value };
+ const toast = { success: value => state.success.push(value), error: value => state.errors.push(value) };
+ const init = async () => { state.refreshes++; };
+ const callback = ${disconnectCode};
+ return async () => { await callback({ stopPropagation() {}, preventDefault() {} }); state.selected = selectedToolIds; };
+`
+) as (
+	state: DisconnectState,
+	remove: typeof deleteOAuthSession,
+	list: () => Promise<Item[]>
+) => () => Promise<void>;
+const disconnectState = (): DisconnectState => ({
+	selected: ['server:mcp:one', 'sibling'],
+	items: [{ ...item('server:mcp:one'), authenticated: true }],
+	success: [],
+	errors: [],
+	refreshes: 0
+});
+it.each(['network', 'json', 'null', 'false'] as const)(
+	'does not report a disconnect after %s refusal',
+	async (mode) => {
+		const state = disconnectState();
+		const fetch = vi.fn(async () => {
+			if (mode === 'network') throw new TypeError('network unavailable');
+			return new Response(mode === 'json' ? '{' : JSON.stringify(mode === 'null' ? null : false));
+		});
+		vi.stubGlobal('fetch', fetch);
+		await disconnectFactory(state, deleteOAuthSession, fetched)();
+		expect(state.success).toEqual([]);
+		expect(state.errors).toEqual(['Failed to disconnect']);
+		expect(state.selected).toEqual(['server:mcp:one', 'sibling']);
+		expect(state.items[0].authenticated).toBe(true);
+		expect(state.refreshes).toBe(0);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	}
+);
+it.each([false, true])(
+	'preserves a confirmed disconnect when refresh refuses=%s',
+	async (refused) => {
+		const state = disconnectState();
+		const fetch = vi.fn(async () => new Response('true'));
+		vi.stubGlobal('fetch', fetch);
+		await disconnectFactory(state, deleteOAuthSession, async () => {
+			if (refused) throw new Error('catalog refused');
+			return [{ ...item('server:mcp:one'), authenticated: false }];
+		})();
+		expect(state.success).toEqual(['OAuth session disconnected']);
+		expect(state.errors).toHaveLength(refused ? 1 : 0);
+		expect(state.selected).toEqual(['sibling']);
+		expect(state.items[0].authenticated).toBe(false);
+		expect(state.refreshes).toBe(1);
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(fetch.mock.calls[0]).toMatchObject([
+			'/api/v1/auths/oauth/sessions/mcp%3Aone',
+			{ method: 'DELETE', headers: { Authorization: 'Bearer fixture' } }
+		]);
+	}
+);

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { afterUpdate, getContext } from 'svelte';
-	const i18n = getContext('i18n');
+	import { afterUpdate } from 'svelte';
+	import { parseKnowledgeDropId } from '$lib/utils/airis/file_drop';
 
 	import ChevronRight from '$lib/components/icons/ChevronRight.svelte';
 
@@ -36,18 +36,14 @@
 		dragOverCrumb = null;
 		const fileRaw = e.dataTransfer?.getData('application/x-kb-file-move');
 		if (fileRaw) {
-			try {
-				const data = JSON.parse(fileRaw);
-				if (data.fileId) onMoveFile(data.fileId, targetDirId);
-			} catch {}
+			const fileId = parseKnowledgeDropId(fileRaw, 'fileId');
+			if (fileId) onMoveFile(fileId, targetDirId);
 			return;
 		}
 		const dirRaw = e.dataTransfer?.getData('application/x-kb-dir-move');
 		if (dirRaw) {
-			try {
-				const data = JSON.parse(dirRaw);
-				if (data.dirId) onMoveDir(data.dirId, targetDirId);
-			} catch {}
+			const dirId = parseKnowledgeDropId(dirRaw, 'dirId');
+			if (dirId) onMoveDir(dirId, targetDirId);
 		}
 	};
 </script>

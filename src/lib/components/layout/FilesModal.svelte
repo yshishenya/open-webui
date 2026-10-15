@@ -2,6 +2,8 @@
 	import { toast } from 'svelte-sonner';
 	import { getContext, onMount, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { KnowledgeFile, KnowledgeFileDisplay } from '$lib/utils/airis/knowledge-types';
 	import dayjs from 'dayjs';
 
 	import { searchFiles, deleteFileById, getFileCount } from '$lib/apis/files';
@@ -16,14 +18,14 @@
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import FileItemModal from '$lib/components/common/FileItemModal.svelte';
 
-	const i18n: Writable<any> = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	export let show = false;
 
-	let files: any[] | null = null;
+	let files: KnowledgeFile[] | null = null;
 	let fileCount: number | null = null;
 	let query = '';
-	let orderBy = 'created_at';
+	let orderBy: 'filename' | 'created_at' = 'created_at';
 	let direction = 'desc';
 
 	let page = 0;
@@ -34,7 +36,7 @@
 	let selectedFileId: string | null = null;
 	let showDeleteConfirmDialog = false;
 
-	let selectedFile: any = null;
+	let selectedFile: KnowledgeFileDisplay | null = null;
 	let showFileItemModal = false;
 
 	let shiftKey = false;
@@ -49,7 +51,7 @@
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 	};
 
-	const setSortKey = (key: string) => {
+	const setSortKey = (key: 'filename' | 'created_at'): void => {
 		if (orderBy === key) {
 			direction = direction === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -59,7 +61,7 @@
 		searchHandler();
 	};
 
-	const searchHandler = async () => {
+	const searchHandler = async (): Promise<void> => {
 		if (!show) return;
 
 		page = 0;
@@ -75,14 +77,14 @@
 			if (!query) {
 				fileCount = await getFileCount(localStorage.token);
 			}
-		} catch (error) {
+		} catch {
 			// Handle 404 or other errors - show empty state instead of spinner
 			files = [];
 			allFilesLoaded = true;
 		}
 	};
 
-	const loadMoreFiles = async () => {
+	const loadMoreFiles = async (): Promise<void> => {
 		if (filesLoading || allFilesLoaded) return;
 
 		filesLoading = true;
@@ -97,7 +99,7 @@
 			if (newFiles.length > 0) {
 				files = sortFiles([...(files || []), ...newFiles]);
 			}
-		} catch (error) {
+		} catch {
 			// Handle errors silently for load more
 			allFilesLoaded = true;
 		}
@@ -105,7 +107,7 @@
 		filesLoading = false;
 	};
 
-	const sortFiles = (fileList: any[]): any[] => {
+	const sortFiles = (fileList: KnowledgeFile[]): KnowledgeFile[] => {
 		return fileList.sort((a, b) => {
 			let aVal = a[orderBy] ?? 0;
 			let bVal = b[orderBy] ?? 0;
@@ -123,7 +125,7 @@
 		});
 	};
 
-	const deleteHandler = async (fileId: string) => {
+	const deleteHandler = async (fileId: string): Promise<void> => {
 		try {
 			await deleteFileById(localStorage.token, fileId);
 			toast.success($i18n.t('File deleted successfully.'));
@@ -135,7 +137,7 @@
 		}
 	};
 
-	const openFileViewer = (file: any) => {
+	const openFileViewer = (file: KnowledgeFile): void => {
 		selectedFile = {
 			id: file.id,
 			name: file.filename,
@@ -340,42 +342,45 @@
 							{#each files as file (file.id)}
 								<div
 									class="w-full flex justify-between items-center rounded-lg text-sm py-2 px-3 hover:bg-gray-50/70 dark:hover:bg-gray-850/50 cursor-pointer"
-									on:click={() => openFileViewer(file)}
 								>
-									<div class="basis-3/5 min-w-0">
-										<div class="text-ellipsis line-clamp-1">{file.filename}</div>
-										<div class="text-xs text-gray-500">
-											{formatFileSize(file.meta?.size ?? 0)}
-										</div>
-									</div>
-
-									<div class="basis-2/5 flex items-center justify-end">
+									<button
+										type="button"
+										class="min-w-0 flex flex-1 items-center justify-between text-left"
+										on:click={() => openFileViewer(file)}
+									>
+										<span class="basis-3/5 min-w-0">
+											<span class="block text-ellipsis line-clamp-1">{file.filename}</span>
+											<span class="block text-xs text-gray-500"
+												>{formatFileSize(file.meta?.size ?? 0)}</span
+											>
+										</span>
 										<Tooltip
+											as="span"
 											content={dayjs(file.created_at * 1000).format('MMM D, YYYY h:mm A')}
 											className="hidden sm:flex text-gray-500 dark:text-gray-400 text-xs"
+											>{dayjs(file.created_at * 1000).format('MMM D, YYYY')}</Tooltip
 										>
-											{dayjs(file.created_at * 1000).format('MMM D, YYYY')}
+									</button>
+									<div class="flex justify-end pl-2.5 text-gray-600 dark:text-gray-300">
+										<Tooltip content={$i18n.t('Delete File')}>
+											<button
+												type="button"
+												aria-label={$i18n.t('Delete File')}
+												class="self-center w-fit px-1 text-sm rounded-xl {shiftKey
+													? 'text-red-500'
+													: ''}"
+												on:click|stopPropagation={() => {
+													if (shiftKey) {
+														deleteHandler(file.id);
+													} else {
+														selectedFileId = file.id;
+														showDeleteConfirmDialog = true;
+													}
+												}}
+											>
+												<GarbageBin className="size-4" strokeWidth="1.5" />
+											</button>
 										</Tooltip>
-
-										<div class="flex justify-end pl-2.5 text-gray-600 dark:text-gray-300">
-											<Tooltip content={shiftKey ? $i18n.t('Delete File') : $i18n.t('Delete File')}>
-												<button
-													class="self-center w-fit px-1 text-sm rounded-xl {shiftKey
-														? 'text-red-500'
-														: ''}"
-													on:click|stopPropagation={() => {
-														if (shiftKey) {
-															deleteHandler(file.id);
-														} else {
-															selectedFileId = file.id;
-															showDeleteConfirmDialog = true;
-														}
-													}}
-												>
-													<GarbageBin class="size-4" strokeWidth="1.5" />
-												</button>
-											</Tooltip>
-										</div>
 									</div>
 								</div>
 							{/each}

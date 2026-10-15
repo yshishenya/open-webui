@@ -1,0 +1,198 @@
+{
+  "spec_id": "airis-admin-users-2026-10-10-039",
+  "title": "airis-admin-users",
+  "generated": "2026-10-10T17:43:34.534595Z",
+  "last_updated": "2026-10-10T17:51:35.794580Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__admin-users.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T17:43:36.993465Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T17:51:35.794288Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-admin-users",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace all four getUsers callers and reproduce failed-delete page change",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T17:47:35.352421Z",
+        "journaled_at": "2026-10-10T17:47:35.354242Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Minimal user-list cancellation and saved-user/banner contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T17:47:35.567213Z",
+        "journaled_at": "2026-10-10T17:47:35.569233Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Full frontend and preservation checks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T17:51:35.369960Z",
+        "journaled_at": "2026-10-10T17:51:35.371990Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace all four getUsers callers and reproduce failed-delete page change",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T17:47:35.352263Z",
+        "needs_journaling": false,
+        "status_note": "All4getUsers callers/server contracts traced; canonical14handler/API tests baseline2passed12failed; confirmed deletion-page and stale/read failures",
+        "journaled_at": "2026-10-10T17:47:35.353229Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Minimal user-list cancellation and saved-user/banner contracts",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T17:47:35.567066Z",
+        "needs_journaling": false,
+        "status_note": "Own17/17 (14handlers/API+3DOM), targeted44/44 incl groups/Navbar. requestJSON/GroupMember/sanitizedHtml reused, no DELETE retry; EditUserModal only2type declarations with identical emitted script JS",
+        "journaled_at": "2026-10-10T17:47:35.568078Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Full frontend and preservation checks",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T17:51:35.369802Z",
+        "needs_journaling": false,
+        "status_note": "Own17/17,targeted44/44,full2141/2141; actual232CI linttargets0/0. Types618to593/68,lint545to544,new0. Source6886frozen; backend1064reused565hashes. Monetary callbacks/template unchanged. Production/12neighbors/21files/262volumes preserved; global release pending.",
+        "journaled_at": "2026-10-10T17:51:35.370765Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T17:47:35.353224Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace all four getUsers callers and reproduce failed-delete page change",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All4getUsers callers/server contracts traced; canonical14handler/API tests baseline2passed12failed; confirmed deletion-page and stale/read failures",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T17:47:35.354238Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace all four getUsers callers and reproduce failed-delete page change",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T17:47:35.568072Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Minimal user-list cancellation and saved-user/banner contracts",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Own17/17 (14handlers/API+3DOM), targeted44/44 incl groups/Navbar. requestJSON/GroupMember/sanitizedHtml reused, no DELETE retry; EditUserModal only2type declarations with identical emitted script JS",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T17:47:35.569229Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Minimal user-list cancellation and saved-user/banner contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T17:51:35.370760Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Full frontend and preservation checks",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Own17/17,targeted44/44,full2141/2141; actual232CI linttargets0/0. Types618to593/68,lint545to544,new0. Source6886frozen; backend1064reused565hashes. Monetary callbacks/template unchanged. Production/12neighbors/21files/262volumes preserved; global release pending.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T17:51:35.371985Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Full frontend and preservation checks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

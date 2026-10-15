@@ -5,6 +5,7 @@
 <script lang="ts">
 	import { Pane, PaneResizer, type PaneAPI } from 'paneforge';
 	import type { ModelParams } from '$lib/apis';
+	import type { ChatAttachment, ChatHistory } from '$lib/utils/airis/chat_history';
 
 	import { onMount, tick, getContext } from 'svelte';
 	import {
@@ -31,12 +32,11 @@
 
 	const i18n = getContext('i18n');
 
-	export let history;
-	export let models = [];
+	export let history: ChatHistory;
 
 	export let chatId: string | null = null;
 
-	export let chatFiles = [];
+	export let chatFiles: ChatAttachment[] = [];
 	export let params: ModelParams = {};
 
 	export let eventTarget: EventTarget;
@@ -47,8 +47,8 @@
 		scroll?: boolean,
 		save?: boolean
 	) => Promise<void>;
-	export let files;
-	export let modelId;
+	export let files: ChatAttachment[];
+	export let modelId: string | null;
 
 	export let codeInterpreterEnabled = false;
 
@@ -158,10 +158,10 @@
 		paneReady = true;
 	};
 
-	const onMouseDown = () => {
+	const onMouseDown = (): void => {
 		dragged = true;
 	};
-	const onMouseUp = () => {
+	const onMouseUp = (): void => {
 		dragged = false;
 	};
 
@@ -174,7 +174,7 @@
 		let isDestroyed = false;
 
 		// Wait for Svelte to render the Pane after largeScreen changed
-		const init = async () => {
+		const init = async (): Promise<void> => {
 			await tick();
 
 			if (isDestroyed) return;
@@ -228,7 +228,7 @@
 		};
 	});
 
-	const closeHandler = () => {
+	const closeHandler = (): void => {
 		if (!largeScreen) {
 			showControls.set(false);
 		}
@@ -268,7 +268,7 @@
 				{:else if $showEmbeds}
 					<Embeds />
 				{:else if $showArtifacts}
-					<Artifacts {history} />
+					<Artifacts />
 				{:else}
 					<!-- Controls + Files tabs -->
 					<div class="flex flex-col h-full min-h-0">
@@ -347,7 +347,7 @@
 							{:else if activeTab === 'files' && codeInterpreterEnabled}
 								<PyodideFileNav />
 							{:else}
-								<Controls embed={true} {models} bind:chatFiles bind:params />
+								<Controls embed={true} bind:chatFiles bind:params />
 							{/if}
 						</div>
 					</div>
@@ -416,7 +416,7 @@
 					{:else if $showEmbeds}
 						<Embeds overlay={dragged} />
 					{:else if $showArtifacts}
-						<Artifacts {history} overlay={dragged} />
+						<Artifacts overlay={dragged} />
 					{:else}
 						<!-- Controls + Files tabs -->
 						<div class="flex flex-col h-full min-h-0">
@@ -500,7 +500,7 @@
 								{:else if activeTab === 'files' && codeInterpreterEnabled}
 									<PyodideFileNav overlay={dragged} />
 								{:else}
-									<Controls embed={true} {models} bind:chatFiles bind:params />
+									<Controls embed={true} bind:chatFiles bind:params />
 								{/if}
 							</div>
 						</div>

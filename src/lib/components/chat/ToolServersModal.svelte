@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { ToolListItem } from '$lib/utils/airis/frontend-contracts';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getContext } from 'svelte';
 	import { toolServers, tools } from '$lib/stores';
 
@@ -7,15 +10,17 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 
 	export let show = false;
-	export let selectedToolIds = [];
+	export let selectedToolIds: string[] = [];
 
-	let selectedTools = [];
+	let selectedTools: ToolListItem[] = [];
 
 	$: selectedTools = ($tools ?? []).filter((tool) => selectedToolIds.includes(tool.id));
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	const authStatus = (tool) =>
+	const authStatus = (
+		tool: ToolListItem | null | undefined
+	): { label: string; dot: string; pill: string } | null =>
 		tool?.authenticated === false
 			? {
 					label: $i18n.t('Auth required'),

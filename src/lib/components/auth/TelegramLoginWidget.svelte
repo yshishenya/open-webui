@@ -11,21 +11,24 @@
 
 	let container: HTMLDivElement | null = null;
 	let scriptEl: HTMLScriptElement | null = null;
-	let callbackName = '';
+	type CallbackName = `__owuiTelegramAuth_${string}`;
+	type CallbackWindow = Window & {
+		[name: CallbackName]: ((user: Record<string, unknown>) => void) | undefined;
+	};
+	let callbackName: CallbackName | '' = '';
 	let scriptLoadError = false;
 
-	const createCallbackName = () => {
+	const createCallbackName = (): CallbackName => {
 		try {
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 			// randomUUID() returns UUIDs with dashes, which are invalid in JS identifiers.
-			const uuid = String((crypto as any).randomUUID()).replace(/-/g, '_');
+			const uuid = String(crypto.randomUUID()).replace(/-/g, '_');
 			return `__owuiTelegramAuth_${uuid}`;
 		} catch {
 			return `__owuiTelegramAuth_${Math.random().toString(36).slice(2)}`;
 		}
 	};
 
-	const cleanup = () => {
+	const cleanup = (): void => {
 		if (scriptEl?.parentNode) {
 			scriptEl.parentNode.removeChild(scriptEl);
 		}
@@ -35,13 +38,15 @@
 			container.innerHTML = '';
 		}
 
-		if (callbackName && (window as any)[callbackName]) {
+		if (callbackName) {
+			const callbacks = window as CallbackWindow;
 			try {
-				delete (window as any)[callbackName];
+				delete callbacks[callbackName];
 			} catch {
-				(window as any)[callbackName] = undefined;
+				callbacks[callbackName] = undefined;
 			}
 		}
+		callbackName = '';
 	};
 
 	const mountWidget = (
@@ -49,7 +54,7 @@
 		sizeValue: 'large' | 'medium' | 'small',
 		radiusValue: number | undefined,
 		showUserPicValue: boolean
-	) => {
+	): void => {
 		if (!container) return;
 
 		cleanup();
@@ -59,11 +64,10 @@
 		if (!username) return;
 
 		callbackName = createCallbackName();
-		(window as any)[callbackName] = (user: Record<string, unknown>) => {
-			dispatch('auth', user);
-		};
-
 		const s = document.createElement('script');
+		(window as CallbackWindow)[callbackName] = (user: Record<string, unknown>) => {
+			if (scriptEl === s) dispatch('auth', user);
+		};
 		s.async = true;
 		s.src = 'https://telegram.org/js/telegram-widget.js?22';
 		s.setAttribute('data-telegram-login', username);
@@ -74,7 +78,7 @@
 			s.setAttribute('data-radius', String(radiusValue));
 		}
 		s.addEventListener('error', () => {
-			scriptLoadError = true;
+			if (scriptEl === s) scriptLoadError = true;
 		});
 
 		scriptEl = s;
@@ -91,7 +95,7 @@
 </script>
 
 <div>
-	<div bind:this={container} class={containerClass} />
+	<div bind:this={container} class={containerClass}></div>
 	{#if scriptLoadError}
 		<div class="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
 			Telegram widget failed to load.

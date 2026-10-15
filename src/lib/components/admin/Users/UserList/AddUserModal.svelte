@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { createEventDispatcher } from 'svelte';
-	import { onMount, getContext } from 'svelte';
+	import { createEventDispatcher, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	import { getContext } from 'svelte';
 	import { addUser } from '$lib/apis/auths';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
@@ -12,14 +15,19 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 
-	const i18n = getContext('i18n');
-	const dispatch = createEventDispatcher();
+	const i18n = getContext<Readable<I18n>>('i18n');
+	const dispatch = createEventDispatcher<{ save: void }>();
 
 	export let show = false;
 
 	let loading = false;
 	let tab = '';
-	let inputFiles;
+	let inputFiles: FileList | null = null;
+	let actionVersion = 0;
+	$: if (!show) actionVersion += 1;
+	onDestroy((): void => {
+		actionVersion += 1;
+	});
 
 	let _user = {
 		name: '',
@@ -37,107 +45,91 @@
 		};
 	}
 
-	const submitHandler = async () => {
-		const stopLoading = () => {
-			dispatch('save');
-			loading = false;
-		};
-
-		if (tab === '') {
-			loading = true;
-
-			const res = await addUser(
-				localStorage.token,
-				_user.name,
-				_user.email,
-				_user.password,
-				_user.role,
-				generateInitialsImage(_user.name)
-			).catch((error) => {
-				toast.error(`${error}`);
-			});
-
-			if (res) {
-				stopLoading();
-				show = false;
-			}
-		} else {
-			if (inputFiles) {
-				loading = true;
-
-				const file = inputFiles[0];
-				const reader = new FileReader();
-
-				reader.onload = async (e) => {
-					const csv = e.target.result;
-					const rows = csv.split('\n');
-
-					const validRows = [];
-
-					for (const [idx, row] of rows.entries()) {
-						const columns = row.split(',').map((col) => col.trim());
-						console.debug(idx, columns);
-
-						if (idx > 0) {
-							if (
-								columns.length === 4 &&
-								['admin', 'user', 'pending'].includes(columns[3].toLowerCase())
-							) {
-								validRows.push({ idx, columns });
-							} else {
-								toast.error(`Row ${idx + 1}: invalid format.`);
-							}
-						}
-					}
-
-					let userCount = 0;
-					const BATCH_SIZE = 10;
-
-					for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
-						const batch = validRows.slice(i, i + BATCH_SIZE);
-						const results = await Promise.allSettled(
-							batch.map(({ idx, columns }) =>
-								addUser(
-									localStorage.token,
-									columns[0],
-									columns[1],
-									columns[2],
-									columns[3].toLowerCase(),
-									generateInitialsImage(columns[0])
-								).catch((error) => {
-									toast.error(`Row ${idx + 1}: ${error}`);
-									return null;
-								})
-							)
-						);
-
-						for (const result of results) {
-							if (result.status === 'fulfilled' && result.value) {
-								userCount++;
-							}
-						}
-					}
-
-					toast.success(
-						$i18n.t('Successfully imported {{userCount}} users.', { userCount: userCount })
-					);
-					inputFiles = null;
-					const uploadInputElement = document.getElementById('upload-user-csv-input');
-
-					if (uploadInputElement) {
-						uploadInputElement.value = null;
-					}
-
-					stopLoading();
-				};
-
-				reader.readAsText(file, 'utf-8');
+	const submitHandler = async (): Promise<void> => {
+		if (loading || !show) return;
+		const version = actionVersion;
+		const token = localStorage.token;
+		const current = (): boolean => show && version === actionVersion;
+		loading = true;
+		try {
+			if (tab === '') {
+				const res = await addUser(
+					token,
+					_user.name,
+					_user.email,
+					_user.password,
+					_user.role,
+					generateInitialsImage(_user.name)
+				).catch((error) => {
+					if (current()) toast.error(getErrorMessage(error));
+				});
+				if (res && current()) {
+					dispatch('save');
+					show = false;
+				}
 			} else {
-				toast.error($i18n.t('File not found.'));
+				const file = inputFiles?.[0];
+				if (!file) {
+					toast.error($i18n.t('File not found.'));
+					return;
+				}
+				let csv: string;
+				try {
+					csv = await file.text();
+				} catch {
+					if (current()) toast.error($i18n.t('Failed to upload file.'));
+					return;
+				}
+				if (!current()) return;
+				const validRows: { idx: number; columns: string[] }[] = [];
+				for (const [idx, row] of csv.split('\n').entries()) {
+					if (idx === 0 || !row.trim()) continue;
+					const columns = row.split(',').map((col) => col.trim());
+					if (
+						columns.length === 4 &&
+						['admin', 'user', 'pending'].includes(columns[3].toLowerCase())
+					) {
+						validRows.push({ idx, columns });
+					} else toast.error(`Row ${idx + 1}: invalid format.`);
+				}
+				let userCount = 0;
+				const BATCH_SIZE = 10;
+				for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+					if (!current()) return;
+					const batch = validRows.slice(i, i + BATCH_SIZE);
+					const results = await Promise.allSettled(
+						batch.map(({ idx, columns }) =>
+							addUser(
+								token,
+								columns[0],
+								columns[1],
+								columns[2],
+								columns[3].toLowerCase(),
+								generateInitialsImage(columns[0])
+							).catch((error) => {
+								if (current()) toast.error(`Row ${idx + 1}: ${getErrorMessage(error)}`);
+								return null;
+							})
+						)
+					);
+					for (const result of results) {
+						if (result.status === 'fulfilled' && result.value) userCount++;
+					}
+				}
+				if (!current()) return;
+				toast.success($i18n.t('Successfully imported {{userCount}} users.', { userCount }));
+				inputFiles = null;
+				const uploadInputElement = document.getElementById(
+					'upload-user-csv-input'
+				) as HTMLInputElement | null;
+				if (uploadInputElement) uploadInputElement.value = '';
+				dispatch('save');
 			}
+		} catch (error) {
+			if (current()) toast.error(getErrorMessage(error));
+		} finally {
+			loading = false;
 		}
-
-		loading = false;
 	};
 </script>
 
@@ -172,6 +164,7 @@
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
 							type="button"
+							disabled={loading}
 							on:click={() => {
 								tab = '';
 							}}>{$i18n.t('Form')}</button
@@ -182,6 +175,7 @@
 								? ''
 								: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"
 							type="button"
+							disabled={loading}
 							on:click={() => {
 								tab = 'import';
 							}}>{$i18n.t('CSV Import')}</button
@@ -197,6 +191,7 @@
 									<select
 										class="w-full capitalize rounded-lg text-sm bg-transparent dark:disabled:text-gray-500 outline-hidden"
 										bind:value={_user.role}
+										disabled={loading}
 										aria-label={$i18n.t('Role')}
 										placeholder={$i18n.t('Enter Your Role')}
 										required
@@ -216,6 +211,7 @@
 										class="w-full text-sm bg-transparent disabled:text-gray-500 dark:disabled:text-gray-500 outline-hidden"
 										type="text"
 										bind:value={_user.name}
+										disabled={loading}
 										aria-label={$i18n.t('Name')}
 										placeholder={$i18n.t('Enter Your Full Name')}
 										autocomplete="off"
@@ -234,6 +230,7 @@
 										class="w-full text-sm bg-transparent disabled:text-gray-500 dark:disabled:text-gray-500 outline-hidden"
 										type="email"
 										bind:value={_user.email}
+										disabled={loading}
 										aria-label={$i18n.t('Email')}
 										placeholder={$i18n.t('Enter Your Email')}
 										required
@@ -249,7 +246,8 @@
 										class="w-full text-sm bg-transparent disabled:text-gray-500 dark:disabled:text-gray-500 outline-hidden"
 										type="password"
 										bind:value={_user.password}
-										aria-label={$i18n.t('Password')}
+										readOnly={loading}
+										ariaLabel={$i18n.t('Password')}
 										placeholder={$i18n.t('Enter Your Password')}
 										autocomplete="off"
 										required
@@ -263,6 +261,7 @@
 										id="upload-user-csv-input"
 										hidden
 										bind:files={inputFiles}
+										disabled={loading}
 										type="file"
 										accept=".csv"
 									/>
@@ -270,11 +269,12 @@
 									<button
 										class="w-full text-sm font-normal py-3 bg-transparent hover:bg-gray-100 border border-dashed dark:border-gray-850 dark:hover:bg-gray-850 text-center rounded-xl"
 										type="button"
+										disabled={loading}
 										on:click={() => {
 											document.getElementById('upload-user-csv-input')?.click();
 										}}
 									>
-										{#if inputFiles}
+										{#if inputFiles?.length}
 											{inputFiles.length > 0 ? `${inputFiles.length}` : ''} document(s) selected.
 										{:else}
 											{$i18n.t('Click here to select a csv file.')}
@@ -326,18 +326,5 @@
 		/* display: none; <- Crashes Chrome on hover */
 		-webkit-appearance: none;
 		margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
-	}
-
-	.tabs::-webkit-scrollbar {
-		display: none; /* for Chrome, Safari and Opera */
-	}
-
-	.tabs {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
-	}
-
-	input[type='number'] {
-		-moz-appearance: textfield; /* Firefox */
 	}
 </style>

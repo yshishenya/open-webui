@@ -1,0 +1,8 @@
+- [x] **[BUG][CHANNEL]** Reload attachment/output data after pin updates
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__bugfix__channel-message-reload.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/channel-message-reload`
+  - Done: 2026-10-09 (source scope)
+  - Summary: Reactive slim-data reload, stale-result guards and actual error/retry markup; source `5b873b454b98fa355882cc8c6c3545586a651461` pushed. Shared channel/thread/pinned renderer fixed once.
+  - Tests: Original9failed/5passed/1unhandled;fixed14;related52;full frontend1012/126files;type2093+108 and ESLint1012 exactly unchanged.454backend files retain prior1025-pass snapshot.
+  - Risks: General quality/preflight/PR/integration/build/deploy and full A/B acceptance remain open;no numbered launch closures.

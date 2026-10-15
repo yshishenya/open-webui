@@ -1,6 +1,6 @@
 <script>
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount, tick } from 'svelte';
+	import { getContext, tick } from 'svelte';
 
 	const i18n = getContext('i18n');
 
@@ -26,7 +26,8 @@
 	export let edit = false;
 	export let clone = false;
 
-	export let onSave = /** @param {any} _value */ async (_value) => {};
+	/** @type {(value: import('$lib/apis/tools').ToolForm) => Promise<void>} */
+	export let onSave = async () => {};
 
 	export let id = '';
 	export let name = '';
@@ -203,7 +204,8 @@ class Tools:
 	onChange={async () => {
 		if (edit && id) {
 			try {
-				await updateToolAccessGrants(localStorage.token, id, accessGrants);
+				const res = await updateToolAccessGrants(localStorage.token, id, accessGrants);
+				if (!res) throw new Error($i18n.t('Could not save settings. Try again.'));
 				toast.success($i18n.t('Saved'));
 			} catch (error) {
 				toast.error(`${error}`);

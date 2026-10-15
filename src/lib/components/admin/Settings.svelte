@@ -1,7 +1,6 @@
 <script>
 	import { getContext, tick, onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
 	import { config } from '$lib/stores';
@@ -479,11 +478,7 @@
 						}}
 					/>
 				{:else if selectedTab === 'db'}
-					<Database
-						saveHandler={() => {
-							toast.success($i18n.t('Settings saved successfully!'));
-						}}
-					/>
+					<Database />
 				{:else if selectedTab === 'pipelines'}
 					<Pipelines
 						saveHandler={() => {

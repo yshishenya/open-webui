@@ -4,21 +4,19 @@
 
 	let loaderElement: HTMLElement;
 
-	let observer;
-	let intervalId;
+	let observer: IntersectionObserver | undefined;
+	let intervalId: ReturnType<typeof setInterval> | undefined;
 
 	onMount(() => {
 		observer = new IntersectionObserver(
-			(entries, observer) => {
+			(entries) => {
 				entries.forEach((entry) => {
+					// A repeated visibility notification must replace the previous timer.
+					clearInterval(intervalId);
 					if (entry.isIntersecting) {
 						intervalId = setInterval(() => {
 							dispatch('visible');
 						}, 100);
-						// dispatch('visible');
-						// observer.unobserve(loaderElement); // Stop observing until content is loaded
-					} else {
-						clearInterval(intervalId);
 					}
 				});
 			},
@@ -37,9 +35,7 @@
 			observer.disconnect();
 		}
 
-		if (intervalId) {
-			clearInterval(intervalId);
-		}
+		clearInterval(intervalId);
 	});
 </script>
 

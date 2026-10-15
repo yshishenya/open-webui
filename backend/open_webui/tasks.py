@@ -2,6 +2,8 @@
 import asyncio
 import json
 import logging
+from collections.abc import Coroutine
+from typing import TypeVar
 from uuid import uuid4
 
 from redis.asyncio import Redis
@@ -9,6 +11,7 @@ from redis.asyncio import Redis
 from open_webui.env import REDIS_KEY_PREFIX
 
 log = logging.getLogger(__name__)
+TaskResult = TypeVar('TaskResult')
 
 # A dictionary to keep track of active tasks
 tasks: dict[str, asyncio.Task] = {}
@@ -99,11 +102,23 @@ async def cleanup_task(redis, task_id: str, id=None):
             item_tasks.pop(id, None)
 
 
-async def create_task(redis, coroutine, id=None, task_id=None):
+async def create_task(
+    redis: Redis | None,
+    coroutine: Coroutine[object, object, TaskResult],
+    id: str | None = None,
+    task_id: str | None = None,
+) -> tuple[str, asyncio.Task[TaskResult]]:
     """
     Create a new asyncio task and add it to the global task dictionary.
     """
     task_id = task_id or str(uuid4())  # Generate a unique ID for the task
+    # Registration must finish before work can cause external side effects.
+    try:
+        if redis:
+            await redis_save_task(redis, task_id, id)
+    except BaseException:
+        coroutine.close()  # Also close unstarted work when registration is cancelled.
+        raise
     task = asyncio.create_task(coroutine)  # Create the task
 
     # Add a done callback for cleanup
@@ -115,9 +130,6 @@ async def create_task(redis, coroutine, id=None, task_id=None):
         item_tasks[id].append(task_id)
     else:
         item_tasks[id] = [task_id]
-
-    if redis:
-        await redis_save_task(redis, task_id, id)
 
     return task_id, task
 

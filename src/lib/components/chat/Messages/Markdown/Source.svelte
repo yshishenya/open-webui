@@ -4,11 +4,11 @@
 
 	const i18n = getContext('i18n');
 
-	export let id;
+	export let id: string | number;
 
 	export let title: string = 'N/A';
 
-	export let onClick: Function = () => {};
+	export let onClick: (id: string | number) => unknown = () => {};
 
 	// Helper function to return only the domain from a URL
 	function getDomain(url: string): string {

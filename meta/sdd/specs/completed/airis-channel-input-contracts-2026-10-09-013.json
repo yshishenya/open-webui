@@ -1,0 +1,119 @@
+{
+	"spec_id": "airis-channel-input-contracts-2026-10-09-013",
+	"title": "Airis channel input contracts",
+	"generated": "2026-10-09T10:57:59.177240Z",
+	"last_updated": "2026-10-09T11:05:36.872713Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__channel-input-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T10:58:43.169220Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-09T11:05:36.872404Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis channel input contracts",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Type existing input flow and verify source",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T11:05:36.371080Z",
+				"journaled_at": "2026-10-09T11:05:36.373111Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reuse existing contracts and guard nullable input",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "refactoring",
+				"file_path": "src/lib/components/channel/MessageInput.svelte",
+				"completed_at": "2026-10-09T11:05:36.120451Z",
+				"needs_journaling": false,
+				"status_note": "Existing contracts reused;41 input diagnostics removed;three nullable guards;valid scheduling and dimension behavior preserved;actual handlers20/20",
+				"journaled_at": "2026-10-09T11:05:36.121477Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Verify preserved flow and source delivery",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "investigation",
+				"file_path": "src/lib/utils/airis/channel_input_files.test.ts",
+				"completed_at": "2026-10-09T11:05:36.370890Z",
+				"needs_journaling": false,
+				"status_note": "Source b55eaecf9a0f7ea0edb061f57824dd0a3603fe18;1032 full frontend/127files;88 related;original4fail16pass;types2052+108;ESLint1012unchanged;454backend byte-equal;12productionneighbors preserved;no deploy",
+				"journaled_at": "2026-10-09T11:05:36.372097Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T11:05:36.121471Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reuse existing contracts and guard nullable input",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Existing contracts reused;41 input diagnostics removed;three nullable guards;valid scheduling and dimension behavior preserved;actual handlers20/20",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T11:05:36.372088Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify preserved flow and source delivery",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Source b55eaecf9a0f7ea0edb061f57824dd0a3603fe18;1032 full frontend/127files;88 related;original4fail16pass;types2052+108;ESLint1012unchanged;454backend byte-equal;12productionneighbors preserved;no deploy",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-09T11:05:36.373107Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Type existing input flow and verify source",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

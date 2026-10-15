@@ -6,9 +6,14 @@
 
 	export let overlay = false;
 
-	const getSrcUrl = (url: string, chatId?: string, messageId?: string, sourceId: string) => {
+	const getSrcUrl = (
+		url: string,
+		chatId?: string,
+		messageId?: string,
+		sourceId?: string
+	): string => {
 		try {
-			const parsed = new URL(url);
+			const parsed = new URL(url, window.location.href);
 
 			if (chatId) {
 				parsed.searchParams.set('chat_id', chatId);

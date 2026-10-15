@@ -3,12 +3,13 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
+import operator
 import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Awaitable, Optional, Union
-from urllib.parse import quote
+from collections.abc import Awaitable, Sequence
+from typing import Any
 
 import aiohttp
 import requests
@@ -18,13 +19,10 @@ from langchain_classic.retrievers import (
     EnsembleRetriever,
 )
 from langchain_community.retrievers import BM25Retriever
-from langchain_core.documents import Document
-from open_webui.config import (
-    RAG_EMBEDDING_CONTENT_PREFIX,
-    RAG_EMBEDDING_PREFIX_FIELD_NAME,
-    RAG_EMBEDDING_QUERY_PREFIX,
-    VECTOR_DB,
-)
+from langchain_core.callbacks import CallbackManagerForRetrieverRun, Callbacks
+from langchain_core.documents import BaseDocumentCompressor, Document
+from langchain_core.retrievers import BaseRetriever
+from open_webui.config import RAG_EMBEDDING_CONTENT_PREFIX, RAG_EMBEDDING_PREFIX_FIELD_NAME, RAG_EMBEDDING_QUERY_PREFIX
 from open_webui.env import (
     AIOHTTP_CLIENT_ALLOW_REDIRECTS,
     AIOHTTP_CLIENT_SESSION_SSL,
@@ -54,12 +52,6 @@ from open_webui.utils.headers import include_user_info_headers
 from open_webui.utils.misc import get_content_from_message, get_message_list
 
 log = logging.getLogger(__name__)
-
-
-from typing import Any
-
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
-from langchain_core.retrievers import BaseRetriever
 
 
 def is_youtube_url(url: str) -> bool:
@@ -408,7 +400,7 @@ async def query_doc_with_native_hybrid_search(
     k_reranker: int,
     r: float,
     hybrid_bm25_weight: float,
-) -> Optional[dict]:
+) -> dict | None:
     try:
         if not _supports_native_hybrid_search():
             return None
@@ -464,7 +456,7 @@ async def query_doc_with_native_hybrid_search(
 
 async def query_doc_with_hybrid_search(
     collection_name: str,
-    collection_result: Optional[GetResult],
+    collection_result: GetResult | None,
     query: str,
     embedding_function,
     k: int,
@@ -1181,8 +1173,8 @@ def get_embedding_function(
 async def generate_embeddings(
     engine: str,
     model: str,
-    text: Union[str, list[str]],
-    prefix: Union[str, None] = None,
+    text: str | list[str],
+    prefix: str | None = None,
     **kwargs,
 ):
     url = kwargs.get('url', '')
@@ -1696,13 +1688,6 @@ def get_model_path(model: str, update_model: bool = False):
         if OFFLINE_MODE:
             raise
         return model
-
-
-import operator
-from typing import Optional, Sequence
-
-from langchain_core.callbacks import Callbacks
-from langchain_core.documents import BaseDocumentCompressor, Document
 
 
 class RerankCompressor(BaseDocumentCompressor):

@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-web-search-2026-10-15-119",
+  "title": "AIRIS validate generated web and file search queries",
+  "generated": "2026-10-15T08:29:03.387345Z",
+  "last_updated": "2026-10-15T08:52:10.515616Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "bugfix",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__bugfix__web-search.md",
+    "status": "completed",
+    "progress_percentage": 100,
+    "activated_date": "2026-10-15T08:37:55.195115Z",
+    "completed_date": "2026-10-15T08:52:10.515346Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS validate generated web and file search queries",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce invalid query failures and use native SearchForm at both boundaries",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T08:50:14.651253Z",
+        "journaled_at": "2026-10-15T08:50:14.653212Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify native response, events, cache, backend, quality and source delivery",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T08:52:10.079555Z",
+        "journaled_at": "2026-10-15T08:52:10.081269Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce invalid query failures and use native SearchForm at both boundaries",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-15T08:50:14.651108Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-15T08:50:14.652042Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify native response, events, cache, backend, quality and source delivery",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-15T08:52:10.079403Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-15T08:52:10.080317Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-15T08:50:14.652034Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce invalid query failures and use native SearchForm at both boundaries",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-15T08:50:14.653208Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce invalid query failures and use native SearchForm at both boundaries",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-15T08:52:10.080313Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify native response, events, cache, backend, quality and source delivery",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-15T08:52:10.081264Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify native response, events, cache, backend, quality and source delivery",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

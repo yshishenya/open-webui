@@ -4,8 +4,7 @@ import tempfile
 import uuid
 from pathlib import Path
 
-
-_TEST_DB_PATH_ENV = "OPEN_WEBUI_TEST_DB_PATH"
+_TEST_DB_PATH_ENV = 'OPEN_WEBUI_TEST_DB_PATH'
 
 
 _TEST_ROOT = Path(__file__).resolve().parents[1]
@@ -15,13 +14,13 @@ if str(_TEST_ROOT) not in sys.path:
 
 
 def _ensure_test_database_url() -> None:
-    if os.environ.get("DATABASE_URL"):
+    if os.environ.get('DATABASE_URL'):
         return
 
     # Keep tests isolated from docker-compose DATABASE_URL defaults in .env,
     # and avoid reusing persistent state between test runs.
-    test_db_path = Path(tempfile.gettempdir()) / f"open_webui_test_{uuid.uuid4().hex}.db"
-    os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
+    test_db_path = Path(tempfile.gettempdir()) / f'open_webui_test_{uuid.uuid4().hex}.db'
+    os.environ['DATABASE_URL'] = f'sqlite:///{test_db_path}'
     os.environ[_TEST_DB_PATH_ENV] = str(test_db_path)
 
 

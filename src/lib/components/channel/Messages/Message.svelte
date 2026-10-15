@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChannelDisplayMessage } from '$lib/utils/airis/channel-types';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
@@ -11,7 +12,7 @@
 	dayjs.extend(isYesterday);
 	dayjs.extend(localizedFormat);
 
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
 	import AttachmentVideo from '$lib/components/airis/AttachmentVideo.svelte';
@@ -53,7 +54,7 @@
 
 	export let showUserProfile = true;
 	export let thread = false;
-	export let id = null;
+	export let id: string | null = null;
 
 	export let replyToMessage = false;
 	export let disabled = false;
@@ -61,8 +62,8 @@
 
 	export let onDelete: false | (() => void | Promise<void>) = () => {};
 	export let onEdit: false | ((content: string) => void | Promise<void>) = () => {};
-	export let onReply: false | ((message: { id: string; channel_id: string; is_pinned?: boolean; [key: string]: unknown }) => void | Promise<void>) = () => {};
-	export let onPin: false | ((message: { id: string; channel_id: string; is_pinned?: boolean; [key: string]: unknown }) => void | Promise<void>) = () => {};
+	export let onReply: false | ((message: ChannelDisplayMessage) => void | Promise<void>) = () => {};
+	export let onPin: false | ((message: ChannelDisplayMessage) => void | Promise<void>) = () => {};
 	export let onThread: false | ((value: string) => void | Promise<void>) = () => {};
 	export let onReaction: false | ((value: string) => void | Promise<void>) = () => {};
 
@@ -77,6 +78,14 @@
 			? `${id}-${message.reply_to_message.id}`
 			: message.reply_to_message.id
 		: null;
+
+	let messageDirection: 'ltr' | 'rtl' | 'auto';
+	$: messageDirection =
+		$settings?.chatDirection === 'LTR'
+			? 'ltr'
+			: $settings?.chatDirection === 'RTL'
+				? 'rtl'
+				: 'auto';
 
 	// Swipe-to-reply state
 	let swipeStartX = 0;
@@ -140,20 +149,55 @@
 		swipeLocked = false;
 	};
 
-	const loadMessageData = async () => {
-		if (message && message?.data === true) {
-			const res = await getMessageData(localStorage.token, channel?.id, message.id);
-			if (res) {
+	let mounted = false;
+	let dataLoad: { message: ChannelDisplayMessage; channelId: string } | null = null;
+	let dataLoadError = false;
+
+	const loadMessageData = async (
+		target: ChannelDisplayMessage,
+		channelId: string
+	): Promise<void> => {
+		if (dataLoad?.message === target && dataLoad.channelId === channelId) return;
+		const request = { message: target, channelId };
+		dataLoad = request;
+		dataLoadError = false;
+		try {
+			const res = await getMessageData(localStorage.token, channelId, target.id);
+			if (
+				dataLoad === request &&
+				mounted &&
+				message === target &&
+				channel?.id === channelId &&
+				target.data === true
+			) {
 				message.data = res;
 			}
+		} catch (error) {
+			if (
+				dataLoad === request &&
+				mounted &&
+				message === target &&
+				channel?.id === channelId &&
+				target.data === true
+			) {
+				dataLoadError = true;
+				console.error('Failed to load channel message data', error);
+			}
+		} finally {
+			if (dataLoad === request) dataLoad = null;
 		}
 	};
 
-	onMount(async () => {
-		if (message && message?.data === true) {
-			await loadMessageData();
-		}
+	onMount(() => {
+		mounted = true;
 	});
+	onDestroy(() => {
+		mounted = false;
+	});
+	// Pin/unpin replaces an already mounted message with a slim data:true response.
+	$: if (mounted && message?.data === true && channel?.id) {
+		void loadMessageData(message, channel.id);
+	}
 
 	$: messageOutput = Array.isArray(message?.data?.output) ? message.data.output : [];
 	$: hasStructuredOutput = buildOutputDisplayItems(messageOutput).length > 0;
@@ -347,7 +391,7 @@
 									message.reply_to_message.meta.model_id}
 								class="size-4 ml-0.5 rounded-full object-cover"
 								on:error={(e) => {
-									e.currentTarget.src = '/favicon.png';
+									(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 								}}
 							/>
 						{:else}
@@ -380,7 +424,7 @@
 			<div
 				class=" flex w-full message-{message.id} "
 				id="message-{renderedMessageId}"
-				dir={$settings.chatDirection}
+				dir={messageDirection}
 			>
 				<div class={`shrink-0 mr-1 w-9`}>
 					{#if showUserProfile}
@@ -390,7 +434,7 @@
 								alt={message.meta.model_name ?? message.meta.model_id}
 								class="size-8 translate-y-1 ml-0.5 object-cover rounded-full"
 								on:error={(e) => {
-									e.currentTarget.src = '/favicon.png';
+									(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 								}}
 							/>
 						{:else if message.user?.role === 'webhook'}
@@ -456,13 +500,22 @@
 					{#if message?.data === true}
 						<!-- loading indicator -->
 						<div class=" my-2">
-							<Skeleton />
+							{#if dataLoadError}
+								<div role="alert" class="text-sm text-gray-500">
+									{$i18n.t('Failed to load file content.')}
+									<button
+										class="underline ml-2"
+										on:click={() => {
+											if (channel?.id) void loadMessageData(message, channel.id);
+										}}>{$i18n.t('Retry')}</button
+									>
+								</div>
+							{:else}
+								<Skeleton />
+							{/if}
 						</div>
 					{:else if (message?.data?.files ?? []).length > 0}
-						<div
-							class="my-2.5 w-full flex overflow-x-auto gap-2 flex-wrap"
-							dir={$settings?.chatDirection ?? 'auto'}
-						>
+						<div class="my-2.5 w-full flex overflow-x-auto gap-2 flex-wrap" dir={messageDirection}>
 							{#each message?.data?.files as file}
 								{@const fileUrl = getAttachmentSource(file)}
 								<div>

@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-document-settings-2026-10-11-044",
+  "title": "airis-document-settings",
+  "generated": "2026-10-11T05:37:26.164975Z",
+  "last_updated": "2026-10-11T05:54:38.726225Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__document-settings.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T05:38:27.232226Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T05:54:38.725968Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Document settings and banners",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace existing contracts and reproduce reset completion defect",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T05:54:37.824933Z",
+        "journaled_at": "2026-10-11T05:54:37.826787Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Use precise form types and release existing banner sorter",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T05:54:38.049331Z",
+        "journaled_at": "2026-10-11T05:54:38.051265Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify whole frontend and preserve production and foreign data",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T05:54:38.271696Z",
+        "journaled_at": "2026-10-11T05:54:38.273743Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace existing contracts and reproduce reset completion defect",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T05:54:37.824749Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T05:54:37.825704Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Use precise form types and release existing banner sorter",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T05:54:38.049136Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T05:54:38.050182Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify whole frontend and preserve production and foreign data",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T05:54:38.271503Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T05:54:38.272618Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T05:54:37.825699Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace existing contracts and reproduce reset completion defect",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:54:37.826782Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace existing contracts and reproduce reset completion defect",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:54:38.050177Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use precise form types and release existing banner sorter",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:54:38.051261Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Use precise form types and release existing banner sorter",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T05:54:38.272613Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify whole frontend and preserve production and foreign data",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:54:38.273739Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify whole frontend and preserve production and foreign data",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

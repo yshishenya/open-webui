@@ -1,0 +1,144 @@
+{
+  "spec_id": "airis-native-display-contracts-2026-10-12-100",
+  "title": "AIRIS native display contracts",
+  "generated": "2026-10-12T06:15:26.433830Z",
+  "last_updated": "2026-10-12T06:25:49.128920Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__native-display-contracts.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T06:15:26.863143Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T06:25:49.128691Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS native display contracts",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Match search counts and native tag relationships; remove unused public properties",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T06:19:57.632094Z",
+        "journaled_at": "2026-10-12T06:19:57.633683Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify real components, retained output and full frontend",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T06:25:48.714384Z",
+        "journaled_at": "2026-10-12T06:25:48.716137Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Fix actual search result count and tag accessibility without changing actions",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T06:19:57.631927Z",
+        "needs_journaling": false,
+        "status_note": "Actual component tests0/2 before and2/2 after; native tag relations, displayed item count, verified unused properties;CSS28/SSR18;types0/2",
+        "journaled_at": "2026-10-12T06:19:57.632749Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run focused and full checks; preserve runtime and commit",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T06:25:48.714213Z",
+        "needs_journaling": false,
+        "status_note": "Focused2/full2592;types0/2,ESLint28/new0;scoped17/CI441/format clean,CSS28/SSR18;backend/production/data preserved;source-only",
+        "journaled_at": "2026-10-12T06:25:48.715107Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T06:19:57.632744Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Fix actual search result count and tag accessibility without changing actions",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Actual component tests0/2 before and2/2 after; native tag relations, displayed item count, verified unused properties;CSS28/SSR18;types0/2",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T06:19:57.633678Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Match search counts and native tag relationships; remove unused public properties",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T06:25:48.715102Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run focused and full checks; preserve runtime and commit",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Focused2/full2592;types0/2,ESLint28/new0;scoped17/CI441/format clean,CSS28/SSR18;backend/production/data preserved;source-only",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T06:25:48.716132Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify real components, retained output and full frontend",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

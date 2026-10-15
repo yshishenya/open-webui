@@ -1,0 +1,138 @@
+{
+	"spec_id": "airis-unused-bindings-2026-10-09-931",
+	"title": "airis-unused-bindings",
+	"generated": "2026-10-09T06:31:47.494028Z",
+	"last_updated": "2026-10-09T06:48:09.385999Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-bindings.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T06:33:19.589539Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T06:48:09.385610Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-unused-bindings",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Preserve evaluations, exception handling and migration initialization",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T06:46:14.623842Z",
+				"journaled_at": "2026-10-09T06:46:14.625897Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept contracts, full tests, isolated cleanup and source delivery",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T06:48:08.865643Z",
+				"journaled_at": "2026-10-09T06:48:08.867649Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Preserve evaluations, exception handling and migration initialization",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui",
+				"completed_at": "2026-10-09T06:46:14.623664Z",
+				"needs_journaling": false,
+				"status_note": "Reviewed 27 declarations; all changed function parameters including variadics and return annotations checked. Canonical AST/comments preserved453; Ruff739 to712, added0. Deferred22 in18 untyped functions.",
+				"journaled_at": "2026-10-09T06:46:14.624652Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Accept contracts, full tests, isolated cleanup and source delivery",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-bindings.md",
+				"completed_at": "2026-10-09T06:48:08.865489Z",
+				"needs_journaling": false,
+				"status_note": "Source5889cfca3880918d38c79de5eee6440339aa6a66 pushed. Accepted27 backend1017/frontend952, nine identical contracts, source453/1061 hashes; primary21/runtime preserved; actual PostgreSQL tmpfs/cleanup verified. General checks remain failing; integration/release not accepted.",
+				"journaled_at": "2026-10-09T06:48:08.866411Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T06:46:14.624646Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Preserve evaluations, exception handling and migration initialization",
+			"author": "Codex",
+			"content": "Task task-1-1 marked as completed. \nNote: Reviewed 27 declarations; all changed function parameters including variadics and return annotations checked. Canonical AST/comments preserved453; Ruff739 to712, added0. Deferred22 in18 untyped functions.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T06:46:14.625892Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Preserve evaluations, exception handling and migration initialization",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T06:48:08.866407Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept contracts, full tests, isolated cleanup and source delivery",
+			"author": "Codex",
+			"content": "Task task-2-1 marked as completed. \nNote: Source5889cfca3880918d38c79de5eee6440339aa6a66 pushed. Accepted27 backend1017/frontend952, nine identical contracts, source453/1061 hashes; primary21/runtime preserved; actual PostgreSQL tmpfs/cleanup verified. General checks remain failing; integration/release not accepted.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T06:48:08.867644Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept contracts, full tests, isolated cleanup and source delivery",
+			"author": "Codex",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

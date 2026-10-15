@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Generator, List, Optional, Sequence, Union
+from collections.abc import Generator, Sequence
 from urllib.parse import parse_qs, urlparse
 from xml.etree.ElementTree import ParseError
 
@@ -18,7 +18,7 @@ ALLOWED_NETLOCS = {
 }
 
 
-def _parse_video_id(url: str) -> Optional[str]:
+def _parse_video_id(url: str) -> str | None:
     """Parse a YouTube URL and return the video ID if valid, otherwise None."""
     parsed_url = urlparse(url)
 
@@ -54,8 +54,8 @@ class YoutubeLoader:
     def __init__(
         self,
         video_id: str,
-        language: Union[str, Sequence[str]] = 'en',
-        proxy_url: Optional[str] = None,
+        language: str | Sequence[str] = 'en',
+        proxy_url: str | None = None,
     ):
         """Initialize with YouTube video ID."""
         _video_id = _parse_video_id(video_id)
@@ -73,14 +73,10 @@ class YoutubeLoader:
         if 'en' not in self.language:
             self.language.append('en')
 
-    def load(self) -> List[Document]:
+    def load(self) -> list[Document]:
         """Load YouTube transcripts into `Document` objects."""
         try:
-            from youtube_transcript_api import (
-                NoTranscriptFound,
-                TranscriptsDisabled,
-                YouTubeTranscriptApi,
-            )
+            from youtube_transcript_api import NoTranscriptFound, YouTubeTranscriptApi
             from youtube_transcript_api.proxies import GenericProxyConfig
         except ImportError:
             raise ImportError(
@@ -105,18 +101,9 @@ class YoutubeLoader:
         for lang in self.language:
             try:
                 transcript = transcript_list.find_transcript([lang])
-                if transcript.is_generated:
-                    log.debug(f"Found generated transcript for language '{lang}'")
-                    try:
-                        transcript = transcript_list.find_manually_created_transcript([lang])
-                        log.debug(f"Found manual transcript for language '{lang}'")
-                    except NoTranscriptFound:
-                        log.debug(f"No manual transcript found for language '{lang}', using generated")
-                        pass
-
                 log.debug(f"Found transcript for language '{lang}'")
                 try:
-                    transcript_pieces: List[Dict[str, Any]] = transcript.fetch()
+                    transcript_pieces = transcript.fetch()
                 except ParseError:
                     log.debug(f"Empty or invalid transcript for language '{lang}'")
                     continue

@@ -1,0 +1,199 @@
+{
+  "spec_id": "airis-admin-user-import-2026-10-11-079",
+  "title": "AIRIS admin user import lifetime",
+  "generated": "2026-10-11T19:06:14.281201Z",
+  "last_updated": "2026-10-11T19:21:42.329058Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__admin-user-import.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T19:06:14.532954Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T19:21:42.328776Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS admin user import lifetime",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce duplicate and stale import actions",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T19:09:39.141123Z",
+        "journaled_at": "2026-10-11T19:09:39.142841Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Use native file text and bounded batches",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T19:14:39.296678Z",
+        "journaled_at": "2026-10-11T19:14:39.298607Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce duplicate and stale import actions",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T19:09:39.140984Z",
+        "needs_journaling": false,
+        "status_note": "15 actual-script scenarios: original2 pass/13 fail. Early loading release, duplicate/late batches, read failure, canceled input, raw credential logging, token switch and old completion after reopening reproduced. addUser/UserList/backend admin path traced.",
+        "journaled_at": "2026-10-11T19:09:39.141861Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Use native file text and bounded batches",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T19:14:39.296517Z",
+        "needs_journaling": false,
+        "status_note": "15/15 actual-script scenarios pass. Native file.text, one busy guard, snapshot token, close/destroy action version; original simple four-column CSV and batch10 retained. Password logs removed; types110 to101, warnings24 unchanged.",
+        "journaled_at": "2026-10-11T19:14:39.297517Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frontend and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T19:21:41.871970Z",
+        "journaled_at": "2026-10-11T19:21:41.873917Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify frontend and preservation",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T19:21:41.871781Z",
+        "needs_journaling": false,
+        "status_note": "15 targeted and2477 full pass, failed/pending/todo0; types101/24 vs110/24, ESLint191 unchanged, new0. Scope lint/format pass and348 future-CI targets clean;2 compilations CSS unchanged.565 backend hashes verified;1064/25 reused. Production/21 foreign files/262 volumes/12 neighbors preserved; no release/new browser run. First final-run mock lint6 kept; corrected and full rerun.",
+        "journaled_at": "2026-10-11T19:21:41.872791Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T19:09:39.141856Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce duplicate and stale import actions",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 15 actual-script scenarios: original2 pass/13 fail. Early loading release, duplicate/late batches, read failure, canceled input, raw credential logging, token switch and old completion after reopening reproduced. addUser/UserList/backend admin path traced.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T19:09:39.142837Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce duplicate and stale import actions",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T19:14:39.297513Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use native file text and bounded batches",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 15/15 actual-script scenarios pass. Native file.text, one busy guard, snapshot token, close/destroy action version; original simple four-column CSV and batch10 retained. Password logs removed; types110 to101, warnings24 unchanged.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T19:14:39.298603Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Use native file text and bounded batches",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T19:21:41.872786Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frontend and preservation",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: 15 targeted and2477 full pass, failed/pending/todo0; types101/24 vs110/24, ESLint191 unchanged, new0. Scope lint/format pass and348 future-CI targets clean;2 compilations CSS unchanged.565 backend hashes verified;1064/25 reused. Production/21 foreign files/262 volumes/12 neighbors preserved; no release/new browser run. First final-run mock lint6 kept; corrected and full rerun.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T19:21:41.873913Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frontend and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

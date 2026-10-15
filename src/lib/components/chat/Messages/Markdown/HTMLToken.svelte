@@ -20,29 +20,14 @@
 		{@const videoSrc = getMarkdownMediaSource(html, 'video')}
 		{#if videoSrc}
 			<!-- svelte-ignore a11y-media-has-caption -->
-			<video
-				{id}
-				class="w-full my-2"
-				src={videoSrc}
-				title="Video player"
-				frameborder="0"
-				referrerpolicy="strict-origin-when-cross-origin"
-				controls
-				allowfullscreen
-			></video>
+			<video {id} class="w-full my-2" src={videoSrc} title="Video player" controls></video>
 		{:else}
 			{token.text}
 		{/if}
 	{:else if html && html.includes('<audio')}
 		{@const audioSrc = getMarkdownMediaSource(html, 'audio')}
 		{#if audioSrc}
-			<audio
-				{id}
-				class="w-full my-2"
-				src={audioSrc}
-				title="Audio player"
-				controls
-			></audio>
+			<audio {id} class="w-full my-2" src={audioSrc} title="Audio player" controls></audio>
 		{:else}
 			{token.text}
 		{/if}
@@ -74,11 +59,12 @@
 				src={iframeSrc}
 				title="Embedded content"
 				frameborder="0"
-				sandbox
+				sandbox=""
 				on:load={(e) => {
 					try {
-						e.currentTarget.style.height =
-							e.currentTarget.contentWindow.document.body.scrollHeight + 20 + 'px';
+						const frame = e.currentTarget as HTMLIFrameElement;
+						const body = frame.contentWindow?.document.body;
+						if (body) frame.style.height = body.scrollHeight + 20 + 'px';
 					} catch {
 						// Cross-origin frames keep their current height when their document is inaccessible.
 					}
@@ -121,8 +107,9 @@
 				width="100%"
 				on:load={(e) => {
 					try {
-						e.currentTarget.style.height =
-							e.currentTarget.contentWindow.document.body.scrollHeight + 20 + 'px';
+						const frame = e.currentTarget as HTMLIFrameElement;
+						const body = frame.contentWindow?.document.body;
+						if (body) frame.style.height = body.scrollHeight + 20 + 'px';
 					} catch {
 						// Cross-origin frames keep their current height when their document is inaccessible.
 					}

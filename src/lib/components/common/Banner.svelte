@@ -2,22 +2,23 @@
 	import type { Banner } from '$lib/types';
 	import { onMount, createEventDispatcher, getContext } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import DOMPurify from 'dompurify';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 	import { marked } from 'marked';
 	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	const dispatch = createEventDispatcher();
 	const i18n = getContext('i18n');
 
-	export let banner: Banner = {
-		id: '',
-		type: 'info',
-		title: '',
-		content: '',
-		url: '',
-		dismissible: true,
-		timestamp: Math.floor(Date.now() / 1000)
-	};
+	export let banner: Omit<Banner, 'id' | 'timestamp'> & Partial<Pick<Banner, 'id' | 'timestamp'>> =
+		{
+			id: '',
+			type: 'info',
+			title: '',
+			content: '',
+			url: '',
+			dismissible: true,
+			timestamp: Math.floor(Date.now() / 1000)
+		};
 	export let className = 'mx-2 px-2 rounded-lg';
 
 	export let dismissed = false;
@@ -31,15 +32,13 @@
 		error: 'bg-red-500/20 text-red-700 dark:text-red-200'
 	};
 
-	const dismiss = (id) => {
+	const dismiss = (id: string | undefined): void => {
 		dismissed = true;
 		dispatch('dismiss', id);
 	};
 
 	onMount(() => {
 		mounted = true;
-
-		console.log('Banner mounted:', banner);
 	});
 </script>
 
@@ -99,9 +98,12 @@
 						</div>
 					{/if}
 				</div>
-				<div class="flex-1 text-xs text-gray-700 dark:text-white max-h-60 overflow-y-auto">
-					{@html DOMPurify.sanitize(marked.parse((banner?.content ?? '').replace(/\n/g, '<br>')))}
-				</div>
+				<div
+					class="flex-1 text-xs text-gray-700 dark:text-white max-h-60 overflow-y-auto"
+					use:sanitizedHtml={marked.parse((banner?.content ?? '').replace(/\n/g, '<br>'), {
+						async: false
+					})}
+				></div>
 			</div>
 
 			{#if banner.url}

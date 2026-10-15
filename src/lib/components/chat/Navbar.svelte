@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ChatHistory } from '$lib/utils/airis/chat_history';
 
 	import {
-		WEBUI_NAME,
 		banners,
 		chatId,
 		config,
@@ -15,7 +16,6 @@
 		user
 	} from '$lib/stores';
 
-	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
@@ -23,9 +23,7 @@
 	import Tooltip from '../common/Tooltip.svelte';
 	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
-	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
 
-	import PencilSquare from '../icons/PencilSquare.svelte';
 	import Banner from '../common/Banner.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 
@@ -38,34 +36,37 @@
 	import Knobs from '../icons/Knobs.svelte';
 	import { isTemporaryChatId } from '$lib/utils/chatId';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let initNewChat: Function;
+	export let initNewChat: () => void | Promise<void>;
 	export let readOnly: boolean = false;
 	export let shareEnabled: boolean = false;
-	export let scrollTop = 0;
 	export let scrollToTop: (() => void) | null = null;
 
 	export let chat;
-	export let history;
+	export let history: Pick<ChatHistory, 'currentId'>;
 	export let title = '';
-	export let onSaveTempChat: () => {};
+	export let onSaveTempChat: () => void | Promise<void>;
 	export let archiveChatHandler: (id: string) => void;
 	export let deleteChatHandler: (id: string) => void;
 	export let moveChatHandler: (id: string, folderId: string) => void;
 
-	let closedBannerIds = [];
+	let closedBannerIds: string[] = [];
 
 	const getDismissedBannerIds = (): string[] => {
 		try {
-			return JSON.parse(localStorage.getItem('dismissedBannerIds') ?? '[]');
+			const ids: unknown = JSON.parse(localStorage.getItem('dismissedBannerIds') ?? '[]');
+			return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [];
 		} catch {
 			return [];
 		}
 	};
 
 	let showShareChatModal = false;
-	let showDownloadChatModal = false;
+	$: licenseExceeded =
+		$config?.license_metadata?.seats != null &&
+		$config?.user_count != null &&
+		$config.user_count > $config.license_metadata.seats;
 </script>
 
 <ShareChatModal bind:show={showShareChatModal} chatId={$chatId} />
@@ -77,7 +78,7 @@
 		initNewChat();
 	}}
 	aria-label="New Chat"
-/>
+></button>
 
 <nav
 	class="sticky top-0 z-30 w-full {$mobile
@@ -127,7 +128,6 @@
 							{#if shareEnabled && chat && (chat.id || $temporaryChatEnabled)}
 								<Menu
 									{chat}
-									{shareEnabled}
 									{readOnly}
 									{scrollToTop}
 									shareHandler={() => {
@@ -258,7 +258,7 @@
 	{/if}
 
 	<div class="absolute top-[100%] left-0 right-0 h-fit">
-		{#if !history.currentId && !$chatId && ($banners.length > 0 || ($config?.license_metadata?.type ?? null) === 'trial' || (($config?.license_metadata?.seats ?? null) !== null && $config?.user_count > $config?.license_metadata?.seats))}
+		{#if !history.currentId && !$chatId && ($banners.length > 0 || ($config?.license_metadata?.type ?? null) === 'trial' || licenseExceeded)}
 			<div class=" w-full z-30">
 				<div
 					class=" flex flex-col gap-1 w-full max-h-28 overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible"
@@ -275,7 +275,7 @@
 						/>
 					{/if}
 
-					{#if ($config?.license_metadata?.seats ?? null) !== null && $config?.user_count > $config?.license_metadata?.seats}
+					{#if licenseExceeded}
 						<Banner
 							banner={{
 								type: 'error',
@@ -292,18 +292,21 @@
 							{banner}
 							on:dismiss={(e) => {
 								const bannerId = e.detail;
+								closedBannerIds = [...closedBannerIds, bannerId];
 
 								if (banner.dismissible) {
-									localStorage.setItem(
-										'dismissedBannerIds',
-										JSON.stringify(
-											[bannerId, ...getDismissedBannerIds()].filter((id) =>
-												$banners.find((b) => b.id === id)
+									try {
+										localStorage.setItem(
+											'dismissedBannerIds',
+											JSON.stringify(
+												[bannerId, ...getDismissedBannerIds()].filter((id) =>
+													$banners.find((b) => b.id === id)
+												)
 											)
-										)
-									);
-								} else {
-									closedBannerIds = [...closedBannerIds, bannerId];
+										);
+									} catch {
+										console.warn('Unable to persist dismissed banner');
+									}
 								}
 							}}
 						/>

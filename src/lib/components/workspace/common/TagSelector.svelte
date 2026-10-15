@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { SelectOption } from '$lib/utils/airis/frontend-contracts';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getContext } from 'svelte';
 
 	import ChevronDown from '$lib/components/icons/ChevronDown.svelte';
@@ -6,7 +9,7 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Select from '$lib/components/common/Select.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let value = '';
 	export let placeholder = $i18n.t('Tag');
@@ -18,7 +21,7 @@
 		'flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] capitalize hover:bg-gray-50/40 hover:text-gray-900 dark:hover:bg-gray-800/40 dark:hover:text-gray-100';
 	export let contentClass = 'min-w-[170px]';
 
-	export let items = [];
+	export let items: SelectOption[] = [];
 </script>
 
 <Select

@@ -1,0 +1,136 @@
+{
+	"spec_id": "airis-channel-loading-events-2026-10-09-010",
+	"title": "airis-channel-loading-events",
+	"generated": "2026-10-09T09:24:29.043923Z",
+	"last_updated": "2026-10-09T09:46:41.006891Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 24,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__bugfix__channel-loading-events.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T09:25:00.185623Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T09:46:41.006495Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-channel-loading-events",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce and preserve loading events",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T09:39:08.839575Z",
+				"journaled_at": "2026-10-09T09:39:08.841797Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify and deliver isolated source",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T09:46:40.547876Z",
+				"journaled_at": "2026-10-09T09:46:40.550320Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce and fix channel/thread initial-loading races",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-09T09:39:08.839137Z",
+				"needs_journaling": false,
+				"status_note": "Original22 failures, fixed22/22 actual component-script checks; loading barrier/version guards/deduplication across Channel+Thread; no new dependency",
+				"journaled_at": "2026-10-09T09:39:08.840601Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify regression and frontend quality; deliver source with preserved runtime",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-09T09:46:40.547499Z",
+				"needs_journaling": false,
+				"status_note": "Source1e47c9d3f65e843e281077cc64e9d985bc1b728e pushed/verified;1025backend/982frontend;compiled ordinary-user real HTTP/socket events retained exactly once in channel+thread;source/runtime/primary preserved,own fixtures/build removed;general gate red including explicit diagnostic replacement;release/pilot separate",
+				"journaled_at": "2026-10-09T09:46:40.549028Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T09:39:08.840593Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce and fix channel/thread initial-loading races",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Original22 failures, fixed22/22 actual component-script checks; loading barrier/version guards/deduplication across Channel+Thread; no new dependency",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T09:39:08.841792Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Phase 1: [To Be Defined]",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T09:46:40.549023Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify regression and frontend quality; deliver source with preserved runtime",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Source1e47c9d3f65e843e281077cc64e9d985bc1b728e pushed/verified;1025backend/982frontend;compiled ordinary-user real HTTP/socket events retained exactly once in channel+thread;source/runtime/primary preserved,own fixtures/build removed;general gate red including explicit diagnostic replacement;release/pilot separate",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T09:46:40.550315Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify and deliver isolated source",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

@@ -1,17 +1,21 @@
 <script lang="ts">
 	import { getContext, tick } from 'svelte';
-	const i18n = getContext('i18n');
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import type { FloatingAction } from '$lib/utils/airis/frontend-contracts';
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	import ChatBubble from '$lib/components/icons/ChatBubble.svelte';
 	import LightBulb from '$lib/components/icons/LightBulb.svelte';
 
 	export let id = '';
 
-	export let actions = [];
-	export let onSetInputText = (text) => {};
+	type Action = FloatingAction & { icon?: typeof ChatBubble };
+	export let actions: Action[] = [];
+	export let onSetInputText: (text: string) => void = () => {};
 
 	let floatingInput = false;
-	let selectedAction = null;
+	let selectedAction: Action | null = null;
 
 	let selectedText = '';
 	let floatingInputValue = '';
@@ -20,7 +24,7 @@
 		actions = DEFAULT_ACTIONS;
 	}
 
-	const DEFAULT_ACTIONS = [
+	const DEFAULT_ACTIONS: Action[] = [
 		{
 			id: 'ask',
 			label: $i18n.t('Ask'),
@@ -36,7 +40,7 @@
 		}
 	];
 
-	const actionHandler = (actionId) => {
+	const actionHandler = (actionId: string | undefined): void => {
 		let selectedContent = selectedText
 			.split('\n')
 			.map((line) => `> ${line}`)
@@ -52,12 +56,10 @@
 		// Handle: {{variableId|tool:id="toolId"}} pattern
 		// This regex captures variableId and toolId from {{variableId|tool:id="toolId"}}
 		const varToolPattern = /\{\{(.*?)\|tool:id="([^"]+)"\}\}/g;
-		prompt = prompt.replace(varToolPattern, (match, variableId, toolId) => {
-			return variableId; // Replace with just variableId
-		});
+		prompt = prompt.replace(varToolPattern, '$1');
 
 		// legacy {{TOOL:toolId}} pattern (for backward compatibility)
-		let toolIdPattern = /\{\{TOOL:([^\}]+)\}\}/g;
+		let toolIdPattern = /\{\{TOOL:([^}]+)\}\}/g;
 
 		// Remove all TOOL placeholders from the prompt
 		prompt = prompt.replace(toolIdPattern, '');
@@ -75,7 +77,7 @@
 		closeHandler();
 	};
 
-	export const closeHandler = () => {
+	export const closeHandler = (): void => {
 		selectedAction = null;
 		selectedText = '';
 		floatingInput = false;
@@ -97,7 +99,7 @@
 					aria-label={action.label}
 					class="px-1.5 py-[1px] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center gap-1 min-w-fit transition"
 					on:click={async () => {
-						selectedText = window.getSelection().toString();
+						selectedText = window.getSelection()?.toString() ?? '';
 						selectedAction = action;
 
 						if (action.prompt.includes('{{INPUT_CONTENT}}')) {

@@ -70,7 +70,8 @@
 		cleanText,
 		displayFileHandler,
 		getUserTimezone,
-		removeAllDetails
+		removeAllDetails,
+		splitStream
 	} from '$lib/utils';
 	import { isPublicMarketingRoute } from '$lib/utils/airis/public_routes';
 
@@ -129,6 +130,8 @@
 
 	let showSyncStatsModal = false;
 	let syncStatsEventData = null;
+	/** @type {string | null} */
+	let syncStatsOrigin = null;
 
 	let heartbeatInterval = null;
 	let disconnectToastTimer = null;
@@ -299,13 +302,80 @@
 		return worker;
 	};
 
+	/**
+	 * @param {string} id
+	 * @param {string} code
+	 * @param {((output: {stdout: unknown, stderr: unknown, result: unknown}) => void) | undefined} cb
+	 * @param {{id?: string, filename?: string, name?: string}[]} files
+	 * @returns {Promise<void>}
+	 */
 	const executePythonAsWorker = async (id, code, cb, files = []) => {
-		let result = null;
-		let stdout = null;
-		let stderr = null;
+		let settled = false;
+		let submitted = false;
+		/** @type {Worker | null} */
+		let worker = null;
+		const controller = new AbortController();
+		/** @param {{stdout: unknown, stderr: unknown, result: unknown}} output
+		 * @returns {void} */
+		const finish = (output) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeoutId);
+			controller.abort();
+			worker?.removeEventListener('message', onMessage);
+			worker?.removeEventListener('error', onError);
+			let response;
+			try {
+				response = JSON.parse(
+					JSON.stringify(output, (_key, value) =>
+						typeof value === 'bigint' ? value.toString() : value
+					)
+				);
+			} catch {
+				response = { stdout: null, stderr: 'Invalid Python worker response.', result: null };
+			}
+			try {
+				cb?.(response);
+			} catch {
+				console.warn('Failed to deliver Python execution response.');
+			}
+		};
+		/** @returns {void} */
+		const stopWorker = () => {
+			if (!worker) return;
+			if ($pyodideWorker === worker) pyodideWorker.set(null);
+			worker.terminate();
+		};
+		/** @param {MessageEvent<unknown>} event
+		 * @returns {void} */
+		const onMessage = (event) => {
+			if (settled || !submitted || !event.data || typeof event.data !== 'object') return;
+			const data = /** @type {Record<string, unknown>} */ (event.data);
+			if (data.id !== id || (typeof data.type === 'string' && data.type.startsWith('fs:'))) return;
+			if (!['stdout', 'stderr', 'result', 'error'].some((key) => key in data)) {
+				finish({ stdout: null, stderr: 'Invalid Python worker response.', result: null });
+				return;
+			}
+			finish({
+				stdout: data.stdout ?? null,
+				stderr: data.stderr ?? data.error ?? null,
+				result: data.result ?? null
+			});
+		};
+		/** @returns {void} */
+		const onError = () => {
+			if (settled) return;
+			finish({ stdout: null, stderr: 'Python worker failed.', result: null });
+			stopWorker();
+		};
+		const timeoutId = setTimeout(() => {
+			if (settled) return;
+			finish({ stdout: null, stderr: 'Execution Time Limit Exceeded', result: null });
+			// Preparation has not used the shared runtime yet.
+			if (submitted) stopWorker();
+		}, 60000);
 
-		let executing = true;
-		let packages = [
+		const packages = [
 			/\bimport\s+requests\b|\bfrom\s+requests\b/.test(code) ? 'requests' : null,
 			/\bimport\s+bs4\b|\bfrom\s+bs4\b/.test(code) ? 'beautifulsoup4' : null,
 			/\bimport\s+numpy\b|\bfrom\s+numpy\b/.test(code) ? 'numpy' : null,
@@ -320,125 +390,36 @@
 			/\bimport\s+tiktoken\b|\bfrom\s+tiktoken\b/.test(code) ? 'tiktoken' : null,
 			/\bimport\s+pytz\b|\bfrom\s+pytz\b/.test(code) ? 'pytz' : null
 		].filter(Boolean);
-
-		const worker = getOrCreateWorker();
-
-		// Fetch file content from the server and prepare for the worker
-		let filePayloads = [];
-		if (files && files.length > 0) {
+		try {
+			worker = getOrCreateWorker();
+			worker.addEventListener('message', onMessage);
+			worker.addEventListener('error', onError);
+			/** @type {{name: string, data: ArrayBuffer}[]} */
+			const filePayloads = [];
 			for (const file of files) {
-				try {
-					const fileId = file?.id;
-					const fileName = file?.filename || file?.name || 'file';
-					if (fileId) {
-						const content = await getFileContentById(fileId);
-						if (content) {
-							filePayloads.push({ name: fileName, data: content });
-						}
-					}
-				} catch (e) {
-					console.error('Failed to fetch file for Pyodide:', e);
-				}
+				if (!file?.id) throw new Error('Selected file unavailable.');
+				const content = await getFileContentById(file.id, controller.signal);
+				if (settled) return;
+				filePayloads.push({ name: file.filename || file.name || 'file', data: content });
 			}
+			submitted = true;
+			worker.postMessage({
+				type: 'execute',
+				id,
+				code,
+				packages,
+				files: filePayloads.length ? filePayloads : undefined
+			});
+		} catch {
+			finish({
+				stdout: null,
+				stderr: 'Failed to prepare or start Python execution.',
+				result: null
+			});
 		}
-
-		worker.postMessage({
-			type: 'execute',
-			id: id,
-			code: code,
-			packages: packages,
-			files: filePayloads.length > 0 ? filePayloads : undefined
-		});
-
-		// Timeout for this specific execution (not the worker itself)
-		let timeoutId = setTimeout(() => {
-			if (executing) {
-				executing = false;
-				stderr = 'Execution Time Limit Exceeded';
-
-				// Terminate and recreate the worker on timeout
-				worker.terminate();
-				pyodideWorker.set(null);
-
-				if (cb) {
-					cb(
-						JSON.parse(
-							JSON.stringify(
-								{
-									stdout: stdout,
-									stderr: stderr,
-									result: result
-								},
-								(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-							)
-						)
-					);
-				}
-			}
-		}, 60000);
-
-		// Use addEventListener so multiple concurrent executions don't clobber each other
-		const onMessage = (event) => {
-			const { id: eventId, ...data } = event.data;
-			// Only handle responses for this execution ID
-			if (eventId !== id) return;
-			// Ignore FS responses (they use a type field)
-			if (data.type && data.type.startsWith('fs:')) return;
-
-			console.log('pyodideWorker.onmessage', event);
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', onMessage);
-			worker.removeEventListener('error', onError);
-
-			if (data['stdout']) stdout = data['stdout'];
-			if (data['stderr']) stderr = data['stderr'];
-			if (data['result']) result = data['result'];
-
-			if (cb) {
-				cb(
-					JSON.parse(
-						JSON.stringify(
-							{
-								stdout: stdout,
-								stderr: stderr,
-								result: result
-							},
-							(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-						)
-					)
-				);
-			}
-
-			executing = false;
-		};
-
-		const onError = (event) => {
-			console.log('pyodideWorker.onerror', event);
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', onMessage);
-			worker.removeEventListener('error', onError);
-
-			if (cb) {
-				cb(
-					JSON.parse(
-						JSON.stringify(
-							{
-								stdout: stdout,
-								stderr: stderr,
-								result: result
-							},
-							(_key, value) => (typeof value === 'bigint' ? value.toString() : value)
-						)
-					)
-				);
-			}
-			executing = false;
-		};
-
-		worker.addEventListener('message', onMessage);
-		worker.addEventListener('error', onError);
 	};
 
+	/** @param {string | undefined} serverUrl */
 	const resolveToolServer = (serverUrl) => {
 		let toolServer = $settings?.toolServers?.find((server) => server.url === serverUrl);
 		if (!toolServer) {
@@ -469,44 +450,128 @@
 		return { toolServer, toolServerData, token };
 	};
 
+	/**
+	 * @param {{name: string, params: Record<string, unknown>, server?: {url?: string}}} data
+	 * @param {((result: unknown) => void) | undefined} cb
+	 * @param {string} chatId
+	 */
 	const executeTool = async (data, cb, chatId) => {
-		const { toolServer, toolServerData, token } = resolveToolServer(data.server?.url);
-
-		console.log('executeTool', data, toolServer);
-
-		if (toolServer) {
-			const res = await executeToolServer(
-				token,
-				toolServer.url,
-				data?.name,
-				data?.params,
-				toolServerData,
-				chatId
-			);
-
-			console.log('executeToolServer', res);
-
-			if (data?.name === 'display_file' && data?.params?.path) {
-				if (res?.exists !== false) {
-					displayFileHandler(data.params.path, { showControls, showFileNavPath });
+		let result = [{ error: 'Tool execution failed.' }, null];
+		try {
+			const { toolServer, toolServerData, token } = resolveToolServer(data.server?.url);
+			if (toolServer) {
+				const res = await executeToolServer(
+					token,
+					toolServer.url,
+					data.name,
+					data.params,
+					toolServerData,
+					chatId,
+					toolServer.headers
+				);
+				result = res;
+				try {
+					const value = res[0];
+					const fields = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+					if (!fields.error && res[1] !== null && typeof data.params?.path === 'string') {
+						if (data.name === 'display_file' && fields.exists !== false)
+							displayFileHandler(data.params.path, { showControls, showFileNavPath });
+						if (data.name === 'write_file')
+							showFileNavDir.set(typeof fields.path === 'string' ? fields.path : data.params.path);
+					}
+				} catch {
+					console.error('Tool file display failed.');
 				}
-			}
-
-			if (['write_file'].includes(data?.name) && data?.params?.path) {
-				showFileNavDir.set(res?.path ?? data.params.path);
-			}
-
-			if (cb) {
-				cb(structuredClone(res));
-			}
-		} else {
-			if (cb) {
-				cb({ error: 'Tool Server Not Found' });
-			}
+			} else result = { error: 'Tool Server Not Found' };
+		} catch {
+			// Always acknowledge the RPC; request/config/result bodies may contain secrets.
+			result = [{ error: 'Tool execution failed.' }, null];
 		}
+		cb?.(result);
 	};
 
 	const chatEventHandler = async (event, cb) => {
+		const type = event?.data?.type ?? null;
+		const data = event?.data?.data ?? null;
+
+		// Session-targeted RPC calls (code execution, tool calls, direct completion)
+		// must ALWAYS be processed regardless of active chat or tab visibility,
+		// because the backend's sio.call blocks waiting for our callback response.
+		if ($socket?.id && data?.session_id === $socket.id) {
+			if (type === 'execute:python') {
+				executePythonAsWorker(data.id, data.code, cb, data.files || []);
+				return;
+			} else if (type === 'execute:tool') {
+				await executeTool(data, cb, event.chat_id);
+				return;
+			} else if (type === 'request:chat:completion') {
+				const { channel, form_data, model } = data;
+				const responseSocket = $socket;
+				let acknowledged = false;
+				try {
+					const directConnections = $settings?.directConnections;
+					const urlIdx = model?.urlIdx;
+					const apiUrl = directConnections?.OPENAI_API_BASE_URLS?.[urlIdx];
+					if (typeof apiUrl !== 'string' || !apiUrl.trim())
+						throw new Error('Direct completion URL missing.');
+					const apiConfig = directConnections?.OPENAI_API_CONFIGS?.[urlIdx];
+					const requestBody = { ...form_data };
+					if (apiConfig?.prefix_id) {
+						requestBody.model = requestBody.model.replace(`${apiConfig.prefix_id}.`, '');
+					}
+					const [res] = await chatCompletion(
+						directConnections?.OPENAI_API_KEYS?.[urlIdx],
+						requestBody,
+						apiUrl
+					);
+					if (responseSocket.id !== data.session_id) {
+						await res?.body?.cancel();
+						return;
+					}
+					if (!res?.ok) throw new Error('Direct completion failed.');
+					if (requestBody.stream) {
+						const reader = res.body
+							?.pipeThrough(new TextDecoderStream())
+							.pipeThrough(splitStream('\n'))
+							.getReader();
+						if (!reader) throw new Error('Direct completion body missing.');
+						acknowledged = true;
+						cb({ status: true });
+						let streamDone = false;
+						try {
+							while (!streamDone) {
+								const { done, value } = await reader.read();
+								streamDone = done;
+								if (responseSocket.id !== data.session_id) {
+									await reader.cancel();
+									break;
+								}
+								if (done) break;
+								if (value.trim()) responseSocket.emit(channel, value);
+							}
+						} finally {
+							reader.releaseLock();
+						}
+					} else {
+						const completion = await res.json();
+						if (responseSocket.id !== data.session_id) return;
+						acknowledged = true;
+						cb(completion);
+					}
+				} catch {
+					if (responseSocket.id !== data.session_id) return;
+					// Request and provider errors can contain keys or private content.
+					const failure = { error: 'Direct completion failed.' };
+					console.error('Direct completion failed.');
+					if (acknowledged) responseSocket.emit(channel, failure);
+					else cb(failure);
+				} finally {
+					if (responseSocket.id === data.session_id) responseSocket.emit(channel, { done: true });
+				}
+				return;
+			}
+		}
+
 		// Skip events from temporary chats that are not the current chat.
 		// This prevents notifications from being sent to other tabs/devices
 		// for privacy, since temporary chats are not meant to be persisted or visible elsewhere.
@@ -526,8 +591,6 @@
 		}
 
 		await tick();
-		const type = event?.data?.type ?? null;
-		const data = event?.data?.data ?? null;
 
 		// Calendar alerts are not chat-scoped, handle before chat_id checks
 		if (type === 'calendar:alert' && data) {
@@ -559,105 +622,6 @@
 				}
 			}
 			return;
-		}
-
-		// Session-targeted RPC calls (code execution, tool calls, direct completion)
-		// must ALWAYS be processed regardless of active chat or tab visibility,
-		// because the backend's sio.call blocks waiting for our callback response.
-		if (data?.session_id === $socket.id) {
-			if (type === 'execute:python') {
-				console.log('execute:python', data);
-				executePythonAsWorker(data.id, data.code, cb, data.files || []);
-				return;
-			} else if (type === 'execute:tool') {
-				console.log('execute:tool', data);
-				executeTool(data, cb, event.chat_id);
-				return;
-			} else if (type === 'request:chat:completion') {
-				console.log(data, $socket.id);
-				const { channel, form_data, model } = data;
-
-				try {
-					const directConnections = $settings?.directConnections ?? {};
-
-					if (directConnections) {
-						const urlIdx = model?.urlIdx;
-
-						const OPENAI_API_URL = directConnections.OPENAI_API_BASE_URLS[urlIdx];
-						const OPENAI_API_KEY = directConnections.OPENAI_API_KEYS[urlIdx];
-						const API_CONFIG = directConnections.OPENAI_API_CONFIGS[urlIdx];
-
-						try {
-							if (API_CONFIG?.prefix_id) {
-								const prefixId = API_CONFIG.prefix_id;
-								form_data['model'] = form_data['model'].replace(`${prefixId}.`, ``);
-							}
-
-							const [res] = await chatCompletion(OPENAI_API_KEY, form_data, OPENAI_API_URL);
-
-							if (res) {
-								// raise if the response is not ok
-								if (!res.ok) {
-									throw await res.json();
-								}
-
-								if (form_data?.stream ?? false) {
-									cb({
-										status: true
-									});
-									console.log({ status: true });
-
-									// res will either be SSE or JSON
-									const reader = res.body.getReader();
-									const decoder = new TextDecoder();
-
-									const processStream = async () => {
-										let streamDone = false;
-										while (!streamDone) {
-											// Read data chunks from the response stream
-											const { done, value } = await reader.read();
-											streamDone = done;
-											if (done) {
-												break;
-											}
-
-											// Decode the received chunk
-											const chunk = decoder.decode(value, { stream: true });
-
-											// Process lines within the chunk
-											const lines = chunk.split('\n').filter((line) => line.trim() !== '');
-
-											for (const line of lines) {
-												console.log(line);
-												$socket?.emit(channel, line);
-											}
-										}
-									};
-
-									// Process the stream in the background
-									await processStream();
-								} else {
-									const data = await res.json();
-									cb(data);
-								}
-							} else {
-								throw new Error('An error occurred while fetching the completion');
-							}
-						} catch (error) {
-							console.error('chatCompletion', error);
-							cb(error);
-						}
-					}
-				} catch (error) {
-					console.error('chatCompletion', error);
-					cb(error);
-				} finally {
-					$socket.emit(channel, {
-						done: true
-					});
-				}
-				return;
-			}
 		}
 
 		if (
@@ -984,13 +948,19 @@
 		}
 	};
 
+	/** @param {MessageEvent} event @returns {Promise<void>} */
 	const windowMessageEventHandler = async (event) => {
-		if (![window.location.origin, 'http://localhost:9999'].includes(event.origin)) {
+		if (
+			event.source !== window.opener ||
+			!window.opener ||
+			![window.location.origin, 'http://localhost:9999'].includes(event.origin)
+		) {
 			return;
 		}
 
 		if (event.data === 'export:stats' || event.data?.type === 'export:stats') {
 			syncStatsEventData = event.data;
+			syncStatsOrigin = event.origin;
 			showSyncStatsModal = true;
 		}
 	};
@@ -1316,7 +1286,10 @@
 
 <svelte:head>
 	{#if isPublicMarketingRoute($page.url.pathname)}
-		<meta name="robots" content={$page.url.pathname === '/unsubscribe' ? 'noindex,nofollow' : 'index,follow'} />
+		<meta
+			name="robots"
+			content={$page.url.pathname === '/unsubscribe' ? 'noindex,nofollow' : 'index,follow'}
+		/>
 	{:else}
 		<meta name="robots" content="noindex,nofollow" />
 		<title>{$WEBUI_NAME}</title>
@@ -1367,16 +1340,20 @@
 {/if}
 
 {#if $config?.features.enable_community_sharing}
-	<SyncStatsModal bind:show={showSyncStatsModal} eventData={syncStatsEventData} />
+	<SyncStatsModal
+		bind:show={showSyncStatsModal}
+		eventData={syncStatsEventData}
+		openerOrigin={syncStatsOrigin}
+	/>
 {/if}
 
 <Toaster
 	theme={$theme.includes('dark')
 		? 'dark'
 		: $theme === 'system'
-				? typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
-					? 'dark'
-					: 'light'
+			? typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+				? 'dark'
+				: 'light'
 			: 'light'}
 	richColors
 	position="top-right"

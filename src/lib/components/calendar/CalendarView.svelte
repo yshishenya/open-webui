@@ -85,16 +85,6 @@
 		return d.getMonth() === currentDate.getMonth();
 	}
 
-	function getEventsForDay(day: Date): CalendarEventModel[] {
-		const dayStartMs = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
-		const dayEndMs = dayStartMs + 86_400_000;
-		return filteredEvents.filter((e) => {
-			const startMs = e.start_at / NS;
-			const endMs = (e.end_at || e.start_at) / NS;
-			return startMs < dayEndMs && endMs >= dayStartMs;
-		});
-	}
-
 	function getEventsForHour(
 		day: Date,
 		hour: number,

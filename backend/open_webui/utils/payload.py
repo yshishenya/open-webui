@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from open_webui.utils.airis.stop_sequences import decode_stop_sequences
 from open_webui.utils.chat_variables import render_chat_variables, render_user_variables
@@ -12,8 +12,8 @@ from open_webui.utils.task import prompt_template, prompt_variables_template
 
 
 async def resolve_system_prompt(
-    system: Optional[str],
-    metadata: Optional[dict] = None,
+    system: str | None,
+    metadata: dict | None = None,
     user=None,
 ) -> str:
     if not system:
@@ -44,9 +44,9 @@ async def resolve_system_prompt(
 # well before it leaves this place.
 # inplace function: form_data is modified
 async def apply_system_prompt_to_body(
-    system: Optional[str],
+    system: str | None,
     form_data: dict,
-    metadata: Optional[dict] = None,
+    metadata: dict | None = None,
     user=None,
     replace: bool = False,
 ) -> dict:
@@ -200,7 +200,7 @@ def apply_model_params_to_body_ollama(params: dict, form_data: dict) -> dict:
         """
         try:
             return json.loads(value)
-        except Exception as e:
+        except Exception:
             return value
 
     ollama_root_params = {
@@ -338,7 +338,7 @@ def convert_payload_openai_to_ollama(openai_payload: dict) -> dict:
             """
             try:
                 return json.loads(value)
-            except Exception as e:
+            except Exception:
                 return value
 
         ollama_root_params = {

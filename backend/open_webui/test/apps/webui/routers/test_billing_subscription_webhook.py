@@ -38,9 +38,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         monkeypatch.setattr(billing_utils, "get_yookassa_client", lambda: fake_client)
 
     @pytest.mark.asyncio
-    async def test_subscription_webhook_idempotent(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_subscription_webhook_idempotent(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PlanModel,
             Plans,
@@ -149,9 +147,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert updated_tx.status == TransactionStatus.SUCCEEDED.value
 
     @pytest.mark.asyncio
-    async def test_subscription_webhook_rejects_inactive_plan(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_subscription_webhook_rejects_inactive_plan(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PlanModel,
             Plans,
@@ -220,9 +216,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
                 }
             )
 
-    def test_yookassa_webhook_token_optional_but_enforced_when_configured(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_token_optional_but_enforced_when_configured(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         async def _noop_process_webhook(_: dict[str, object]) -> None:
@@ -263,9 +257,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         )
         assert response_ok.status_code == 200
 
-    def test_yookassa_webhook_ip_allowlist_optional_but_enforced_when_enabled(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_ip_allowlist_optional_but_enforced_when_enabled(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         async def _noop_process_webhook(_: dict[str, object]) -> None:
@@ -304,9 +296,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         )
         assert response_ok.status_code == 200
 
-    def test_yookassa_webhook_trust_signature_required_when_secret_configured(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_trust_signature_required_when_secret_configured(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         class FakeYooKassaClient:
@@ -371,10 +361,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
             },
         )
         assert response_stale.status_code == 401
-        assert (
-            response_stale.json()["detail"]
-            == "Signature timestamp is outside allowed window"
-        )
+        assert response_stale.json()["detail"] == "Signature timestamp is outside allowed window"
 
         response_ok = self.fast_api_client.post(
             self.create_url("/webhook/yookassa"),
@@ -386,9 +373,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         )
         assert response_ok.status_code == 200
 
-    def test_yookassa_webhook_trust_replay_short_circuit_for_topup(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_trust_replay_short_circuit_for_topup(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         from open_webui.models.billing import (
             PaymentKind,
@@ -462,9 +447,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 200
         assert response.json() == {"status": "ok", "replayed": True}
 
-    def test_yookassa_webhook_returns_503_for_retryable_processing_errors(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_returns_503_for_retryable_processing_errors(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         from open_webui.utils.billing import WebhookRetryableError
 
@@ -498,9 +481,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 503
         assert response.json()["detail"] == "Temporary error processing webhook"
 
-    def test_yookassa_webhook_rejects_invalid_body_encoding(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_rejects_invalid_body_encoding(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
@@ -517,9 +498,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 400
         assert response.json()["detail"] == "Invalid request body encoding"
 
-    def test_yookassa_webhook_rejects_invalid_json_payload(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_rejects_invalid_json_payload(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
@@ -536,9 +515,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 400
         assert response.json()["detail"] == "Invalid JSON payload"
 
-    def test_yookassa_webhook_signature_with_unavailable_client_returns_503(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_signature_with_unavailable_client_returns_503(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         monkeypatch.setattr(billing_router, "YOOKASSA_WEBHOOK_TOKEN", "")
@@ -568,9 +545,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 503
         assert response.json()["detail"] == "Payment system temporarily unavailable"
 
-    def test_yookassa_webhook_rejects_non_integer_signature_timestamp(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_rejects_non_integer_signature_timestamp(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         class FakeYooKassaClient:
@@ -611,9 +586,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid signature timestamp"
 
-    def test_yookassa_webhook_returns_400_on_parse_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_returns_400_on_parse_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         def _raise_parse_error(_: dict[str, object]) -> dict[str, object]:
@@ -646,9 +619,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 400
         assert response.json()["detail"] == "Invalid webhook payload"
 
-    def test_yookassa_webhook_returns_400_on_verification_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_returns_400_on_verification_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
         from open_webui.utils.billing import WebhookVerificationError
 
@@ -682,9 +653,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.status_code == 400
         assert response.json()["detail"] == "Webhook verification failed"
 
-    def test_yookassa_webhook_returns_500_on_unexpected_processing_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_yookassa_webhook_returns_500_on_unexpected_processing_error(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.routers.billing as billing_router
 
         async def _boom(_: dict[str, object]) -> None:
@@ -718,9 +687,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert response.json()["detail"] == "Failed to process webhook"
 
     @pytest.mark.asyncio
-    async def test_subscription_webhook_renews_from_now_if_expired(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_subscription_webhook_renews_from_now_if_expired(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PlanModel,
             Plans,
@@ -825,9 +792,7 @@ class TestBillingSubscriptionWebhook(AbstractPostgresTest):
         assert renewed.current_period_end - renewed.current_period_start == 30 * 24 * 60 * 60
 
     @pytest.mark.asyncio
-    async def test_subscription_webhook_rejects_payment_id_mismatch(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    async def test_subscription_webhook_rejects_payment_id_mismatch(self, monkeypatch: MonkeyPatch) -> None:
         from open_webui.models.billing import (
             PlanModel,
             Plans,

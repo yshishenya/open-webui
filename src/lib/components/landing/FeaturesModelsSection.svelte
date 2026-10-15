@@ -34,7 +34,7 @@
 
 	{#if loading}
 		<div class="flex flex-wrap gap-2">
-			{#each Array.from({ length: 10 }) as _}
+			{#each Array(10).keys() as placeholder (placeholder)}
 				<div class="h-9 w-28 rounded-full bg-gray-200/70 animate-pulse" aria-hidden="true"></div>
 			{/each}
 		</div>

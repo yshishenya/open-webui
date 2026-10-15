@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-remaining-dead-bindings-2026-10-12-098",
+  "title": "AIRIS remaining dead bindings",
+  "generated": "2026-10-12T04:53:07.826096Z",
+  "last_updated": "2026-10-12T05:57:41.344956Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__remaining-dead-bindings.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T04:53:08.038124Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T05:57:41.344489Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS remaining dead bindings",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Remove verified dead bindings and stale comments",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T05:52:42.610163Z",
+        "journaled_at": "2026-10-12T05:52:42.611910Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify retained output and frontend quality",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T05:57:40.801982Z",
+        "journaled_at": "2026-10-12T05:57:40.804265Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Remove verified dead declarations and reuse archive response type",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T05:52:42.609990Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T05:52:42.610865Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify retained runtime, frontend, types and lint; commit and push",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T05:57:40.801821Z",
+        "needs_journaling": false,
+        "status_note": "Verified 2585 frontend tests, types 0/15, ESLint 55 with no additions, compilation 21 and SSR 7; source-only acceptance",
+        "journaled_at": "2026-10-12T05:57:40.803058Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T05:52:42.610861Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Remove verified dead declarations and reuse archive response type",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T05:52:42.611905Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Remove verified dead bindings and stale comments",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T05:57:40.803049Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify retained runtime, frontend, types and lint; commit and push",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Verified 2585 frontend tests, types 0/15, ESLint 55 with no additions, compilation 21 and SSR 7; source-only acceptance",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T05:57:40.804259Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify retained output and frontend quality",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

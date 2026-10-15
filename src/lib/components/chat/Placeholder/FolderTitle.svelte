@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import fileSaver from 'file-saver';
@@ -40,6 +40,10 @@
 	let showShareModal = false;
 	let showDeleteConfirm = false;
 	let deleteFolderContents = true;
+	let destroyed = false;
+	onDestroy(() => {
+		destroyed = true;
+	});
 
 	const updateHandler = async ({ name, meta, data }: FolderForm): Promise<boolean> => {
 		const currentFolder = folder;
@@ -64,6 +68,7 @@
 			return null;
 		});
 
+		if (destroyed || folder !== currentFolder) return Boolean(res);
 		if (res) {
 			currentFolder.name = name;
 			if (data) {
@@ -77,6 +82,7 @@
 				return null;
 			});
 
+			if (destroyed || folder !== currentFolder) return Boolean(res);
 			const updatedFolder = { ...currentFolder, ..._folder };
 			await selectedFolder.set(updatedFolder);
 			onUpdate(updatedFolder);
@@ -85,8 +91,9 @@
 	};
 
 	const updateIconHandler = async (iconName: string | null | undefined): Promise<void> => {
-		if (!folder) return;
-		const res = await updateFolderById(localStorage.token, folder.id, {
+		const currentFolder = folder;
+		if (!currentFolder || destroyed) return;
+		const res = await updateFolderById(localStorage.token, currentFolder.id, {
 			meta: {
 				icon: iconName ?? ''
 			}
@@ -95,38 +102,47 @@
 			return null;
 		});
 
+		if (destroyed || folder !== currentFolder) return;
 		if (res) {
-			folder.meta = { ...folder.meta, icon: iconName ?? '' };
+			currentFolder.meta = { ...currentFolder.meta, icon: iconName ?? '' };
 
 			toast.success($i18n.t('Folder updated successfully'));
 
-			const _folder = await getFolderById(localStorage.token, folder.id).catch((error) => {
+			const _folder = await getFolderById(localStorage.token, currentFolder.id).catch((error) => {
 				toast.error(`${error}`);
 				return null;
 			});
 
-			const updatedFolder = { ...folder, ...res, ..._folder };
+			if (destroyed || folder !== currentFolder) return;
+			const updatedFolder = { ...currentFolder, ...res, ..._folder };
 			await selectedFolder.set(updatedFolder);
 			onUpdate(updatedFolder);
 		}
 	};
 
-	const deleteHandler = async () => {
-		const res = await deleteFolderById(localStorage.token, folder.id, deleteFolderContents).catch(
-			(error) => {
-				toast.error(`${error}`);
-				return null;
-			}
-		);
+	const deleteHandler = async (): Promise<void> => {
+		const currentFolder = folder;
+		if (!currentFolder) return;
+		const res = await deleteFolderById(
+			localStorage.token,
+			currentFolder.id,
+			deleteFolderContents
+		).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
 
 		if (res) {
 			toast.success($i18n.t('Folder deleted successfully'));
-			onDelete(folder);
+			onDelete(currentFolder);
 		}
 	};
 
-	const exportHandler = async () => {
-		const chats = await getChatsByFolderId(localStorage.token, folder.id).catch((error) => {
+	const exportHandler = async (): Promise<void> => {
+		const currentFolder = folder;
+		if (!currentFolder) return;
+		const name = currentFolder.name;
+		const chats = await getChatsByFolderId(localStorage.token, currentFolder.id).catch((error) => {
 			toast.error(`${error}`);
 			return null;
 		});
@@ -138,7 +154,7 @@
 			type: 'application/json'
 		});
 
-		saveAs(blob, `folder-${folder.name}-export-${Date.now()}.json`);
+		saveAs(blob, `folder-${name}-export-${Date.now()}.json`);
 	};
 
 	const createSubFolderHandler = async ({

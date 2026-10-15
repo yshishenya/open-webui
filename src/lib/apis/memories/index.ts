@@ -1,6 +1,15 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 
-export const getMemories = async (token: string) => {
+/** Fields used by the memory list and editor; path can be null in stored rows. */
+export type MemoryEntry = {
+	id: string;
+	content: string;
+	type?: string;
+	path?: string | null;
+	updated_at?: number;
+};
+
+export const getMemories = async (token: string): Promise<MemoryEntry[] | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/memories/`, {

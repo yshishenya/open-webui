@@ -50,16 +50,19 @@ const states = [
 it.each(replacements.flatMap((call, index) => states.map((state) => ({ call, index, state }))))(
 	'preserves native browser entry state on URL replacement $index with $state',
 	({ call, index, state }) => {
-		expect(replacements).toHaveLength(3);
+		expect(replacements).toHaveLength(4);
 		window.history.replaceState(state, '', '/before');
 		evaluate<void>(call.getText(source), {
 			window,
 			history: messageHistory(),
 			res: { chat_id: 'server-created' },
+			saved: { id: 'recovered' },
 			_chatId: 'explicit-created'
 		});
 		expect(window.history.state).toEqual(state);
-		expect(window.location.pathname).toBe(['/', '/c/server-created', '/c/explicit-created'][index]);
+		expect(window.location.pathname).toBe(
+			['/c/recovered', '/', '/c/server-created', '/c/explicit-created'][index]
+		);
 	}
 );
 
@@ -127,7 +130,9 @@ it.each(['normal', 'embedded', 'temporary'])(
 	}
 );
 
-const resetGuard = replacements[0].parent.parent.parent;
+const resetCall = replacements.find((call) => call.arguments[2]?.getText(source) === '`/`');
+if (!resetCall) throw new Error('Missing new-chat URL reset');
+const resetGuard = resetCall.parent.parent.parent;
 if (!ts.isIfStatement(resetGuard)) throw new Error('Missing new-chat reset guard');
 it.each([
 	{ native: '/c/created', routed: '/', embedded: false, expected: true },

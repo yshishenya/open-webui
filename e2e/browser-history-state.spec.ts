@@ -9,7 +9,7 @@ for (const mode of ['backend-created', 'explicit-created']) {
 	}) => {
 		await page.goto('/auth?form=1');
 		await signIn(page, account);
-		await page.goto('/?model=gpt-5.6-luna&q=Navigation%20fixture&submit=false');
+		await page.goto('/?model=gpt-6-luna&q=Navigation%20fixture&submit=false');
 		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 			'Navigation fixture'
 		);

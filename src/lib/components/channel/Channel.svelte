@@ -1,4 +1,11 @@
 <script lang="ts">
+	import type {
+		ChannelMessageEvent,
+		ChannelDetail,
+		ChannelDisplayMessage,
+		ChannelMessageInput
+	} from '$lib/utils/airis/channel-types';
+	import type RichTextInput from '../common/RichTextInput.svelte';
 	import { toast } from 'svelte-sonner';
 	import { Pane, PaneGroup, PaneResizer } from 'paneforge';
 
@@ -20,32 +27,33 @@
 	import MessageInput from './MessageInput.svelte';
 	import Navbar from './Navbar.svelte';
 	import Drawer from '../common/Drawer.svelte';
-	import EllipsisVertical from '../icons/EllipsisVertical.svelte';
 	import Thread from './Thread.svelte';
 	import i18n from '$lib/i18n';
 	import Spinner from '../common/Spinner.svelte';
 
 	export let id = '';
 
-	let currentId = null;
+	let currentId: string | null = null;
 
 	let scrollEnd = true;
-	let messagesContainerElement = null;
-	let chatInputElement = null;
+	let messagesContainerElement: HTMLDivElement | null = null;
+	let chatInputElement: RichTextInput | null = null;
 
 	let top = false;
 
-	let channel = null;
-	let messages = null;
+	let channel: ChannelDetail | null = null;
+	let messages: ChannelDisplayMessage[] | null = null;
+	let loadVersion = 0;
+	let loading: Promise<void> = Promise.resolve();
 
-	let replyToMessage = null;
-	let threadId = null;
+	let replyToMessage: ChannelDisplayMessage | null = null;
+	let threadId: string | null = null;
 
-	let typingUsers = [];
-	let typingUsersTimeout = {};
+	let typingUsers: ChannelMessageEvent['user'][] = [];
+	let typingUsersTimeout: Record<string, ReturnType<typeof setTimeout>> = {};
 
 	$: if (id) {
-		initHandler();
+		loading = initHandler();
 	}
 
 	const scrollToBottom = () => {
@@ -54,7 +62,7 @@
 		}
 	};
 
-	const updateLastReadAt = async (channelId) => {
+	const updateLastReadAt = async (channelId: string): Promise<void> => {
 		$socket?.emit('events:channel', {
 			channel_id: channelId,
 			message_id: null,
@@ -97,7 +105,9 @@
 		}
 	};
 
-	const initHandler = async () => {
+	const initHandler = async (): Promise<void> => {
+		const version = ++loadVersion;
+		const channelId = id;
 		if (currentId) {
 			updateLastReadAt(currentId);
 		}
@@ -114,36 +124,46 @@
 		typingUsers = [];
 		typingUsersTimeout = {};
 
-		channel = await getChannelById(localStorage.token, id).catch((error) => {
-			return null;
-		});
+		const loadedChannel = await getChannelById(localStorage.token, channelId).catch(() => null);
+		if (version !== loadVersion) return;
+		channel = loadedChannel;
 
 		if (channel) {
-			messages = await getChannelMessages(localStorage.token, id, 0);
-
-			if (messages) {
-				scrollToBottom();
-
-				if (messages.length < 50) {
-					top = true;
+			try {
+				const loadedMessages = await getChannelMessages(localStorage.token, channelId, 0);
+				if (version !== loadVersion) return;
+				messages = loadedMessages;
+				if (messages) {
+					top = messages.length < 50;
+					await tick();
+					if (version === loadVersion) scrollToBottom();
 				}
+			} catch (error) {
+				if (version === loadVersion) toast.error(`${error}`);
 			}
 		} else {
 			goto('/');
 		}
 	};
 
-	const channelEventHandler = async (event) => {
+	const channelEventHandler = async (event: ChannelMessageEvent): Promise<void> => {
+		const version = loadVersion;
+		// Apply live changes only after the initial HTTP snapshot is installed.
+		await loading;
+		if (version !== loadVersion || !messages) return;
 		if (event.channel_id === id) {
-			const type = event?.data?.type ?? null;
-			const data = event?.data?.data ?? null;
+			if (!event.data) return;
+			const { type, data } = event.data;
 
 			if (type === 'message') {
 				if ((data?.parent_id ?? null) === null) {
 					const tempId = data?.temp_id ?? null;
 					messages = [
 						{ ...data, temp_id: null },
-						...messages.filter((m) => !tempId || m?.temp_id !== tempId)
+						...messages.filter(
+							(m: ChannelDisplayMessage): boolean =>
+								m.id !== data.id && (!tempId || m.temp_id !== tempId)
+						)
 					];
 
 					if (typingUsers.find((user) => user.id === event.user.id)) {
@@ -151,30 +171,38 @@
 					}
 
 					await tick();
-					if (scrollEnd) {
+					if (version === loadVersion && scrollEnd) {
 						scrollToBottom();
 					}
 				}
 			} else if (type === 'message:update') {
-				const idx = messages.findIndex((message) => message.id === data.id);
+				const idx = messages.findIndex(
+					(message: ChannelDisplayMessage): boolean => message.id === data.id
+				);
 
 				if (idx !== -1) {
 					messages[idx] = data;
 				}
 			} else if (type === 'message:delete') {
-				messages = messages.filter((message) => message.id !== data.id);
+				messages = messages.filter(
+					(message: ChannelDisplayMessage): boolean => message.id !== data.id
+				);
 
 				if (threadId === data.id) {
 					threadId = null;
 				}
 			} else if (type === 'message:reply') {
-				const idx = messages.findIndex((message) => message.id === data.id);
+				const idx = messages.findIndex(
+					(message: ChannelDisplayMessage): boolean => message.id === data.id
+				);
 
 				if (idx !== -1) {
 					messages[idx] = data;
 				}
-			} else if (type.includes('message:reaction')) {
-				const idx = messages.findIndex((message) => message.id === data.id);
+			} else if (type === 'message:reaction:add' || type === 'message:reaction:remove') {
+				const idx = messages.findIndex(
+					(message: ChannelDisplayMessage): boolean => message.id === data.id
+				);
 				if (idx !== -1) {
 					messages[idx] = data;
 				}
@@ -201,15 +229,16 @@
 					clearTimeout(typingUsersTimeout[event.user.id]);
 				}
 
-				typingUsersTimeout[event.user.id] = setTimeout(() => {
+				typingUsersTimeout[event.user.id] = setTimeout((): void => {
+					if (version !== loadVersion) return;
 					typingUsers = typingUsers.filter((user) => user.id !== event.user.id);
 				}, 5000);
 			}
 		}
 	};
 
-	const submitHandler = async ({ content, data }) => {
-		if (!content && (data?.files ?? []).length === 0) {
+	const submitHandler = async ({ content, data }: ChannelMessageInput): Promise<void> => {
+		if (!messages || (!content && (data?.files ?? []).length === 0)) {
 			return;
 		}
 
@@ -241,7 +270,7 @@
 			return null;
 		});
 
-		if (res) {
+		if (res && messagesContainerElement) {
 			messagesContainerElement.scrollTop = messagesContainerElement.scrollHeight;
 		}
 
@@ -263,7 +292,7 @@
 		updateLastReadAt(id);
 	};
 
-	let mediaQuery;
+	let mediaQuery: MediaQueryList;
 	let largeScreen = false;
 
 	onMount(() => {
@@ -275,7 +304,7 @@
 
 		mediaQuery = window.matchMedia('(min-width: 1024px)');
 
-		const handleMediaQuery = async (e) => {
+		const handleMediaQuery = async (e: MediaQueryListEvent | MediaQueryList): Promise<void> => {
 			if (e.matches) {
 				largeScreen = true;
 			} else {
@@ -287,7 +316,8 @@
 		handleMediaQuery(mediaQuery);
 	});
 
-	onDestroy(() => {
+	onDestroy((): void => {
+		loadVersion++;
 		// last read at
 		updateLastReadAt(id);
 		_channelId.set(null);
@@ -299,7 +329,7 @@
 	{#if channel?.type === 'dm'}
 		<title
 			>{channel?.name.trim() ||
-				channel?.users.reduce((a, e, i, arr) => {
+				channel?.users?.reduce((a, e) => {
 					if (e.id === $user?.id) {
 						return a;
 					}
@@ -327,10 +357,12 @@
 			<Navbar
 				{channel}
 				onPin={pinHandler}
-				onUpdate={async () => {
-					channel = await getChannelById(localStorage.token, id).catch((error) => {
+				onUpdate={async (): Promise<void> => {
+					const version = loadVersion;
+					const updatedChannel = await getChannelById(localStorage.token, id).catch(() => {
 						return null;
 					});
+					if (version === loadVersion) channel = updatedChannel;
 				}}
 			/>
 
@@ -341,7 +373,7 @@
 						id="messages-container"
 						bind:this={messagesContainerElement}
 						on:scroll={(e) => {
-							scrollEnd = Math.abs(messagesContainerElement.scrollTop) <= 50;
+							scrollEnd = Math.abs(e.currentTarget.scrollTop) <= 50;
 						}}
 					>
 						{#key id}
@@ -359,13 +391,15 @@
 									threadId = id;
 								}}
 								onPin={pinHandler}
-								onLoad={async () => {
+								onLoad={async (): Promise<void> => {
+									const version = loadVersion;
 									const newMessages = await getChannelMessages(
 										localStorage.token,
 										id,
-										messages.length
+										messages?.length ?? 0
 									);
 
+									if (version !== loadVersion || !messages || !newMessages) return;
 									messages = [...messages, ...newMessages];
 
 									if (newMessages.length < 50) {
@@ -433,7 +467,7 @@
 			>
 				<div
 					class=" absolute -left-1.5 -right-1.5 -top-0 -bottom-0 z-20 cursor-col-resize bg-transparent"
-				/>
+				></div>
 			</PaneResizer>
 
 			<Pane defaultSize={50} minSize={30} class="h-full w-full">

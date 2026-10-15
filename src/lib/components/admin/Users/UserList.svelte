@@ -11,6 +11,9 @@
 
 	import { toast } from 'svelte-sonner';
 
+	import type { AdminUser } from '$lib/apis/users';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getUsers, deleteUserById } from '$lib/apis/users';
 
 	import Pagination from '$lib/components/common/Pagination.svelte';
@@ -35,19 +38,19 @@
 	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
 	import UserPreviewModal from '$lib/components/admin/UserPreviewModal.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
 	let page = 1;
 
-	let users = null;
-	let total = null;
+	let users: AdminUser[] | null = null;
+	let total: number | null = null;
 
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 	let orderBy = 'created_at'; // default sort key
 	let direction = 'asc'; // default sort order
 
-	let selectedUser = null;
+	let selectedUser: AdminUser | null = null;
 
 	let showDeleteConfirmDialog = false;
 	let showAddUserModal = false;
@@ -56,26 +59,23 @@
 	let showEditUserModal = false;
 	let showUserPreviewModal = false;
 
-	const deleteUserHandler = async (id) => {
-		const res = await deleteUserById(localStorage.token, id).catch((error) => {
-			toast.error(`${error}`);
+	let active = true;
+	let listAbort: AbortController | null = null;
+	const deleteUserHandler = async (id: string): Promise<void> => {
+		if (!active) return;
+		const res = await deleteUserById(localStorage.token, id).catch(() => {
+			if (active) toast.error($i18n.t('Something went wrong :('));
 			return null;
 		});
-
-		// if the user is deleted and the current page has only one user, go back to the previous page
-		if (users.length === 1 && page > 1) {
-			page -= 1;
-		}
-
-		if (res) {
-			getUserList();
-		}
+		if (!res || !active) return;
+		if (users?.length === 1 && page > 1) page -= 1;
+		else await getUserList();
 	};
 
-	const sortState = (key) =>
+	const sortState = (key: string): 'ascending' | 'descending' | 'none' =>
 		orderBy === key ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
 
-	const setSortKey = (key) => {
+	const setSortKey = (key: string): void => {
 		if (orderBy === key) {
 			direction = direction === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -84,7 +84,7 @@
 		}
 	};
 
-	const roleClass = (role) => {
+	const roleClass = (role: string): string => {
 		if (role === 'admin') {
 			return 'text-[#4f6f93] dark:text-[#8ba6c6]';
 		}
@@ -94,26 +94,31 @@
 		return 'text-gray-500 dark:text-gray-400';
 	};
 
-	const getUserList = async () => {
+	const getUserList = async (): Promise<void> => {
+		if (!active) return;
+		listAbort?.abort();
+		const controller = new AbortController();
+		listAbort = controller;
 		try {
-			const res = await getUsers(localStorage.token, query, orderBy, direction, page).catch(
-				(error) => {
-					toast.error(`${error}`);
-					return null;
-				}
+			const res = await getUsers(
+				localStorage.token,
+				query,
+				orderBy,
+				direction,
+				page,
+				controller.signal
 			);
-
-			if (res) {
-				users = res.users;
-				total = res.total;
-				adminUserCount.set(total);
-			}
-		} catch (err) {
-			console.error(err);
+			if (controller.signal.aborted || !active) return;
+			users = res.users;
+			total = res.total;
+			adminUserCount.set(total);
+		} catch {
+			if (!controller.signal.aborted && active) toast.error($i18n.t('Something went wrong :('));
 		}
 	};
 
-	const handleSearchInput = () => {
+	const handleSearchInput = (): void => {
+		listAbort?.abort();
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			if (page !== 1) {
@@ -129,14 +134,17 @@
 	}
 
 	onDestroy(() => {
+		active = false;
+		listAbort?.abort();
 		clearTimeout(searchDebounceTimer);
 	});
+	$: licenseSeats = $config?.license_metadata?.seats;
 </script>
 
 <ConfirmDialog
 	bind:show={showDeleteConfirmDialog}
 	on:confirm={() => {
-		deleteUserHandler(selectedUser.id);
+		if (selectedUser) deleteUserHandler(selectedUser.id);
 	}}
 />
 
@@ -160,7 +168,7 @@
 	<UserChatsModal bind:show={showUserChatsModal} user={selectedUser} />
 {/if}
 
-{#if ($config?.license_metadata?.seats ?? null) !== null && total && total > $config?.license_metadata?.seats}
+{#if typeof licenseSeats === 'number' && total !== null && total > licenseSeats}
 	<div class=" mt-1 mb-2 text-xs text-red-500">
 		<Banner
 			className="mx-0"
@@ -354,8 +362,9 @@
 										class="rounded-full size-5.5 object-cover flex-shrink-0"
 										src={`${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`}
 										alt="user"
-										on:error={(e) => {
-											e.currentTarget.src = '/favicon.png';
+										on:error={(e: Event): void => {
+											if (e.currentTarget instanceof HTMLImageElement)
+												e.currentTarget.src = '/favicon.png';
 										}}
 									/>
 								</ProfilePreview>
@@ -398,7 +407,7 @@
 
 						<td class="px-3 py-1 text-right">
 							<div class="flex justify-end w-full">
-								{#if $config.features.enable_admin_chat_access && user.role !== 'admin'}
+								{#if $config?.features?.enable_admin_chat_access && user.role !== 'admin'}
 									<Tooltip content={$i18n.t('Chats')}>
 										<button
 											class="self-center w-fit p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg"
@@ -473,7 +482,7 @@
 {/if}
 
 {#if !$config?.license_metadata}
-	{#if total > 50}
+	{#if (total ?? 0) > 50}
 		<div class="mt-3 mb-3 pb-1 text-gray-700 dark:text-gray-300">
 			<div class="max-w-3xl text-xs leading-5">
 				<div class="text-gray-900 dark:text-gray-100">
@@ -496,7 +505,6 @@
 						)}
 					</p>
 				</div>
-
 			</div>
 		</div>
 	{/if}

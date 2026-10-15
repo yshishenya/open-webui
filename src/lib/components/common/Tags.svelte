@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TagList from './Tags/TagList.svelte';
-	import { getContext, createEventDispatcher, tick } from 'svelte';
+	import { getContext, createEventDispatcher, tick, onMount } from 'svelte';
 	const dispatch = createEventDispatcher();
 
 	const i18n = getContext('i18n');
@@ -15,6 +15,10 @@
 	let inputElement: HTMLInputElement | null = null;
 	let popupElement: HTMLDivElement | null = null;
 	let suggestionsOpen = false;
+	let suggestionListId = '';
+	onMount(() => {
+		suggestionListId = `tag-suggestions-${crypto.randomUUID()}`;
+	});
 
 	$: tagNames = new Set((tags ?? []).map((tag) => tag.name.toLowerCase()));
 	$: filteredSuggestionTags = (suggestionTags ?? [])
@@ -96,6 +100,9 @@
 				placeholder={$i18n.t('Add a tag...')}
 				role="combobox"
 				aria-autocomplete="list"
+				aria-controls={suggestionsOpen && filteredSuggestionTags.length > 0
+					? suggestionListId
+					: undefined}
 				aria-expanded={suggestionsOpen && filteredSuggestionTags.length > 0}
 				autocomplete="off"
 				on:focus={() => {
@@ -128,6 +135,7 @@
 					use:portal
 					bind:this={popupElement}
 					class="fixed w-48 max-h-48 overflow-y-auto rounded-2xl border border-gray-200 bg-white p-0.5 shadow-lg dark:border-gray-800 dark:bg-gray-850"
+					id={suggestionListId}
 					role="listbox"
 					style="z-index: 9999; top: 0; left: 0;"
 				>
@@ -136,6 +144,7 @@
 							type="button"
 							class="flex w-full items-center rounded-xl px-2 py-[5px] text-left text-xs text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
 							role="option"
+							aria-selected={false}
 							on:mousedown={(event) => {
 								event.preventDefault();
 							}}

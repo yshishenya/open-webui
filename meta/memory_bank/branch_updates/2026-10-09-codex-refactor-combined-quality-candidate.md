@@ -1,0 +1,7 @@
+- [ ] **[REFACTOR][QUALITY]** Combined source candidate
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__refactor__combined-quality-candidate.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/combined-quality-candidate`
+  - Started: 2026-10-09
+  - Summary: Combine backend/channel/sidebar sources and measure one frozen tree; keep general quality, clean-image/runtime/CI/release gates independent.
+  - Tests: Docker Compose backend1017/frontend952 passed; Black453 unchanged; general checks still fail (type2271/108, ESLint1020, Ruff1034). Source preservation and temporary fixture cleanup accepted; release remains pending.

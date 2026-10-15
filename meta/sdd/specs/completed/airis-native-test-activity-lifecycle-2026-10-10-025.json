@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-native-test-activity-lifecycle-2026-10-10-025",
+  "title": "Airis Native Test Activity Lifecycle",
+  "generated": "2026-10-10T13:22:53.705480Z",
+  "last_updated": "2026-10-10T13:30:09.614819Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 0.5,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__sparse-save-test-lifecycle.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T13:23:54.538227Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T13:30:09.614580Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Native Test Activity Lifecycle",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce cancelled native activity writes and strict thread errors",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:23:54.767242Z",
+        "journaled_at": "2026-10-10T13:23:54.769107Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse and finalize the existing test loop fixture",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:28:13.723704Z",
+        "journaled_at": "2026-10-10T13:28:13.725629Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Accept strict backend checks and preserve application state",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T13:30:09.160063Z",
+        "journaled_at": "2026-10-10T13:30:09.162012Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce cancelled native activity writes and strict thread errors",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:23:54.767060Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:23:54.768043Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse and finalize the existing test loop fixture",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:28:13.723576Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:28:13.724563Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept strict backend checks and preserve application state",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T13:30:09.159908Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T13:30:09.160901Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T13:23:54.768038Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce cancelled native activity writes and strict thread errors",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:23:54.769103Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce cancelled native activity writes and strict thread errors",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:28:13.724558Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse and finalize the existing test loop fixture",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:28:13.725625Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse and finalize the existing test loop fixture",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T13:30:09.160896Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept strict backend checks and preserve application state",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T13:30:09.162008Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Accept strict backend checks and preserve application state",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

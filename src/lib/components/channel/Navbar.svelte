@@ -1,15 +1,11 @@
 <script lang="ts">
+	import type { ChannelDetail, ChannelPinHandler } from '$lib/utils/airis/channel-types';
 	import { getContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
 
 	import { mobile, showSidebar, user } from '$lib/stores';
 
-	import { slide } from 'svelte/transition';
-	import { page } from '$app/stores';
-
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
-	import PencilSquare from '../icons/PencilSquare.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Sidebar from '../icons/Sidebar.svelte';
 	import Hashtag from '../icons/Hashtag.svelte';
@@ -25,7 +21,7 @@
 	let showChannelPinnedMessagesModal = false;
 	let showChannelInfoModal = false;
 
-	const hasPublicReadGrant = (grants: any) =>
+	const hasPublicReadGrant = (grants: ChannelDetail['access_grants'] | undefined): boolean =>
 		Array.isArray(grants) &&
 		grants.some(
 			(grant) =>
@@ -34,7 +30,7 @@
 				grant?.permission === 'read'
 		);
 
-	const isPublicChannel = (channel: any): boolean => {
+	const isPublicChannel = (channel: ChannelDetail | null): boolean => {
 		if (channel?.type === 'group') {
 			if (typeof channel?.is_private === 'boolean') {
 				return !channel.is_private;
@@ -44,9 +40,9 @@
 		return hasPublicReadGrant(channel?.access_grants);
 	};
 
-	export let channel;
+	export let channel: ChannelDetail | null;
 
-	export let onPin = (messageId, pinned) => {};
+	export let onPin: ChannelPinHandler = () => {};
 	export let onUpdate = () => {};
 </script>
 

@@ -13,7 +13,7 @@ def _persist_upload_file(
     destination_path: str,
     chunk_size: int,
 ) -> None:
-    with open(destination_path, "wb") as destination_file:
+    with open(destination_path, 'wb') as destination_file:
         while True:
             chunk = source_file.read(chunk_size)
             if not chunk:
@@ -39,9 +39,9 @@ def _upload_blob(
     file_path: str,
     file_hash: str,
 ) -> requests.Response:
-    with open(file_path, "rb") as model_file:
+    with open(file_path, 'rb') as model_file:
         return requests.post(
-            f"{ollama_url}/api/blobs/sha256:{file_hash}",
+            f'{ollama_url}/api/blobs/sha256:{file_hash}',
             data=model_file,
         )
 
@@ -61,12 +61,12 @@ def _create_model(
 ) -> tuple[str, requests.Response]:
     model_name, _ = os.path.splitext(filename)
     payload = {
-        "model": model_name,
-        "files": {filename: f"sha256:{file_hash}"},
+        'model': model_name,
+        'files': {filename: f'sha256:{file_hash}'},
     }
     response = requests.post(
-        url=f"{ollama_url}/api/create",
-        headers={"Content-Type": "application/json"},
+        url=f'{ollama_url}/api/create',
+        headers={'Content-Type': 'application/json'},
         data=json.dumps(payload),
     )
     return model_name, response

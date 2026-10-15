@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-folder-import-2026-10-10-042",
+  "title": "airis-folder-import",
+  "generated": "2026-10-10T18:35:50.169399Z",
+  "last_updated": "2026-10-11T05:12:24.434529Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__folder-import.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T18:36:32.061438Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T05:12:24.434197Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-folder-import",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce import, drag response and cleanup defects",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T18:40:56.437282Z",
+        "journaled_at": "2026-10-10T18:40:56.439275Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Minimal validation, batch import and existing folder types",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T18:40:56.647593Z",
+        "journaled_at": "2026-10-10T18:40:56.649467Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Frontend quality, source and preservation acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T05:12:23.925169Z",
+        "journaled_at": "2026-10-11T05:12:23.928292Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce import, drag response and cleanup defects",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T18:40:56.437120Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T18:40:56.438324Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Minimal validation, batch import and existing folder types",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T18:40:56.647424Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T18:40:56.648430Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Frontend quality, source and preservation acceptance",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T05:12:23.924998Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T05:12:23.926592Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T18:40:56.438320Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce import, drag response and cleanup defects",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T18:40:56.439271Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce import, drag response and cleanup defects",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T18:40:56.648424Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Minimal validation, batch import and existing folder types",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T18:40:56.649462Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Minimal validation, batch import and existing folder types",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T05:12:23.926582Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Frontend quality, source and preservation acceptance",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:12:23.928287Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Frontend quality, source and preservation acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

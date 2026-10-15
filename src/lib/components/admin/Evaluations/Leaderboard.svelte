@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	import { adminLeaderboardCount, models } from '$lib/stores';
-	import { getLeaderboard } from '$lib/apis/evaluations';
+	import { getLeaderboard, type RankedModel } from '$lib/apis/evaluations';
 	import ModelModal from './LeaderboardModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -13,7 +13,8 @@
 
 	const i18n = getContext('i18n');
 
-	let rankedModels = [];
+	let rankedModels: RankedModel[] = [];
+	let leaderboardVersion = 0;
 	let query = '';
 	let loading = true;
 	let debounceTimer: ReturnType<typeof setTimeout>;
@@ -21,9 +22,9 @@
 	let direction: 'asc' | 'desc' = 'desc';
 
 	let showModal = false;
-	let selectedModel = null;
+	let selectedModel: RankedModel | null = null;
 
-	const toggleSort = (key: string) => {
+	const toggleSort = (key: string): void => {
 		if (orderBy === key) {
 			direction = direction === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -32,26 +33,28 @@
 		}
 	};
 
-	const openModal = (model) => {
+	const openModal = (model: RankedModel): void => {
 		selectedModel = model;
 		showModal = true;
 	};
 
-	const closeModal = () => {
+	const closeModal = (): void => {
 		selectedModel = null;
 		showModal = false;
 	};
 
-	const loadLeaderboard = async (searchQuery = '') => {
+	const loadLeaderboard = async (searchQuery = ''): Promise<void> => {
+		const version = ++leaderboardVersion;
 		loading = true;
 		try {
 			const result = await getLeaderboard(localStorage.token, searchQuery);
+			if (version !== leaderboardVersion || searchQuery !== query) return;
 			const statsMap = new Map((result?.entries ?? []).map((e) => [e.model_id, e]));
 			const modelMap = new Map(($models ?? []).map((m) => [m.id, m]));
 
 			const activeModels = $models
 				.filter((m) => m?.owned_by !== 'arena' && !m?.info?.meta?.hidden)
-				.map((model) => {
+				.map<RankedModel>((model) => {
 					const s = statsMap.get(model.id);
 					return {
 						...model,
@@ -86,37 +89,38 @@
 			});
 			adminLeaderboardCount.set(rankedModels.length);
 		} catch (err) {
-			console.error('Leaderboard load failed:', err);
+			if (version === leaderboardVersion && searchQuery === query)
+				console.error('Leaderboard load failed:', err);
 		}
-		loading = false;
+		if (version === leaderboardVersion && searchQuery === query) loading = false;
 	};
 
-	const debouncedLoad = () => {
+	const debouncedLoad = (): void => {
+		leaderboardVersion++;
 		loading = true;
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => loadLeaderboard(query), 500);
 	};
+
+	onDestroy(() => {
+		leaderboardVersion++;
+		clearTimeout(debounceTimer);
+	});
 
 	$: if (query !== null) {
 		debouncedLoad();
 	}
 
 	$: sortedModels = [...rankedModels].sort((a, b) => {
-		const getValue = (m, key) => {
-			if (key === 'name') return m.name ?? m.id ?? '';
-			if (key === 'rating') return m.rating === '-' ? -Infinity : m.rating;
-			if (key === 'won' || key === 'lost') {
-				const v = m.stats[key];
-				return v === '-' ? -Infinity : Number(v);
-			}
+		if (orderBy === 'name')
+			return direction === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+		const getValue = (model: RankedModel): number => {
+			if (orderBy === 'rating') return model.rating === '-' ? -Infinity : model.rating;
+			if (orderBy === 'won' || orderBy === 'lost')
+				return model.stats[orderBy] === '-' ? -Infinity : Number(model.stats[orderBy]);
 			return 0;
 		};
-		const aVal = getValue(a, orderBy);
-		const bVal = getValue(b, orderBy);
-		if (orderBy === 'name') {
-			return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-		}
-		return direction === 'asc' ? aVal - bVal : bVal - aVal;
+		return direction === 'asc' ? getValue(a) - getValue(b) : getValue(b) - getValue(a);
 	});
 </script>
 
@@ -214,7 +218,7 @@
 										alt={model.name}
 										class="size-5 rounded-full object-cover shrink-0"
 										on:error={(e) => {
-											e.target.src = '/favicon.png';
+											(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 										}}
 									/>
 									<Tooltip content={`${model.name} (${model.id})`} placement="top-start">

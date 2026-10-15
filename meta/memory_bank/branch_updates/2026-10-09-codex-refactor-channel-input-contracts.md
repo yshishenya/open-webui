@@ -1,0 +1,13 @@
+- [ ] **[REFACTOR][CHANNEL]** Channel input contracts
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**channel-input-contracts.md
+  - Owner: Codex
+  - Branch: codex/refactor/channel-input-contracts
+  - Started: 2026-10-09
+  - Summary: Reuse existing attachment/editor/settings contracts; preserve upload flow and add narrow nullable guards. G14 source scope; release and production acceptance remain open.
+
+- [x] **[REFACTOR][CHANNEL]** Source acceptance complete
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**channel-input-contracts.md
+  - Owner: Codex
+  - Branch: codex/refactor/channel-input-contracts
+  - Done: 2026-10-09
+  - Summary: 41 input type diagnostics removed;20 actual handler checks and1032 full frontend passed;ESLint1012 unchanged;454 backend files equal;source b55eaecf9a0f7ea0edb061f57824dd0a3603fe18 pushed. Release/production/real pilot open.

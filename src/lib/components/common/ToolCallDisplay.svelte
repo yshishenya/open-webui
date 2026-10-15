@@ -66,7 +66,7 @@
 			} else {
 				return String(parsed);
 			}
-		} catch (e) {
+		} catch {
 			return str;
 		}
 	}
@@ -256,14 +256,14 @@
 	<!-- Files display (images etc.) when done -->
 	{#if isDone}
 		{#if typeof files === 'object'}
-			{#each files ?? [] as file, idx}
+			{#each files ?? [] as file}
 				{#if typeof file === 'string'}
 					{#if file.startsWith('data:image/')}
-						<Image id={`${componentId}-tool-call-result-${idx}`} src={file} alt="Image" />
+						<Image src={file} alt="Image" />
 					{/if}
 				{:else if typeof file === 'object'}
 					{#if (file.type === 'image' || (file?.content_type ?? '').startsWith('image/')) && file.url}
-						<Image id={`${componentId}-tool-call-result-${idx}`} src={file.url} alt="Image" />
+						<Image src={file.url} alt="Image" />
 					{/if}
 				{/if}
 			{/each}

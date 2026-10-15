@@ -3,7 +3,7 @@ NOTE: This vector database integration is community-supported and maintained on 
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import boto3
 from open_webui.config import S3_VECTOR_BUCKET_NAME, S3_VECTOR_REGION
@@ -16,6 +16,36 @@ from open_webui.retrieval.vector.main import (
 from open_webui.retrieval.vector.utils import process_metadata
 
 log = logging.getLogger(__name__)
+
+
+def _collection_unavailable(error: Exception, collection_name: str) -> bool:
+    if hasattr(error, 'response') and 'Error' in getattr(error, 'response'):
+        error_code = getattr(error, 'response')['Error']['Code']
+        if error_code == 'NotFoundException':
+            log.warning(f"Collection '{collection_name}' not found")
+            return True
+        elif error_code == 'AccessDeniedException':
+            log.error(f"Access denied for collection '{collection_name}'. Check permissions.")
+            return True
+    return False
+
+
+def _matches_filter_value(metadata: dict[str, object], key: str, expected_value: object) -> bool:
+    actual_value = metadata.get(key)
+    if not isinstance(expected_value, dict):
+        return not (actual_value != expected_value)
+    for op, op_value in expected_value.items():
+        if op == '$eq' and actual_value != op_value:
+            return False
+        elif op == '$ne' and actual_value == op_value:
+            return False
+        elif op == '$in' and (not isinstance(op_value, list) or actual_value not in op_value):
+            return False
+        elif op == '$nin' and isinstance(op_value, list) and actual_value in op_value:
+            return False
+        elif op == '$exists' and bool(op_value) != (key in metadata):
+            return False
+    return True
 
 
 class S3VectorClient(VectorDBBase):
@@ -75,7 +105,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f"Error creating S3 index '{index_name}': {e}")
             raise
 
-    def _filter_metadata(self, metadata: Dict[str, Any], item_id: str) -> Dict[str, Any]:
+    def _filter_metadata(self, metadata: dict[str, Any], item_id: str) -> dict[str, Any]:
         """
         Filter vector metadata keys to comply with S3 Vector API limit of 10 keys maximum.
         """
@@ -144,7 +174,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f"Error deleting collection '{collection_name}': {e}")
             raise
 
-    def insert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def insert(self, collection_name: str, items: list[VectorItem]) -> None:
         """
         Insert vector items into the S3 Vector index. Create index if it does not exist.
         """
@@ -209,7 +239,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f'Error inserting vectors: {e}')
             raise
 
-    def upsert(self, collection_name: str, items: List[VectorItem]) -> None:
+    def upsert(self, collection_name: str, items: list[VectorItem]) -> None:
         """
         Insert or update vector items in the S3 Vector index. Create index if it does not exist.
         """
@@ -283,10 +313,10 @@ class S3VectorClient(VectorDBBase):
     def search(
         self,
         collection_name: str,
-        vectors: List[List[Union[float, int]]],
-        filter: Optional[dict] = None,
+        vectors: list[list[float | int]],
+        filter: dict[str, object] | None = None,
         limit: int = 10,
-    ) -> Optional[SearchResult]:
+    ) -> SearchResult | None:
         """
         Search for similar vectors in a collection using multiple query vectors.
         """
@@ -342,12 +372,12 @@ class S3VectorClient(VectorDBBase):
                     document_text = ''
                     if isinstance(vector_metadata, dict):
                         # Get the text field first (highest priority)
-                        document_text = vector_metadata.get('text')
-                        if not document_text:
-                            # Fallback to other possible text fields
-                            document_text = (
-                                vector_metadata.get('content') or vector_metadata.get('document') or vector_id
-                            )
+                        document_text = (
+                            vector_metadata.get('text')
+                            or vector_metadata.get('content')
+                            or vector_metadata.get('document')
+                            or vector_id
+                        )
                     else:
                         document_text = vector_id
 
@@ -374,21 +404,16 @@ class S3VectorClient(VectorDBBase):
 
         except Exception as e:
             log.error(f"Error searching collection '{collection_name}': {str(e)}")
-            # Handle specific AWS exceptions
+            if _collection_unavailable(e, collection_name):
+                return None
             if hasattr(e, 'response') and 'Error' in e.response:
                 error_code = e.response['Error']['Code']
-                if error_code == 'NotFoundException':
-                    log.warning(f"Collection '{collection_name}' not found")
-                    return None
-                elif error_code == 'ValidationException':
-                    log.error(f'Invalid query vector dimensions or parameters')
-                    return None
-                elif error_code == 'AccessDeniedException':
-                    log.error(f"Access denied for collection '{collection_name}'. Check permissions.")
+                if error_code == 'ValidationException':
+                    log.error('Invalid query vector dimensions or parameters')
                     return None
             raise
 
-    def query(self, collection_name: str, filter: Dict, limit: Optional[int] = None) -> Optional[GetResult]:
+    def query(self, collection_name: str, filter: dict[str, object], limit: int | None = None) -> GetResult | None:
         """
         Query vectors from a collection using metadata filter.
         """
@@ -416,7 +441,7 @@ class S3VectorClient(VectorDBBase):
                 return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
 
             # Extract the lists from the result
-            all_ids = all_vectors_result.ids[0] if all_vectors_result.ids else []
+            all_ids = all_vectors_result.ids[0]
             all_documents = all_vectors_result.documents[0] if all_vectors_result.documents else []
             all_metadatas = all_vectors_result.metadatas[0] if all_vectors_result.metadatas else []
 
@@ -427,10 +452,8 @@ class S3VectorClient(VectorDBBase):
 
             for i, metadata in enumerate(all_metadatas):
                 if self._matches_filter(metadata, filter):
-                    if i < len(all_ids):
-                        filtered_ids.append(all_ids[i])
-                    if i < len(all_documents):
-                        filtered_documents.append(all_documents[i])
+                    filtered_ids.extend(all_ids[i : i + 1])
+                    filtered_documents.extend(all_documents[i : i + 1])
                     filtered_metadatas.append(metadata)
 
                     # Apply limit if specified
@@ -451,18 +474,11 @@ class S3VectorClient(VectorDBBase):
 
         except Exception as e:
             log.error(f"Error querying collection '{collection_name}': {str(e)}")
-            # Handle specific AWS exceptions
-            if hasattr(e, 'response') and 'Error' in e.response:
-                error_code = e.response['Error']['Code']
-                if error_code == 'NotFoundException':
-                    log.warning(f"Collection '{collection_name}' not found")
-                    return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
-                elif error_code == 'AccessDeniedException':
-                    log.error(f"Access denied for collection '{collection_name}'. Check permissions.")
-                    return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
+            if _collection_unavailable(e, collection_name):
+                return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
             raise
 
-    def get(self, collection_name: str) -> Optional[GetResult]:
+    def get(self, collection_name: str) -> GetResult | None:
         """
         Retrieve all vectors from a collection.
         """
@@ -507,18 +523,18 @@ class S3VectorClient(VectorDBBase):
                     vector_metadata = vector.get('metadata', {})
 
                     # Extract the actual vector array
-                    vector_array = vector_data.get('float32', [])
+                    vector_data.get('float32', [])
 
                     # For documents, we try to extract text from metadata or use the vector ID
                     document_text = ''
                     if isinstance(vector_metadata, dict):
                         # Get the text field first (highest priority)
-                        document_text = vector_metadata.get('text')
-                        if not document_text:
-                            # Fallback to other possible text fields
-                            document_text = (
-                                vector_metadata.get('content') or vector_metadata.get('document') or vector_id
-                            )
+                        document_text = (
+                            vector_metadata.get('text')
+                            or vector_metadata.get('content')
+                            or vector_metadata.get('document')
+                            or vector_id
+                        )
 
                         # Log the actual content for debugging
                         log.debug(f'Document text preview (first 200 chars): {str(document_text)[:200]}')
@@ -538,29 +554,19 @@ class S3VectorClient(VectorDBBase):
 
             # Return in GetResult format
             # The Open WebUI GetResult expects lists of lists, so we wrap each list
-            if all_ids:
-                return GetResult(ids=[all_ids], documents=[all_documents], metadatas=[all_metadatas])
-            else:
-                return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
+            return GetResult(ids=[all_ids], documents=[all_documents], metadatas=[all_metadatas])
 
         except Exception as e:
             log.error(f"Error retrieving vectors from collection '{collection_name}': {str(e)}")
-            # Handle specific AWS exceptions
-            if hasattr(e, 'response') and 'Error' in e.response:
-                error_code = e.response['Error']['Code']
-                if error_code == 'NotFoundException':
-                    log.warning(f"Collection '{collection_name}' not found")
-                    return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
-                elif error_code == 'AccessDeniedException':
-                    log.error(f"Access denied for collection '{collection_name}'. Check permissions.")
-                    return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
+            if _collection_unavailable(e, collection_name):
+                return GetResult(ids=[[]], documents=[[]], metadatas=[[]])
             raise
 
     def delete(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        filter: Optional[Dict] = None,
+        ids: list[str] | None = None,
+        filter: dict | None = None,
     ) -> None:
         """
         Delete vectors by ID or filter from a collection.
@@ -655,7 +661,7 @@ class S3VectorClient(VectorDBBase):
             log.error(f'Error during reset: {e}')
             raise
 
-    def _matches_filter(self, metadata: Dict[str, Any], filter: Dict[str, Any]) -> bool:
+    def _matches_filter(self, metadata: object, filter: object) -> bool:
         """
         Check if metadata matches the given filter conditions.
         """
@@ -666,52 +672,15 @@ class S3VectorClient(VectorDBBase):
         for key, expected_value in filter.items():
             # Handle special operators
             if key.startswith('$'):
-                if key == '$and':
-                    # All conditions must match
-                    if not isinstance(expected_value, list):
-                        continue
-                    for condition in expected_value:
-                        if not self._matches_filter(metadata, condition):
-                            return False
-                elif key == '$or':
-                    # At least one condition must match
-                    if not isinstance(expected_value, list):
-                        continue
-                    any_match = False
-                    for condition in expected_value:
-                        if self._matches_filter(metadata, condition):
-                            any_match = True
-                            break
-                    if not any_match:
-                        return False
+                if not isinstance(expected_value, list):
+                    continue
+                if key == '$and' and not all(self._matches_filter(metadata, condition) for condition in expected_value):
+                    return False
+                if key == '$or' and not any(self._matches_filter(metadata, condition) for condition in expected_value):
+                    return False
                 continue
 
-            # Get the actual value from metadata
-            actual_value = metadata.get(key)
-
-            # Handle different types of expected values
-            if isinstance(expected_value, dict):
-                # Handle comparison operators
-                for op, op_value in expected_value.items():
-                    if op == '$eq':
-                        if actual_value != op_value:
-                            return False
-                    elif op == '$ne':
-                        if actual_value == op_value:
-                            return False
-                    elif op == '$in':
-                        if not isinstance(op_value, list) or actual_value not in op_value:
-                            return False
-                    elif op == '$nin':
-                        if isinstance(op_value, list) and actual_value in op_value:
-                            return False
-                    elif op == '$exists':
-                        if bool(op_value) != (key in metadata):
-                            return False
-                    # Add more operators as needed
-            else:
-                # Simple equality check
-                if actual_value != expected_value:
-                    return False
+            if not _matches_filter_value(metadata, key, expected_value):
+                return False
 
         return True

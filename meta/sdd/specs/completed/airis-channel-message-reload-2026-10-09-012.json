@@ -1,0 +1,118 @@
+{
+	"spec_id": "airis-channel-message-reload-2026-10-09-012",
+	"title": "Airis channel message reload",
+	"generated": "2026-10-09T10:36:43.898061Z",
+	"last_updated": "2026-10-09T10:49:09.534303Z",
+	"metadata": {
+		"template": "medium",
+		"complexity": "medium",
+		"risk_level": "medium",
+		"estimated_hours": 2,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__bugfix__channel-message-reload.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T10:39:58.853453Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-09T10:49:09.534014Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis channel message reload",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce, fix and verify source",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T10:49:09.021172Z",
+				"journaled_at": "2026-10-09T10:49:09.024011Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce mounted data reset and stale request",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"completed_at": "2026-10-09T10:46:14.723758Z",
+				"needs_journaling": false,
+				"status_note": "Original compiled script9 failed5 passed and1 unhandled rejection;fixed14 pass;actual retry markup executes;router-local slim model confirmed",
+				"journaled_at": "2026-10-09T10:46:14.725504Z",
+				"category": "investigation",
+				"file_path": "src/lib/utils/airis/channel_message_reload.test.ts"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Fix reloading and verify source delivery",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "implementation",
+				"file_path": "src/lib/components/channel/Messages/Message.svelte",
+				"completed_at": "2026-10-09T10:49:09.020872Z",
+				"needs_journaling": false,
+				"status_note": "Source5b873b454b98fa355882cc8c6c3545586a651461;1012 full frontend/126files;14 compiled reload/52 related pass;types2093+108 andESLint1012 exactly unchanged;454backend files same;production12neighbors preserved;no build/deploy",
+				"journaled_at": "2026-10-09T10:49:09.022832Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T10:46:14.725494Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce mounted data reset and stale request",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Original compiled script9 failed5 passed and1 unhandled rejection;fixed14 pass;actual retry markup executes;router-local slim model confirmed",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T10:49:09.022824Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Fix reloading and verify source delivery",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Source5b873b454b98fa355882cc8c6c3545586a651461;1012 full frontend/126files;14 compiled reload/52 related pass;types2093+108 andESLint1012 exactly unchanged;454backend files same;production12neighbors preserved;no build/deploy",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-09T10:49:09.024007Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce, fix and verify source",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

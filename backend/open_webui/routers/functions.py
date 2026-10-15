@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
-from pathlib import Path
-from typing import Optional
 
 import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -21,10 +18,11 @@ from open_webui.models.functions import (
     FunctionUserResponse,
     FunctionWithValvesModel,
 )
+from open_webui.models.users import UserModel
 from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.plugin import (
-    get_functions_cache,
     get_function_module_from_cache,
+    get_functions_cache,
     load_function_module_by_id,
     replace_imports,
     resolve_valves_schema_options,
@@ -44,8 +42,10 @@ router = APIRouter()
 ############################
 
 
-@router.get('/', response_model=list[FunctionResponse])
-async def get_functions(user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
+@router.get('/', response_model=list[FunctionResponse], name='get_functions')
+async def list_functions(
+    user: UserModel = Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
+) -> list[FunctionModel | FunctionWithValvesModel]:
     if not ENABLE_PLUGINS:
         return []
 
@@ -120,9 +120,7 @@ async def load_function_from_url(request: Request, form_data: LoadUrlForm, user=
     function_name = (
         file_name[:-3]
         if (file_name.endswith('.py') and (not file_name.startswith(('main.py', 'index.py', '__init__.py'))))
-        else url_parts[-2]
-        if len(url_parts) > 1
-        else 'function'
+        else url_parts[-2] if len(url_parts) > 1 else 'function'
     )
 
     try:

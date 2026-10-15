@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { createEventDispatcher, onMount, getContext } from 'svelte';
+	import { createEventDispatcher, onMount, onDestroy, getContext } from 'svelte';
 
-	import { user, settings, config } from '$lib/stores';
+	import { settings, config, type Settings } from '$lib/stores';
 	import { getVoices as _getVoices } from '$lib/apis/audio';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import type { KokoroTTS } from 'kokoro-js';
+	import type { SpeechSettings } from '$lib/utils/airis/frontend-contracts';
 
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -14,12 +18,11 @@
 	import UserSettingSection from './UserSettingSection.svelte';
 	const dispatch = createEventDispatcher();
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	export let saveSettings: Function;
+	export let saveSettings: (value: Partial<Settings>) => void | Promise<void>;
 
 	// Audio
-	let conversationMode = false;
 	let speechAutoSend = false;
 	let responseAutoPlayback = false;
 	let nonLocalVoices = false;
@@ -28,13 +31,25 @@
 	let STTLanguage = '';
 
 	let TTSEngine = '';
-	let TTSEngineConfig = {};
+	let TTSEngineConfig: NonNullable<NonNullable<SpeechSettings['tts']>['engineConfig']> = {};
 
-	let TTSModel = null;
-	let TTSModelProgress = null;
+	let TTSModel: KokoroTTS | null = null;
+	type KokoroProgress = Parameters<
+		NonNullable<NonNullable<Parameters<typeof KokoroTTS.from_pretrained>[1]>['progress_callback']>
+	>[0];
+	let TTSModelProgress: KokoroProgress | null = null;
 	let TTSModelLoading = false;
 
-	let voices = [];
+	let voices: { id: string; name: string; localService?: boolean }[] = [];
+	let destroyed = false;
+	let mounted = false;
+	let voiceRequest: AbortController | null = null;
+	let modelGeneration = 0;
+	let loadedDtype: typeof TTSEngineConfig.dtype | null = null;
+	let modelLoad: {
+		dtype: typeof TTSEngineConfig.dtype;
+		promise: Promise<KokoroTTS | null>;
+	} | null = null;
 	let voice = '';
 
 	// Audio speed control
@@ -42,55 +57,116 @@
 	const inputClass =
 		'h-7 w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 
-	const getVoices = async () => {
-		if (TTSEngine === 'browser-kokoro') {
-			if (!TTSModel) {
-				await loadKokoro();
-			}
+	const releaseModel = (model: KokoroTTS): void => {
+		void model.model
+			.dispose()
+			.catch((error: unknown) => console.error('Error releasing voice model:', error));
+	};
 
-			voices = Object.entries(TTSModel.voices).map(([key, value]) => {
-				return {
-					id: key,
-					name: value.name,
-					localService: false
-				};
-			});
-		} else {
-			if ($config.audio.tts.engine === '') {
-				const getVoicesLoop = setInterval(async () => {
-					voices = await speechSynthesis.getVoices();
-
-					// do your loop
-					if (voices.length > 0) {
-						clearInterval(getVoicesLoop);
+	const loadKokoro = (): Promise<KokoroTTS | null> => {
+		const dtype = TTSEngineConfig.dtype ?? 'fp32';
+		if (TTSModel && loadedDtype === dtype) return Promise.resolve(TTSModel);
+		if (modelLoad?.dtype === dtype) return modelLoad.promise;
+		if (TTSModel) releaseModel(TTSModel);
+		TTSModel = null;
+		TTSModelProgress = null;
+		TTSModelLoading = true;
+		const generation = ++modelGeneration;
+		const promise = (async (): Promise<KokoroTTS | null> => {
+			try {
+				const { KokoroTTS } = await import('kokoro-js');
+				if (destroyed || modelGeneration !== generation) return null;
+				const model = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
+					dtype,
+					device: navigator.gpu ? 'webgpu' : 'wasm',
+					progress_callback: (event): void => {
+						if (!destroyed && modelGeneration === generation) TTSModelProgress = event;
 					}
-				}, 100);
-			} else {
-				const res = await _getVoices(localStorage.token).catch((e) => {
-					toast.error(`${e}`);
 				});
-
-				if (res) {
-					console.log(res);
-					voices = res.voices;
+				if (
+					destroyed ||
+					modelGeneration !== generation ||
+					TTSEngine !== 'browser-kokoro' ||
+					(TTSEngineConfig.dtype ?? 'fp32') !== dtype
+				) {
+					releaseModel(model);
+					return null;
+				}
+				TTSModel = model;
+				loadedDtype = dtype;
+				return model;
+			} catch (error) {
+				if (!destroyed && modelGeneration === generation) toast.error(`${error}`);
+				return null;
+			} finally {
+				if (modelGeneration === generation) {
+					modelLoad = null;
+					TTSModelLoading = false;
 				}
 			}
+		})();
+		modelLoad = { dtype, promise };
+		return promise;
+	};
+
+	const getVoices = async (): Promise<void> => {
+		if (destroyed) return;
+		voiceRequest?.abort();
+		const controller = new AbortController();
+		voiceRequest = controller;
+		try {
+			if (TTSEngine === 'browser-kokoro') {
+				const model = await loadKokoro();
+				if (controller.signal.aborted || destroyed || !model) return;
+				voices = Object.entries(model.voices).map(([id, value]) => ({
+					id,
+					name: value.name,
+					localService: false
+				}));
+			} else {
+				if (TTSModel) releaseModel(TTSModel);
+				TTSModel = null;
+				loadedDtype = null;
+				modelLoad = null;
+				modelGeneration++;
+				TTSModelLoading = false;
+				if (!($config?.audio?.tts?.engine ?? '')) {
+					const nativeVoices =
+						typeof speechSynthesis === 'undefined' ? [] : speechSynthesis.getVoices();
+					voices = nativeVoices.map((v) => ({
+						id: v.voiceURI,
+						name: v.name,
+						localService: v.localService
+					}));
+					// Preserve a voice saved by the old name-based selector.
+					if (!voices.some((v) => v.id === voice))
+						voice = nativeVoices.find((v) => v.name === voice)?.voiceURI ?? voice;
+				} else {
+					const res = await _getVoices(localStorage.token, controller.signal);
+					if (!controller.signal.aborted && !destroyed) voices = res.voices;
+				}
+			}
+		} catch (error) {
+			if (!controller.signal.aborted && !destroyed) toast.error(`${error}`);
 		}
 	};
 
-	const setResponseAutoPlayback = async (enabled: boolean) => {
+	const nativeVoicesChanged = (): void => {
+		if (TTSEngine !== 'browser-kokoro' && !($config?.audio?.tts?.engine ?? '')) void getVoices();
+	};
+
+	const setResponseAutoPlayback = async (enabled: boolean): Promise<void> => {
 		responseAutoPlayback = enabled;
-		saveSettings({ responseAutoPlayback: responseAutoPlayback });
+		await saveSettings({ responseAutoPlayback });
 	};
 
-	const setSpeechAutoSend = async (enabled: boolean) => {
+	const setSpeechAutoSend = async (enabled: boolean): Promise<void> => {
 		speechAutoSend = enabled;
-		saveSettings({ speechAutoSend: speechAutoSend });
+		await saveSettings({ speechAutoSend });
 	};
 
-	onMount(async () => {
+	onMount(() => {
 		playbackRate = $settings.audio?.tts?.playbackRate ?? 1;
-		conversationMode = $settings.conversationMode ?? false;
 		speechAutoSend = $settings.speechAutoSend ?? false;
 		responseAutoPlayback = $settings.responseAutoPlayback ?? false;
 
@@ -98,64 +174,35 @@
 		STTLanguage = $settings?.audio?.stt?.language ?? '';
 
 		TTSEngine = $settings?.audio?.tts?.engine ?? '';
-		TTSEngineConfig = $settings?.audio?.tts?.engineConfig ?? {};
+		TTSEngineConfig = { ...$settings?.audio?.tts?.engineConfig };
 
-		if ($settings?.audio?.tts?.defaultVoice === $config.audio.tts.voice) {
-			voice = $settings?.audio?.tts?.voice ?? $config.audio.tts.voice ?? '';
+		if ($settings?.audio?.tts?.defaultVoice === ($config?.audio?.tts?.voice ?? '')) {
+			voice = $settings?.audio?.tts?.voice ?? $config?.audio?.tts?.voice ?? '';
 		} else {
-			voice = $config.audio.tts.voice ?? '';
+			voice = $config?.audio?.tts?.voice ?? '';
 		}
 
 		nonLocalVoices = $settings.audio?.tts?.nonLocalVoices ?? false;
 
-		await getVoices();
+		mounted = true;
+		if (typeof speechSynthesis !== 'undefined')
+			speechSynthesis.addEventListener('voiceschanged', nativeVoicesChanged);
+		void getVoices();
 	});
 
-	$: if (TTSEngine && TTSEngineConfig) {
-		onTTSEngineChange();
-	}
+	$: if (mounted && TTSEngine !== undefined && TTSEngineConfig && $config) void getVoices();
 
-	const onTTSEngineChange = async () => {
-		if (TTSEngine === 'browser-kokoro') {
-			await loadKokoro();
-		}
-	};
-
-	const loadKokoro = async () => {
-		if (TTSEngine === 'browser-kokoro') {
-			voices = [];
-
-			if (TTSEngineConfig?.dtype) {
-				TTSModel = null;
-				TTSModelProgress = null;
-				TTSModelLoading = true;
-
-				const model_id = 'onnx-community/Kokoro-82M-v1.0-ONNX';
-
-				const { KokoroTTS } = await import('kokoro-js');
-				TTSModel = await KokoroTTS.from_pretrained(model_id, {
-					dtype: TTSEngineConfig.dtype, // Options: "fp32", "fp16", "q8", "q4", "q4f16"
-					device: navigator?.gpu ? 'webgpu' : 'wasm', // Detect WebGPU
-					progress_callback: (e) => {
-						TTSModelProgress = e;
-						console.log(e);
-					}
-				});
-
-				await getVoices();
-
-				// const rawAudio = await tts.generate(inputText, {
-				// 	// Use `tts.list_voices()` to list all available voices
-				// 	voice: voice
-				// });
-
-				// const blobUrl = URL.createObjectURL(await rawAudio.toBlob());
-				// const audio = new Audio(blobUrl);
-
-				// audio.play();
-			}
-		}
-	};
+	onDestroy(() => {
+		destroyed = true;
+		voiceRequest?.abort();
+		if (typeof speechSynthesis !== 'undefined')
+			speechSynthesis.removeEventListener('voiceschanged', nativeVoicesChanged);
+		if (TTSModel) releaseModel(TTSModel);
+		TTSModel = null;
+		modelLoad = null;
+		modelGeneration++;
+		TTSModelLoading = false;
+	});
 </script>
 
 <form
@@ -174,7 +221,7 @@
 					playbackRate: playbackRate,
 					voice: voice !== '' ? voice : undefined,
 					defaultVoice: $config?.audio?.tts?.voice ?? '',
-					nonLocalVoices: $config.audio.tts.engine === '' ? nonLocalVoices : undefined
+					nonLocalVoices: !($config?.audio?.tts?.engine ?? '') ? nonLocalVoices : undefined
 				}
 			}
 		});
@@ -185,7 +232,7 @@
 
 	<div class="flex-1 min-h-0 overflow-y-auto scrollbar-hover pr-1.5">
 		<UserSettingSection title={$i18n.t('STT Settings')} first>
-			{#if $config.audio.stt.engine !== 'web'}
+			{#if $config?.audio?.stt?.engine !== 'web'}
 				<UserSettingRow
 					label={$i18n.t('Speech-to-Text Engine')}
 					description={$i18n.t('Choose the engine used to transcribe voice input.')}
@@ -326,7 +373,7 @@
 						</datalist>
 					</UserSettingField>
 				</UserSettingSection>
-			{:else}
+			{:else if TTSModelLoading}
 				<UserSettingSection title={$i18n.t('Voice')}>
 					<div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
 						<Spinner className="size-4" />
@@ -344,7 +391,7 @@
 					</div>
 				</UserSettingSection>
 			{/if}
-		{:else if $config.audio.tts.engine === ''}
+		{:else if !($config?.audio?.tts?.engine ?? '')}
 			<UserSettingSection title={$i18n.t('Voice')}>
 				<UserSettingField
 					label={$i18n.t('Set Voice')}
@@ -354,9 +401,9 @@
 						<option value="" selected={voice !== ''}>{$i18n.t('Default')}</option>
 						{#each voices.filter((v) => nonLocalVoices || v.localService === true) as _voice}
 							<option
-								value={_voice.name}
+								value={_voice.id}
 								class="bg-gray-100 dark:bg-gray-700"
-								selected={voice === _voice.name}>{_voice.name}</option
+								selected={voice === _voice.id}>{_voice.name}</option
 							>
 						{/each}
 					</SettingsSelect>
@@ -368,7 +415,7 @@
 					<Switch bind:state={nonLocalVoices} />
 				</UserSettingRow>
 			</UserSettingSection>
-		{:else if $config.audio.tts.engine !== ''}
+		{:else if Boolean($config?.audio?.tts?.engine)}
 			<UserSettingSection title={$i18n.t('Voice')}>
 				<UserSettingField
 					label={$i18n.t('Set Voice')}

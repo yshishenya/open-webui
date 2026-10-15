@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-url-validation-2026-10-12-115",
+  "title": "AIRIS simple URL filter validation",
+  "generated": "2026-10-12T20:28:47.711519Z",
+  "last_updated": "2026-10-12T20:56:31.501376Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": true,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__url-validation.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T20:52:23.183908Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T20:56:31.501151Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS simple URL filter validation",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Preserve URL filters, DNS and SSRF guard behavior",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T20:56:30.791611Z",
+        "journaled_at": "2026-10-12T20:56:30.793750Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify backend, quality delta and preservation; commit and push",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T20:56:31.026183Z",
+        "journaled_at": "2026-10-12T20:56:31.028072Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve URL filters, DNS and SSRF guard behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T20:56:30.791411Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T20:56:30.792630Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify backend, quality delta and preservation; commit and push",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T20:56:31.026022Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T20:56:31.026959Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T20:56:30.792626Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve URL filters, DNS and SSRF guard behavior",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T20:56:30.793746Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Preserve URL filters, DNS and SSRF guard behavior",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T20:56:31.026954Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify backend, quality delta and preservation; commit and push",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T20:56:31.028068Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify backend, quality delta and preservation; commit and push",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

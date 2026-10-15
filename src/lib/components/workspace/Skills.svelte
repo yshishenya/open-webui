@@ -8,7 +8,12 @@
 	dayjs.extend(relativeTime);
 
 	import { onMount, getContext, tick, onDestroy } from 'svelte';
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { SkillUserItem } from '$lib/apis/skills';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	import { parseSkillImport } from '$lib/utils/airis/skill_import';
 
 	import { WEBUI_NAME, user, skills as _skills, workspaceActions } from '$lib/stores';
 	import { goto } from '$app/navigation';
@@ -22,10 +27,8 @@
 		toggleSkillById
 	} from '$lib/apis/skills';
 	import { capitalizeFirstLetter, parseFrontmatter, formatSkillName } from '$lib/utils';
-	import TagInput from '$lib/components/common/Tags/TagInput.svelte';
 
 	import Tooltip from '../common/Tooltip.svelte';
-	import ConfirmDialog from '../common/ConfirmDialog.svelte';
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import EllipsisHorizontal from '../icons/EllipsisHorizontal.svelte';
 	import GarbageBin from '../icons/GarbageBin.svelte';
@@ -43,18 +46,24 @@
 	let shiftKey = false;
 	let loaded = false;
 
-	let importFiles;
+	let importFiles: FileList | null = null;
 	let importInputElement: HTMLInputElement;
 
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	let selectedSkill = null;
+	let selectedSkill: SkillUserItem | null = null;
 	let showDeleteConfirm = false;
 
-	let filteredItems = null;
-	let total = null;
+	let filteredItems: SkillUserItem[] = [];
+	let total = 0;
 	let loading = false;
+	let loadFailed = false;
+	let alive = true;
+	const controller = new AbortController();
+	let listVersion = 0;
+	let importing = false;
+	let pendingIds = new Set<string>();
 
 	let tagsContainerElement: HTMLDivElement;
 	let viewOption = '';
@@ -74,18 +83,22 @@
 			{
 				id: 'skills-import',
 				label: $i18n.t('Import JSON'),
-				onClick: () => importInputElement?.click(),
+				onClick: () => {
+					if (!importing) importInputElement?.click();
+				},
 				visible: $user?.role === 'admin' || $user?.permissions?.workspace?.skills_import
 			},
 			{
 				id: 'skills-export',
 				label: $i18n.t('Export JSON'),
 				onClick: async () => {
-					const _skills = await exportSkills(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
-						return null;
-					});
-					if (_skills) {
+					const _skills = await exportSkills(localStorage.token, controller.signal).catch(
+						(error) => {
+							if (alive) toast.error(getErrorMessage(error));
+							return null;
+						}
+					);
+					if (alive && _skills) {
 						let blob = new Blob([JSON.stringify(_skills)], {
 							type: 'application/json'
 						});
@@ -97,10 +110,11 @@
 		]);
 	}
 
-	const loadSkillItems = async () => {
-		if (!loaded) return;
-
+	const loadSkillItems = async (): Promise<void> => {
+		if (!alive || !loaded) return;
+		const version = ++listVersion;
 		loading = true;
+		loadFailed = false;
 		try {
 			const res = await getSkillItems(
 				localStorage.token,
@@ -108,24 +122,34 @@
 				viewOption,
 				page,
 				sortKey,
-				sortDirection
-			).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			if (res) {
+				sortDirection,
+				controller.signal
+			);
+			if (alive && version === listVersion) {
 				filteredItems = res.items;
 				total = res.total;
 			}
-		} catch (err) {
-			console.error(err);
+		} catch (error) {
+			if (alive && version === listVersion) {
+				loadFailed = true;
+				toast.error(getErrorMessage(error));
+			}
 		} finally {
-			loading = false;
+			if (alive && version === listVersion) loading = false;
 		}
 	};
+	const refreshSkills = async (): Promise<void> => {
+		if (!alive) return;
+		await getSkills(localStorage.token, controller.signal)
+			.then((items) => {
+				if (alive) _skills.set(items);
+			})
+			.catch(() => {
+				if (alive) toast.error($i18n.t('Could not load skills. Try again.'));
+			});
+	};
 
-	const handleSearchInput = () => {
+	const handleSearchInput = (): void => {
 		loading = true;
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
@@ -148,7 +172,7 @@
 		loadSkillItems();
 	}
 
-	const setSortKey = (key: string) => {
+	const setSortKey = (key: string): void => {
 		if (sortKey === key) {
 			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
 		} else {
@@ -157,21 +181,23 @@
 		}
 	};
 
-	const openSkill = (skill) => {
+	const openSkill = (skill: SkillUserItem): void => {
 		goto(`/workspace/skills/edit?id=${encodeURIComponent(skill.id)}`);
 	};
 
-	const shouldIgnoreRowClick = (target: EventTarget | null) => {
+	const shouldIgnoreRowClick = (target: EventTarget | null): boolean => {
 		return target instanceof Element && !!target.closest('button, a, input, [role="menu"]');
 	};
 
-	const cloneHandler = async (skill) => {
-		const _skill = await getSkillById(localStorage.token, skill.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+	const cloneHandler = async (skill: SkillUserItem): Promise<void> => {
+		const _skill = await getSkillById(localStorage.token, skill.id, controller.signal).catch(
+			(error) => {
+				if (alive) toast.error(getErrorMessage(error));
+				return null;
+			}
+		);
 
-		if (_skill) {
+		if (alive && _skill) {
 			sessionStorage.skill = JSON.stringify({
 				..._skill,
 				id: `${_skill.id}_clone`,
@@ -181,13 +207,15 @@
 		}
 	};
 
-	const exportHandler = async (skill) => {
-		const _skill = await getSkillById(localStorage.token, skill.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
+	const exportHandler = async (skill: SkillUserItem): Promise<void> => {
+		const _skill = await getSkillById(localStorage.token, skill.id, controller.signal).catch(
+			(error) => {
+				if (alive) toast.error(getErrorMessage(error));
+				return null;
+			}
+		);
 
-		if (_skill) {
+		if (alive && _skill) {
 			let blob = new Blob([JSON.stringify([_skill])], {
 				type: 'application/json'
 			});
@@ -195,38 +223,130 @@
 		}
 	};
 
-	const deleteHandler = async (skill) => {
-		const res = await deleteSkillById(localStorage.token, skill.id).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+	const deleteHandler = async (skill: SkillUserItem | null): Promise<void> => {
+		if (!alive || !skill || pendingIds.has(skill.id)) return;
+		pendingIds = new Set(pendingIds).add(skill.id);
+		try {
+			await deleteSkillById(localStorage.token, skill.id, controller.signal);
+			if (!alive) return;
+			++listVersion;
+			loading = false;
+			filteredItems = filteredItems.filter((item) => item.id !== skill.id);
+			total = Math.max(0, total - 1);
+			_skills.update((items) => items?.filter((item) => item.id !== skill.id) ?? null);
 			toast.success($i18n.t('Skill deleted successfully'));
+			if (page !== 1) page = 1;
+			else await loadSkillItems();
+			await refreshSkills();
+		} catch (error) {
+			if (alive) toast.error(getErrorMessage(error));
+		} finally {
+			pendingIds = new Set([...pendingIds].filter((id) => id !== skill.id));
 		}
-
-		page = 1;
-		loadSkillItems();
-		await _skills.set(await getSkills(localStorage.token));
+	};
+	const toggleHandler = async (skill: SkillUserItem): Promise<void> => {
+		if (!alive || pendingIds.has(skill.id)) return;
+		pendingIds = new Set(pendingIds).add(skill.id);
+		const previous = skill.is_active;
+		try {
+			const result = await toggleSkillById(localStorage.token, skill.id, controller.signal);
+			if (!result) throw new Error($i18n.t('Failed to update skill.'));
+			if (!alive) return;
+			++listVersion;
+			loading = false;
+			filteredItems = filteredItems.map((item) =>
+				item.id === skill.id ? { ...item, is_active: result.is_active } : item
+			);
+			_skills.update(
+				(items) =>
+					items?.map((item) =>
+						item.id === skill.id ? { ...item, is_active: result.is_active } : item
+					) ?? null
+			);
+			await refreshSkills();
+		} catch (error) {
+			if (alive) {
+				filteredItems = filteredItems.map((item) =>
+					item.id === skill.id ? { ...item, is_active: previous } : item
+				);
+				toast.error(getErrorMessage(error));
+			}
+		} finally {
+			pendingIds = new Set([...pendingIds].filter((id) => id !== skill.id));
+		}
+	};
+	const importHandler = async (): Promise<void> => {
+		const file = importFiles?.[0];
+		if (!alive || importing || !file) return;
+		importing = true;
+		let created = 0;
+		try {
+			const text = await file.text();
+			if (!alive) return;
+			if (file.name.split('.').pop()?.toLowerCase() !== 'json') {
+				const fm = parseFrontmatter(text);
+				const fileName = file.name.replace(/\.md$/, '');
+				sessionStorage.skill = JSON.stringify({
+					name: formatSkillName(fm.name || fileName),
+					id: fm.name || '',
+					description: fm.description || '',
+					content: text,
+					is_active: true,
+					access_grants: []
+				});
+				await goto('/workspace/skills/create');
+			} else {
+				for (const skill of parseSkillImport(text)) {
+					if (!alive) return;
+					const result = await createNewSkill(localStorage.token, skill, controller.signal);
+					if (!result) throw new Error($i18n.t('Failed to create skill.'));
+					created++;
+				}
+				if (alive) toast.success($i18n.t('Skill imported successfully'));
+			}
+		} catch (error) {
+			if (alive)
+				toast.error(
+					created
+						? $i18n.t(
+								'Imported {{count}} skills before an error. Check the list before retrying.',
+								{ count: created }
+							) +
+								' ' +
+								getErrorMessage(error)
+						: $i18n.t(getErrorMessage(error))
+				);
+		} finally {
+			if (alive) {
+				importFiles = null;
+				if (importInputElement) importInputElement.value = '';
+				if (created) {
+					if (page !== 1) page = 1;
+					else await loadSkillItems();
+					await refreshSkills();
+				}
+			}
+			importing = false;
+		}
 	};
 
-	onMount(async () => {
+	onMount(() => {
 		viewOption = localStorage?.workspaceViewOption || '';
 		loaded = true;
 
-		const onKeyDown = (event) => {
+		const onKeyDown = (event: KeyboardEvent): void => {
 			if (event.key === 'Shift') {
 				shiftKey = true;
 			}
 		};
 
-		const onKeyUp = (event) => {
+		const onKeyUp = (event: KeyboardEvent): void => {
 			if (event.key === 'Shift') {
 				shiftKey = false;
 			}
 		};
 
-		const onBlur = () => {
+		const onBlur = (): void => {
 			shiftKey = false;
 		};
 
@@ -243,6 +363,8 @@
 	});
 
 	onDestroy(() => {
+		alive = false;
+		controller.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 </script>
@@ -254,70 +376,17 @@
 </svelte:head>
 
 {#if loaded}
+	{#if loadFailed}<div role="alert">
+			{$i18n.t('Could not load skills. Try again.')}
+			<button type="button" disabled={loading} on:click={loadSkillItems}>{$i18n.t('Retry')}</button>
+		</div>{/if}
 	<input
 		bind:this={importInputElement}
 		bind:files={importFiles}
 		type="file"
 		accept=".md,.json"
 		hidden
-		on:change={() => {
-			if (importFiles && importFiles.length > 0) {
-				const file = importFiles[0];
-				const ext = file.name.split('.').pop()?.toLowerCase();
-
-				if (ext === 'json') {
-					// JSON import: create skills via API
-					const reader = new FileReader();
-					reader.onload = async (event) => {
-						try {
-							const content = event.target?.result;
-							if (typeof content !== 'string') return;
-
-							const parsedSkills = JSON.parse(content);
-							const items = Array.isArray(parsedSkills) ? parsedSkills : [parsedSkills];
-
-							for (const skill of items) {
-								await createNewSkill(localStorage.token, skill).catch((error) => {
-									toast.error(`${error}`);
-								});
-							}
-
-							toast.success($i18n.t('Skill imported successfully'));
-							page = 1;
-							loadSkillItems();
-							_skills.set(await getSkills(localStorage.token));
-						} catch (e) {
-							toast.error($i18n.t('Invalid JSON file'));
-						}
-					};
-					reader.readAsText(file);
-				} else {
-					// Markdown import: parse frontmatter and open in editor
-					const reader = new FileReader();
-					reader.onload = (event) => {
-						const mdContent = event.target?.result;
-						if (typeof mdContent === 'string') {
-							const fm = parseFrontmatter(mdContent);
-							const fileName = file.name.replace(/\.md$/, '');
-							const rawName = fm.name || fileName;
-							const displayName = formatSkillName(rawName);
-							sessionStorage.skill = JSON.stringify({
-								name: displayName,
-								id: fm.name || '',
-								description: fm.description || '',
-								content: mdContent,
-								is_active: true,
-								access_grants: []
-							});
-							goto('/workspace/skills/create');
-						}
-					};
-					reader.readAsText(file);
-				}
-
-				importInputElement.value = '';
-			}
-		}}
+		on:change={importHandler}
 	/>
 
 	<div class="space-y-1">
@@ -375,7 +444,7 @@
 			</div>
 		</div>
 
-		{#if filteredItems === null || loading}
+		{#if loading}
 			<div class="w-full h-full flex justify-center items-center my-16 mb-24">
 				<Spinner className="size-5" />
 			</div>
@@ -511,6 +580,7 @@
 												class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition dark:text-gray-500"
 												type="button"
 												aria-label={$i18n.t('Delete')}
+												disabled={pendingIds.has(skill.id)}
 												on:click={(e) => {
 													e.preventDefault();
 													e.stopPropagation();
@@ -567,10 +637,9 @@
 													content={skill.is_active ? $i18n.t('Enabled') : $i18n.t('Disabled')}
 												>
 													<Switch
-														bind:state={skill.is_active}
-														on:change={async () => {
-															toggleSkillById(localStorage.token, skill.id);
-														}}
+														state={skill.is_active}
+														disabled={pendingIds.has(skill.id)}
+														on:change={() => toggleHandler(skill)}
 													/>
 												</Tooltip>
 											</button>
@@ -588,7 +657,7 @@
 					<Pagination bind:page count={total} perPage={30} />
 				</div>
 			{/if}
-		{:else}
+		{:else if !loadFailed}
 			<div class="flex w-full flex-col items-center justify-center py-16 pb-24">
 				<div class="max-w-sm text-center text-gray-900 dark:text-gray-100">
 					<div class="mb-1.5 text-sm">{$i18n.t('No skills found')}</div>
@@ -608,7 +677,7 @@
 		}}
 	>
 		<div class=" text-sm text-gray-500 truncate">
-			{$i18n.t('This will delete')} <span class="  font-normal">{selectedSkill.name}</span>.
+			{$i18n.t('This will delete')} <span class="  font-normal">{selectedSkill?.name ?? ''}</span>.
 		</div>
 	</DeleteConfirmDialog>
 {:else}

@@ -1,26 +1,28 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getAllTags } from '$lib/apis/chats';
 	import { folders, tags } from '$lib/stores';
-	import { getContext, createEventDispatcher, onMount, onDestroy, tick } from 'svelte';
+	import { getContext, createEventDispatcher, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import Search from './icons/Search.svelte';
 	import XMark from './icons/XMark.svelte';
 
 	const dispatch = createEventDispatcher();
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let placeholder = '';
 	export let value = '';
 	export let showClearButton = false;
 
 	export let onFocus = () => {};
-	export let onKeydown = (e) => {};
+	export let onKeydown: (event: KeyboardEvent) => void = () => {};
 
-	let selectedIdx = 0;
-	let selectedOption = null;
+	let selectedIdx: number | null = 0;
+	let selectedOption: string | null = null;
 
 	let lastWord = '';
-	$: lastWord = value ? value.split(' ').at(-1) : value;
+	$: lastWord = value ? value.split(' ').at(-1)! : value;
 
 	let options = [
 		{
@@ -45,7 +47,6 @@
 		}
 	];
 	let focused = false;
-	let loading = false;
 
 	let hovering = false;
 
@@ -54,15 +55,13 @@
 		return option.name.startsWith(lastWord);
 	});
 
-	let filteredItems = [];
+	let filteredItems: { id: string; name: string; type: string }[] = [];
 
 	$: if (lastWord && lastWord !== null) {
 		initItems();
 	}
 
 	const initItems = async () => {
-		console.log('initItems', lastWord);
-		loading = true;
 		await tick();
 
 		if (lastWord.startsWith('tag:')) {
@@ -181,15 +180,10 @@
 		} else {
 			filteredItems = [];
 		}
-
-		loading = false;
 	};
 
 	const initTags = async () => {
-		loading = true;
-
 		await tags.set(await getAllTags(localStorage.token));
-		loading = false;
 	};
 
 	const clearSearchInput = () => {
@@ -235,23 +229,20 @@
 					return;
 				}
 
-				if (e.key === 'Enter') {
-					if (filteredItems.length > 0) {
-						const itemElement = document.getElementById(`search-item-${selectedIdx}`);
-						itemElement.click();
-						return;
-					}
-
-					if (filteredOptions.length > 0) {
-						const optionElement = document.getElementById(`search-option-${selectedIdx}`);
-						optionElement.click();
+				if (e.key === 'Enter' && focused) {
+					const count = filteredItems.length || filteredOptions.length;
+					const index = Math.max(0, Math.min(selectedIdx ?? 0, count - 1));
+					const prefix = filteredItems.length > 0 ? 'item' : 'option';
+					const item = document.getElementById(`search-${prefix}-${index}`);
+					if (item) {
+						item.click();
 						return;
 					}
 				}
 
 				if (e.key === 'ArrowUp') {
 					e.preventDefault();
-					selectedIdx = Math.max(0, selectedIdx - 1);
+					selectedIdx = Math.max(0, (selectedIdx ?? 0) - 1);
 				} else if (e.key === 'ArrowDown') {
 					e.preventDefault();
 
@@ -259,13 +250,13 @@
 						if (selectedIdx === filteredItems.length - 1) {
 							focused = false;
 						} else {
-							selectedIdx = Math.min(selectedIdx + 1, filteredItems.length - 1);
+							selectedIdx = Math.min((selectedIdx ?? 0) + 1, filteredItems.length - 1);
 						}
 					} else {
 						if (selectedIdx === filteredOptions.length - 1) {
 							focused = false;
 						} else {
-							selectedIdx = Math.min(selectedIdx + 1, filteredOptions.length - 1);
+							selectedIdx = Math.min((selectedIdx ?? 0) + 1, filteredOptions.length - 1);
 						}
 					}
 				} else {

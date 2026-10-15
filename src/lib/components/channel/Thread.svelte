@@ -1,4 +1,11 @@
 <script lang="ts">
+	import type {
+		ChannelMessageEvent,
+		ChannelDetail,
+		ChannelDisplayMessage,
+		ChannelMessageInput,
+		ChannelPinHandler
+	} from '$lib/utils/airis/channel-types';
 	import { goto } from '$app/navigation';
 
 	import { socket, user } from '$lib/stores';
@@ -9,30 +16,33 @@
 	import MessageInput from './MessageInput.svelte';
 	import Messages from './Messages.svelte';
 	import { onDestroy, onMount, tick, getContext } from 'svelte';
+	import type RichTextInput from '../common/RichTextInput.svelte';
 	import { toast } from 'svelte-sonner';
 	import Spinner from '../common/Spinner.svelte';
 
 	const i18n = getContext('i18n');
 
-	export let threadId = null;
-	export let channel = null;
+	export let threadId: string | null = null;
+	export let channel: ChannelDetail | null = null;
 
 	export let onClose = () => {};
-	export let onPin = () => {};
+	export let onPin: ChannelPinHandler = () => {};
 
-	let messages = null;
+	let messages: ChannelDisplayMessage[] | null = null;
+	let loadVersion = 0;
+	let loading: Promise<void> = Promise.resolve();
 	let top = false;
 
-	let messagesContainerElement = null;
-	let chatInputElement = null;
+	let messagesContainerElement: HTMLDivElement | null = null;
+	let chatInputElement: RichTextInput | null = null;
 
-	let replyToMessage = null;
+	let replyToMessage: ChannelDisplayMessage | null = null;
 
-	let typingUsers = [];
-	let typingUsersTimeout = {};
+	let typingUsers: ChannelMessageEvent['user'][] = [];
+	let typingUsersTimeout: Record<string, ReturnType<typeof setTimeout>> = {};
 
 	$: if (threadId) {
-		initHandler();
+		loading = initHandler();
 	}
 
 	const scrollToBottom = () => {
@@ -41,46 +51,66 @@
 		}
 	};
 
-	const initHandler = async () => {
+	const initHandler = async (): Promise<void> => {
+		const version = ++loadVersion;
+		const selectedThreadId = threadId;
+		const selectedChannel = channel;
 		messages = null;
 		top = false;
 
 		typingUsers = [];
 		typingUsersTimeout = {};
 
-		if (channel) {
-			messages = await getChannelThreadMessages(localStorage.token, channel.id, threadId);
-
-			if (messages.length < 50) {
-				top = true;
+		if (selectedChannel && selectedThreadId) {
+			try {
+				const loadedMessages = await getChannelThreadMessages(
+					localStorage.token,
+					selectedChannel.id,
+					selectedThreadId
+				);
+				if (version !== loadVersion) return;
+				messages = loadedMessages;
+				if (messages) {
+					top = messages.length < 50;
+					await tick();
+					if (version === loadVersion) scrollToBottom();
+				}
+			} catch (error) {
+				if (version === loadVersion) toast.error(`${error}`);
 			}
-
-			await tick();
-			scrollToBottom();
 		} else {
 			goto('/');
 		}
 	};
 
-	const channelEventHandler = async (event) => {
+	const channelEventHandler = async (event: ChannelMessageEvent): Promise<void> => {
+		const version = loadVersion;
+		// Apply live changes only after the initial HTTP snapshot is installed.
+		await loading;
+		if (version !== loadVersion || !messages) return;
 		console.debug(event);
-		if (event.channel_id === channel.id) {
-			const type = event?.data?.type ?? null;
-			const data = event?.data?.data ?? null;
+		if (event.channel_id === channel?.id) {
+			if (!event.data) return;
+			const { type, data } = event.data;
 
 			if (type === 'message') {
 				if ((data?.parent_id ?? null) === threadId) {
 					if (messages) {
-						messages = [data, ...messages];
+						messages = [
+							data,
+							...messages.filter((m: ChannelDisplayMessage): boolean => m.id !== data.id)
+						];
 
 						if (typingUsers.find((user) => user.id === event.user.id)) {
 							typingUsers = typingUsers.filter((user) => user.id !== event.user.id);
 						}
 					}
 				}
-			} else if (type === 'message:update') {
+			} else if (type === 'message:update' || type === 'message:reply') {
 				if (messages) {
-					const idx = messages.findIndex((message) => message.id === data.id);
+					const idx = messages.findIndex(
+						(message: ChannelDisplayMessage): boolean => message.id === data.id
+					);
 
 					if (idx !== -1) {
 						messages[idx] = data;
@@ -92,11 +122,15 @@
 				}
 
 				if (messages) {
-					messages = messages.filter((message) => message.id !== data.id);
+					messages = messages.filter(
+						(message: ChannelDisplayMessage): boolean => message.id !== data.id
+					);
 				}
-			} else if (type.includes('message:reaction')) {
+			} else if (type === 'message:reaction:add' || type === 'message:reaction:remove') {
 				if (messages) {
-					const idx = messages.findIndex((message) => message.id === data.id);
+					const idx = messages.findIndex(
+						(message: ChannelDisplayMessage): boolean => message.id === data.id
+					);
 					if (idx !== -1) {
 						messages[idx] = data;
 					}
@@ -124,19 +158,20 @@
 					clearTimeout(typingUsersTimeout[event.user.id]);
 				}
 
-				typingUsersTimeout[event.user.id] = setTimeout(() => {
+				typingUsersTimeout[event.user.id] = setTimeout((): void => {
+					if (version !== loadVersion) return;
 					typingUsers = typingUsers.filter((user) => user.id !== event.user.id);
 				}, 5000);
 			}
 		}
 	};
 
-	const submitHandler = async ({ content, data }) => {
-		if (!content && (data?.files ?? []).length === 0) {
+	const submitHandler = async ({ content, data }: ChannelMessageInput): Promise<void> => {
+		if (!channel || (!content && (data?.files ?? []).length === 0)) {
 			return;
 		}
 
-		const res = await sendMessage(localStorage.token, channel.id, {
+		await sendMessage(localStorage.token, channel.id, {
 			parent_id: threadId,
 			reply_to_id: replyToMessage?.id ?? null,
 			content: content,
@@ -149,7 +184,8 @@
 		replyToMessage = null;
 	};
 
-	const onChange = async () => {
+	const onChange = async (): Promise<void> => {
+		if (!channel) return;
 		$socket?.emit('events:channel', {
 			channel_id: channel.id,
 			message_id: threadId,
@@ -166,7 +202,8 @@
 		$socket?.on('events:channel', channelEventHandler);
 	});
 
-	onDestroy(() => {
+	onDestroy((): void => {
+		loadVersion++;
 		$socket?.off('events:channel', channelEventHandler);
 	});
 </script>
@@ -204,7 +241,9 @@
 						await tick();
 						chatInputElement?.focus();
 					}}
-					onLoad={async () => {
+					onLoad={async (): Promise<void> => {
+						if (!channel || !threadId || !messages) return;
+						const version = loadVersion;
 						const newMessages = await getChannelThreadMessages(
 							localStorage.token,
 							channel.id,
@@ -212,6 +251,7 @@
 							messages.length
 						);
 
+						if (version !== loadVersion || !messages || !newMessages) return;
 						messages = [...messages, ...newMessages];
 
 						if (newMessages.length < 50) {

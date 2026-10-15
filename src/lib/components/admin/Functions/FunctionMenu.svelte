@@ -5,28 +5,30 @@
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Share from '$lib/components/icons/Share.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { FunctionUserItem } from '$lib/apis/functions';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let func;
+	export let func: FunctionUserItem;
+	export let pending = false;
 
-	export let editHandler: Function;
-	export let shareHandler: Function;
-	export let cloneHandler: Function;
-	export let exportHandler: Function;
-	export let deleteHandler: Function;
-	export let toggleGlobalHandler: Function;
+	export let editHandler: () => void | Promise<void>;
+	export let cloneHandler: () => void | Promise<void>;
+	export let exportHandler: () => void | Promise<void>;
+	export let deleteHandler: () => void | Promise<void>;
+	export let toggleGlobalHandler: () => void | Promise<void>;
 
-	export let onClose: Function;
+	export let onClose: () => void | Promise<void>;
 
 	export let show = false;
 
-	const closeMenu = () => {
+	const closeMenu = (): void => {
 		show = false;
 		onClose();
 	};
@@ -56,7 +58,12 @@
 					</div>
 
 					<div>
-						<Switch on:change={toggleGlobalHandler} bind:state={func.is_global} />
+						<Switch
+							on:change={toggleGlobalHandler}
+							state={func.is_global}
+							disabled={pending}
+							ariaLabel={$i18n.t('Global')}
+						/>
 					</div>
 				</div>
 
@@ -91,17 +98,6 @@
 			<button
 				class="select-none flex gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl w-full"
 				on:click={() => {
-					shareHandler();
-					closeMenu();
-				}}
-			>
-				<Share />
-				<div class="flex items-center">{$i18n.t('Share')}</div>
-			</button>
-
-			<button
-				class="select-none flex gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl w-full"
-				on:click={() => {
 					cloneHandler();
 					closeMenu();
 				}}
@@ -125,6 +121,7 @@
 
 			<button
 				class="select-none flex gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl w-full"
+				disabled={pending}
 				on:click={() => {
 					deleteHandler();
 					closeMenu();

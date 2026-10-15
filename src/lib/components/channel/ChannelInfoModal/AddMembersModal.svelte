@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	const i18n = getContext('i18n');
 
+	import type { ChannelDetail } from '$lib/utils/airis/channel-types';
 	import { addMembersById } from '$lib/apis/channels';
 
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -11,34 +12,39 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
 	export let show = false;
-	export let channel = null;
+	export let channel: ChannelDetail | null = null;
 
-	export let onUpdate = () => {};
+	export let onUpdate: () => void | Promise<void> = () => {};
 
-	let groupIds = [];
-	let userIds = [];
+	let groupIds: string[] = [];
+	let userIds: string[] = [];
 
 	let loading = false;
+	let submissionVersion = 0;
 
-	const submitHandler = async () => {
-		const res = await addMembersById(localStorage.token, channel.id, {
-			user_ids: userIds,
-			group_ids: groupIds
-		}).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
+	const submitHandler = async (): Promise<void> => {
+		if (!show || !channel || loading) return;
+		const id = channel.id,
+			version = ++submissionVersion;
+		loading = true;
+		try {
+			await addMembersById(localStorage.token, id, { user_ids: userIds, group_ids: groupIds });
+			if (!show || channel?.id !== id || version !== submissionVersion) return;
 			toast.success($i18n.t('Members added successfully'));
-			onUpdate();
 			show = false;
-		} else {
-			toast.error($i18n.t('Failed to add members'));
+			await onUpdate();
+		} catch (error) {
+			if (channel?.id === id && version === submissionVersion) toast.error(`${error}`);
+		} finally {
+			if (version === submissionVersion) loading = false;
 		}
 	};
+	onDestroy(() => {
+		submissionVersion++;
+	});
 
-	const reset = () => {
+	const reset = (): void => {
+		submissionVersion++;
 		userIds = [];
 		groupIds = [];
 		loading = false;

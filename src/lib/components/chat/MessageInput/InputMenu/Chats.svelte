@@ -1,6 +1,9 @@
 <script lang="ts">
 	import dayjs from 'dayjs';
 	import { onDestroy, onMount, tick, getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ChatTitleIdResponse } from '$lib/utils/airis/frontend-contracts';
 
 	import { decodeString } from '$lib/utils';
 	import { getChatList, getChatListBySearchText } from '$lib/apis/chats';
@@ -11,13 +14,14 @@
 	import { chatId } from '$lib/stores';
 	import SearchInput from './SearchInput.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let onSelect = (e) => {};
+	type ChatSelection = ChatTitleIdResponse & { type: string; name: string; description: string };
+	export let onSelect: (item: ChatSelection) => void = () => {};
 
 	let loaded = false;
 
-	let items = [];
+	let items: ChatSelection[] = [];
 	let selectedIdx = 0;
 	let query = '';
 
@@ -154,7 +158,7 @@
 
 					{#if !allItemsLoaded}
 						<Loader
-							on:visible={(e) => {
+							on:visible={() => {
 								if (!itemsLoading) {
 									loadMoreItems();
 								}

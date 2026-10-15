@@ -1,14 +1,20 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { transpileModule, ScriptTarget } from 'typescript';
+import { getTools as fetchTools } from '$lib/apis/tools';
+import { getFunctions as fetchFunctions } from '$lib/apis/functions';
+vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
 
 type Item = { id: string; name: string };
 type State = { functions: Item[] | null; tools: Item[] | null; loading: boolean };
 type FetchList = () => Promise<Item[] | null>;
 type Factory = (
 	state: State,
-	getFunctions: FetchList,
-	getTools: FetchList,
+	getFunctions: () => Promise<Item[]>,
+	getTools: () => Promise<Item[]>,
 	toast: { error: (message: string) => void }
 ) => () => Promise<void>;
 
@@ -48,10 +54,24 @@ describe('valves list load recovery', () => {
 			return null;
 		};
 		const sibling: FetchList = async () => [{ id: 'sibling', name: 'Sibling' }];
+		// A malformed functions response must pass through the actual API boundary.
+		vi.stubGlobal(
+			'fetch',
+			async (url: string) =>
+				new Response(
+					JSON.stringify(
+						await (
+							(url.includes('/functions/') ? list === 'functions' : list === 'tools')
+								? fetchList
+								: sibling
+						)()
+					)
+				)
+		);
 		const init = factory(
 			state,
-			list === 'functions' ? fetchList : sibling,
-			list === 'tools' ? fetchList : sibling,
+			() => fetchFunctions('fixture'),
+			() => fetchTools('fixture'),
 			{ error: (message) => errors.push(message) }
 		);
 		await init();
@@ -68,7 +88,7 @@ describe('valves list load recovery', () => {
 
 	it('keeps successful empty lists cached without new requests or errors', async () => {
 		const state: State = { functions: [], tools: [], loading: false };
-		const forbidden: FetchList = async () => {
+		const forbidden = async () => {
 			throw new Error('cached lists must not refetch');
 		};
 		const errors: string[] = [];

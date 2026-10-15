@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getContext, onMount, tick } from 'svelte';
+	import { getContext } from 'svelte';
+	import type { Citation, CitationDocument } from '$lib/utils/airis/citations';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Markdown from '$lib/components/chat/Messages/Markdown.svelte';
@@ -16,20 +17,20 @@
 	let expandedDocs: Set<number> = new Set();
 
 	export let show = false;
-	export let citation;
+	export let citation: Citation | null = null;
 	export let showPercentage = false;
 	export let showRelevance = true;
 
-	let mergedDocuments = [];
+	let mergedDocuments: CitationDocument[] = [];
 
-	function calculatePercentage(distance: number) {
+	function calculatePercentage(distance: number): number | null {
 		if (typeof distance !== 'number') return null;
 		if (distance < 0) return 0;
 		if (distance > 1) return 100;
 		return Math.round(distance * 10000) / 100;
 	}
 
-	function getRelevanceColor(percentage: number) {
+	function getRelevanceColor(percentage: number): string {
 		if (percentage >= 80)
 			return 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200';
 		if (percentage >= 60)
@@ -41,7 +42,7 @@
 
 	$: if (citation) {
 		expandedDocs = new Set();
-		mergedDocuments = citation.document?.map((c, i) => {
+		mergedDocuments = citation.document.map((c, i) => {
 			return {
 				source: citation.source,
 				document: c,
@@ -56,7 +57,7 @@
 		}
 	}
 
-	const decodeString = (str: string) => {
+	const decodeString = (str: string): string => {
 		try {
 			return decodeURIComponent(str);
 		} catch {
@@ -64,7 +65,7 @@
 		}
 	};
 
-	const getTextFragmentUrl = (doc: any): string | null => {
+	const getTextFragmentUrl = (doc: CitationDocument | undefined): string | null => {
 		const { metadata, source, document: content } = doc ?? {};
 		const { file_id, page } = metadata ?? {};
 		const sourceUrl = source?.url;
@@ -86,12 +87,17 @@
 
 		if (words.length === 0) return baseUrl;
 
-		const clean = (w: string) => w.replace(/[^\w]/g, '');
+		const clean = (w: string): string => w.replace(/[^\p{L}\p{N}_]/gu, '');
 		const first = clean(words[0]);
-		const last = clean(words.at(-1));
-		const fragment = words.length === 1 ? first : `${first},${last}`;
+		const last = clean(words.at(-1) ?? '');
+		const fragment =
+			words.length === 1
+				? encodeURIComponent(first)
+				: `${encodeURIComponent(first)},${encodeURIComponent(last)}`;
 
-		return fragment ? `${baseUrl}#:~:text=${fragment}` : baseUrl;
+		return fragment
+			? `${baseUrl}${baseUrl.includes('#') ? ':~:text=' : '#:~:text='}${fragment}`
+			: baseUrl;
 	};
 </script>
 
@@ -101,10 +107,10 @@
 			<div class=" text-sm font-medium self-center flex items-center">
 				{#if citation?.source?.name}
 					{@const document = mergedDocuments?.[0]}
-					{#if document?.metadata?.file_id || document.source?.url?.includes('http')}
+					{#if document?.metadata?.file_id || document?.source?.url?.includes('http')}
 						<Tooltip
 							className="w-fit"
-							content={document.source?.url?.includes('http')
+							content={document?.source?.url?.includes('http')
 								? $i18n.t('Open link')
 								: $i18n.t('Open file')}
 							placement="top-start"
@@ -114,7 +120,7 @@
 								class="hover:text-gray-500 dark:hover:text-gray-100 underline grow line-clamp-1"
 								href={document?.metadata?.file_id
 									? `${WEBUI_API_BASE_URL}/files/${document?.metadata?.file_id}/content${document?.metadata?.page !== undefined ? `#page=${document.metadata.page + 1}` : ''}`
-									: document.source?.url?.includes('http')
+									: document?.source?.url?.includes('http')
 										? document.source.url
 										: `#`}
 								target="_blank"
@@ -161,7 +167,7 @@
 							<div
 								class=" text-sm font-normal dark:text-gray-300 flex items-center gap-2 w-fit mb-1"
 							>
-								{#if document.source?.url?.includes('http')}
+								{#if document?.source?.url?.includes('http')}
 									{@const snippetUrl = getTextFragmentUrl(document)}
 									{#if snippetUrl}
 										<a
@@ -204,7 +210,7 @@
 									</Tooltip>
 								{/if}
 
-								{#if Number.isInteger(document?.metadata?.page)}
+								{#if typeof document.metadata?.page === 'number' && Number.isInteger(document.metadata.page)}
 									<span class="text-sm text-gray-500 dark:text-gray-400">
 										({$i18n.t('page')}
 										{document.metadata.page + 1})

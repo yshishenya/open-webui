@@ -18,7 +18,7 @@
 		type AutomationResponse
 	} from '$lib/apis/automations';
 	import type i18nType from '$lib/i18n';
-	// @ts-ignore file-saver ships without local typings in this repo.
+	import type { AutomationLayout } from '$lib/utils/airis/automation-layout';
 	import fileSaver from 'file-saver';
 
 	import AutomationModal from '$lib/components/AutomationModal.svelte';
@@ -45,7 +45,7 @@
 	const { saveAs } = fileSaver;
 
 	const i18n: typeof i18nType = getContext('i18n');
-	const automationsLayout: any = getContext('automationsLayout');
+	const automationsLayout = getContext<AutomationLayout | undefined>('automationsLayout');
 
 	let loaded = false;
 	let automations: AutomationResponse[] | null = null;
@@ -332,7 +332,7 @@
 
 	onMount(() => {
 		if (
-			!($config?.features as any)?.enable_automations ||
+			!$config?.features?.enable_automations ||
 			($user?.role !== 'admin' && !($user?.permissions?.features?.automations ?? false))
 		) {
 			goto('/');

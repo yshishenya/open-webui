@@ -2,9 +2,9 @@ import { env } from '@huggingface/transformers';
 import { KokoroTTS } from 'kokoro-js';
 
 // TODO: Below doesn't work as expected, need to investigate further
-env.backends.onnx.wasm.wasmPaths = '/wasm/';
+if (env.backends.onnx.wasm) env.backends.onnx.wasm.wasmPaths = '/wasm/';
 
-let tts;
+let tts: KokoroTTS | null = null;
 let isInitialized = false; // Flag to track initialization status
 const DEFAULT_MODEL_ID = 'onnx-community/Kokoro-82M-v1.0-ONNX'; // Default model
 
@@ -12,13 +12,13 @@ self.onmessage = async (event) => {
 	const { type, payload } = event.data;
 
 	if (type === 'init') {
-		let { model_id, dtype } = payload;
-		model_id = model_id || DEFAULT_MODEL_ID; // Use default model if none provided
+		const { model_id, dtype } = payload;
+		const modelId = model_id || DEFAULT_MODEL_ID; // Use default model if none provided
 
 		self.postMessage({ status: 'init:start' });
 
 		try {
-			tts = await KokoroTTS.from_pretrained(model_id, {
+			tts = await KokoroTTS.from_pretrained(modelId, {
 				dtype,
 				device: navigator?.gpu ? 'webgpu' : 'wasm' // Detect WebGPU
 			});
@@ -26,7 +26,10 @@ self.onmessage = async (event) => {
 			self.postMessage({ status: 'init:complete' });
 		} catch (error) {
 			isInitialized = false; // Ensure it's marked as false on failure
-			self.postMessage({ status: 'init:error', error: error.message });
+			self.postMessage({
+				status: 'init:error',
+				error: error instanceof Error ? error.message : 'Failed to initialize TTS model'
+			});
 		}
 	}
 
@@ -46,7 +49,10 @@ self.onmessage = async (event) => {
 			const blobUrl = URL.createObjectURL(blob);
 			self.postMessage({ status: 'generate:complete', audioUrl: blobUrl });
 		} catch (error) {
-			self.postMessage({ status: 'generate:error', error: error.message });
+			self.postMessage({
+				status: 'generate:error',
+				error: error instanceof Error ? error.message : 'Failed to generate speech'
+			});
 		}
 	}
 

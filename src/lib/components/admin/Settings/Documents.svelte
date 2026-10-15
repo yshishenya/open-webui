@@ -1,18 +1,15 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
+	import type { DocumentSettings } from '$lib/utils/airis/document-settings';
 
 	import { onMount, getContext, createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();
 
 	import {
-		getQuerySettings,
-		updateQuerySettings,
 		resetVectorDB,
 		getEmbeddingConfig,
 		updateEmbeddingConfig,
-		getRerankingConfig,
-		updateRerankingConfig,
 		getRAGConfig,
 		updateRAGConfig
 	} from '$lib/apis/retrieval';
@@ -33,10 +30,9 @@
 	import AdminSettingRow from './AdminSettingRow.svelte';
 	import AdminSettingSection from './AdminSettingSection.svelte';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext('i18n');
 
 	let updateEmbeddingModelLoading = false;
-	let updateRerankingModelLoading = false;
 
 	let showResetConfirm = false;
 	let showResetUploadDirConfirm = false;
@@ -49,8 +45,6 @@
 	let ENABLE_ASYNC_EMBEDDING = true;
 	let RAG_EMBEDDING_CONCURRENT_REQUESTS = 0;
 
-	let rerankingModel = '';
-
 	let OpenAIUrl = '';
 	let OpenAIKey = '';
 
@@ -61,15 +55,7 @@
 	let OllamaUrl = '';
 	let OllamaKey = '';
 
-	let querySettings = {
-		template: '',
-		r: 0.0,
-		k: 4,
-		k_reranker: 4,
-		hybrid: false
-	};
-
-	let RAGConfig: any = null;
+	let RAGConfig: DocumentSettings | null = null;
 	const inputClass =
 		'w-full h-7 rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 	const actionButtonClass =
@@ -77,7 +63,7 @@
 	const textareaClass =
 		'w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 py-1.5 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 
-	const embeddingModelUpdateHandler = async () => {
+	const embeddingModelUpdateHandler = async (): Promise<void> => {
 		if (RAG_EMBEDDING_ENGINE === '' && RAG_EMBEDDING_MODEL.split('/').length - 1 > 1) {
 			toast.error(
 				$i18n.t(
@@ -152,7 +138,8 @@
 		}
 	};
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
+		if (!RAGConfig) return;
 		if (
 			RAGConfig.CONTENT_EXTRACTION_ENGINE === 'external' &&
 			RAGConfig.EXTERNAL_DOCUMENT_LOADER_URL === ''
@@ -170,7 +157,7 @@
 					throw new Error('Headers must be a valid JSON object');
 				}
 				RAGConfig.EXTERNAL_DOCUMENT_LOADER_HEADERS = JSON.stringify(headers, null, 2);
-			} catch (error) {
+			} catch {
 				toast.error($i18n.t('Headers must be a valid JSON object'));
 				return;
 			}
@@ -190,7 +177,7 @@
 		) {
 			try {
 				JSON.parse(RAGConfig.DATALAB_MARKER_ADDITIONAL_CONFIG);
-			} catch (e) {
+			} catch {
 				toast.error($i18n.t('Invalid JSON format in Additional Config'));
 				return;
 			}
@@ -234,7 +221,7 @@
 		if (RAGConfig.DOCLING_PARAMS) {
 			try {
 				JSON.parse(RAGConfig.DOCLING_PARAMS);
-			} catch (e) {
+			} catch {
 				toast.error(
 					$i18n.t('Invalid JSON format in {{NAME}}', {
 						NAME: $i18n.t('Docling Parameters')
@@ -246,13 +233,13 @@
 		if (RAGConfig.MINERU_PARAMS) {
 			try {
 				JSON.parse(RAGConfig.MINERU_PARAMS);
-			} catch (e) {
+			} catch {
 				toast.error($i18n.t('Invalid JSON format in MinerU Parameters'));
 				return;
 			}
 		}
 
-		const res = await updateRAGConfig(localStorage.token, {
+		await updateRAGConfig(localStorage.token, {
 			...RAGConfig,
 			// Convert null (from cleared number inputs) to empty string so the backend
 			// can distinguish "clear this field" from "don't change this field"
@@ -289,7 +276,7 @@
 		dispatch('save');
 	};
 
-	const setEmbeddingConfig = async () => {
+	const setEmbeddingConfig = async (): Promise<void> => {
 		const embeddingConfig = await getEmbeddingConfig(localStorage.token);
 
 		if (embeddingConfig) {
@@ -359,8 +346,8 @@
 
 <ResetVectorDBConfirmDialog
 	bind:show={showResetConfirm}
-	on:confirm={() => {
-		const res = resetVectorDB(localStorage.token).catch((error) => {
+	on:confirm={async () => {
+		const res = await resetVectorDB(localStorage.token).catch((error) => {
 			toast.error(`${error}`);
 			return null;
 		});
@@ -767,6 +754,7 @@
 						<SettingsSelect
 							bind:value={RAGConfig.MINERU_API_MODE}
 							on:change={() => {
+								if (!RAGConfig) return;
 								const cloudUrl = 'https://mineru.net/api/v4';
 								const localUrl = 'http://localhost:8000';
 
@@ -961,13 +949,13 @@
 							bind:value={RAG_EMBEDDING_ENGINE}
 							placeholder={$i18n.t('Select an embedding model engine')}
 							on:change={(e) => {
-								if (e.target.value === 'ollama') {
+								if ((e.target as HTMLSelectElement).value === 'ollama') {
 									RAG_EMBEDDING_MODEL = '';
-								} else if (e.target.value === 'openai') {
+								} else if ((e.target as HTMLSelectElement).value === 'openai') {
 									RAG_EMBEDDING_MODEL = 'text-embedding-3-small';
-								} else if (e.target.value === 'azure_openai') {
+								} else if ((e.target as HTMLSelectElement).value === 'azure_openai') {
 									RAG_EMBEDDING_MODEL = 'text-embedding-3-small';
-								} else if (e.target.value === '') {
+								} else if ((e.target as HTMLSelectElement).value === '') {
 									RAG_EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
 								}
 							}}
@@ -1204,9 +1192,10 @@
 									bind:value={RAGConfig.RAG_RERANKING_ENGINE}
 									placeholder={$i18n.t('Select a reranking model engine')}
 									on:change={(e) => {
-										if (e.target.value === 'external') {
+										if (!RAGConfig) return;
+										if ((e.target as HTMLSelectElement).value === 'external') {
 											RAGConfig.RAG_RERANKING_MODEL = '';
-										} else if (e.target.value === '') {
+										} else if ((e.target as HTMLSelectElement).value === '') {
 											RAGConfig.RAG_RERANKING_MODEL = 'BAAI/bge-reranker-v2-m3';
 										}
 									}}
@@ -1326,6 +1315,7 @@
 									class={actionButtonClass}
 									type="button"
 									on:click={() => {
+										if (!RAGConfig) return;
 										RAGConfig.HYBRID_BM25_WEIGHT =
 											(RAGConfig?.HYBRID_BM25_WEIGHT ?? null) === null ? 0.5 : null;
 									}}

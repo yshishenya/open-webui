@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { SkillListItem } from '$lib/utils/airis/frontend-contracts';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { getContext } from 'svelte';
 	import { skills } from '$lib/stores';
 
@@ -7,13 +10,13 @@
 	import XMark from '$lib/components/icons/XMark.svelte';
 
 	export let show = false;
-	export let selectedSkillIds = [];
+	export let selectedSkillIds: string[] = [];
 
-	let selectedSkills = [];
+	let selectedSkills: SkillListItem[] = [];
 
 	$: selectedSkills = ($skills ?? []).filter((skill) => selectedSkillIds.includes(skill.id));
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 </script>
 
 <Modal bind:show size="md">

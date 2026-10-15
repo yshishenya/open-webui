@@ -1,0 +1,138 @@
+{
+	"spec_id": "airis-unused-import-statements-2026-10-09-914",
+	"title": "airis-unused-import-statements",
+	"generated": "2026-10-09T06:14:13.155695Z",
+	"last_updated": "2026-10-09T06:25:59.830405Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-import-statements.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T06:14:57.223736Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T06:25:59.830172Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-unused-import-statements",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reviewed imports and preserved contracts",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T06:23:33.896318Z",
+				"journaled_at": "2026-10-09T06:23:33.898317Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Full checks, isolated cleanup and source delivery",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T06:25:59.378873Z",
+				"journaled_at": "2026-10-09T06:25:59.380714Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Review unused imports and preserve source/runtime contracts",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui",
+				"completed_at": "2026-10-09T06:23:33.896047Z",
+				"needs_journaling": false,
+				"status_note": "135 reviewed bindings removed,2 real reexports preserved; source/runtime/API/ORM/migrations and full tests accepted; general release remains open.",
+				"journaled_at": "2026-10-09T06:23:33.897284Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Accept full tests, source delivery and isolated cleanup",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-import-statements.md",
+				"completed_at": "2026-10-09T06:25:59.378623Z",
+				"needs_journaling": false,
+				"status_note": "1017 backend/952 frontend; no new diagnostics; source pushed and remote verified; temporary baseline/four owned PG databases removed. General release remains open in combined candidate.",
+				"journaled_at": "2026-10-09T06:25:59.379635Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T06:23:33.897278Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review unused imports and preserve source/runtime contracts",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: 135 reviewed bindings removed,2 real reexports preserved; source/runtime/API/ORM/migrations and full tests accepted; general release remains open.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T06:23:33.898312Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Phase 1: [To Be Defined]",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T06:25:59.379631Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Accept full tests, source delivery and isolated cleanup",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: 1017 backend/952 frontend; no new diagnostics; source pushed and remote verified; temporary baseline/four owned PG databases removed. General release remains open in combined candidate.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T06:25:59.380709Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Full checks, isolated cleanup and source delivery",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Column, String, Text, select
@@ -12,7 +11,7 @@ from open_webui.internal.db import Base, get_async_db_context
 
 
 class LegalDocumentAcceptance(Base):
-    __tablename__ = "legal_document_acceptance"
+    __tablename__ = 'legal_document_acceptance'
 
     id = Column(String, primary_key=True, unique=True)
     user_id = Column(String, nullable=False, index=True)
@@ -31,9 +30,9 @@ class LegalDocumentAcceptanceModel(BaseModel):
     doc_key: str
     doc_version: str
     accepted_at: int
-    ip: Optional[str] = None
-    user_agent: Optional[str] = None
-    method: Optional[str] = None
+    ip: str | None = None
+    user_agent: str | None = None
+    method: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -45,10 +44,10 @@ class LegalAcceptancesTable:
         doc_key: str,
         doc_version: str,
         *,
-        ip: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        method: Optional[str] = None,
-        accepted_at: Optional[int] = None,
+        ip: str | None = None,
+        user_agent: str | None = None,
+        method: str | None = None,
+        accepted_at: int | None = None,
         db: AsyncSession | None = None,
     ) -> LegalDocumentAcceptanceModel:
         async with get_async_db_context(db) as session:
@@ -74,7 +73,7 @@ class LegalAcceptancesTable:
         doc_key: str,
         *,
         db: AsyncSession | None = None,
-    ) -> Optional[LegalDocumentAcceptanceModel]:
+    ) -> LegalDocumentAcceptanceModel | None:
         async with get_async_db_context(db) as session:
             result = await session.execute(
                 select(LegalDocumentAcceptance)

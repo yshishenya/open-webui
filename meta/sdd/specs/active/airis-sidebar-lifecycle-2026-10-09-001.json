@@ -1,0 +1,177 @@
+{
+  "spec_id": "airis-sidebar-lifecycle-2026-10-09-001",
+  "title": "Airis sidebar lifecycle cleanup",
+  "generated": "2026-10-08T23:24:32.554348Z",
+  "last_updated": "2026-10-09T02:41:05.178427Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__bugfix__sidebar-lifecycle-cleanup.md",
+    "status": "active",
+    "activated_date": "2026-10-08T23:26:01.228575Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-1"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis sidebar lifecycle cleanup",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and repair component resource ownership",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-08T23:28:32.298851Z",
+        "journaled_at": "2026-10-08T23:28:32.301080Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify and release the minimal correction",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce ignored teardown with actual onMount callback",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/utils/airis/sidebar_lifecycle.test.ts",
+        "category": "implementation",
+        "started_at": "2026-10-08T23:26:20.881649Z",
+        "completed_at": "2026-10-08T23:26:50.483270Z",
+        "needs_journaling": false,
+        "status_note": "Both actual-source callback regressions fail before changes because mount returns a Promise, not a synchronous teardown function. Official and installed Svelte contract verified.",
+        "actual_hours": 0.008,
+        "journaled_at": "2026-10-08T23:26:50.484870Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Return teardown synchronously and release owned subscriptions and Sortable",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "file_path": "src/lib/components/layout/Sidebar.svelte",
+        "category": "implementation",
+        "completed_at": "2026-10-08T23:28:32.298648Z",
+        "needs_journaling": false,
+        "status_note": "Three actual-source cases pass: normal teardown, teardown before tick, and initialization failure. Scoped ESLint passed. Lifecycle owns width and Sortable cleanup; unrelated formatting restored.",
+        "journaled_at": "2026-10-08T23:28:32.299757Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify exact source and guarded production release",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-09__bugfix__sidebar-lifecycle-cleanup.md",
+        "category": "implementation",
+        "started_at": "2026-10-08T23:32:46.425317Z"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Preserve wallet layout during period summary loading",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-09T02:41:05.178135Z",
+        "status_note": "d0e rejected: delayed503 moves preset58px; retain amount nodes and reserve natural caption height for loading/success/error. Focused source6/6, frontend952/952; new browser6+90 and original cold-native3 pending."
+      },
+      "description": "Firefox acceptance reproduced a roughly 220px shift between pointer down and up; preserve the existing totals layout with unknown values until the actual response, and verify native pointer payment entry."
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-08T23:26:50.484864Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce ignored teardown with actual onMount callback",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Both actual-source callback regressions fail before changes because mount returns a Promise, not a synchronous teardown function. Official and installed Svelte contract verified.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-08T23:28:32.299751Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Return teardown synchronously and release owned subscriptions and Sortable",
+      "author": "Codex",
+      "content": "Task task-1-2 marked as completed. \nNote: Three actual-source cases pass: normal teardown, teardown before tick, and initialization failure. Scoped ESLint passed. Lifecycle owns width and Sortable cleanup; unrelated formatting restored.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-08T23:28:32.301074Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and repair component resource ownership",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

@@ -1,8 +1,10 @@
+import type { CitationEmbed } from '$lib/utils/airis/citations';
 import type { NoteListItem } from '$lib/utils/airis/notes';
+import type { ChannelListItem } from '$lib/utils/airis/channel-types';
 import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
 import { APP_NAME } from '$lib/constants';
 import { type Writable, writable } from 'svelte/store';
-import type { Model } from '$lib/utils/airis/model-types';
+import type { Model, ModelDownload } from '$lib/utils/airis/model-types';
 export type { Model, OpenAIModel, OllamaModel } from '$lib/utils/airis/model-types';
 import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
@@ -12,11 +14,13 @@ import type {
 	ArtifactContent,
 	DirectModelConnections,
 	DirectTerminalSettings,
+	ToolServerConnection,
 	FrontendConfig,
 	FolderListItem,
 	SelectedFolder,
 	GenerationParams,
 	ImageCompressionSize,
+	FloatingAction,
 	SpeechSettings,
 	StoredTerminalServer,
 	FunctionListItem,
@@ -44,7 +48,7 @@ export const appInfo = writable(null);
 export const appData = writable(null);
 
 // Frontend
-export const MODEL_DOWNLOAD_POOL = writable({});
+export const MODEL_DOWNLOAD_POOL = writable<Record<string, ModelDownload>>({});
 
 export const mobile = writable(false);
 
@@ -74,8 +78,8 @@ export const TTSWorker = writable<KokoroWorker | null>(null);
 export const chatId = writable('');
 export const chatTitle = writable('');
 
-export const channels = writable([]);
-export const channelId = writable(null);
+export const channels = writable<ChannelListItem[]>([]);
+export const channelId = writable<string | null>(null);
 
 export { chats, pinnedChats } from './chatList';
 export const pinnedNotes = writable<NoteListItem[]>([]);
@@ -150,12 +154,12 @@ export const showFileNavPath: Writable<string | null> = writable(null);
 export const showFileNavDir: Writable<string | null> = writable(null);
 export const selectedTerminalId: Writable<string | null> = writable(null);
 
-export const artifactCode = writable(null);
+export const artifactCode = writable<string | null>(null);
 export const artifactContents: Writable<ArtifactContent[] | null> = writable(null);
 
-export const embed = writable(null);
+export const embed: Writable<CitationEmbed | null> = writable(null);
 
-export const temporaryChatEnabled = writable(false);
+export const temporaryChatEnabled = writable<boolean | null>(false);
 
 // Transient one-shot event from the desktop shell (Spotlight, drag-and-drop, etc.).
 // Set by +layout.svelte, consumed and cleared by Chat.svelte.
@@ -174,7 +178,7 @@ export type Settings = {
 	tools?: string[];
 	terminalServers?: DirectTerminalSettings[];
 	version?: string;
-	toolServers?: never[];
+	toolServers?: ToolServerConnection[];
 	detectArtifacts?: boolean;
 	showUpdateToast?: boolean;
 	showChangelog?: boolean;
@@ -187,8 +191,8 @@ export type Settings = {
 	stylizedPdfExport?: boolean;
 	imageCompression?: boolean;
 	imageCompressionSize?: ImageCompressionSize;
-	textScale?: number;
-	widescreenMode?: null;
+	textScale?: number | null;
+	widescreenMode?: boolean;
 	largeTextAsFile?: boolean;
 	promptAutocomplete?: boolean;
 	hapticFeedback?: boolean;
@@ -198,6 +202,7 @@ export type Settings = {
 	insertPromptAsRichText?: boolean;
 	temporaryChatByDefault?: boolean;
 	showFloatingActionButtons?: boolean;
+	floatingActionButtons?: FloatingAction[] | null;
 	chatFadeStreamingText?: boolean;
 	regenerateMenu?: boolean;
 	keepFollowUpPrompts?: boolean;
@@ -213,7 +218,7 @@ export type Settings = {
 	autoTags?: boolean;
 	autoFollowUps?: boolean;
 	splitLargeChunks?: boolean;
-	backgroundImageUrl?: null;
+	backgroundImageUrl?: string | null;
 	landingPageMode?: string;
 	iframeSandboxAllowForms?: boolean;
 	iframeSandboxAllowSameOrigin?: boolean;

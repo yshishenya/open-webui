@@ -9,17 +9,19 @@
 	import Download from '$lib/components/icons/Download.svelte';
 	import { user } from '$lib/stores';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 
-	export let editHandler: Function;
-	export let cloneHandler: Function;
-	export let exportHandler: Function;
-	export let deleteHandler: Function;
-	export let onClose: Function;
+	export let editHandler: () => void | Promise<void>;
+	export let cloneHandler: () => void | Promise<void>;
+	export let exportHandler: () => void | Promise<void>;
+	export let deleteHandler: () => void | Promise<void>;
+	export let onClose: () => void | Promise<void>;
 
 	export let show = false;
 
-	const closeMenu = () => {
+	const closeMenu = (): void => {
 		show = false;
 		onClose();
 	};

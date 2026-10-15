@@ -70,3 +70,13 @@ export type DirectProviderModelsResponse =
 	| DirectProviderModel[]
 	| { data?: DirectProviderModel[] | null; object?: string; urlIdx?: string | number }
 	| null;
+
+export type ModelDownload = {
+	urlIdx: string;
+	abortController: AbortController;
+	reader: ReadableStreamDefaultReader<string>;
+	done: boolean;
+	cancelled: boolean;
+	pullProgress?: number;
+	digest?: string;
+};

@@ -63,6 +63,7 @@
 	import { generateTitle } from '$lib/apis';
 	import { createMessagesList } from '$lib/utils';
 	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
+	import type { SavedChat } from '$lib/utils/airis/frontend-contracts';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 
 	const i18n = getContext('i18n');
@@ -71,8 +72,8 @@
 
 	export let className = '';
 
-	export let id;
-	export let title;
+	export let id: string;
+	export let title = '';
 	export let createdAt: number | null = null;
 	export let updatedAt: number | null = null;
 	export let lastReadAt: number | null = null;
@@ -86,7 +87,7 @@
 	export let ownerUserId: string | null = null;
 	export let onReadStateChange: (data: Record<string, unknown>) => void = () => {};
 
-	export let onDragEnd = () => {};
+	export let onDragEnd: (event: DragEvent) => void = () => {};
 
 	function formatTimeAgo(timestamp: number): string {
 		const now = Date.now();
@@ -107,12 +108,10 @@
 		return $i18n.t('1m', { context: 'time_ago' });
 	}
 
-	let chat = null;
-
 	let mouseOver = false;
 	let openPreview = false;
 
-	const closeHoverPreview = () => {
+	const closeHoverPreview = (): void => {
 		if (openPreview) {
 			openPreview = false;
 		}
@@ -138,7 +137,7 @@
 	$: showInlineActions = id === $chatId || confirmEdit || mouseOver || selected;
 
 
-	const markUnreadHandler = async () => {
+	const markUnreadHandler = async (): Promise<void> => {
 		const res = await markChatUnreadById(localStorage.token, id).catch((error) => {
 			toast.error(`${error}`);
 			return null;
@@ -155,13 +154,14 @@
 
 	let chatTitle = title;
 
-	const editChatTitle = async (id, title) => {
+	const editChatTitle = async (id: string, title: string): Promise<void> => {
 		if (title === '') {
 			toast.error($i18n.t('Title cannot be an empty string.'));
 		} else {
-			await updateChatById(localStorage.token, id, {
+			const saved = await updateChatById(localStorage.token, id, {
 				title: title
 			});
+			if (!saved) throw new Error($i18n.t('Failed to generate title'));
 
 			if (id === $chatId) {
 				_chatTitle.set(title);
@@ -173,7 +173,7 @@
 		}
 	};
 
-	const cloneChatHandler = async (id) => {
+	const cloneChatHandler = async (id: string): Promise<void> => {
 		if (!($user?.role === 'admin' || ($user?.permissions?.chat?.import ?? true))) {
 			toast.error($i18n.t('Access prohibited'));
 			return;
@@ -199,7 +199,7 @@
 
 	let deleting = false;
 
-	const deleteChatHandler = async (id) => {
+	const deleteChatHandler = async (id: string): Promise<void> => {
 		if (deleting) return;
 		deleting = true;
 
@@ -225,7 +225,7 @@
 
 	let archiving = false;
 
-	const archiveChatHandler = async (id) => {
+	const archiveChatHandler = async (id: string): Promise<void> => {
 		if (archiving) return;
 		archiving = true;
 
@@ -247,7 +247,7 @@
 		}
 	};
 
-	const moveChatHandler = async (chatId, folderId) => {
+	const moveChatHandler = async (chatId: string, folderId: string): Promise<void> => {
 		if (chatId && folderId) {
 			const res = await updateChatFolderIdById(localStorage.token, chatId, folderId).catch(
 				(error) => {
@@ -268,7 +268,7 @@
 		}
 	};
 
-	let itemElement;
+	let itemElement: HTMLDivElement | null = null;
 
 	let generating = false;
 
@@ -278,8 +278,9 @@
 	let x = 0;
 	let y = 0;
 
-	const onDragStart = (event) => {
+	const onDragStart = (event: DragEvent): void => {
 		event.stopPropagation();
+		if (!event.dataTransfer || !itemElement) return;
 		openPreview = false;
 
 		event.dataTransfer.setDragImage(invisibleDragImage, 0, 0);
@@ -298,27 +299,27 @@
 		itemElement.style.opacity = '0.5'; // Optional: Visual cue to show it's being dragged
 	};
 
-	const onDrag = (event) => {
+	const onDrag = (event: DragEvent): void => {
 		event.stopPropagation();
 
 		x = event.clientX;
 		y = event.clientY;
 	};
 
-	const onDragEndHandler = (event) => {
+	const onDragEndHandler = (event: DragEvent): void => {
 		event.stopPropagation();
 
-		itemElement.style.opacity = '1'; // Reset visual cue after drag
+		if (itemElement) itemElement.style.opacity = '1'; // Reset visual cue after drag
 		dragged = false;
 
 		onDragEnd(event);
 	};
 
-	const onClickOutside = (event) => {
-		if (!itemElement.contains(event.target)) {
+	const onClickOutside = (event: MouseEvent): void => {
+		if (itemElement && event.target instanceof Node && !itemElement.contains(event.target)) {
 			if (confirmEdit) {
 				if (chatTitle !== title) {
-					editChatTitle(id, chatTitle);
+					editChatTitle(id, chatTitle).catch((error: unknown) => toast.error(`${error}`));
 				}
 
 				confirmEdit = false;
@@ -350,7 +351,7 @@
 
 	let showDeleteConfirm = false;
 
-	const chatTitleInputKeydownHandler = (e) => {
+	const chatTitleInputKeydownHandler = (e: KeyboardEvent): void => {
 		if (e.key === 'Enter') {
 			e.preventDefault();
 			setTimeout(() => {
@@ -364,7 +365,7 @@
 		}
 	};
 
-	const renameHandler = async () => {
+	const renameHandler = async (): Promise<void> => {
 		chatTitle = title;
 		confirmEdit = true;
 		openPreview = false;
@@ -373,7 +374,7 @@
 
 		setTimeout(() => {
 			const input = document.getElementById(`chat-title-input-${id}`);
-			if (input) {
+			if (input instanceof HTMLInputElement) {
 				input.focus();
 				input.select();
 			}
@@ -381,74 +382,84 @@
 	};
 
 	const generateTitleHandler = async (): Promise<void> => {
+		if (generating) return;
 		generating = true;
-		chat = await getChatById(localStorage.token, id);
+		try {
+			const chat: SavedChat | null = await getChatById(localStorage.token, id);
+			if (!chat?.chat) throw new Error($i18n.t('Failed to load chat'));
 
-		const chatContent = chat.chat;
+			const chatContent = chat.chat;
 
-		// Build the active branch message list from the history tree.
-		// Fallback to the legacy flat messages array for older chats
-		// that haven't been migrated to the tree structure yet.
-		const history = chatContent?.history;
-		let messages = [];
-		if (history?.messages && history?.currentId) {
-			messages = createMessagesList(history, history.currentId).map((message: ChatHistoryMessage) => ({
-				role: message.role,
-				content: getOutputText(message.output) || message.content || ''
-			}));
-		} else {
-			messages = (chatContent?.messages ?? []).map((message: ChatHistoryMessage) => ({
-				role: message.role,
-				content: getOutputText(message.output) || message.content || ''
-			}));
-		}
-
-		// Resolve the model from the most recent assistant message in the
-		// active branch. This avoids using the stale top-level `models`
-		// array which may reference a model from an older edit.
-		let model = '';
-
-		// For the active chat, prefer the live dropdown selection.
-		if (id === $chatId) {
-			try {
-				model = JSON.parse(sessionStorage.selectedModels || '[]').find((m) => m) ?? '';
-			} catch {
-				model = '';
-			}
-		}
-
-		if (!model && history?.messages && history?.currentId) {
-			model =
-				createMessagesList(history, history.currentId)
-					.reverse()
-					.find((msg: ChatHistoryMessage) => msg.role === 'assistant' && msg.model)?.model ?? '';
-		}
-
-		// Fallback to top-level models if no model was found in the history
-		if (!model) {
-			model = chatContent?.models?.at(0) ?? '';
-		}
-
-		chatTitle = '';
-
-		const generatedTitle = await generateTitle(localStorage.token, model, messages).catch(
-			(error) => {
-				toast.error(`${error}`);
-				return null;
-			}
-		);
-
-		if (generatedTitle) {
-			if (generatedTitle !== title) {
-				editChatTitle(id, generatedTitle);
+			// Build the active branch message list from the history tree.
+			// Fallback to the legacy flat messages array for older chats
+			// that haven't been migrated to the tree structure yet.
+			const history = chatContent?.history;
+			let messages = [];
+			if (history?.messages && history?.currentId) {
+				messages = createMessagesList(history, history.currentId).map(
+					(message: ChatHistoryMessage) => ({
+						role: message.role,
+						content: getOutputText(message.output) || message.content || ''
+					})
+				);
+			} else {
+				messages = (chatContent?.messages ?? []).map((message: ChatHistoryMessage) => ({
+					role: message.role,
+					content: getOutputText(message.output) || message.content || ''
+				}));
 			}
 
-			confirmEdit = false;
-		} else {
+			// Resolve the model from the most recent assistant message in the
+			// active branch. This avoids using the stale top-level `models`
+			// array which may reference a model from an older edit.
+			let model = '';
+
+			// For the active chat, prefer the live dropdown selection.
+			if (id === $chatId) {
+				try {
+					const selection: unknown = JSON.parse(sessionStorage.selectedModels || '[]');
+					model = Array.isArray(selection)
+						? (selection.find(
+							(m: unknown): m is string => typeof m === 'string' && m.length > 0
+						) ?? '')
+						: '';
+				} catch {
+					model = '';
+				}
+			}
+
+			if (!model && history?.messages && history?.currentId) {
+				model =
+					createMessagesList(history, history.currentId)
+						.reverse()
+						.find((msg: ChatHistoryMessage) => msg.role === 'assistant' && msg.model)?.model ?? '';
+			}
+
+			// Fallback to top-level models if no model was found in the history
+			if (!model) {
+				model = chatContent?.models?.at(0) ?? '';
+			}
+
+			chatTitle = '';
+
+			const generatedTitle = await generateTitle(localStorage.token, model, messages);
+
+			if (typeof generatedTitle === 'string' && generatedTitle) {
+				if (generatedTitle !== title) {
+					await editChatTitle(id, generatedTitle);
+				}
+
+				chatTitle = generatedTitle;
+				confirmEdit = false;
+			} else {
+				chatTitle = title;
+			}
+		} catch (error: unknown) {
 			chatTitle = title;
+			toast.error(`${error}`);
+		} finally {
+			generating = false;
 		}
-
-		generating = false;
 	};
 </script>
 

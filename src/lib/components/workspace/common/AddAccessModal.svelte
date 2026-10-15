@@ -10,20 +10,17 @@
 	export let shareUsers = true;
 	export let allowGroups = true;
 	export let accessGrants: { principal_type: string; principal_id: string }[] = [];
-	export let onAdd = (payload: { userIds: string[]; groupIds: string[] }) => {};
+	export let onAdd: (payload: { userIds: string[]; groupIds: string[] }) => void = () => {};
 
 	let userIds: string[] = [];
 	let groupIds: string[] = [];
-	let loading = false;
 
 	const submitHandler = () => {
-		loading = true;
 		onAdd({ userIds, groupIds });
 		show = false;
 
 		userIds = [];
 		groupIds = [];
-		loading = false;
 	};
 </script>
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { FolderListItem } from '$lib/utils/airis/frontend-contracts';
 
 	import { folders } from '$lib/stores';
 	import { decodeString } from '$lib/utils';
@@ -20,9 +21,10 @@
 
 	let folderSearch = '';
 
-	const folderName = (folder: any) => decodeString(folder?.name ?? $i18n.t('Folder'));
+	const folderName = (folder: FolderListItem): string =>
+		decodeString(folder?.name ?? $i18n.t('Folder'));
 
-	const folderPath = (folder: any) => {
+	const folderPath = (folder: FolderListItem): string => {
 		const names: string[] = [];
 		const seen = new Set<string>();
 		let current = folder;
@@ -38,7 +40,7 @@
 		return names.join(' / ');
 	};
 
-	$: folderOptions = [...((($folders ?? []) as any[]) ?? [])]
+	$: folderOptions = [...((($folders ?? []) as FolderListItem[]) ?? [])]
 		.filter((folder) => folder?.id && !folder?.shared)
 		.sort((a, b) => folderName(a).localeCompare(folderName(b)));
 	$: folderById = new Map(folderOptions.map((folder) => [folder.id, folder]));

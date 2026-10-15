@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 
-	import { onMount, getContext, tick, type ComponentProps } from 'svelte';
+	import { onMount, onDestroy, getContext, tick, type ComponentProps } from 'svelte';
 	import type { ModelConfig, ModelMeta, ModelParams } from '$lib/apis';
 	import type { SkillListItem } from '$lib/utils/airis/frontend-contracts';
 	import { models, tools, functions, user } from '$lib/stores';
@@ -213,9 +213,12 @@
 		suggestionTags = res.map((tag) => ({ name: tag }));
 	};
 
-	const loadVoices = async () => {
-		const res = await getVoices(localStorage.token).catch(() => null);
-		voices = res?.voices ?? [];
+	const voicesAbort = new AbortController();
+	onDestroy(() => voicesAbort.abort());
+	const loadVoices = async (): Promise<void> => {
+		if (voicesAbort.signal.aborted) return;
+		const res = await getVoices(localStorage.token, voicesAbort.signal).catch(() => null);
+		if (!voicesAbort.signal.aborted) voices = res?.voices ?? [];
 	};
 
 	const toModelKnowledgeReference = (item: unknown): unknown => {
@@ -404,16 +407,39 @@
 	};
 
 	onMount(async () => {
-		await tools.set((await getTools(localStorage.token).catch(() => null)) ?? []);
-		skillsList = (await getSkills(localStorage.token).catch(() => null)) ?? [];
+		await getTools(localStorage.token, voicesAbort.signal)
+			.then((items) => {
+				if (!voicesAbort.signal.aborted) tools.set(items);
+			})
+			.catch(() => {
+				if (!voicesAbort.signal.aborted) toast.error($i18n.t('Could not load tools. Try again.'));
+			});
+		if (voicesAbort.signal.aborted) return;
+		await getSkills(localStorage.token, voicesAbort.signal)
+			.then((items) => {
+				if (!voicesAbort.signal.aborted) skillsList = items;
+			})
+			.catch(() => {
+				if (!voicesAbort.signal.aborted) toast.error($i18n.t('Could not load skills. Try again.'));
+			});
+		if (voicesAbort.signal.aborted) return;
 		if (!$functions) {
-			await functions.set(await getFunctions(localStorage.token));
+			await getFunctions(localStorage.token, voicesAbort.signal)
+				.then((items) => {
+					if (!voicesAbort.signal.aborted) functions.set(items);
+				})
+				.catch(() => {
+					if (!voicesAbort.signal.aborted)
+						toast.error($i18n.t('Could not load functions. Close this section and open it again.'));
+				});
+			if (voicesAbort.signal.aborted) return;
 		}
 		if (suggestionTags.length === 0) {
 			await loadSuggestionTags();
 		}
 		if (voices.length === 0) {
 			await loadVoices();
+			if (voicesAbort.signal.aborted) return;
 		}
 
 		// Fetch admin-configured default model metadata so the editor
@@ -986,7 +1012,10 @@
 									([key, value]) =>
 										value && ['web_search', 'code_interpreter', 'image_generation'].includes(key)
 								)
-								.map(([key]) => key)}
+								.map(
+									([key]) =>
+										key as NonNullable<ComponentProps<DefaultFeatures>['availableFeatures']>[number]
+								)}
 
 							{#if availableFeatures.length > 0}
 								<div class="my-3">

@@ -481,7 +481,7 @@ async def ldap_auth(
     response: Response,
     form_data: LdapForm,
     db: AsyncSession = Depends(get_async_session),
-):
+) -> dict[str, object]:
     # Security checks FIRST - before loading any config
     if not await Config.get('ldap.enable'):
         raise HTTPException(400, detail='LDAP authentication is not enabled')
@@ -501,7 +501,7 @@ async def ldap_auth(
         raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
 
     # NOW load LDAP config variables
-    LDAP_SERVER_LABEL = await Config.get('ldap.server.label')
+    await Config.get('ldap.server.label')
     LDAP_SERVER_HOST = await Config.get('ldap.server.host')
     LDAP_SERVER_PORT = await Config.get('ldap.server.port')
     LDAP_ATTRIBUTE_FOR_MAIL = await Config.get('ldap.server.attribute_for_mail')
@@ -723,7 +723,7 @@ async def signin(
     response: Response,
     form_data: SigninForm,
     db: AsyncSession = Depends(get_async_session),
-):
+) -> dict[str, object]:
     if not ENABLE_PASSWORD_AUTH:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -744,7 +744,7 @@ async def signin(
             name = request.headers.get(WEBUI_AUTH_TRUSTED_NAME_HEADER, email)
             try:
                 name = urllib.parse.unquote(name, encoding='utf-8')
-            except Exception as e:
+            except Exception:
                 pass
 
         if not await Users.get_user_by_email(email.lower(), db=db):
@@ -1677,7 +1677,7 @@ async def token_exchange(
     sub_claim = await Config.get('oauth.sub_claim')
     sub = user_data.get(sub_claim or OAUTH_PROVIDERS[provider].get('sub_claim', 'sub'))
     if not sub:
-        log.warning(f'Token exchange failed: sub claim missing from user data')
+        log.warning('Token exchange failed: sub claim missing from user data')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Token missing required 'sub' claim",
@@ -1685,7 +1685,7 @@ async def token_exchange(
 
     email = user_data.get(email_claim, '')
     if not email:
-        log.warning(f'Token exchange failed: email claim missing from user data')
+        log.warning('Token exchange failed: email claim missing from user data')
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Token missing required email claim',
@@ -1697,7 +1697,7 @@ async def token_exchange(
     if isinstance(oauth_allowed_domains, str):
         oauth_allowed_domains = [domain.strip() for domain in oauth_allowed_domains.split(',') if domain.strip()]
     if '*' not in oauth_allowed_domains and email.split('@')[-1] not in oauth_allowed_domains:
-        log.warning(f'Token exchange denied: email domain not in allowed domains list')
+        log.warning('Token exchange denied: email domain not in allowed domains list')
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=ERROR_MESSAGES.ACCESS_PROHIBITED,

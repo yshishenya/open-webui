@@ -9,7 +9,12 @@
 				import('katex'),
 				import('katex/contrib/mhchem'),
 				import('katex/dist/katex.min.css')
-			]).then(([katex]) => katex.renderToString);
+			])
+				.then(([katex]) => katex.renderToString)
+				.catch((cause: unknown) => {
+					katexRenderer = null;
+					throw cause;
+				});
 		}
 		return katexRenderer;
 	}
@@ -17,19 +22,35 @@
 
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 	import { copyToClipboard } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<import('svelte/store').Writable<import('i18next').i18n>>('i18n');
 
 	export let content: string;
 	export let displayMode: boolean = false;
 
 	let renderToString: typeof katexRenderToString | null = null;
 
-	onMount(async () => {
-		renderToString = await getKatexRenderer();
+	onMount(() => {
+		let active = true;
+		getKatexRenderer()
+			.then((render) => {
+				if (active) renderToString = render;
+			})
+			.catch((cause: unknown) => {
+				if (active) console.error('Formula renderer unavailable:', cause);
+			});
+		return () => {
+			active = false;
+		};
 	});
+
+	const copyFormula = (): void => {
+		copyToClipboard(content);
+		toast.success($i18n.t('Copied to clipboard'));
+	};
 
 	// Cache rendered HTML — only re-compute when content, displayMode, or renderToString changes,
 	// not on every parent re-render during streaming
@@ -48,16 +69,19 @@
 </script>
 
 {#if renderToString && renderedHTML}
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<svelte:element
 		this={displayMode ? 'div' : 'span'}
 		class="cursor-pointer"
-		on:click={() => {
-			copyToClipboard(content);
-			toast.success($i18n.t('Copied to clipboard'));
+		role="button"
+		tabindex="0"
+		aria-label={$i18n.t('Copy to clipboard')}
+		on:click={copyFormula}
+		on:keydown={(event: KeyboardEvent) => {
+			if (event.key === 'Enter' || event.key === ' ') {
+				event.preventDefault();
+				copyFormula();
+			}
 		}}
-	>
-		{@html renderedHTML}
-	</svelte:element>
+		use:sanitizedHtml={renderedHTML}
+	/>
 {/if}

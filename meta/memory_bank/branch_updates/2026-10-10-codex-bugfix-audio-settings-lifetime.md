@@ -1,0 +1,7 @@
+- [x] **[BUG][AUDIO]** Договоры API и время жизни настроек звука
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__audio-settings-lifetime.md
+  - Owner: Codex
+  - Branch: codex/bugfix/chat-dispatch-replay
+  - Done: 2026-10-10
+  - Summary: Общие audio API и все потребители; nativevoices безpolling, отмена/поздние результаты формы, согласованные types и сохранность.
+  - Tests: 16 исходных отказов и дополнительная мутация несохранённой точности воспроизведены;44 адресных и1394/1394 полный frontend пройдены. Types1472/94 и ESLint888, новых0; frozen1739/backend542/protected21/production12 сохранены. SDD2/2 завершена; production-выпуска нет.

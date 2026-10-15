@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { getContext, createEventDispatcher, onMount } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import { toast } from 'svelte-sonner';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
-	import { createNewChannel, deleteChannelById } from '$lib/apis/channels';
+	import { deleteChannelById } from '$lib/apis/channels';
+	import type { ChannelForm } from '$lib/apis/channels';
+	import type { ChannelListItem } from '$lib/utils/airis/channel-types';
 	import { user } from '$lib/stores';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -20,23 +22,24 @@
 	import WebhooksModal from '$lib/components/channel/WebhooksModal.svelte';
 
 	export let show = false;
-	export let onSubmit: Function = () => {};
-	export let onUpdate: Function = () => {};
+	export let onSubmit: (form: ChannelForm) => Promise<boolean> = async () => false;
+	export let onUpdate: () => void | Promise<void> = () => {};
 
-	export let channel: any = null;
+	export let channel: ChannelListItem | null = null;
 	export let edit = false;
 
 	let channelTypes = ['group', 'dm'];
 	let type = '';
 	let name = '';
 
-	let isPrivate = null;
-	let accessGrants = [];
+	let isPrivate: boolean | null = null;
+	let accessGrants: ChannelListItem['access_grants'] = [];
 
-	let groupIds = [];
-	let userIds = [];
+	let groupIds: string[] = [];
+	let userIds: string[] = [];
 
 	let loading = false;
+	let formSession = 0;
 
 	$: if (name) {
 		name = name.replace(/\s/g, '-').toLocaleLowerCase();
@@ -44,7 +47,7 @@
 
 	$: onTypeChange(type);
 
-	const onTypeChange = (type) => {
+	const onTypeChange = (type: string): void => {
 		if (type === 'group') {
 			if (isPrivate === null) {
 				isPrivate = true;
@@ -54,84 +57,100 @@
 		}
 	};
 
-	const submitHandler = async () => {
-		loading = true;
+	const submitHandler = async (): Promise<void> => {
+		if (!show || loading) return;
 		if (name.length > 128) {
 			toast.error($i18n.t('Channel name must be less than 128 characters'));
-			loading = false;
 			return;
 		}
-
-		await onSubmit({
-			type: type,
-			name: name.replace(/\s/g, '-'),
-			is_private: type === 'group' ? (isPrivate ?? true) : null,
-			access_grants: type === '' ? accessGrants : [],
-			group_ids: groupIds,
-			user_ids: userIds
-		});
-		show = false;
-		loading = false;
+		const session = formSession;
+		loading = true;
+		try {
+			const saved = await onSubmit({
+				type,
+				name: name.replace(/\s/g, '-'),
+				is_private: type === 'group' ? (isPrivate ?? true) : null,
+				access_grants: type === '' ? accessGrants : [],
+				group_ids: groupIds,
+				user_ids: userIds
+			});
+			if (saved && show && session === formSession) show = false;
+		} catch (error) {
+			if (show && session === formSession) toast.error(`${error}`);
+		} finally {
+			if (session === formSession) loading = false;
+		}
 	};
 
-	const init = () => {
+	const init = (value: ChannelListItem | null = channel): void => {
 		if ($user?.role === 'admin') {
 			channelTypes = ['', 'group', 'dm'];
 		} else {
 			channelTypes = ['group', 'dm'];
 		}
 
-		type = channel?.type ?? channelTypes[0];
+		type = value?.type ?? channelTypes[0];
 
-		if (channel) {
-			name = channel?.name ?? '';
+		if (value) {
+			name = value?.name ?? '';
 			if (type === 'group') {
-				isPrivate = typeof channel?.is_private === 'boolean' ? channel.is_private : true;
+				isPrivate = typeof value?.is_private === 'boolean' ? value.is_private : true;
 			} else {
 				isPrivate = null;
 			}
-			accessGrants = channel?.access_grants ?? [];
-			userIds = channel?.user_ids ?? [];
+			accessGrants = [...(value?.access_grants ?? [])];
+			userIds = [...(value?.user_ids ?? [])];
 		}
 	};
 
-	$: if (show) {
-		init();
-	} else {
-		resetHandler();
+	$: {
+		formSession++;
+		if (show) init(channel);
+		else resetHandler();
 	}
+	onDestroy(() => {
+		formSession++;
+	});
 
 	let showDeleteConfirmDialog = false;
 	let showWebhooksModal = false;
 
-	const deleteHandler = async () => {
-		showDeleteConfirmDialog = false;
-		if (!channel?.id) {
+	const deleteHandler = async (): Promise<void> => {
+		if (!show || !channel || loading) return;
+		const channelId = channel.id,
+			session = formSession;
+		loading = true;
+		try {
+			const deleted = await deleteChannelById(localStorage.token, channelId);
+			if (!show || session !== formSession || channel?.id !== channelId) return;
+			if (!deleted) throw new Error($i18n.t('Something went wrong :/'));
+			showDeleteConfirmDialog = false;
 			show = false;
-			return;
-		}
-
-		const channelId = channel.id;
-
-		const res = await deleteChannelById(localStorage.token, channelId).catch((error) => {
-			toast.error(error.message);
-		});
-
-		if (res) {
 			toast.success($i18n.t('Channel deleted successfully'));
-			onUpdate();
-
-			if ($page.url.pathname === `/channels/${channelId}`) {
-				goto('/');
+			try {
+				await onUpdate();
+			} catch (error) {
+				toast.error(`${error}`);
 			}
+			if ($page.url.pathname === `/channels/${channelId}`) {
+				try {
+					await goto('/');
+				} catch (error) {
+					toast.error(`${error}`);
+				}
+			}
+		} catch (error) {
+			if (show && session === formSession) toast.error(`${error}`);
+		} finally {
+			if (session === formSession) loading = false;
 		}
-
-		show = false;
 	};
 
-	const resetHandler = () => {
+	const resetHandler = (): void => {
 		type = '';
 		name = '';
+		isPrivate = null;
+		groupIds = [];
 		accessGrants = [];
 		userIds = [];
 		loading = false;

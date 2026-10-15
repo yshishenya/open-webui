@@ -47,3 +47,22 @@ export type RejectStringEnabled = Assert<
 	Assignable<{ url: string; enabled: string }, Terminal> extends false ? true : false
 >;
 export type VersionString = Assert<Assignable<string, NonNullable<Settings['version']>>>;
+
+export type BackgroundImage = Assert<Assignable<string | null, Settings['backgroundImageUrl']>>;
+export type NullableScale = Assert<Assignable<number | null, Settings['textScale']>>;
+export type WideScreenSwitch = Assert<Assignable<boolean, Settings['widescreenMode']>>;
+export type CustomQuickActions = Assert<
+	Assignable<
+		{ id: string; label: string; prompt: string; input: true }[],
+		Settings['floatingActionButtons']
+	>
+>;
+export type DefaultQuickActions = Assert<Assignable<null, Settings['floatingActionButtons']>>;
+export type RejectNumericQuickActionPrompt = Assert<
+	Assignable<
+		{ id: string; label: string; prompt: number }[],
+		Settings['floatingActionButtons']
+	> extends false
+		? true
+		: false
+>;

@@ -13,9 +13,9 @@
 
 	const i18n = getContext('i18n');
 
-	let previewElement = null;
+	let previewElement: HTMLDivElement | null = null;
 
-	const handleKeyDown = (event: KeyboardEvent) => {
+	const handleKeyDown = (event: KeyboardEvent): void => {
 		if (event.key === 'Escape') {
 			console.log('Escape');
 			show = false;
@@ -46,8 +46,6 @@
 </script>
 
 {#if show}
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		bind:this={previewElement}
 		class="modal fixed top-0 right-0 left-0 bottom-0 bg-black text-white w-full min-h-screen h-screen flex justify-center z-9999 overflow-hidden overscroll-contain"
@@ -61,7 +59,7 @@
 						e.preventDefault();
 						show = false;
 					}}
-					on:click={(e) => {
+					on:click={() => {
 						show = false;
 					}}
 				>

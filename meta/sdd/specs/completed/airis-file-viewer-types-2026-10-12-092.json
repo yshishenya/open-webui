@@ -1,0 +1,141 @@
+{
+  "spec_id": "airis-file-viewer-types-2026-10-12-092",
+  "title": "AIRIS file viewer types",
+  "generated": "2026-10-12T02:38:43.460859Z",
+  "last_updated": "2026-10-12T03:12:51.172286Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__file-viewer-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T02:38:43.888840Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T03:12:51.171996Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS file viewer types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Use existing file and library types with native file actions",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T03:09:41.643096Z",
+        "journaled_at": "2026-10-12T03:09:41.644896Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify frontend, runtime output and source preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T03:12:50.699723Z",
+        "journaled_at": "2026-10-12T03:12:50.701610Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Use existing file and library types with native file actions",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T03:09:41.642928Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T03:09:41.643834Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify frontend, runtime output and source preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T03:12:50.699549Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T03:12:50.700538Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T03:09:41.643829Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Use existing file and library types with native file actions",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:09:41.644892Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Use existing file and library types with native file actions",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:12:50.700530Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frontend, runtime output and source preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:12:50.701605Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frontend, runtime output and source preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

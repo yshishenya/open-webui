@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { getContext, createEventDispatcher, onMount, onDestroy } from 'svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import { toast } from 'svelte-sonner';
+	const i18n = getContext<Readable<I18n>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	import ChevronDown from '../icons/ChevronDown.svelte';
@@ -21,48 +24,53 @@
 
 	export let chevron = true;
 	export let onAddLabel: string = '';
-	export let onAdd: null | Function = null;
+	export let onAdd: null | (() => void | Promise<void>) = null;
 
 	export let dragAndDrop = true;
 
-	let folderElement;
+	let folderElement: HTMLDivElement;
+	const lifetime = { active: true };
 	let loaded = false;
 
 	let draggedOver = false;
 
-	const onDragOver = (e) => {
+	const onDragOver = (e: DragEvent): void => {
+		if (!dragAndDrop) return;
 		e.preventDefault();
 		e.stopPropagation();
 		draggedOver = true;
 	};
 
-	const onDrop = (e) => {
+	const onDrop = (e: DragEvent): void => {
+		if (!dragAndDrop) return;
 		e.preventDefault();
 		e.stopPropagation();
 
-		if (folderElement.contains(e.target)) {
-			console.log('Dropped on the Button');
-
-			if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+		if (e.target instanceof Node && folderElement.contains(e.target)) {
+			if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
 				// Iterate over all items in the DataTransferItemList use functional programming
 				for (const item of Array.from(e.dataTransfer.items)) {
 					// If dropped items aren't files, reject them
 					if (item.kind === 'file') {
 						const file = item.getAsFile();
 						if (file && file.type === 'application/json') {
-							console.log('Dropped file is a JSON file!');
-
 							// Read the JSON file with FileReader
 							const reader = new FileReader();
-							reader.onload = async function (event) {
+							reader.onload = (): void => {
+								if (!lifetime.active) return;
 								try {
-									const fileContent = JSON.parse(event.target.result);
-									console.log('Parsed JSON Content: ', fileContent);
+									const fileContent = JSON.parse(
+										typeof reader.result === 'string' ? reader.result : ''
+									);
 									open = true;
 									dispatch('import', fileContent);
-								} catch (error) {
-									console.error('Error parsing JSON file:', error);
+								} catch {
+									toast.error($i18n.t('Invalid file format.'));
 								}
+							};
+
+							reader.onerror = (): void => {
+								if (lifetime.active) toast.error($i18n.t('Invalid file format.'));
 							};
 
 							// Start reading the file
@@ -76,12 +84,11 @@
 							const dataTransfer = e.dataTransfer.getData('text/plain');
 							if (dataTransfer) {
 								const data = JSON.parse(dataTransfer);
-								console.log(data);
 								dispatch('drop', data);
 							} else {
 								console.log('Dropped text data is empty or not text/plain.');
 							}
-						} catch (error) {
+						} catch {
 							console.log(
 								'Dropped data is not valid JSON text or is empty. Ignoring drop event for this type of data.'
 							);
@@ -100,7 +107,7 @@
 		}
 	};
 
-	const onDragLeave = (e) => {
+	const onDragLeave = (e: DragEvent): void => {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -124,12 +131,10 @@
 	});
 
 	onDestroy(() => {
-		if (!dragAndDrop) {
-			return;
-		}
-		folderElement.removeEventListener('dragover', onDragOver);
-		folderElement.removeEventListener('drop', onDrop);
-		folderElement.removeEventListener('dragleave', onDragLeave);
+		lifetime.active = false;
+		folderElement?.removeEventListener('dragover', onDragOver);
+		folderElement?.removeEventListener('drop', onDrop);
+		folderElement?.removeEventListener('dragleave', onDragLeave);
 	});
 </script>
 
@@ -151,12 +156,14 @@
 					localStorage.setItem(`${id}-folder-state`, `${state}`);
 				}}
 			>
-				<!-- svelte-ignore a11y-no-static-element-interactions -->
 				<div
 					id="sidebar-folder-button"
 					class=" w-full group rounded-xl relative flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-900 transition {buttonClassName}"
 				>
-					<button class="w-full py-1.5 pl-2 flex items-center gap-1.5 text-xs font-normal">
+					<button
+						type="button"
+						class="w-full py-1.5 pl-2 flex items-center gap-1.5 text-xs font-normal"
+					>
 						{#if chevron}
 							<div class=" p-[1px]">
 								{#if open}
@@ -174,6 +181,8 @@
 
 					{#if onAdd}
 						<button
+							type="button"
+							aria-label={onAddLabel}
 							class="absolute z-10 right-2 invisible group-hover:visible self-center flex items-center dark:text-gray-300"
 							on:pointerup={(e) => {
 								e.stopPropagation();
@@ -184,12 +193,9 @@
 							}}
 						>
 							<Tooltip content={onAddLabel}>
-								<button
-									class="p-0.5 dark:hover:bg-gray-850 rounded-lg touch-auto"
-									on:click={(e) => {}}
-								>
+								<span class="p-0.5 dark:hover:bg-gray-850 rounded-lg touch-auto">
 									<Plus className=" size-3" strokeWidth="2.5" />
-								</button>
+								</span>
 							</Tooltip>
 						</button>
 					{/if}

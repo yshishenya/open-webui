@@ -1,26 +1,19 @@
 import ast
 import asyncio
-import base64
 import copy
-import inspect
 import json
 import logging
-import os
 import random
 import re
 import sys
 import textwrap
 import time
-from collections.abc import AsyncIterator
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
+from collections.abc import AsyncIterator, Awaitable, Callable
 from uuid import uuid4
 
-from aiocache import cached
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from open_webui.config import (
-    CACHE_DIR,
     CODE_INTERPRETER_BLOCKED_MODULES,
     CODE_INTERPRETER_PYODIDE_PROMPT,
     DEFAULT_CODE_INTERPRETER_PROMPT,
@@ -29,7 +22,6 @@ from open_webui.config import (
 )
 from open_webui.constants import TASKS
 from open_webui.env import (
-    BYPASS_MODEL_ACCESS_CONTROL,
     CHAT_RESPONSE_MAX_TOOL_CALL_ITERATIONS,
     CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE,
     ENABLE_API_OUTLET_FILTERS,
@@ -41,13 +33,12 @@ from open_webui.env import (
     GLOBAL_LOG_LEVEL,
     RAG_SYSTEM_CONTEXT,
 )
-from open_webui.models.chats import Chats
+from open_webui.models.chats import ChatModel, Chats
 from open_webui.models.config import Config
 from open_webui.models.folders import Folders
-from open_webui.models.models import Models
 from open_webui.models.notes import Notes
-from open_webui.models.oauth_sessions import OAuthSessions
-from open_webui.models.users import UserModel, Users
+from open_webui.models.skills import SkillModel
+from open_webui.models.users import UserModel
 from open_webui.events import EVENTS, publish_event
 from open_webui.retrieval.utils import get_sources_from_items
 from open_webui.routers.images import (
@@ -107,7 +98,6 @@ from open_webui.utils.misc import (
     convert_logit_bias_input_to_json,
     convert_output_to_messages,
     deep_update,
-    extract_urls,
     get_content_from_message,
     get_last_assistant_message,
     get_last_user_message,
@@ -117,13 +107,11 @@ from open_webui.utils.misc import (
     get_system_message,
     is_string_allowed,
     merge_system_messages,
-    prepend_to_first_user_message_content,
     replace_system_message_content,
     set_last_user_message_content,
     strip_empty_content_blocks,
 )
 from open_webui.utils.payload import apply_system_prompt_to_body, resolve_system_prompt
-from open_webui.utils.plugin import load_function_module_by_id
 from open_webui.utils.response import merge_usage, normalize_usage
 from open_webui.utils.sanitize import sanitize_code
 from open_webui.utils.task import (
@@ -1152,7 +1140,7 @@ async def terminal_event_handler(
 async def chat_completion_tools_handler(
     request: Request, body: dict, extra_params: dict, user: UserModel, models, tools
 ) -> tuple[dict, dict]:
-    async def get_content_from_response(response) -> Optional[str]:
+    async def get_content_from_response(response) -> str | None:
         content = None
         if hasattr(response, 'body_iterator'):
             async for chunk in response.body_iterator:
@@ -1371,19 +1359,9 @@ async def chat_completion_tools_handler(
     return body, {'sources': sources}
 
 
-async def chat_web_search_handler(request: Request, form_data: dict, extra_params: dict, user):
-    event_emitter = extra_params['__event_emitter__']
-    await event_emitter(
-        {
-            'type': 'status',
-            'data': {
-                'action': 'web_search',
-                'description': 'Searching the web',
-                'done': False,
-            },
-        }
-    )
-
+async def _get_chat_web_search_queries(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> list[str]:
     messages = form_data['messages']
     user_message = get_last_user_message(messages)
 
@@ -1425,19 +1403,44 @@ async def chat_web_search_handler(request: Request, form_data: dict, extra_param
             response = response[bracket_start:bracket_end]
             queries = JSONCodec.loads(response)
             queries = queries.get('queries', [])
-        except Exception as e:
+        except Exception:
             queries = [response]
+
+        queries = SearchForm(queries=queries).queries
 
         if ENABLE_QUERIES_CACHE:
             request.state.cached_queries = queries
 
     except Exception as e:
-        log.exception(e)
+        log.warning(
+            'Web search query generation failed (%s); using user input',
+            type(e).__name__,
+        )
         queries = [user_message or '']
 
     # Check if generated queries are empty
     if len(queries) == 1 and queries[0].strip() == '':
         queries = [user_message or '']
+
+    return queries
+
+
+async def chat_web_search_handler(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> dict[str, object]:
+    event_emitter = extra_params['__event_emitter__']
+    await event_emitter(
+        {
+            'type': 'status',
+            'data': {
+                'action': 'web_search',
+                'description': 'Searching the web',
+                'done': False,
+            },
+        }
+    )
+
+    queries = await _get_chat_web_search_queries(request, form_data, extra_params, user)
 
     # Check if queries are not found
     if len(queries) == 0:
@@ -1638,7 +1641,70 @@ async def add_file_context(messages: list, chat_id: str, user) -> list:
     return messages
 
 
-async def chat_image_generation_handler(request: Request, form_data: dict, extra_params: dict, user):
+async def _get_chat_image_prompt(
+    request: Request,
+    form_data: dict[str, object],
+    metadata: dict[str, object],
+    user: UserModel,
+    user_message: object,
+) -> object:
+    prompt = user_message
+    if await Config.get('image_generation.prompt.enable'):
+        try:
+            res = await generate_image_prompt(
+                request,
+                {
+                    'model': form_data['model'],
+                    'messages': form_data['messages'],
+                    'chat_id': metadata.get('chat_id'),
+                },
+                user,
+            )
+
+            # Handle JSONResponse from error paths
+            if isinstance(res, JSONResponse):
+                try:
+                    error_body = JSONCodec.loads(res.body)
+                    detail = error_body.get('detail', 'Image prompt generation failed')
+                except Exception:
+                    detail = 'Image prompt generation failed'
+                raise Exception(detail)
+
+            response = res['choices'][0]['message']['content']
+
+            try:
+                bracket_start = response.rfind('{')
+                bracket_end = response.rfind('}') + 1
+
+                if bracket_start == -1 or bracket_end == -1:
+                    raise Exception('No JSON object found in the response')
+
+                response = response[bracket_start:bracket_end]
+                response = JSONCodec.loads(response)
+                prompt = response.get('prompt', [])
+            except Exception:
+                prompt = user_message
+
+        except Exception as e:
+            log.exception(e)
+            prompt = user_message
+
+    return prompt
+
+
+def _get_chat_image_error_message(e: Exception) -> object:
+    error_message = ''
+    if isinstance(e, HTTPException):
+        if e.detail and isinstance(e.detail, dict):
+            error_message = e.detail.get('message', str(e.detail))
+        else:
+            error_message = str(e.detail)
+    return error_message
+
+
+async def chat_image_generation_handler(
+    request: Request, form_data: dict[str, object], extra_params: dict[str, object], user: UserModel
+) -> dict[str, object]:
     metadata = extra_params.get('__metadata__', {})
     chat_id = metadata.get('chat_id', None)
     __event_emitter__ = extra_params.get('__event_emitter__', None)
@@ -1668,12 +1734,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
 
     # Limit to first 2 sets of images
     # We may want to change this in the future to allow more images
-    input_images = []
-    for idx, images in enumerate(message_images):
-        if idx >= 2:
-            break
-        for image in images:
-            input_images.append(image)
+    input_images = [image for images in message_images[:2] for image in images]
 
     system_message_content = ''
 
@@ -1718,18 +1779,13 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
                 raise
             log.debug(e)
 
-            error_message = ''
-            if isinstance(e, HTTPException):
-                if e.detail and isinstance(e.detail, dict):
-                    error_message = e.detail.get('message', str(e.detail))
-                else:
-                    error_message = str(e.detail)
+            error_message = _get_chat_image_error_message(e)
 
             await __event_emitter__(
                 {
                     'type': 'status',
                     'data': {
-                        'description': f'An error occurred while generating an image',
+                        'description': 'An error occurred while generating an image',
                         'done': True,
                     },
                 }
@@ -1739,45 +1795,7 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
 
     else:
         # Create image(s)
-        if await Config.get('image_generation.prompt.enable'):
-            try:
-                res = await generate_image_prompt(
-                    request,
-                    {
-                        'model': form_data['model'],
-                        'messages': form_data['messages'],
-                        'chat_id': metadata.get('chat_id'),
-                    },
-                    user,
-                )
-
-                # Handle JSONResponse from error paths
-                if isinstance(res, JSONResponse):
-                    try:
-                        error_body = JSONCodec.loads(res.body)
-                        detail = error_body.get('detail', 'Image prompt generation failed')
-                    except Exception:
-                        detail = 'Image prompt generation failed'
-                    raise Exception(detail)
-
-                response = res['choices'][0]['message']['content']
-
-                try:
-                    bracket_start = response.rfind('{')
-                    bracket_end = response.rfind('}') + 1
-
-                    if bracket_start == -1 or bracket_end == -1:
-                        raise Exception('No JSON object found in the response')
-
-                    response = response[bracket_start:bracket_end]
-                    response = JSONCodec.loads(response)
-                    prompt = response.get('prompt', [])
-                except Exception as e:
-                    prompt = user_message
-
-            except Exception as e:
-                log.exception(e)
-                prompt = user_message
+        prompt = await _get_chat_image_prompt(request, form_data, metadata, user, user_message)
 
         try:
             images = await image_generations(
@@ -1818,18 +1836,13 @@ async def chat_image_generation_handler(request: Request, form_data: dict, extra
                 raise
             log.debug(e)
 
-            error_message = ''
-            if isinstance(e, HTTPException):
-                if e.detail and isinstance(e.detail, dict):
-                    error_message = e.detail.get('message', str(e.detail))
-                else:
-                    error_message = str(e.detail)
+            error_message = _get_chat_image_error_message(e)
 
             await __event_emitter__(
                 {
                     'type': 'status',
                     'data': {
-                        'description': f'An error occurred while generating an image',
+                        'description': 'An error occurred while generating an image',
                         'done': True,
                     },
                 }
@@ -1877,12 +1890,12 @@ async def chat_completion_files_handler(
 
                     queries_response = queries_response[bracket_start:bracket_end]
                     queries_response = JSONCodec.loads(queries_response)
-                except Exception as e:
+                except Exception:
                     queries_response = {'queries': [queries_response]}
 
-                queries = queries_response.get('queries', [])
-            except Exception:
-                pass
+                queries = SearchForm(queries=queries_response.get('queries', [])).queries
+            except Exception as e:
+                log.debug('File search query generation failed (%s); using user input', type(e).__name__)
 
             await __event_emitter__(
                 {
@@ -2056,7 +2069,7 @@ async def convert_url_images_to_base64(form_data, user=None):
     return form_data
 
 
-async def load_messages_from_db(chat_id: str, message_id: str) -> Optional[list[dict]]:
+async def load_messages_from_db(chat_id: str, message_id: str) -> list[dict] | None:
     """
     Load the message chain from DB up to message_id,
     keeping only LLM-relevant fields (role, content, output).
@@ -2264,18 +2277,13 @@ async def connect_mcp_server(
     return client, tool_specs
 
 
-async def process_chat_payload(request, form_data, user, metadata, model):
+def _resolve_chat_arena_model(
+    request: Request, form_data: dict[str, object], metadata: dict[str, object], model: dict[str, object]
+) -> dict[str, object]:
     # Ensure chat_id is always a string — external API clients may omit it.
     if not isinstance(metadata.get('chat_id'), str):
         metadata['chat_id'] = ''
 
-    # Pipeline Inlet -> Filter Inlet -> Chat Memory -> Chat Web Search -> Chat Image Generation
-    # -> Chat Code Interpreter (Form Data Update) -> (Default) Chat Tools Function Calling
-    # -> Chat Files
-
-    # Arena model resolution — pick the sub-model now so all downstream
-    # processing (knowledge, capabilities, tools, params) uses its settings
-    # instead of the empty arena wrapper.
     if model.get('owned_by') == 'arena':
         arena_meta = deep_get_mapping(model, ('info', 'meta'))
         arena_model_ids = arena_meta.get('model_ids')
@@ -2302,21 +2310,37 @@ async def process_chat_payload(request, form_data, user, metadata, model):
             model = selected_model
             form_data['model'] = selected_model_id
             metadata['selected_model_id'] = selected_model_id
+    return model
 
-    # Captured before apply_params_to_form_data pops 'params'; feeds metadata['system_prompt'] below
-    model_system_prompt = (form_data.get('params') or {}).get('system')
 
-    form_data = apply_params_to_form_data(form_data, model)
-    log.debug(f'form_data: {form_data}')
+def _restore_chat_history_images(form_data: dict[str, object]) -> None:
+    for message in form_data['messages']:
+        image_files = [
+            f
+            for f in message.get('files', [])
+            if f.get('type') == 'image' or (f.get('content_type') or '').startswith('image/')
+        ]
+        if message.get('role') == 'user' and image_files:
+            text_content = message.get('content', '')
+            if isinstance(text_content, str):
+                message['content'] = [
+                    {'type': 'text', 'text': text_content},
+                    *[
+                        {
+                            'type': 'image_url',
+                            'image_url': {'url': f['url']},
+                        }
+                        for f in image_files
+                        if f.get('url')
+                    ],
+                ]
+        # Strip files field — it's been incorporated into content
+        message.pop('files', None)
 
-    # Guided regeneration: extract before it reaches the LLM provider
-    regeneration_prompt = form_data.pop('regeneration_prompt', None)
 
-    # Load messages from DB when available — DB preserves structured 'output' items
-    # which the frontend strips, causing tool calls to be merged into content.
-    chat_id = metadata.get('chat_id')
-    user_message_id = metadata.get('user_message_id')
-
+async def _restore_chat_history(
+    form_data: dict[str, object], metadata: dict[str, object], chat_id: str, user_message_id: str | None
+) -> None:
     if is_saved_chat_id(chat_id) and user_message_id:
         db_messages = await load_messages_from_db(chat_id, user_message_id)
         if db_messages:
@@ -2338,32 +2362,17 @@ async def process_chat_payload(request, form_data, user, metadata, model):
             form_data['messages'] = [system_message, *db_messages] if system_message else db_messages
 
             # Inject image files into content as image_url parts (mirrors frontend logic)
-            for message in form_data['messages']:
-                image_files = [
-                    f
-                    for f in message.get('files', [])
-                    if f.get('type') == 'image' or (f.get('content_type') or '').startswith('image/')
-                ]
-                if message.get('role') == 'user' and image_files:
-                    text_content = message.get('content', '')
-                    if isinstance(text_content, str):
-                        message['content'] = [
-                            {'type': 'text', 'text': text_content},
-                            *[
-                                {
-                                    'type': 'image_url',
-                                    'image_url': {'url': f['url']},
-                                }
-                                for f in image_files
-                                if f.get('url')
-                            ],
-                        ]
-                # Strip files field — it's been incorporated into content
-                message.pop('files', None)
+            _restore_chat_history_images(form_data)
 
-    if regeneration_prompt:
-        form_data['messages'].append({'role': 'user', 'content': regeneration_prompt})
 
+async def _compact_chat_history(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    chat_id: str,
+    user_message_id: str | None,
+) -> None:
     if is_saved_chat_id(chat_id) and user_message_id:
         if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
             compaction_models = {
@@ -2395,62 +2404,24 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         except Exception:
             log.exception('Context compaction failed; continuing with full chat history')
 
-    form_data['messages'] = strip_compaction_fields(form_data.get('messages', []))
 
-    # Process messages with OR-aligned output items for clean LLM messages
-    form_data['messages'] = process_messages_with_output(
-        form_data.get('messages', []),
-        reasoning_format=get_reasoning_format(model),
-    )
-    form_data['messages'] = sanitize_tool_pairs(form_data['messages'])
-
+async def _apply_chat_control_prompt(
+    form_data: dict[str, object], metadata: dict[str, object], user: UserModel
+) -> dict[str, object]:
     system_message = get_system_message(form_data.get('messages', []))
     if system_message:  # Chat Controls/User Settings
         try:
             form_data = await apply_system_prompt_to_body(
                 system_message.get('content'), form_data, metadata, user, replace=True
             )  # Required to handle system prompt variables
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug('Chat control prompt failed: %s', type(e).__name__)
+    return form_data
 
-    form_data = await convert_url_images_to_base64(form_data, user=user)
 
-    event_emitter = await get_event_emitter(metadata)
-    event_caller = await get_event_call(metadata)
-
-    extra_params = {
-        '__event_emitter__': event_emitter,
-        '__event_call__': event_caller,
-        '__user__': user.model_dump() if isinstance(user, UserModel) else {},
-        '__metadata__': metadata,
-        '__oauth_token__': await get_system_oauth_token(request, user),
-        '__request__': request,
-        '__model__': model,
-        '__chat_id__': metadata.get('chat_id'),
-        '__message_id__': metadata.get('message_id'),
-    }
-    # Initialize events to store additional event to be sent to the client
-    # Initialize contexts and citation
-    if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
-        models = {
-            request.state.model['id']: request.state.model,
-        }
-    else:
-        models = request.app.state.MODELS
-
-    task_model_id = get_task_model_id(
-        form_data['model'],
-        await Config.get('task.model.default'),
-        await Config.get('task.model.external'),
-        models,
-    )
-
-    events = []
-    sources = []
-
-    # Folder "Project" handling
-    # Check if the request has chat_id and is inside of a folder
-    # Uses lightweight column query — only fetches folder_id, not the full chat JSON blob
+async def _apply_chat_folder_context(
+    form_data: dict[str, object], metadata: dict[str, object], user: UserModel
+) -> dict[str, object]:
     chat_id = metadata.get('chat_id', None)
     folder_id = None
     if user and is_saved_chat_id(chat_id):
@@ -2478,8 +2449,15 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                     # Native FC: skip RAG injection, builtin tools
                     # will read folder knowledge from metadata.
                     metadata['folder_knowledge'] = await get_owner_accessible_folder_files(folder)
+    return form_data
 
-    # Model "Knowledge" handling
+
+async def _apply_chat_model_knowledge(
+    form_data: dict[str, object],
+    metadata: dict[str, object],
+    model: dict[str, object],
+    event_emitter: Callable[[dict[str, object]], Awaitable[None]] | None,
+) -> tuple[dict[str, object], str | None, object]:
     user_message = get_last_user_message(form_data['messages'])
     model_knowledge = deep_get_mapping(model, ('info', 'meta')).get('knowledge', False)
 
@@ -2520,10 +2498,18 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         files = form_data.get('files', [])
         files.extend(knowledge_files)
         form_data['files'] = files
+    return form_data, user_message, model_knowledge
 
-    variables = form_data.pop('variables', None)
-    payload_tools = form_data.get('tools', None)  # snapshot before filters
 
+async def _apply_chat_inlet_filters(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    models: dict[str, dict[str, object]],
+    model: dict[str, object],
+    metadata: dict[str, object],
+    extra_params: dict[str, object],
+) -> dict[str, object]:
     # Process the form_data through the pipeline
     try:
         form_data = await process_pipeline_inlet_filter(request, form_data, user, models)
@@ -2534,7 +2520,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         try:
             filter_functions = await get_filter_functions(request, model, metadata.get('filter_ids', []))
 
-            form_data, flags = await process_filter_functions(
+            form_data, _ = await process_filter_functions(
                 request=request,
                 filter_context=None,
                 filter_functions=filter_functions,
@@ -2544,9 +2530,96 @@ async def process_chat_payload(request, form_data, user, metadata, model):
             )
         except Exception as e:
             raise Exception(f'{e}')
+    return form_data
 
-    features = form_data.pop('features', None) or {}
-    extra_params['__features__'] = features
+
+async def _apply_chat_web_search_feature(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    features: dict[str, object],
+    extra_params: dict[str, object],
+) -> dict[str, object]:
+    if 'web_search' in features and features['web_search']:
+        # features is client-supplied; re-check the permission the native FC path enforces.
+        if getattr(user, 'role', None) == 'admin' or await has_permission(
+            getattr(user, 'id', ''),
+            'features.web_search',
+            await Config.get('user.permissions'),
+        ):
+            # Skip forced RAG web search when native FC is enabled - model can use web_search tool
+            if metadata.get('params', {}).get('function_calling') == 'legacy':
+                form_data = await chat_web_search_handler(request, form_data, extra_params, user)
+    return form_data
+
+
+async def _apply_chat_image_feature(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    features: dict[str, object],
+    extra_params: dict[str, object],
+) -> dict[str, object]:
+    if 'image_generation' in features and features['image_generation']:
+        # features is client-supplied; re-check the permission the direct /images routes enforce.
+        if getattr(user, 'role', None) == 'admin' or await has_permission(
+            getattr(user, 'id', ''),
+            'features.image_generation',
+            await Config.get('user.permissions'),
+        ):
+            # Skip forced image generation when native FC is enabled - model can use generate_image tool
+            if metadata.get('params', {}).get('function_calling') == 'legacy':
+                form_data = await chat_image_generation_handler(request, form_data, extra_params, user)
+    return form_data
+
+
+async def _apply_chat_code_feature(
+    form_data: dict[str, object], metadata: dict[str, object], features: dict[str, object]
+) -> dict[str, object]:
+    if 'code_interpreter' in features and features['code_interpreter']:
+        engine = await Config.get('code_interpreter.engine', 'pyodide')
+
+        # Skip XML-tag prompt injection when native FC is enabled —
+        # execute_code will be injected as a builtin tool instead
+        if metadata.get('params', {}).get('function_calling') == 'legacy':
+            ci_prompt_template = await Config.get('code_interpreter.prompt_template')
+            prompt = ci_prompt_template if ci_prompt_template != '' else DEFAULT_CODE_INTERPRETER_PROMPT
+
+            # Append filesystem awareness only for pyodide engine
+            if engine != 'jupyter':
+                prompt += CODE_INTERPRETER_PYODIDE_PROMPT
+
+            form_data['messages'] = add_or_update_user_message(
+                prompt,
+                form_data['messages'],
+            )
+        else:
+            # Native FC: tool docstring can't be dynamic, so inject
+            # filesystem context into the system message for pyodide
+            # engine.  Appending to the system prompt (instead of the
+            # user message) keeps it in the stable cached prefix so
+            # providers with prefix caching don't re-bill the full
+            # conversation on every turn.
+            if engine != 'jupyter':
+                form_data['messages'] = add_or_update_system_message(
+                    CODE_INTERPRETER_PYODIDE_PROMPT,
+                    form_data['messages'],
+                    append=True,
+                )
+    return form_data
+
+
+async def _apply_chat_features(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    model: dict[str, object],
+    metadata: dict[str, object],
+    features: dict[str, object],
+    extra_params: dict[str, object],
+) -> dict[str, object]:
     if features:
         if 'voice' in features and features['voice']:
             if await Config.get('task.voice.prompt.enable'):
@@ -2562,75 +2635,17 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         if 'memory' in features and features['memory'] and await Config.get('memories.system_context.enable'):
             form_data = await add_memory_context(request, form_data, user, model)
 
-        if 'web_search' in features and features['web_search']:
-            # features is client-supplied; re-check the permission the native FC path enforces.
-            if getattr(user, 'role', None) == 'admin' or await has_permission(
-                getattr(user, 'id', ''),
-                'features.web_search',
-                await Config.get('user.permissions'),
-            ):
-                # Skip forced RAG web search when native FC is enabled - model can use web_search tool
-                if metadata.get('params', {}).get('function_calling') == 'legacy':
-                    form_data = await chat_web_search_handler(request, form_data, extra_params, user)
+        form_data = await _apply_chat_web_search_feature(request, form_data, user, metadata, features, extra_params)
 
-        if 'image_generation' in features and features['image_generation']:
-            # features is client-supplied; re-check the permission the direct /images routes enforce.
-            if getattr(user, 'role', None) == 'admin' or await has_permission(
-                getattr(user, 'id', ''),
-                'features.image_generation',
-                await Config.get('user.permissions'),
-            ):
-                # Skip forced image generation when native FC is enabled - model can use generate_image tool
-                if metadata.get('params', {}).get('function_calling') == 'legacy':
-                    form_data = await chat_image_generation_handler(request, form_data, extra_params, user)
+        form_data = await _apply_chat_image_feature(request, form_data, user, metadata, features, extra_params)
 
-        if 'code_interpreter' in features and features['code_interpreter']:
-            engine = await Config.get('code_interpreter.engine', 'pyodide')
+        form_data = await _apply_chat_code_feature(form_data, metadata, features)
+    return form_data
 
-            # Skip XML-tag prompt injection when native FC is enabled —
-            # execute_code will be injected as a builtin tool instead
-            if metadata.get('params', {}).get('function_calling') == 'legacy':
-                ci_prompt_template = await Config.get('code_interpreter.prompt_template')
-                prompt = ci_prompt_template if ci_prompt_template != '' else DEFAULT_CODE_INTERPRETER_PROMPT
 
-                # Append filesystem awareness only for pyodide engine
-                if engine != 'jupyter':
-                    prompt += CODE_INTERPRETER_PYODIDE_PROMPT
-
-                form_data['messages'] = add_or_update_user_message(
-                    prompt,
-                    form_data['messages'],
-                )
-            else:
-                # Native FC: tool docstring can't be dynamic, so inject
-                # filesystem context into the system message for pyodide
-                # engine.  Appending to the system prompt (instead of the
-                # user message) keeps it in the stable cached prefix so
-                # providers with prefix caching don't re-bill the full
-                # conversation on every turn.
-                if engine != 'jupyter':
-                    form_data['messages'] = add_or_update_system_message(
-                        CODE_INTERPRETER_PYODIDE_PROMPT,
-                        form_data['messages'],
-                        append=True,
-                    )
-
-    tool_ids = form_data.pop('tool_ids', None)
-    terminal_id = form_data.pop('terminal_id', None)
-    files = form_data.pop('files', None)
-    form_data.pop('folder_id', None)
-
-    # If the original caller provided tools, use them as-is (skip resolution).
-    # Otherwise, save any tools that filter inlets added for merging later.
-    inlet_filter_tools = None if payload_tools is not None else form_data.get('tools', None)
-
-    # Mentioned skills get full content; selected/default skills can be loaded through view_skill.
-    mentioned_skill_ids = extract_skill_ids_from_messages(form_data.get('messages', []))
-    model_skill_ids_value = deep_get_mapping(model, ('info', 'meta')).get('skillIds', [])
-    model_skill_ids = model_skill_ids_value if isinstance(model_skill_ids_value, list) else []
-    skill_ids = sorted(set(form_data.pop('skill_ids', None) or []) | set(model_skill_ids) | mentioned_skill_ids)
-    available_skills = []
-    view_skill_ids = []
+async def _get_chat_note_files(
+    metadata: dict[str, object], user: UserModel, files: list[dict[str, object]] | None
+) -> tuple[list[dict[str, object]] | None, ChatModel | None]:
     chat = None
     if is_saved_chat_id(metadata.get('chat_id')):
         chat = await Chats.get_chat_by_id(metadata['chat_id'])
@@ -2657,19 +2672,18 @@ async def process_chat_payload(request, form_data, user, metadata, model):
             ]
             if note_files:
                 files = [*(files or []), *note_files]
+    return files, chat
 
-    use_builtin_tools = (
-        chat and (chat.meta or {}).get('internal') is True and (chat.meta or {}).get('type') == 'note'
-    ) or (
-        bool(metadata.get('session_id'))
-        and metadata.get('params', {}).get('function_calling') != 'legacy'
-        and deep_get_bool(
-            model,
-            ('info', 'meta', 'capabilities', 'builtin_tools'),
-            default=True,
-        )
-    )
 
+async def _apply_chat_skills(
+    form_data: dict[str, object],
+    user: UserModel,
+    skill_ids: list[str],
+    mentioned_skill_ids: set[str],
+    use_builtin_tools: bool,
+    available_skills: list[SkillModel],
+    view_skill_ids: list[str],
+) -> tuple[dict[str, object], str | None]:
     if skill_ids:
         from open_webui.models.skills import Skills as SkillsModel
 
@@ -2717,241 +2731,245 @@ async def process_chat_payload(request, form_data, user, metadata, model):
         if fallback:
             set_last_user_message_content(fallback, form_data['messages'])
             prompt = fallback
-    # TODO: re-enable URL extraction from prompt
-    # urls = []
-    # if prompt and len(prompt or "") < 500 and (not files or len(files) == 0):
-    #     urls = extract_urls(prompt)
+    return form_data, prompt
 
-    if files:
-        # files = [*files, *[{"type": "url", "url": url, "name": url} for url in urls]]
-        # Remove duplicate files based on their content
-        files = list({json.dumps(f, sort_keys=True): f for f in files}.values())
 
-    metadata.update(
-        {
-            'model_id': form_data.get('model'),
-            'tool_ids': tool_ids,
-            'skill_ids': skill_ids,
-            'terminal_id': terminal_id,
-            'files': files,
-            'features': features,
+async def _add_chat_mcp_tools(
+    client: MCPClient, tool_specs: list[dict[str, object]], server_id: str, mcp_tools_dict: dict[str, dict[str, object]]
+) -> None:
+    for tool_spec in tool_specs:
+
+        async def make_tool_function(client: MCPClient, function_name: str) -> Callable[..., Awaitable[object]]:
+            async def tool_function(**kwargs: object) -> object:
+                return await client.call_tool(
+                    function_name,
+                    function_args=kwargs,
+                )
+
+            return tool_function
+
+        tool_function = await make_tool_function(client, tool_spec['name'])
+
+        mcp_tools_dict[f'{server_id}_{tool_spec["name"]}'] = {
+            'spec': {
+                **tool_spec,
+                'name': f'{server_id}_{tool_spec["name"]}',
+            },
+            'callable': tool_function,
+            'type': 'mcp',
+            'client': client,
+            'direct': False,
         }
-    )
-    form_data['metadata'] = metadata
 
-    # When the caller provides an explicit `tools` key in the request body,
-    # skip all server-side tool resolution and pass the caller's tools through
-    # unchanged.  Sending `tools: []` explicitly opts out of builtin injection.
-    if payload_tools is None:
-        # Server side tools
-        tool_ids = metadata.get('tool_ids', None)
-        # Client side tools
-        direct_tool_servers = metadata.get('tool_servers', None)
 
-        log.debug(f'{tool_ids=}')
-        log.debug(f'{direct_tool_servers=}')
+async def _resolve_chat_selected_tools(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    extra_params: dict[str, object],
+    models: dict[str, dict[str, object]],
+    task_model_id: str,
+    tool_ids: list[str] | None,
+    event_emitter: Callable[[dict[str, object]], Awaitable[None]] | None,
+) -> tuple[dict[str, dict[str, object]], dict[str, MCPClient]]:
+    tools_dict = {}
 
-        tools_dict = {}
+    mcp_clients = {}
+    mcp_tools_dict = {}
 
-        mcp_clients = {}
-        mcp_tools_dict = {}
+    if tool_ids:
+        db_tool_ids = []
+        for tool_id in tool_ids:
+            if tool_id.startswith('server:mcp:'):
+                try:
+                    server_id = tool_id[len('server:mcp:') :]
 
-        if tool_ids:
-            db_tool_ids = []
-            for tool_id in tool_ids:
-                if tool_id.startswith('server:mcp:'):
-                    try:
-                        server_id = tool_id[len('server:mcp:') :]
+                    result = await connect_mcp_server(
+                        request,
+                        server_id,
+                        user,
+                        metadata,
+                        extra_params,
+                    )
+                    if result is None:
+                        continue
 
-                        result = await connect_mcp_server(
-                            request,
-                            server_id,
-                            user,
-                            metadata,
-                            extra_params,
-                        )
-                        if result is None:
-                            continue
+                    client, tool_specs = result
+                    mcp_clients[server_id] = client
 
-                        client, tool_specs = result
-                        mcp_clients[server_id] = client
+                    await _add_chat_mcp_tools(client, tool_specs, server_id, mcp_tools_dict)
 
-                        for tool_spec in tool_specs:
-
-                            async def make_tool_function(client, function_name):
-                                async def tool_function(**kwargs):
-                                    return await client.call_tool(
-                                        function_name,
-                                        function_args=kwargs,
-                                    )
-
-                                return tool_function
-
-                            tool_function = await make_tool_function(client, tool_spec['name'])
-
-                            mcp_tools_dict[f'{server_id}_{tool_spec["name"]}'] = {
-                                'spec': {
-                                    **tool_spec,
-                                    'name': f'{server_id}_{tool_spec["name"]}',
-                                },
-                                'callable': tool_function,
-                                'type': 'mcp',
-                                'client': client,
-                                'direct': False,
+                except Exception as e:
+                    log.debug(e)
+                    if event_emitter:
+                        await event_emitter(
+                            {
+                                'type': 'chat:message:error',
+                                'data': {'error': {'content': f"Failed to connect to MCP server '{server_id}'"}},
                             }
-                    except Exception as e:
-                        log.debug(e)
-                        if event_emitter:
-                            await event_emitter(
-                                {
-                                    'type': 'chat:message:error',
-                                    'data': {'error': {'content': f"Failed to connect to MCP server '{server_id}'"}},
-                                }
-                            )
-                        continue
-                elif ENABLE_PLUGINS:
-                    db_tool_ids.append(tool_id)
+                        )
+                    continue
+            elif ENABLE_PLUGINS:
+                db_tool_ids.append(tool_id)
 
-            if db_tool_ids:
-                tools_dict = await get_tools(
-                    request,
-                    db_tool_ids,
-                    user,
-                    {
-                        **extra_params,
-                        '__model__': models[task_model_id],
-                        '__messages__': form_data['messages'],
-                        '__files__': metadata.get('files', []),
-                    },
-                )
-
-            if mcp_tools_dict:
-                tools_dict = {**tools_dict, **mcp_tools_dict}
-
-        # Resolve terminal tools if terminal_id is set (outside tool_ids check
-        # so system terminals work even when no other tools are selected)
-        terminal_capability = deep_get_bool(
-            model,
-            ('info', 'meta', 'capabilities', 'terminal'),
-            default=True,
-        )
-        if terminal_id and terminal_capability:
-            try:
-                terminal_result = await get_terminal_tools(
-                    request,
-                    terminal_id,
-                    user,
-                    extra_params,
-                )
-                if isinstance(terminal_result, tuple):
-                    terminal_tools, system_prompt = terminal_result
-                else:
-                    terminal_tools = terminal_result
-                    system_prompt = None
-                if terminal_tools:
-                    tools_dict = {**tools_dict, **terminal_tools}
-                if system_prompt:
-                    form_data['messages'] = add_or_update_system_message(
-                        system_prompt,
-                        form_data['messages'],
-                        append=True,
-                    )
-            except Exception as e:
-                log.exception(e)
-                raise HTTPException(status_code=503, detail=f'Terminal unavailable: {e}') from e
-
-        if direct_tool_servers:
-            for tool_server in direct_tool_servers:
-                system_prompt = tool_server.pop('system_prompt', None)
-                if system_prompt:
-                    form_data['messages'] = add_or_update_system_message(
-                        system_prompt,
-                        form_data['messages'],
-                        append=True,
-                    )
-
-                tool_specs = tool_server.pop('specs', [])
-
-                for tool in tool_specs:
-                    tools_dict[tool['name']] = {
-                        'spec': tool,
-                        'direct': True,
-                        'server': tool_server,
-                    }
-
-        if mcp_clients:
-            metadata['mcp_clients'] = mcp_clients
-
-        # Inject builtin tools for native function calling based on enabled features and model capability.
-        # Only inject when the request originates from the UI (identified by session_id).
-        # API callers don't expect hidden tools; they can explicitly request tools via tool_ids.
-        if use_builtin_tools:
-            # Add file context to user messages
-            chat_id = metadata.get('chat_id')
-            form_data['messages'] = await add_file_context(form_data.get('messages', []), chat_id, user)
-
-            if deep_get_bool(
-                model,
-                ('info', 'meta', 'builtinTools', 'knowledge'),
-                default=True,
-            ):
-                from html import escape
-
-                knowledge_tags = []
-                for item in get_attached_knowledge(model, metadata):
-                    if not item.get('id') or not item.get('type'):
-                        continue
-                    attrs = f'type="{escape(str(item["type"]), quote=True)}" id="{escape(str(item["id"]), quote=True)}"'
-                    if item.get('name'):
-                        attrs += f' name="{escape(str(item["name"]), quote=True)}"'
-                    if item.get('source'):
-                        attrs += f' source="{escape(str(item["source"]), quote=True)}"'
-                    knowledge_tags.append(f'<knowledge {attrs}/>')
-
-                if knowledge_tags:
-                    form_data['messages'] = add_or_update_system_message(
-                        '<attached_knowledge>\n' + '\n'.join(knowledge_tags) + '\n</attached_knowledge>',
-                        form_data['messages'],
-                        append=True,
-                    )
-
-            builtin_tools = await get_builtin_tools(
+        if db_tool_ids:
+            tools_dict = await get_tools(
                 request,
+                db_tool_ids,
+                user,
                 {
                     **extra_params,
-                    '__event_emitter__': event_emitter,
-                    '__skill_ids__': view_skill_ids,
+                    '__model__': models[task_model_id],
+                    '__messages__': form_data['messages'],
+                    '__files__': metadata.get('files', []),
                 },
-                features,
-                model,
             )
-            for name, tool_dict in builtin_tools.items():
-                if name not in tools_dict:
-                    tools_dict[name] = tool_dict
 
-        if tools_dict:
-            # Always store resolved tools in metadata so downstream consumers
-            # (e.g. pipe functions) can access all tools including MCP and builtins.
-            metadata['tools'] = tools_dict
+        if mcp_tools_dict:
+            tools_dict = {**tools_dict, **mcp_tools_dict}
+    return tools_dict, mcp_clients
 
-            if metadata.get('params', {}).get('function_calling') != 'legacy':
-                # If the function calling is native, then call the tools function calling handler
-                form_data['tools'] = [
-                    {'type': 'function', 'function': tool.get('spec', {})} for tool in tools_dict.values()
-                ]
-                if inlet_filter_tools:
-                    form_data['tools'].extend(inlet_filter_tools)
+
+async def _resolve_chat_terminal_tools(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    model: dict[str, object],
+    extra_params: dict[str, object],
+    terminal_id: str | None,
+    tools_dict: dict[str, dict[str, object]],
+) -> tuple[dict[str, object], dict[str, dict[str, object]]]:
+    terminal_capability = deep_get_bool(
+        model,
+        ('info', 'meta', 'capabilities', 'terminal'),
+        default=True,
+    )
+    if terminal_id and terminal_capability:
+        try:
+            terminal_result = await get_terminal_tools(
+                request,
+                terminal_id,
+                user,
+                extra_params,
+            )
+            if isinstance(terminal_result, tuple):
+                terminal_tools, system_prompt = terminal_result
             else:
-                # If the function calling is not native, then call the tools function calling handler
-                try:
-                    form_data, flags = await chat_completion_tools_handler(
-                        request, form_data, extra_params, user, models, tools_dict
-                    )
-                    sources.extend(flags.get('sources', []))
-                except Exception as e:
-                    log.exception(e)
+                terminal_tools = terminal_result
+                system_prompt = None
+            if terminal_tools:
+                tools_dict = {**tools_dict, **terminal_tools}
+            if system_prompt:
+                form_data['messages'] = add_or_update_system_message(
+                    system_prompt,
+                    form_data['messages'],
+                    append=True,
+                )
+        except Exception as e:
+            log.exception(e)
+            raise HTTPException(status_code=503, detail=f'Terminal unavailable: {e}') from e
+    return form_data, tools_dict
 
-    # Check if file context extraction is enabled for this model (default True)
+
+def _add_chat_direct_tools(
+    form_data: dict[str, object],
+    direct_tool_servers: list[dict[str, object]] | None,
+    tools_dict: dict[str, dict[str, object]],
+) -> None:
+    if direct_tool_servers:
+        for tool_server in direct_tool_servers:
+            system_prompt = tool_server.pop('system_prompt', None)
+            if system_prompt:
+                form_data['messages'] = add_or_update_system_message(
+                    system_prompt,
+                    form_data['messages'],
+                    append=True,
+                )
+
+            tool_specs = tool_server.pop('specs', [])
+
+            for tool in tool_specs:
+                tools_dict[tool['name']] = {
+                    'spec': tool,
+                    'direct': True,
+                    'server': tool_server,
+                }
+
+
+def _add_chat_knowledge_tags(
+    form_data: dict[str, object], model: dict[str, object], metadata: dict[str, object]
+) -> None:
+    from html import escape
+
+    knowledge_tags = []
+    for item in get_attached_knowledge(model, metadata):
+        if not item.get('id') or not item.get('type'):
+            continue
+        attrs = f'type="{escape(str(item["type"]), quote=True)}" id="{escape(str(item["id"]), quote=True)}"'
+        if item.get('name'):
+            attrs += f' name="{escape(str(item["name"]), quote=True)}"'
+        if item.get('source'):
+            attrs += f' source="{escape(str(item["source"]), quote=True)}"'
+        knowledge_tags.append(f'<knowledge {attrs}/>')
+
+    if knowledge_tags:
+        form_data['messages'] = add_or_update_system_message(
+            '<attached_knowledge>\n' + '\n'.join(knowledge_tags) + '\n</attached_knowledge>',
+            form_data['messages'],
+            append=True,
+        )
+
+
+async def _add_chat_builtin_tools(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    model: dict[str, object],
+    metadata: dict[str, object],
+    extra_params: dict[str, object],
+    features: dict[str, object],
+    view_skill_ids: list[str],
+    event_emitter: Callable[[dict[str, object]], Awaitable[None]] | None,
+    use_builtin_tools: bool,
+    tools_dict: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    if use_builtin_tools:
+        # Add file context to user messages
+        chat_id = metadata.get('chat_id')
+        form_data['messages'] = await add_file_context(form_data.get('messages', []), chat_id, user)
+
+        if deep_get_bool(
+            model,
+            ('info', 'meta', 'builtinTools', 'knowledge'),
+            default=True,
+        ):
+            _add_chat_knowledge_tags(form_data, model, metadata)
+
+        builtin_tools = await get_builtin_tools(
+            request,
+            {
+                **extra_params,
+                '__event_emitter__': event_emitter,
+                '__skill_ids__': view_skill_ids,
+            },
+            features,
+            model,
+        )
+        for name, tool_dict in builtin_tools.items():
+            if name not in tools_dict:
+                tools_dict[name] = tool_dict
+    return form_data
+
+
+async def _apply_chat_files(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    model: dict[str, object],
+    extra_params: dict[str, object],
+    sources: list[dict[str, object]],
+) -> dict[str, object]:
     file_context_enabled = deep_get_bool(
         model,
         ('info', 'meta', 'capabilities', 'file_context'),
@@ -2964,10 +2982,22 @@ async def process_chat_payload(request, form_data, user, metadata, model):
             sources.extend(flags.get('sources', []))
         except Exception as e:
             log.exception(e)
+    return form_data
 
-    # Save the pre-RAG message state so the native tool call loop can
-    # restore to the true original (before file-source injection) rather
-    # than a snapshot that already has the RAG template baked in.
+
+async def _apply_chat_source_context(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    model_system_prompt: str | None,
+    sources: list[dict[str, object]],
+    prompt: str | None,
+    events: list[dict[str, object]],
+    model_knowledge: object,
+    user_message: str | None,
+    event_emitter: Callable[[dict[str, object]], Awaitable[None]] | None,
+) -> dict[str, object]:
     system_message = get_system_message(form_data['messages'])
     system_content = get_content_from_message(system_message) if system_message else ''
     resolved_model_system_prompt = await resolve_system_prompt(
@@ -3009,6 +3039,252 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                 },
             }
         )
+    return form_data
+
+
+async def process_chat_payload(
+    request: Request,
+    form_data: dict[str, object],
+    user: UserModel,
+    metadata: dict[str, object],
+    model: dict[str, object],
+) -> tuple[dict[str, object], dict[str, object], list[dict[str, object]]]:
+    # Pipeline Inlet -> Filter Inlet -> Chat Memory -> Chat Web Search -> Chat Image Generation
+    # -> Chat Code Interpreter (Form Data Update) -> (Default) Chat Tools Function Calling
+    # -> Chat Files
+
+    # Arena model resolution — pick the sub-model now so all downstream
+    # processing (knowledge, capabilities, tools, params) uses its settings
+    # instead of the empty arena wrapper.
+    model = _resolve_chat_arena_model(request, form_data, metadata, model)
+
+    # Captured before apply_params_to_form_data pops 'params'; feeds metadata['system_prompt'] below
+    model_system_prompt = (form_data.get('params') or {}).get('system')
+
+    form_data = apply_params_to_form_data(form_data, model)
+    log.debug(f'form_data: {form_data}')
+
+    # Guided regeneration: extract before it reaches the LLM provider
+    regeneration_prompt = form_data.pop('regeneration_prompt', None)
+
+    # Load messages from DB when available — DB preserves structured 'output' items
+    # which the frontend strips, causing tool calls to be merged into content.
+    chat_id = metadata.get('chat_id')
+    user_message_id = metadata.get('user_message_id')
+
+    await _restore_chat_history(form_data, metadata, chat_id, user_message_id)
+
+    if regeneration_prompt:
+        form_data['messages'].append({'role': 'user', 'content': regeneration_prompt})
+
+    await _compact_chat_history(request, form_data, user, metadata, chat_id, user_message_id)
+
+    form_data['messages'] = strip_compaction_fields(form_data.get('messages', []))
+
+    # Process messages with OR-aligned output items for clean LLM messages
+    form_data['messages'] = process_messages_with_output(
+        form_data.get('messages', []),
+        reasoning_format=get_reasoning_format(model),
+    )
+    form_data['messages'] = sanitize_tool_pairs(form_data['messages'])
+
+    form_data = await _apply_chat_control_prompt(form_data, metadata, user)
+
+    form_data = await convert_url_images_to_base64(form_data, user=user)
+
+    event_emitter = await get_event_emitter(metadata)
+    event_caller = await get_event_call(metadata)
+
+    extra_params = {
+        '__event_emitter__': event_emitter,
+        '__event_call__': event_caller,
+        '__user__': user.model_dump() if isinstance(user, UserModel) else {},
+        '__metadata__': metadata,
+        '__oauth_token__': await get_system_oauth_token(request, user),
+        '__request__': request,
+        '__model__': model,
+        '__chat_id__': metadata.get('chat_id'),
+        '__message_id__': metadata.get('message_id'),
+    }
+    # Initialize events to store additional event to be sent to the client
+    # Initialize contexts and citation
+    if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
+        models = {
+            request.state.model['id']: request.state.model,
+        }
+    else:
+        models = request.app.state.MODELS
+
+    task_model_id = get_task_model_id(
+        form_data['model'],
+        await Config.get('task.model.default'),
+        await Config.get('task.model.external'),
+        models,
+    )
+
+    events = []
+    sources = []
+
+    # Folder "Project" handling
+    # Check if the request has chat_id and is inside of a folder
+    # Uses lightweight column query — only fetches folder_id, not the full chat JSON blob
+    form_data = await _apply_chat_folder_context(form_data, metadata, user)
+
+    # Model "Knowledge" handling
+    form_data, user_message, model_knowledge = await _apply_chat_model_knowledge(
+        form_data, metadata, model, event_emitter
+    )
+
+    form_data.pop('variables', None)
+    payload_tools = form_data.get('tools', None)  # snapshot before filters
+
+    form_data = await _apply_chat_inlet_filters(request, form_data, user, models, model, metadata, extra_params)
+
+    features = form_data.pop('features', None) or {}
+    extra_params['__features__'] = features
+    form_data = await _apply_chat_features(request, form_data, user, model, metadata, features, extra_params)
+
+    tool_ids = form_data.pop('tool_ids', None)
+    terminal_id = form_data.pop('terminal_id', None)
+    files = form_data.pop('files', None)
+    form_data.pop('folder_id', None)
+
+    # If the original caller provided tools, use them as-is (skip resolution).
+    # Otherwise, save any tools that filter inlets added for merging later.
+    inlet_filter_tools = None if payload_tools is not None else form_data.get('tools', None)
+
+    # Mentioned skills get full content; selected/default skills can be loaded through view_skill.
+    mentioned_skill_ids = extract_skill_ids_from_messages(form_data.get('messages', []))
+    model_skill_ids_value = deep_get_mapping(model, ('info', 'meta')).get('skillIds', [])
+    model_skill_ids = model_skill_ids_value if isinstance(model_skill_ids_value, list) else []
+    skill_ids = sorted(set(form_data.pop('skill_ids', None) or []) | set(model_skill_ids) | mentioned_skill_ids)
+    available_skills = []
+    view_skill_ids = []
+    files, chat = await _get_chat_note_files(metadata, user, files)
+
+    use_builtin_tools = (
+        chat and (chat.meta or {}).get('internal') is True and (chat.meta or {}).get('type') == 'note'
+    ) or (
+        bool(metadata.get('session_id'))
+        and metadata.get('params', {}).get('function_calling') != 'legacy'
+        and deep_get_bool(
+            model,
+            ('info', 'meta', 'capabilities', 'builtin_tools'),
+            default=True,
+        )
+    )
+
+    form_data, prompt = await _apply_chat_skills(
+        form_data, user, skill_ids, mentioned_skill_ids, use_builtin_tools, available_skills, view_skill_ids
+    )
+
+    # TODO: re-enable URL extraction from prompt
+    # urls = []
+    # if prompt and len(prompt or "") < 500 and (not files or len(files) == 0):
+    #     urls = extract_urls(prompt)
+
+    if files:
+        # files = [*files, *[{"type": "url", "url": url, "name": url} for url in urls]]
+        # Remove duplicate files based on their content
+        files = list({json.dumps(f, sort_keys=True): f for f in files}.values())
+
+    metadata.update(
+        {
+            'model_id': form_data.get('model'),
+            'tool_ids': tool_ids,
+            'skill_ids': skill_ids,
+            'terminal_id': terminal_id,
+            'files': files,
+            'features': features,
+        }
+    )
+    form_data['metadata'] = metadata
+
+    # When the caller provides an explicit `tools` key in the request body,
+    # skip all server-side tool resolution and pass the caller's tools through
+    # unchanged.  Sending `tools: []` explicitly opts out of builtin injection.
+    if payload_tools is None:
+        # Server side tools
+        tool_ids = metadata.get('tool_ids', None)
+        # Client side tools
+        direct_tool_servers = metadata.get('tool_servers', None)
+
+        log.debug(f'{tool_ids=}')
+        log.debug(f'{direct_tool_servers=}')
+
+        tools_dict, mcp_clients = await _resolve_chat_selected_tools(
+            request, form_data, user, metadata, extra_params, models, task_model_id, tool_ids, event_emitter
+        )
+
+        # Resolve terminal tools if terminal_id is set (outside tool_ids check
+        # so system terminals work even when no other tools are selected)
+        form_data, tools_dict = await _resolve_chat_terminal_tools(
+            request, form_data, user, model, extra_params, terminal_id, tools_dict
+        )
+
+        _add_chat_direct_tools(form_data, direct_tool_servers, tools_dict)
+
+        if mcp_clients:
+            metadata['mcp_clients'] = mcp_clients
+
+        # Inject builtin tools for native function calling based on enabled features and model capability.
+        # Only inject when the request originates from the UI (identified by session_id).
+        # API callers don't expect hidden tools; they can explicitly request tools via tool_ids.
+        form_data = await _add_chat_builtin_tools(
+            request,
+            form_data,
+            user,
+            model,
+            metadata,
+            extra_params,
+            features,
+            view_skill_ids,
+            event_emitter,
+            use_builtin_tools,
+            tools_dict,
+        )
+
+        if tools_dict:
+            # Always store resolved tools in metadata so downstream consumers
+            # (e.g. pipe functions) can access all tools including MCP and builtins.
+            metadata['tools'] = tools_dict
+
+            if metadata.get('params', {}).get('function_calling') != 'legacy':
+                # If the function calling is native, then call the tools function calling handler
+                form_data['tools'] = [
+                    {'type': 'function', 'function': tool.get('spec', {})} for tool in tools_dict.values()
+                ]
+                if inlet_filter_tools:
+                    form_data['tools'].extend(inlet_filter_tools)
+            else:
+                # If the function calling is not native, then call the tools function calling handler
+                try:
+                    form_data, flags = await chat_completion_tools_handler(
+                        request, form_data, extra_params, user, models, tools_dict
+                    )
+                    sources.extend(flags.get('sources', []))
+                except Exception as e:
+                    log.exception(e)
+
+    # Check if file context extraction is enabled for this model (default True)
+    form_data = await _apply_chat_files(request, form_data, user, model, extra_params, sources)
+
+    # Save the pre-RAG message state so the native tool call loop can
+    # restore to the true original (before file-source injection) rather
+    # than a snapshot that already has the RAG template baked in.
+    form_data = await _apply_chat_source_context(
+        request,
+        form_data,
+        user,
+        metadata,
+        model_system_prompt,
+        sources,
+        prompt,
+        events,
+        model_knowledge,
+        user_message,
+        event_emitter,
+    )
 
     # Strip empty text content blocks from multimodal messages
     # to prevent errors from providers like Gemini and Claude
@@ -3225,13 +3501,203 @@ async def get_system_oauth_token(request, user):
     return oauth_token
 
 
-async def background_tasks_handler(ctx):
+def _get_background_message_content(message: dict[str, object]) -> object:
+    content = message.get('content', '')
+    if isinstance(content, list):
+        for item in content:
+            if item.get('type') == 'text':
+                content = item['text']
+                break
+
+    if isinstance(content, str):
+        content = re.sub(
+            r'<details\b[^>]*>.*?<\/details>|!\[.*?\]\(.*?\)',
+            '',
+            content,
+            flags=re.S | re.I,
+        ).strip()
+
+    return content
+
+
+async def _generate_background_follow_ups(
+    ctx: dict[str, object], message: dict[str, object], messages: list[dict[str, object]]
+) -> None:
+    request = ctx['request']
+    user = ctx['user']
+    metadata = ctx['metadata']
+    event_emitter = ctx['event_emitter']
+    tasks = ctx['tasks']
+    if TASKS.FOLLOW_UP_GENERATION in tasks and tasks[TASKS.FOLLOW_UP_GENERATION]:
+        res = await generate_follow_ups(
+            request,
+            {
+                'model': message['model'],
+                'messages': messages,
+                'message_id': metadata['message_id'],
+                'chat_id': metadata['chat_id'],
+            },
+            user,
+        )
+
+        if res and isinstance(res, dict):
+            if len(res.get('choices', [])) == 1:
+                response_message = res.get('choices', [])[0].get('message', {})
+
+                follow_ups_string = response_message.get('content') or response_message.get('reasoning_content', '')
+            else:
+                follow_ups_string = ''
+
+            follow_ups_string = follow_ups_string[follow_ups_string.find('{') : follow_ups_string.rfind('}') + 1]
+
+            try:
+                follow_ups = JSONCodec.loads(follow_ups_string).get('follow_ups', [])
+                await event_emitter(
+                    {
+                        'type': 'chat:message:follow_ups',
+                        'data': {
+                            'follow_ups': follow_ups,
+                        },
+                    }
+                )
+
+                if is_saved_chat_id(metadata.get('chat_id')):
+                    await Chats.upsert_message_to_chat_by_id_and_message_id(
+                        metadata['chat_id'],
+                        metadata['message_id'],
+                        {
+                            'followUps': follow_ups,
+                        },
+                        touch=False,
+                    )
+
+            except Exception as e:
+                log.debug('Background task result handling failed (%s)', type(e).__name__)
+
+
+async def _generate_background_title(
+    ctx: dict[str, object],
+    message: dict[str, object],
+    messages: list[dict[str, object]],
+    messages_map: dict[str, dict[str, object]],
+) -> None:
+    request = ctx['request']
+    user = ctx['user']
+    metadata = ctx['metadata']
+    event_emitter = ctx['event_emitter']
+    tasks = ctx['tasks']
+    if TASKS.TITLE_GENERATION in tasks:
+        user_message = get_last_user_message(messages)
+        if user_message and len(user_message) > 100:
+            user_message = user_message[:100] + '...'
+
+        title = None
+        if tasks[TASKS.TITLE_GENERATION]:
+            res = await generate_title(
+                request,
+                {
+                    'model': message['model'],
+                    'messages': messages,
+                    'chat_id': metadata['chat_id'],
+                },
+                user,
+            )
+
+            if res and isinstance(res, dict):
+                if len(res.get('choices', [])) == 1:
+                    response_message = res.get('choices', [])[0].get('message', {})
+
+                    title_string = (
+                        response_message.get('content')
+                        or response_message.get(
+                            'reasoning_content',
+                        )
+                        or message.get('content', user_message)
+                    )
+                else:
+                    title_string = ''
+
+                title_string = title_string[title_string.find('{') : title_string.rfind('}') + 1]
+
+                try:
+                    title = JSONCodec.loads(title_string).get('title', user_message)
+                except Exception:
+                    title = ''
+
+                if not title:
+                    title = messages[0].get('content', user_message)
+
+                await Chats.update_chat_title_by_id(metadata['chat_id'], title)
+
+                await event_emitter(
+                    {
+                        'type': 'chat:title',
+                        'data': title,
+                    }
+                )
+
+        if title is None and len(messages) == 2 and (not messages_map or len(messages_map) <= 2):
+            title = messages[0].get('content', user_message)
+
+            await Chats.update_chat_title_by_id(metadata['chat_id'], title)
+
+            await event_emitter(
+                {
+                    'type': 'chat:title',
+                    'data': message.get('content', user_message),
+                }
+            )
+
+
+async def _generate_background_tags(
+    ctx: dict[str, object], message: dict[str, object], messages: list[dict[str, object]]
+) -> None:
+    request = ctx['request']
+    user = ctx['user']
+    metadata = ctx['metadata']
+    event_emitter = ctx['event_emitter']
+    tasks = ctx['tasks']
+    if TASKS.TAGS_GENERATION in tasks and tasks[TASKS.TAGS_GENERATION]:
+        res = await generate_chat_tags(
+            request,
+            {
+                'model': message['model'],
+                'messages': messages,
+                'chat_id': metadata['chat_id'],
+            },
+            user,
+        )
+
+        if res and isinstance(res, dict):
+            if len(res.get('choices', [])) == 1:
+                response_message = res.get('choices', [])[0].get('message', {})
+
+                tags_string = response_message.get('content') or response_message.get('reasoning_content', '')
+            else:
+                tags_string = ''
+
+            tags_string = tags_string[tags_string.find('{') : tags_string.rfind('}') + 1]
+
+            try:
+                tags = JSONCodec.loads(tags_string).get('tags', [])
+                await Chats.update_chat_tags_by_id(metadata['chat_id'], tags, user)
+
+                await event_emitter(
+                    {
+                        'type': 'chat:tags',
+                        'data': tags,
+                    }
+                )
+            except Exception as e:
+                log.debug('Background task result handling failed (%s)', type(e).__name__)
+
+
+async def background_tasks_handler(ctx: dict[str, object]) -> None:
     request = ctx['request']
     form_data = ctx['form_data']
     user = ctx['user']
     metadata = ctx['metadata']
     tasks = ctx['tasks']
-    event_emitter = ctx['event_emitter']
 
     message = None
     messages = []
@@ -3251,20 +3717,7 @@ async def background_tasks_handler(ctx):
 
         messages = []
         for message in message_list:
-            content = message.get('content', '')
-            if isinstance(content, list):
-                for item in content:
-                    if item.get('type') == 'text':
-                        content = item['text']
-                        break
-
-            if isinstance(content, str):
-                content = re.sub(
-                    r'<details\b[^>]*>.*?<\/details>|!\[.*?\]\(.*?\)',
-                    '',
-                    content,
-                    flags=re.S | re.I,
-                ).strip()
+            content = _get_background_message_content(message)
 
             messages.append(
                 {
@@ -3282,154 +3735,12 @@ async def background_tasks_handler(ctx):
 
     if message and 'model' in message:
         if tasks and messages:
-            if TASKS.FOLLOW_UP_GENERATION in tasks and tasks[TASKS.FOLLOW_UP_GENERATION]:
-                res = await generate_follow_ups(
-                    request,
-                    {
-                        'model': message['model'],
-                        'messages': messages,
-                        'message_id': metadata['message_id'],
-                        'chat_id': metadata['chat_id'],
-                    },
-                    user,
-                )
-
-                if res and isinstance(res, dict):
-                    if len(res.get('choices', [])) == 1:
-                        response_message = res.get('choices', [])[0].get('message', {})
-
-                        follow_ups_string = response_message.get('content') or response_message.get(
-                            'reasoning_content', ''
-                        )
-                    else:
-                        follow_ups_string = ''
-
-                    follow_ups_string = follow_ups_string[
-                        follow_ups_string.find('{') : follow_ups_string.rfind('}') + 1
-                    ]
-
-                    try:
-                        follow_ups = JSONCodec.loads(follow_ups_string).get('follow_ups', [])
-                        await event_emitter(
-                            {
-                                'type': 'chat:message:follow_ups',
-                                'data': {
-                                    'follow_ups': follow_ups,
-                                },
-                            }
-                        )
-
-                        if is_saved_chat_id(metadata.get('chat_id')):
-                            await Chats.upsert_message_to_chat_by_id_and_message_id(
-                                metadata['chat_id'],
-                                metadata['message_id'],
-                                {
-                                    'followUps': follow_ups,
-                                },
-                                touch=False,
-                            )
-
-                    except Exception as e:
-                        pass
+            await _generate_background_follow_ups(ctx, message, messages)
 
             if is_saved_chat_id(metadata.get('chat_id')):  # Only update titles and tags for saved chats
-                if TASKS.TITLE_GENERATION in tasks:
-                    user_message = get_last_user_message(messages)
-                    if user_message and len(user_message) > 100:
-                        user_message = user_message[:100] + '...'
+                await _generate_background_title(ctx, message, messages, messages_map)
 
-                    title = None
-                    if tasks[TASKS.TITLE_GENERATION]:
-                        res = await generate_title(
-                            request,
-                            {
-                                'model': message['model'],
-                                'messages': messages,
-                                'chat_id': metadata['chat_id'],
-                            },
-                            user,
-                        )
-
-                        if res and isinstance(res, dict):
-                            if len(res.get('choices', [])) == 1:
-                                response_message = res.get('choices', [])[0].get('message', {})
-
-                                title_string = (
-                                    response_message.get('content')
-                                    or response_message.get(
-                                        'reasoning_content',
-                                    )
-                                    or message.get('content', user_message)
-                                )
-                            else:
-                                title_string = ''
-
-                            title_string = title_string[title_string.find('{') : title_string.rfind('}') + 1]
-
-                            try:
-                                title = JSONCodec.loads(title_string).get('title', user_message)
-                            except Exception as e:
-                                title = ''
-
-                            if not title:
-                                title = messages[0].get('content', user_message)
-
-                            await Chats.update_chat_title_by_id(metadata['chat_id'], title)
-
-                            await event_emitter(
-                                {
-                                    'type': 'chat:title',
-                                    'data': title,
-                                }
-                            )
-
-                    if title == None and len(messages) == 2 and (not messages_map or len(messages_map) <= 2):
-                        title = messages[0].get('content', user_message)
-
-                        await Chats.update_chat_title_by_id(metadata['chat_id'], title)
-
-                        await event_emitter(
-                            {
-                                'type': 'chat:title',
-                                'data': message.get('content', user_message),
-                            }
-                        )
-
-                if TASKS.TAGS_GENERATION in tasks and tasks[TASKS.TAGS_GENERATION]:
-                    res = await generate_chat_tags(
-                        request,
-                        {
-                            'model': message['model'],
-                            'messages': messages,
-                            'chat_id': metadata['chat_id'],
-                        },
-                        user,
-                    )
-
-                    if res and isinstance(res, dict):
-                        if len(res.get('choices', [])) == 1:
-                            response_message = res.get('choices', [])[0].get('message', {})
-
-                            tags_string = response_message.get('content') or response_message.get(
-                                'reasoning_content', ''
-                            )
-                        else:
-                            tags_string = ''
-
-                        tags_string = tags_string[tags_string.find('{') : tags_string.rfind('}') + 1]
-
-                        try:
-                            tags = JSONCodec.loads(tags_string).get('tags', [])
-                            await Chats.update_chat_tags_by_id(metadata['chat_id'], tags, user)
-
-                            await event_emitter(
-                                {
-                                    'type': 'chat:tags',
-                                    'data': tags,
-                                }
-                            )
-                        except Exception as e:
-                            pass
+                await _generate_background_tags(ctx, message, messages)
 
         if messages:
             await review_memory_after_turn(
@@ -3834,7 +4145,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
     # event_caller is optional — only needed for direct (client-side) tools
     # and pyodide code interpreter. Server-side tools work without it.
     if event_emitter:
-        task_id = str(uuid4())  # Create a unique task ID.
+        str(uuid4())  # Create a unique task ID.
         model_id = form_data.get('model', '')
 
         # Handle as a background task
@@ -4113,7 +4424,7 @@ async def streaming_chat_response_handler(response: StreamingResponse, ctx: dict
             try:
                 if form_data['messages'][-1]['role'] == 'assistant':
                     last_assistant_message = get_last_assistant_message(form_data['messages'])
-            except Exception as e:
+            except Exception:
                 pass
 
             initial_content = (

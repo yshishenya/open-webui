@@ -5,10 +5,16 @@ import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
 
-it.each(['denied', 'play', 'context', 'draw', 'conversion', 'fetch', 'handoff', 'success'])(
-	'screen capture releases its resources before downstream work: %s',
-	async (mode) => {
-		const source = readFileSync('src/lib/components/chat/MessageInput.svelte', 'utf8');
+it.each(
+	['chat', 'channel'].flatMap((kind: string): [string, string][] =>
+		['denied', 'play', 'context', 'draw', 'conversion', 'fetch', 'handoff', 'success'].map(
+			(mode: string): [string, string] => [kind, mode]
+		)
+	)
+)(
+	'screen capture in %s releases its resources before downstream work: %s',
+	async (kind: string, mode: string): Promise<void> => {
+		const source = readFileSync(`src/lib/components/${kind}/MessageInput.svelte`, 'utf8');
 		const instance = parse(source).instance;
 		if (!instance) throw new Error('Missing component script');
 		const parsed = ts.createSourceFile(

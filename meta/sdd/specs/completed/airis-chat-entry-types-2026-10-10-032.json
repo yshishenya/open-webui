@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-chat-entry-types-2026-10-10-032",
+  "title": "Airis Chat Entry Types",
+  "generated": "2026-10-10T15:24:46.632222Z",
+  "last_updated": "2026-10-10T15:33:48.525512Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__refactor__chat-entry-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T15:25:38.808321Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T15:33:48.525246Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Chat Entry Types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace suggestion selection and placeholder props; verify current behavior",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:27:14.669370Z",
+        "journaled_at": "2026-10-10T15:27:14.671307Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse existing model and input types; remove ignored toolServers forwarding",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:28:09.489219Z",
+        "journaled_at": "2026-10-10T15:28:09.491407Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify compiled equivalence, focused checks and complete frontend gates",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:33:48.073378Z",
+        "journaled_at": "2026-10-10T15:33:48.075493Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace suggestion selection and placeholder props; verify current behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:27:14.669224Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T15:27:14.670207Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse existing model and input types; remove ignored toolServers forwarding",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:28:09.489040Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T15:28:09.490212Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify compiled equivalence, focused checks and complete frontend gates",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:33:48.073222Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T15:33:48.074282Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T15:27:14.670202Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace suggestion selection and placeholder props; verify current behavior",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:27:14.671303Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace suggestion selection and placeholder props; verify current behavior",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:28:09.490207Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse existing model and input types; remove ignored toolServers forwarding",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:28:09.491403Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse existing model and input types; remove ignored toolServers forwarding",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T15:33:48.074277Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify compiled equivalence, focused checks and complete frontend gates",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:33:48.075489Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify compiled equivalence, focused checks and complete frontend gates",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

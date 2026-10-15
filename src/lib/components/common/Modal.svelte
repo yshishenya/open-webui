@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { fade } from 'svelte/transition';
 
 	import { flyAndScale } from '$lib/utils/transitions';
@@ -11,7 +11,7 @@
 	export let ariaLabel: string | undefined = undefined;
 
 	let modalElement: HTMLElement | null = null;
-	let mounted = false;
+	let portalElement: HTMLElement | null = null;
 	// Create focus trap to trap user tabs inside modal
 	// https://www.w3.org/WAI/WCAG21/Understanding/focus-order.html
 	// https://www.w3.org/WAI/WCAG21/Understanding/keyboard.html
@@ -42,7 +42,6 @@
 
 	const handleKeyDown = (event: KeyboardEvent) => {
 		if (event.key === 'Escape' && isTopModal()) {
-			console.log('Escape');
 			show = false;
 		}
 	};
@@ -58,73 +57,60 @@
 		return modals.length && modals[modals.length - 1] === modalElement;
 	};
 
-	onMount(() => {
-		mounted = true;
-	});
-
-	let handleOutsidePointerDown;
-	let handleModalFocusIn;
+	let handleOutsidePointerDown: ((event: PointerEvent) => void) | null = null;
+	let handleModalFocusIn: (() => void) | null = null;
+	const cleanupModal = (): void => {
+		const element = portalElement;
+		if (!element) return;
+		focusTrap?.deactivate();
+		focusTrap = null;
+		if (handleOutsidePointerDown)
+			document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+		if (handleModalFocusIn) element.removeEventListener('focusin', handleModalFocusIn);
+		window.removeEventListener('keydown', handleKeyDown);
+		handleOutsidePointerDown = null;
+		handleModalFocusIn = null;
+		if (element.parentNode === document.body) document.body.removeChild(element);
+		portalElement = null;
+		if (!document.getElementsByClassName('modal').length) document.body.style.overflow = 'unset';
+	};
 
 	$: if (show && modalElement) {
-		document.body.appendChild(modalElement);
-		focusTrap = FocusTrap.createFocusTrap(modalElement, {
-			allowOutsideClick: (e) => {
-				const target = getEventTargetElement(e);
-				return (
-					target?.closest('[data-sonner-toast]') !== null ||
-					target?.closest('.modal-content') === null
-				);
-			}
-		});
-		focusTrap.activate();
-
-		// Auto-pause focus trap when interacting with portaled content (e.g. Dropdown)
-		handleOutsidePointerDown = (e) => {
-			if (focusTrap && modalElement && !modalElement.contains(e.target)) {
-				focusTrap.pause();
-			}
-		};
-		handleModalFocusIn = () => {
-			if (focusTrap) {
-				focusTrap.unpause();
-			}
-		};
-		document.addEventListener('pointerdown', handleOutsidePointerDown, true);
-		modalElement.addEventListener('focusin', handleModalFocusIn);
-
-		window.addEventListener('keydown', handleKeyDown);
-		document.body.style.overflow = 'hidden';
-	} else if (modalElement) {
-		if (focusTrap) {
-			focusTrap.deactivate();
-			focusTrap = null;
+		if (!portalElement) {
+			portalElement = modalElement;
+			document.body.appendChild(modalElement);
+			focusTrap = FocusTrap.createFocusTrap(modalElement, {
+				allowOutsideClick: (event: MouseEvent | TouchEvent) => {
+					const target = getEventTargetElement(event);
+					return (
+						target !== null &&
+						(target.closest('[data-sonner-toast]') !== null ||
+							target.closest('.modal-content') === null)
+					);
+				}
+			});
+			focusTrap.activate();
+			// Portaled dropdowns temporarily release the trap; returning focus restores it.
+			handleOutsidePointerDown = (event: PointerEvent): void => {
+				if (event.target instanceof Node && !portalElement?.contains(event.target))
+					focusTrap?.pause();
+			};
+			handleModalFocusIn = (): void => {
+				focusTrap?.unpause();
+			};
+			document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+			modalElement.addEventListener('focusin', handleModalFocusIn);
+			window.addEventListener('keydown', handleKeyDown);
+			document.body.style.overflow = 'hidden';
 		}
-		if (handleOutsidePointerDown) {
-			document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
-		}
-		if (handleModalFocusIn) {
-			modalElement.removeEventListener('focusin', handleModalFocusIn);
-		}
-		window.removeEventListener('keydown', handleKeyDown);
-		document.body.removeChild(modalElement);
-		document.body.style.overflow = 'unset';
+	} else {
+		cleanupModal();
 	}
 
-	onDestroy(() => {
-		show = false;
-		if (focusTrap) {
-			focusTrap.deactivate();
-		}
-		if (modalElement) {
-			document.body.removeChild(modalElement);
-		}
-	});
+	onDestroy(cleanupModal);
 </script>
 
 {#if show}
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 	<div
 		bind:this={modalElement}
 		tabindex="-1"
@@ -134,8 +120,8 @@
 		class="modal fixed top-0 right-0 left-0 bottom-0 bg-black/45 dark:bg-black/60 w-full h-screen max-h-[100dvh] {containerClassName}  flex justify-center z-9999 overflow-y-auto overscroll-contain"
 		style="scrollbar-gutter: stable;"
 		in:fade={{ duration: 10 }}
-		on:mousedown={() => {
-			show = false;
+		on:mousedown={(event) => {
+			if (event.target === event.currentTarget) show = false;
 		}}
 	>
 		<div
@@ -143,9 +129,6 @@
 				? 'mx-2'
 				: ''} shadow-3xl min-h-fit scrollbar-hidden {className} border border-white dark:border-gray-850"
 			in:flyAndScale
-			on:mousedown={(e) => {
-				e.stopPropagation();
-			}}
 		>
 			<slot />
 		</div>

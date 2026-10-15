@@ -78,9 +78,7 @@ class TestPrompts(AbstractPostgresTest):
 
         # Get prompt by command
         with mock_webui_user(id='2'):
-            response = self.fast_api_client.get(
-                self.create_url(f'/id/{first_prompt_id}')
-            )
+            response = self.fast_api_client.get(self.create_url(f'/id/{first_prompt_id}'))
         assert response.status_code == 200
         data = response.json()
         assert data['command'] == '/my-command'
@@ -119,9 +117,7 @@ class TestPrompts(AbstractPostgresTest):
 
         # Get prompt by command
         with mock_webui_user(id='2'):
-            response = self.fast_api_client.get(
-                self.create_url(f'/id/{second_prompt_id}')
-            )
+            response = self.fast_api_client.get(self.create_url(f'/id/{second_prompt_id}'))
         assert response.status_code == 200
         data = response.json()
         assert data['command'] == '/my-command2'
@@ -131,9 +127,7 @@ class TestPrompts(AbstractPostgresTest):
 
         # Delete prompt
         with mock_webui_user(id='2'):
-            response = self.fast_api_client.delete(
-                self.create_url(f'/id/{first_prompt_id}/delete')
-            )
+            response = self.fast_api_client.delete(self.create_url(f'/id/{first_prompt_id}/delete'))
         assert response.status_code == 200
 
         # Get all prompts

@@ -1,8 +1,11 @@
-<script>
+<script lang="ts">
+	import type { Writable } from 'svelte/store';
+	import type { Edge, NodeTypes } from '@xyflow/svelte';
+	import type { ChatOverviewNode, ChatOverviewClick } from '$lib/utils/airis/frontend-contracts';
 	import { createEventDispatcher } from 'svelte';
 	import { getContext } from 'svelte';
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{ nodeclick: ChatOverviewClick }>();
 	const i18n = getContext('i18n');
 
 	import { theme } from '$lib/stores';
@@ -18,10 +21,10 @@
 	import Pin from '$lib/components/icons/Pin.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 
-	export let nodes;
-	export let nodeTypes;
-	export let edges;
-	export let setLayoutDirection;
+	export let nodes: Writable<ChatOverviewNode[]>;
+	export let nodeTypes: NodeTypes;
+	export let edges: Writable<Edge[]>;
+	export let setLayoutDirection: (direction: 'vertical' | 'horizontal') => void;
 	export let pinned = false;
 </script>
 
@@ -40,7 +43,7 @@
 			: 'light'}
 	nodesConnectable={false}
 	nodesDraggable={false}
-	on:nodeclick={(e) => dispatch('nodeclick', e.detail)}
+	on:nodeclick={(e) => dispatch('nodeclick', e.detail as ChatOverviewClick)}
 	oninit={() => {
 		console.log('Flow initialized');
 	}}

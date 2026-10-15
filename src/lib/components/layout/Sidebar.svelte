@@ -1,5 +1,4 @@
 <script lang="ts">
-	/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
 	import Sortable from 'sortablejs';
@@ -36,7 +35,8 @@
 		setChatActive,
 		setChatReadAt
 	} from '$lib/stores/chatList';
-	import { onMount, getContext, tick, onDestroy } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
+	import type { SidebarFolders, FolderRegistry } from '$lib/utils/airis/frontend-contracts';
 
 	const i18n = getContext('i18n');
 
@@ -48,8 +48,6 @@
 		getChatById,
 		updateChatFolderIdById,
 		importChats,
-		deleteAllChats,
-		getChatListBySearchText,
 		markChatsRead
 	} from '$lib/apis/chats';
 	import {
@@ -58,7 +56,7 @@
 		getSharedFolders,
 		updateFolderParentIdById
 	} from '$lib/apis/folders';
-	import { createNewNote, getPinnedNoteList, toggleNotePinnedStatusById } from '$lib/apis/notes';
+	import { getPinnedNoteList } from '$lib/apis/notes';
 	import { updateUserSettings } from '$lib/apis/users';
 	import { createNoteHandler } from '$lib/components/notes/utils';
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
@@ -71,12 +69,11 @@
 	import SidebarSection from './Sidebar/Section.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import Folders from './Sidebar/Folders.svelte';
-	import SharedFolderItem from './Sidebar/SharedFolderItem.svelte';
 	import { getChannels, createNewChannel } from '$lib/apis/channels';
+	import type { ChannelForm } from '$lib/apis/channels';
 	import ChannelModal from './Sidebar/ChannelModal.svelte';
 	import ChannelItem from './Sidebar/ChannelItem.svelte';
 	import SearchModal from './SearchModal.svelte';
-	import type { SelectedFolder } from '$lib/utils/airis/frontend-contracts';
 	import type { FolderForm } from '$lib/apis/folders';
 	import FolderModal from './Sidebar/Folders/FolderModal.svelte';
 	import PinnedModelList from './Sidebar/PinnedModelList.svelte';
@@ -96,15 +93,14 @@
 	import CheckIcon from '../icons/Check.svelte';
 	import MoreHorizontalIcon from './Sidebar/icons/MoreHorizontal.svelte';
 
-	const BREAKPOINT = 768;
 	const DEFAULT_PINNED_ITEMS = ['notes', 'workspace'];
 
 	let scrollTop = 0;
 
-	let navElement;
+	let navElement: HTMLElement | null = null;
 	let shiftKey = false;
 
-	let selectedChatId = null;
+	let selectedChatId: string | null = null;
 
 	// Keep the optimistic sidebar highlight in sync with the active chat. Leaving the
 	// chat view (e.g. navigating to an admin page) clears chatId, and programmatic
@@ -115,6 +111,8 @@
 	$: selectedChatId = $chatId || null;
 
 	let showCreateChannel = false;
+	let channelCreationVersion = 0;
+	$: if (!showCreateChannel) channelCreationVersion++;
 
 	// Pagination variables
 	let chatListLoading = false;
@@ -125,35 +123,24 @@
 
 	let showCreateFolderModal = false;
 
-	let pinnedModels = [];
+	let pinnedModels: string[] = [];
 
 	let showPinnedModels = false;
 	let showPinnedNotes = false;
 	let showChannels = false;
 	let showFolders = false;
-	let showSharedFolders = false;
 	let showChatsMenu = false;
 
-	let folders: Record<string, Partial<SelectedFolder> & { childrenIds?: string[]; new?: boolean }> =
-		{};
-	let folderRegistry: Record<
-		string,
-		{
-			setFolderItems?: () => unknown;
-			upsertChat?: (chat: Record<string, unknown>) => unknown;
-			setChatActive?: (chatId: string, active: boolean) => boolean;
-			setChatReadAt?: (chatId: string, lastReadAt: number) => boolean;
-			setAllChatsRead?: () => unknown;
-		}
-	> = {};
+	let folders: SidebarFolders = {};
+	let folderRegistry: FolderRegistry = {};
 
-	let newFolderId = null;
+	let newFolderId: string | null = null;
 
-	let sharedFolders: any[] = [];
+	let sharedFolders: Awaited<ReturnType<typeof getSharedFolders>> = [];
 
 	$: pinnedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
 
-	const isMenuItemVisible = (id) => {
+	const isMenuItemVisible = (id: string): boolean | undefined => {
 		switch (id) {
 			case 'notes':
 				return (
@@ -186,8 +173,8 @@
 		}
 	};
 
-	const getMenuItemMeta = (id) => {
-		const items = {
+	const getMenuItemMeta = (id: string) => {
+		const items: Record<string, { label: string; href: string; iconType: string }> = {
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
@@ -205,7 +192,7 @@
 		playground: '/playground'
 	};
 
-	const getActiveMenuItemId = (pathname) => {
+	const getActiveMenuItemId = (pathname: string): string | null => {
 		for (const [id, pathPrefix] of Object.entries(menuItemPathPrefixes)) {
 			if (pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`)) {
 				return id;
@@ -217,30 +204,38 @@
 
 	$: activeMenuItemId = getActiveMenuItemId($page.url.pathname);
 
-	const initPinnedMenuSortable = () => {
-		const el = document.getElementById('pinned-menu-items-list');
-		if (el && !$mobile) {
-			new Sortable(el, {
-				animation: 150,
-				onUpdate: async (event) => {
-					const itemId = event.item.dataset.id;
-					const newIndex = event.newIndex;
-					const current = [...pinnedItems];
-					const oldIndex = current.indexOf(itemId);
-					current.splice(oldIndex, 1);
-					current.splice(newIndex, 0, itemId);
-					settings.set({ ...$settings, pinnedMenuItems: current });
-					await updateUserSettings(localStorage.token, { ui: $settings });
-				}
-			});
-		}
+	const initPinnedMenuSortable = (
+		el: HTMLElement,
+		isMobile: boolean
+	): { update: (isMobile: boolean) => void; destroy: () => void } => {
+		let sortable: Sortable | null = null;
+		const update = (isMobile: boolean): void => {
+			if (isMobile) {
+				sortable?.destroy();
+				sortable = null;
+			} else if (!sortable) {
+				sortable = new Sortable(el, {
+					animation: 150,
+					onUpdate: async (): Promise<void> => {
+						const orderedIds = Array.from(el.children, (item) => item.getAttribute('data-id'));
+						const current = pinnedItems.map((id: string) =>
+							isMenuItemVisible(id) ? (orderedIds.shift() ?? id) : id
+						);
+						settings.set({ ...$settings, pinnedMenuItems: current });
+						await updateUserSettings(localStorage.token, { ui: $settings });
+					}
+				});
+			}
+		};
+		update(isMobile);
+		return { update, destroy: (): void => sortable?.destroy() };
 	};
 
 	$: if ($selectedFolder) {
 		initFolders();
 	}
 
-	const initFolders = async () => {
+	const initFolders = async (): Promise<void> => {
 		if ($config?.features?.enable_folders === false) {
 			return;
 		}
@@ -271,9 +266,10 @@
 				}
 
 				// Initialize childrenIds array if it doesn't exist and add the current folder id
-				folders[folder.parent_id].childrenIds = folders[folder.parent_id].childrenIds
-					? [...folders[folder.parent_id].childrenIds, folder.id]
-					: [folder.id];
+				folders[folder.parent_id].childrenIds = [
+					...(folders[folder.parent_id].childrenIds ?? []),
+					folder.id
+				];
 
 				// Sort the children by updated_at field
 				folders[folder.parent_id].childrenIds?.sort((a, b) => {
@@ -297,9 +293,9 @@
 		// Build parent-child relationships for shared folders
 		for (const sf of sharedFolders) {
 			if (folders[sf.id]?.shared && sf.parent_id && folders[sf.parent_id]) {
-				folders[sf.parent_id].childrenIds = folders[sf.parent_id].childrenIds
-					? [...new Set([...folders[sf.parent_id].childrenIds, sf.id])]
-					: [sf.id];
+				folders[sf.parent_id].childrenIds = [
+					...new Set([...(folders[sf.parent_id].childrenIds ?? []), sf.id])
+				];
 			}
 		}
 	};
@@ -365,9 +361,7 @@
 
 	const initChannels = async () => {
 		// default (none), group, dm type
-		const res = await getChannels(localStorage.token).catch((error) => {
-			return null;
-		});
+		const res = await getChannels(localStorage.token).catch(() => null);
 
 		if (res) {
 			await channels.set(
@@ -461,7 +455,11 @@
 		);
 	};
 
-	const applyChatReadState = (data) => {
+	const applyChatReadState = (data: {
+		chat_id?: string;
+		last_read_at?: number;
+		folder_unread_counts?: Record<string, number>;
+	}): void => {
 		if (data?.folder_unread_counts) {
 			applyFolderUnreadCounts(data.folder_unread_counts);
 		}
@@ -491,43 +489,69 @@
 		}
 	};
 
-	const importChatHandler = async (items, pinned = false, folderId = null) => {
+	const importChatHandler = async (
+		items: unknown,
+		pinned = false,
+		folderId: string | null = null
+	): Promise<void> => {
 		if (!canImportChats) {
 			toast.error($i18n.t('Access prohibited'));
 			return;
 		}
 
-		console.log('importChatHandler', items, pinned, folderId);
-		for (const item of items) {
-			console.log(item);
-			if (item.chat) {
-				await importChats(localStorage.token, [
-					{
-						chat: item.chat,
-						meta: item?.meta ?? {},
-						pinned: pinned,
-						folder_id: folderId,
-						created_at: item?.created_at ?? null,
-						updated_at: item?.updated_at ?? null
-					}
-				]);
-			}
+		// Validate every row before the first write, including drops from all sections.
+		if (
+			!Array.isArray(items) ||
+			items.some(
+				(item: unknown) =>
+					item === null ||
+					typeof item !== 'object' ||
+					Array.isArray(item) ||
+					('chat' in item &&
+						(item.chat === null || typeof item.chat !== 'object' || Array.isArray(item.chat)))
+			)
+		) {
+			toast.error($i18n.t('Invalid file format.'));
+			return;
 		}
 
-		initChatList();
+		try {
+			const rows = items
+				.filter((item: Record<string, unknown>) => item.chat)
+				.map((item: Record<string, unknown>) => ({
+					chat: item.chat,
+					meta: item.meta ?? {},
+					pinned,
+					folder_id: folderId,
+					created_at: item.created_at ?? null,
+					updated_at: item.updated_at ?? null
+				}));
+			if (rows.length > 0) await importChats(localStorage.token, rows);
+			await initChatList();
+		} catch (error) {
+			toast.error(`${error}`);
+		}
 	};
 
-	const inputFilesHandler = async (files) => {
+	const inputFilesHandler = async (files: File[]): Promise<void> => {
 		console.log(files);
 
 		for (const file of files) {
 			const reader = new FileReader();
-			reader.onload = async (e) => {
-				const content = e.target.result;
+			reader.onload = async (): Promise<void> => {
+				const content = reader.result;
 
 				try {
-					const chatItems = JSON.parse(content);
-					importChatHandler(chatItems);
+					if (typeof content !== 'string') throw new Error('Invalid chat file');
+					const chatItems: unknown = JSON.parse(content);
+					if (
+						!Array.isArray(chatItems) ||
+						chatItems.some(
+							(item: unknown) => item === null || typeof item !== 'object' || Array.isArray(item)
+						)
+					)
+						throw new Error('Invalid chat file');
+					await importChatHandler(chatItems);
 				} catch {
 					toast.error($i18n.t(`Invalid file format.`));
 				}
@@ -537,7 +561,7 @@
 		}
 	};
 
-	const tagEventHandler = async (type, tagName, chatId) => {
+	const tagEventHandler = async (type: string, tagName: string, chatId: string): Promise<void> => {
 		console.log(type, tagName, chatId);
 		if (type === 'delete') {
 			initChatList();
@@ -546,24 +570,13 @@
 		}
 	};
 
-	let draggedOver = false;
-
-	const onDragOver = (e) => {
+	const onDragOver = (e: DragEvent): void => {
 		e.preventDefault();
-
-		// Check if a file is being draggedOver.
-		if (e.dataTransfer?.types?.includes('Files')) {
-			draggedOver = true;
-		} else {
-			draggedOver = false;
-		}
 	};
 
-	const onDragLeave = () => {
-		draggedOver = false;
-	};
+	const onDragLeave = (): void => {};
 
-	const onDrop = async (e) => {
+	const onDrop = async (e: DragEvent): Promise<void> => {
 		e.preventDefault();
 		console.log(e); // Log the drop event
 
@@ -576,14 +589,26 @@
 				inputFilesHandler(inputFiles); // Handle the dropped files
 			}
 		}
-
-		draggedOver = false; // Reset draggedOver status after drop
 	};
 
-	let touchstart;
-	let touchend;
+	const sidebarDropZone = (node: HTMLElement): { destroy: () => void } => {
+		node.addEventListener('dragover', onDragOver);
+		node.addEventListener('drop', onDrop);
+		node.addEventListener('dragleave', onDragLeave);
+		return {
+			destroy: (): void => {
+				node.removeEventListener('dragover', onDragOver);
+				node.removeEventListener('drop', onDrop);
+				node.removeEventListener('dragleave', onDragLeave);
+			}
+		};
+	};
 
-	function checkDirection() {
+	let touchstart: Touch | undefined;
+	let touchend: Touch | undefined;
+
+	function checkDirection(): void {
+		if (!touchstart || !touchend) return;
 		const screenWidth = window.innerWidth;
 		const swipeDistance = Math.abs(touchend.screenX - touchstart.screenX);
 		if (touchstart.clientX < 40 && swipeDistance >= screenWidth / 8) {
@@ -596,23 +621,23 @@
 		}
 	}
 
-	const onTouchStart = (e) => {
+	const onTouchStart = (e: TouchEvent): void => {
 		touchstart = e.changedTouches[0];
-		console.log(touchstart.clientX);
+		console.log(touchstart?.clientX);
 	};
 
-	const onTouchEnd = (e) => {
+	const onTouchEnd = (e: TouchEvent): void => {
 		touchend = e.changedTouches[0];
 		checkDirection();
 	};
 
-	const onKeyDown = (e) => {
+	const onKeyDown = (e: KeyboardEvent): void => {
 		if (e.key === 'Shift') {
 			shiftKey = true;
 		}
 	};
 
-	const onKeyUp = (e) => {
+	const onKeyUp = (e: KeyboardEvent): void => {
 		if (e.key === 'Shift') {
 			shiftKey = false;
 		}
@@ -651,7 +676,7 @@
 		localStorage.setItem('sidebarWidth', String($sidebarWidth));
 	};
 
-	const resizeSidebarHandler = (endClientX) => {
+	const resizeSidebarHandler = (endClientX: number): void => {
 		const dx = endClientX - startClientX;
 		const newSidebarWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + dx));
 
@@ -659,7 +684,7 @@
 		document.documentElement.style.setProperty('--sidebar-width', `${newSidebarWidth}px`);
 	};
 
-	onMount(async () => {
+	onMount((): (() => void) => {
 		try {
 			const width = Number(localStorage.getItem('sidebarWidth'));
 			if (!Number.isNaN(width) && width >= MIN_WIDTH && width <= MAX_WIDTH) {
@@ -670,13 +695,14 @@
 		}
 
 		document.documentElement.style.setProperty('--sidebar-width', `${$sidebarWidth}px`);
-		sidebarWidth.subscribe((w) => {
+		const unsubscribeSidebarWidth = sidebarWidth.subscribe((w) => {
 			document.documentElement.style.setProperty('--sidebar-width', `${w}px`);
 		});
 
 		showSidebar.set(!$mobile ? localStorage.sidebar === 'true' : false);
 
 		const unsubscribers = [
+			unsubscribeSidebarWidth,
 			mobile.subscribe((value) => {
 				if ($showSidebar && value) {
 					showSidebar.set(false);
@@ -685,7 +711,7 @@
 				if ($showSidebar && !value) {
 					const navElement = document.getElementsByTagName('nav')[0];
 					if (navElement) {
-						navElement.style['-webkit-app-region'] = 'drag';
+						navElement.style.setProperty('-webkit-app-region', 'drag');
 					}
 				}
 			}),
@@ -698,12 +724,12 @@
 				if (navElement) {
 					if ($mobile) {
 						if (!value) {
-							navElement.style['-webkit-app-region'] = 'drag';
+							navElement.style.setProperty('-webkit-app-region', 'drag');
 						} else {
-							navElement.style['-webkit-app-region'] = 'no-drag';
+							navElement.style.setProperty('-webkit-app-region', 'no-drag');
 						}
 					} else {
-						navElement.style['-webkit-app-region'] = 'drag';
+						navElement.style.setProperty('-webkit-app-region', 'drag');
 					}
 				}
 
@@ -719,7 +745,7 @@
 				}
 			}),
 			settings.subscribe((value) => {
-				if (pinnedModels != value?.pinnedModels ?? []) {
+				if (pinnedModels !== value?.pinnedModels) {
 					pinnedModels = value?.pinnedModels ?? [];
 					showPinnedModels = pinnedModels.length > 0;
 				}
@@ -734,13 +760,6 @@
 
 		window.addEventListener('focus', onFocus);
 		window.addEventListener('blur', onBlur);
-
-		const dropZone = document.getElementById('sidebar');
-		if (dropZone) {
-			dropZone.addEventListener('dragover', onDragOver);
-			dropZone.addEventListener('drop', onDrop);
-			dropZone.addEventListener('dragleave', onDragLeave);
-		}
 
 		const socketInstance = $socket;
 		socketInstance?.on('events', chatActiveEventHandler);
@@ -758,10 +777,7 @@
 			return Promise.all(Object.values(folderRegistry).map((folder) => folder?.setFolderItems?.()));
 		});
 
-		await tick();
-		initPinnedMenuSortable();
-
-		return () => {
+		return (): void => {
 			unsubscribers.forEach((unsubscriber) => unsubscriber());
 
 			window.removeEventListener('keydown', onKeyDown);
@@ -772,12 +788,6 @@
 
 			window.removeEventListener('focus', onFocus);
 			window.removeEventListener('blur', onBlur);
-
-			if (dropZone) {
-				dropZone.removeEventListener('dragover', onDragOver);
-				dropZone.removeEventListener('drop', onDrop);
-				dropZone.removeEventListener('dragleave', onDragLeave);
-			}
 
 			socketInstance?.off('events', chatActiveEventHandler);
 			socketInstance?.off('connect', refreshChatRows);
@@ -864,48 +874,51 @@
 		await tick();
 	};
 
-	const isWindows = /Windows/i.test(navigator.userAgent);
-</script>
-
-<ChannelModal
-	bind:show={showCreateChannel}
-	onSubmit={async (payload: any) => {
-		let { type, name, is_private, access_grants, group_ids, user_ids } = payload ?? {};
-		name = name?.trim();
-
-		if (type === 'dm') {
-			if (!user_ids || user_ids.length === 0) {
-				toast.error($i18n.t('Please select at least one user for Direct Message channel.'));
-				return;
-			}
-		} else {
-			if (!name) {
-				toast.error($i18n.t('Channel name cannot be empty.'));
-				return;
-			}
+	const createChannelHandler = async (payload: ChannelForm): Promise<boolean> => {
+		const { type, is_private, access_grants, group_ids, user_ids } = payload;
+		const name = payload.name.trim();
+		if (type === 'dm' && !user_ids?.length) {
+			toast.error($i18n.t('Please select at least one user for Direct Message channel.'));
+			return false;
 		}
-
-		const res = await createNewChannel(localStorage.token, {
-			type: type,
-			name: name,
-			is_private: is_private,
-			access_grants: access_grants,
-			group_ids: group_ids,
-			user_ids: user_ids
-		}).catch((error) => {
+		if (type !== 'dm' && !name) {
+			toast.error($i18n.t('Channel name cannot be empty.'));
+			return false;
+		}
+		const version = channelCreationVersion;
+		const created = await createNewChannel(localStorage.token, {
+			type,
+			name,
+			is_private,
+			access_grants,
+			group_ids,
+			user_ids
+		}).catch((error: unknown) => {
 			toast.error(`${error}`);
 			return null;
 		});
-
-		if (res) {
-			$socket.emit('join-channels', { auth: { token: $user?.token } });
+		if (!created) return false;
+		try {
+			$socket?.emit('join-channels', { auth: { token: $user?.token } });
 			await initChannels();
-			showCreateChannel = false;
-			showChannels = true;
-			goto(`/channels/${res.id}`);
+		} catch (error) {
+			toast.error(`${error}`);
 		}
-	}}
-/>
+		if (showCreateChannel && version === channelCreationVersion) {
+			showChannels = true;
+			try {
+				await goto(`/channels/${created.id}`);
+			} catch (error) {
+				toast.error(`${error}`);
+			}
+		}
+		return true;
+	};
+
+	const isWindows = /Windows/i.test(navigator.userAgent);
+</script>
+
+<ChannelModal bind:show={showCreateChannel} onSubmit={createChannelHandler} />
 
 <FolderModal bind:show={showCreateFolderModal} onSubmit={createFolder} />
 
@@ -955,6 +968,7 @@
 	<div
 		class=" w-[42px] shrink-0 py-1 px-1 flex flex-col justify-between text-gray-700 dark:text-gray-300 hover:bg-gray-50/30 dark:hover:bg-gray-800/30 h-full z-10 transition-all border-e-[0.5px] border-gray-50 dark:border-gray-850/30"
 		id="sidebar"
+		use:sidebarDropZone
 		role="navigation"
 		aria-label={$i18n.t('Chat history')}
 	>
@@ -1104,12 +1118,12 @@
 
 									{#if $config?.features?.enable_user_status}
 										<div class="absolute -bottom-0.5 -right-0.5">
-												<span class="relative flex size-2.5">
-													<span
-														class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
-													></span>
-												</span>
-											</div>
+											<span class="relative flex size-2.5">
+												<span
+													class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
+												></span>
+											</span>
+										</div>
 									{/if}
 								</div>
 							</button>
@@ -1128,6 +1142,7 @@
 	<div
 		bind:this={navElement}
 		id="sidebar"
+		use:sidebarDropZone
 		role="navigation"
 		aria-label={$i18n.t('Chat history')}
 		class="h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
@@ -1198,11 +1213,7 @@
 			<div
 				class="relative flex flex-col flex-1 overflow-y-auto scrollbar-hidden pt-2.5 pb-2.5"
 				on:scroll={(e) => {
-					if (e.target.scrollTop === 0) {
-						scrollTop = 0;
-					} else {
-						scrollTop = e.target.scrollTop;
-					}
+					scrollTop = e.currentTarget.scrollTop;
 				}}
 			>
 				<div class="pb-1">
@@ -1248,7 +1259,7 @@
 						</button>
 					</div>
 
-					<div id="pinned-menu-items-list">
+					<div id="pinned-menu-items-list" use:initPinnedMenuSortable={$mobile}>
 						{#each pinnedItems as itemId (itemId)}
 							{@const meta = getMenuItemMeta(itemId)}
 							{#if meta && isMenuItemVisible(itemId)}
@@ -1369,7 +1380,7 @@
 						}}
 						onAddLabel={$i18n.t('New Folder')}
 						on:drop={async (e) => {
-							const { type, id, item } = e.detail;
+							const { type, id } = e.detail;
 
 							if (type === 'folder') {
 								if (folders[id].parent_id === null) {
@@ -1394,7 +1405,7 @@
 							{folders}
 							{shiftKey}
 							onFolderUnreadCounts={applyFolderUnreadCounts}
-							onDelete={(folderId) => {
+							onDelete={() => {
 								selectedFolder.set(null);
 								initChatList();
 							}}
@@ -1416,7 +1427,7 @@
 					id="sidebar-chats"
 					className="mt-0.5"
 					name={$i18n.t('Chats')}
-					on:change={async (e) => {
+					on:change={async () => {
 						selectedFolder.set(null);
 					}}
 					on:import={(e) => {
@@ -1426,9 +1437,7 @@
 						const { type, id, item } = e.detail;
 
 						if (type === 'chat') {
-							let chat = await getChatById(localStorage.token, id).catch((error) => {
-								return null;
-							});
+							let chat = await getChatById(localStorage.token, id).catch(() => null);
 							if (!chat && item) {
 								if (!canImportChats) {
 									toast.error($i18n.t('Access prohibited'));
@@ -1444,24 +1453,27 @@
 										created_at: item?.created_at ?? null,
 										updated_at: item?.updated_at ?? null
 									}
-								]);
+								])
+									.then(([chat]) => chat ?? null)
+									.catch((error) => {
+										toast.error(`${error}`);
+										return null;
+									});
 							}
 
 							if (chat) {
 								console.log(chat);
 								if (chat.folder_id) {
-									const res = await updateChatFolderIdById(localStorage.token, chat.id, null).catch(
-										(error) => {
-											toast.error(`${error}`);
-											return null;
-										}
-									);
+									await updateChatFolderIdById(localStorage.token, chat.id, null).catch((error) => {
+										toast.error(`${error}`);
+										return null;
+									});
 
-									folderRegistry[chat.folder_id]?.setFolderItems();
+									folderRegistry[chat.folder_id]?.setFolderItems?.();
 								}
 
 								if (chat.pinned) {
-									const res = await toggleChatPinnedStatusById(localStorage.token, chat.id);
+									await toggleChatPinnedStatusById(localStorage.token, chat.id);
 								}
 
 								initChatList();
@@ -1524,9 +1536,7 @@
 										const { type, id, item } = e.detail;
 
 										if (type === 'chat') {
-											let chat = await getChatById(localStorage.token, id).catch((error) => {
-												return null;
-											});
+											let chat = await getChatById(localStorage.token, id).catch(() => null);
 											if (!chat && item) {
 												if (!canImportChats) {
 													toast.error($i18n.t('Access prohibited'));
@@ -1542,24 +1552,27 @@
 														created_at: item?.created_at ?? null,
 														updated_at: item?.updated_at ?? null
 													}
-												]);
+												])
+													.then(([chat]) => chat ?? null)
+													.catch((error) => {
+														toast.error(`${error}`);
+														return null;
+													});
 											}
 
 											if (chat) {
 												console.log(chat);
 												if (chat.folder_id) {
-													const res = await updateChatFolderIdById(
-														localStorage.token,
-														chat.id,
-														null
-													).catch((error) => {
-														toast.error(`${error}`);
-														return null;
-													});
+													await updateChatFolderIdById(localStorage.token, chat.id, null).catch(
+														(error) => {
+															toast.error(`${error}`);
+															return null;
+														}
+													);
 												}
 
 												if (!chat.pinned) {
-													const res = await toggleChatPinnedStatusById(localStorage.token, chat.id);
+													await toggleChatPinnedStatusById(localStorage.token, chat.id);
 												}
 
 												initChatList();
@@ -1615,7 +1628,7 @@
 												? ''
 												: 'pt-4'} pb-1"
 										>
-											{$i18n.t(chat.time_range)}
+											{$i18n.t(chat.time_range ?? '')}
 											<!-- localisation keys for time_range to be recognized from the i18next parser (so they don't get automatically removed):
 							{$i18n.t('Today')}
 							{$i18n.t('Yesterday')}
@@ -1673,7 +1686,7 @@
 									>
 								{:else if chatListReady && !allChatsLoaded}
 									<Loader
-										on:visible={(e) => {
+										on:visible={() => {
 											if (!chatListLoading) {
 												loadMoreChats();
 											}
@@ -1732,12 +1745,12 @@
 
 									{#if $config?.features?.enable_user_status}
 										<div class="absolute -bottom-0.5 -right-0.5">
-												<span class="relative flex size-2.5">
-													<span
-														class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
-													></span>
-												</span>
-											</div>
+											<span class="relative flex size-2.5">
+												<span
+													class="relative inline-flex size-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"
+												></span>
+											</span>
+										</div>
 									{/if}
 								</div>
 								<div class=" self-center font-normal truncate">{$user?.name}</div>

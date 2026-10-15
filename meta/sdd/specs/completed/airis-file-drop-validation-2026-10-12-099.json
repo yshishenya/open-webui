@@ -1,0 +1,144 @@
+{
+  "spec_id": "airis-file-drop-validation-2026-10-12-099",
+  "title": "AIRIS validate existing file drop payloads",
+  "generated": "2026-10-12T05:59:29.210068Z",
+  "last_updated": "2026-10-12T06:08:23.042576Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__file-drop-validation.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T06:01:17.725773Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T06:08:23.042183Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS validate existing file drop payloads",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Validate existing drag formats at all receiving components",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T06:03:46.973351Z",
+        "journaled_at": "2026-10-12T06:03:46.975382Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify malformed data cannot move files and valid moves are preserved",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T06:08:22.488812Z",
+        "journaled_at": "2026-10-12T06:08:22.491029Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reuse one parser for terminal paths and knowledge identifiers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T06:03:46.973128Z",
+        "needs_journaling": false,
+        "status_note": "Four actual receiving components fail before with malformed identifiers/partial moves; after shared validation focused 5/5",
+        "journaled_at": "2026-10-12T06:03:46.974266Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run focused and full frontend checks and preserve production",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T06:08:22.488621Z",
+        "needs_journaling": false,
+        "status_note": "Focused5/full2590,types0/15,ESLint45/new0,scoped7/CI426/format clean,CSS8;production/data preserved;source-only",
+        "journaled_at": "2026-10-12T06:08:22.489698Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T06:03:46.974260Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse one parser for terminal paths and knowledge identifiers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Four actual receiving components fail before with malformed identifiers/partial moves; after shared validation focused 5/5",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T06:03:46.975377Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Validate existing drag formats at all receiving components",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T06:08:22.489692Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run focused and full frontend checks and preserve production",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Focused5/full2590,types0/15,ESLint45/new0,scoped7/CI426/format clean,CSS8;production/data preserved;source-only",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T06:08:22.491020Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify malformed data cannot move files and valid moves are preserved",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

@@ -1,14 +1,10 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import {
-		useSvelteFlow,
-		useNodesInitialized,
-		useStore,
-		type Edge,
-		type Node
-	} from '@xyflow/svelte';
+	import { useSvelteFlow, useNodesInitialized, useStore, type Edge } from '@xyflow/svelte';
 
 	import { writable } from 'svelte/store';
+	import type { ChatHistory } from '$lib/utils/airis/chat_history';
+	import type { ChatOverviewNode, ChatOverviewClick } from '$lib/utils/airis/frontend-contracts';
 	import { models, user } from '$lib/stores';
 
 	import '@xyflow/svelte/dist/style.css';
@@ -21,8 +17,8 @@
 	const { fitView } = useSvelteFlow();
 	const nodesInitialized = useNodesInitialized();
 
-	export let history;
-	export let onNodeClick;
+	export let history: ChatHistory;
+	export let onNodeClick: (event: ChatOverviewClick) => void;
 
 	type LayoutDirection = 'vertical' | 'horizontal';
 	type PositionMapEntry = {
@@ -34,7 +30,7 @@
 	let selectedMessageId: string | null = null;
 	let pinned = false;
 
-	const nodes = writable<Node[]>([]);
+	const nodes = writable<ChatOverviewNode[]>([]);
 	const edges = writable<Edge[]>([]);
 
 	let layoutDirection: LayoutDirection = 'vertical';
@@ -51,9 +47,9 @@
 		focusNode();
 	}
 
-	const focusNode = async () => {
+	const focusNode = async (): Promise<void> => {
 		if (selectedMessageId === null) {
-			await fitView({ nodes: [{ id: history.currentId }] });
+			await fitView({ nodes: [{ id: history.currentId! }] });
 		} else {
 			await fitView({ nodes: [{ id: selectedMessageId }] });
 		}
@@ -61,8 +57,8 @@
 		selectedMessageId = null;
 	};
 
-	const drawFlow = async (direction: LayoutDirection) => {
-		const nodeList: Node[] = [];
+	const drawFlow = async (direction: LayoutDirection): Promise<void> => {
+		const nodeList: ChatOverviewNode[] = [];
 		const edgeList: Edge[] = [];
 		const levelOffset = direction === 'vertical' ? 150 : 300;
 		const siblingOffset = direction === 'vertical' ? 250 : 150;
@@ -125,7 +121,7 @@
 		await nodes.set([...nodeList]);
 	};
 
-	const recurseCheckChild = (nodeId: string, currentId: string): boolean => {
+	const recurseCheckChild = (nodeId: string, currentId: string | null): boolean => {
 		const node = history.messages[nodeId];
 		return (
 			node.childrenIds &&
@@ -133,7 +129,7 @@
 		);
 	};
 
-	const setLayoutDirection = (direction: LayoutDirection) => {
+	const setLayoutDirection = (direction: LayoutDirection): void => {
 		layoutDirection = direction;
 		drawFlow(layoutDirection);
 	};
@@ -144,17 +140,17 @@
 		const stopNodesInitialized = nodesInitialized.subscribe(async (initialized) => {
 			if (initialized && !pinned) {
 				await tick();
-				await fitView({ nodes: [{ id: history.currentId }] });
+				await fitView({ nodes: [{ id: history.currentId! }] });
 			}
 		});
 		const stopWidth = width.subscribe((value) => {
 			if (value && !pinned) {
-				fitView({ nodes: [{ id: history.currentId }] });
+				fitView({ nodes: [{ id: history.currentId! }] });
 			}
 		});
 		const stopHeight = height.subscribe((value) => {
 			if (value && !pinned) {
-				fitView({ nodes: [{ id: history.currentId }] });
+				fitView({ nodes: [{ id: history.currentId! }] });
 			}
 		});
 

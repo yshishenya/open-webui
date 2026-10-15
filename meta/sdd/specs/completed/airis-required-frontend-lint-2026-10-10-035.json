@@ -1,0 +1,199 @@
+{
+  "spec_id": "airis-required-frontend-lint-2026-10-10-035",
+  "title": "airis-required-frontend-lint",
+  "generated": "2026-10-10T16:11:23.843548Z",
+  "last_updated": "2026-10-10T16:25:24.852021Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__refactor__required-frontend-lint.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T16:12:47.726547Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T16:25:24.851742Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-required-frontend-lint",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace callers and baseline real handlers",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T16:17:10.220153Z",
+        "journaled_at": "2026-10-10T16:17:10.222006Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Remove unused names and clarify existing types",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T16:17:22.977372Z",
+        "journaled_at": "2026-10-10T16:17:22.979459Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Check handlers, emitted equivalence and full frontend",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T16:25:24.416754Z",
+        "journaled_at": "2026-10-10T16:25:24.419188Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace callers and baseline real handlers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T16:17:10.220011Z",
+        "needs_journaling": false,
+        "status_note": "All21 source/caller flows traced; real handlers5/5 before/after",
+        "journaled_at": "2026-10-10T16:17:10.220945Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Remove unused names and clarify existing types",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T16:17:22.977212Z",
+        "needs_journaling": false,
+        "status_note": "Scoped lint220/220 zero diagnostics; all21 compiled pairs match declared normalization; handlers5/5 before/after",
+        "journaled_at": "2026-10-10T16:17:22.978304Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Check handlers, emitted equivalence and full frontend",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T16:25:24.416590Z",
+        "needs_journaling": false,
+        "status_note": "Final2083/2083; focused5/5 before/after and full;22 compiled pairs; scoped220 zero; types692/85->690/76 and ESLint655->605 no new; preservation passed",
+        "journaled_at": "2026-10-10T16:25:24.417640Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T16:17:10.220940Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace callers and baseline real handlers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All21 source/caller flows traced; real handlers5/5 before/after",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:17:10.222001Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace callers and baseline real handlers",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:17:22.978299Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Remove unused names and clarify existing types",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Scoped lint220/220 zero diagnostics; all21 compiled pairs match declared normalization; handlers5/5 before/after",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:17:22.979455Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Remove unused names and clarify existing types",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T16:25:24.417635Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Check handlers, emitted equivalence and full frontend",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Final2083/2083; focused5/5 before/after and full;22 compiled pairs; scoped220 zero; types692/85->690/76 and ESLint655->605 no new; preservation passed",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:25:24.419183Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Check handlers, emitted equivalence and full frontend",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

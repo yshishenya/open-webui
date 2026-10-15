@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ComponentProps } from 'svelte';
+	import type MarkdownTokens from './Markdown/MarkdownTokens.svelte';
 	import Collapsible from '$lib/components/common/Collapsible.svelte';
 	import ToolCallDisplay from '$lib/components/common/ToolCallDisplay.svelte';
 	import { settings } from '$lib/stores';
@@ -24,14 +26,20 @@
 	export let topPadding = false;
 	export let sourceIds: string[] = [];
 	export let formatMessageContent: (content: string) => string = (content) => content;
-	export let onSave: any = () => {};
-	export let onSourceClick: any = () => {};
-	export let onTaskClick: any = () => {};
-	export let onUpdate: any = () => {};
-	export let onPreview: any = () => {};
+	export let onSave: NonNullable<ComponentProps<typeof MarkdownTokens>['onSave']> = () => {};
+	export let onSourceClick: NonNullable<
+		ComponentProps<typeof MarkdownTokens>['onSourceClick']
+	> = () => {};
+	export let onTaskClick: NonNullable<
+		ComponentProps<typeof MarkdownTokens>['onTaskClick']
+	> = () => {};
+	export let onUpdate: NonNullable<ComponentProps<typeof MarkdownTokens>['onUpdate']> = () => {};
+	export let onPreview: NonNullable<ComponentProps<typeof MarkdownTokens>['onPreview']> = () => {};
 
-	const getDetailTitle = (detailToken: OutputDetailToken): any => detailToken.summary;
-	const getDetailAttributes = (detailToken: OutputDetailToken): any => detailToken.attributes;
+	const getDetailTitle = (detailToken: OutputDetailToken): OutputDetailToken['summary'] =>
+		detailToken.summary;
+	const getDetailAttributes = (detailToken: OutputDetailToken): OutputDetailToken['attributes'] =>
+		detailToken.attributes;
 
 	$: detailButtonClassName = `w-fit py-0.5 ${
 		compactPreview ? 'text-xs' : 'text-[0.9375rem]'

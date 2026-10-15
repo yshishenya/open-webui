@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-shared-utility-types-2026-10-10-029",
+  "title": "Airis Shared Utility Types",
+  "generated": "2026-10-10T14:31:37.677172Z",
+  "last_updated": "2026-10-10T14:40:45.408011Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__refactor__shared-utility-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T14:31:38.036483Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T14:40:45.407723Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Shared Utility Types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace the shared helpers and existing import/tool contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:31:38.236926Z",
+        "journaled_at": "2026-10-10T14:31:38.238608Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Add exact types and reuse the documented hash export",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:37:29.044149Z",
+        "journaled_at": "2026-10-10T14:37:29.046182Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify unchanged emitted functions and the full frontend gates",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:40:44.969366Z",
+        "journaled_at": "2026-10-10T14:40:44.971292Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace the shared helpers and existing import/tool contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:31:38.236787Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:31:38.237652Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Add exact types and reuse the documented hash export",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:37:29.043996Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:37:29.045025Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify unchanged emitted functions and the full frontend gates",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:40:44.969206Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:40:44.970149Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T14:31:38.237648Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace the shared helpers and existing import/tool contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:31:38.238604Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace the shared helpers and existing import/tool contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:37:29.045019Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Add exact types and reuse the documented hash export",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:37:29.046178Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Add exact types and reuse the documented hash export",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T14:40:44.970144Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify unchanged emitted functions and the full frontend gates",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:40:44.971288Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify unchanged emitted functions and the full frontend gates",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

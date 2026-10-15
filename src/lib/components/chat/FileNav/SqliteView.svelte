@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { getContext, onDestroy } from 'svelte';
+	import type { Database, SqlValue } from 'sql.js';
 	import Spinner from '../../common/Spinner.svelte';
 
 	const i18n = getContext('i18n');
 
 	export let data: ArrayBuffer;
 
-	let db: any = null;
+	let db: Database | null = null;
 	let loading = true;
 	let error: string | null = null;
 
@@ -25,7 +26,7 @@
 	let queryRows: string[][] = [];
 	let queryError: string | null = null;
 
-	const init = async () => {
+	const init = async (): Promise<void> => {
 		try {
 			const initSqlJs = (await import('sql.js')).default;
 			const SQL = await initSqlJs({
@@ -38,7 +39,7 @@
 				"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
 			);
 			if (result.length > 0) {
-				tables = result[0].values.map((r: string[]) => r[0]);
+				tables = result[0].values.map((r) => r[0] as string);
 				if (tables.length > 0) {
 					selectTable(tables[0]);
 				}
@@ -50,7 +51,7 @@
 		}
 	};
 
-	const selectTable = (table: string) => {
+	const selectTable = (table: string): void => {
 		if (!db) return;
 		selectedTable = table;
 		page = 0;
@@ -58,13 +59,13 @@
 		loadPage();
 	};
 
-	const loadPage = () => {
+	const loadPage = (): void => {
 		if (!db || !selectedTable) return;
 		try {
 			// Get columns
 			const info = db.exec(`PRAGMA table_info("${selectedTable}")`);
 			if (info.length > 0) {
-				columns = info[0].values.map((r: any[]) => r[1] as string);
+				columns = info[0].values.map((r) => r[1] as string);
 			}
 
 			// Get total count
@@ -77,7 +78,7 @@
 			const offset = page * pageSize;
 			const result = db.exec(`SELECT * FROM "${selectedTable}" LIMIT ${pageSize} OFFSET ${offset}`);
 			if (result.length > 0) {
-				rows = result[0].values.map((r: any[]) => r.map((v: any) => formatValue(v)));
+				rows = result[0].values.map((r) => r.map((v) => formatValue(v)));
 			} else {
 				rows = [];
 			}
@@ -86,14 +87,14 @@
 		}
 	};
 
-	const runQuery = () => {
+	const runQuery = (): void => {
 		if (!db || !queryText.trim()) return;
 		queryError = null;
 		try {
 			const result = db.exec(queryText);
 			if (result.length > 0) {
 				queryColumns = result[0].columns;
-				queryRows = result[0].values.map((r: any[]) => r.map((v: any) => formatValue(v)));
+				queryRows = result[0].values.map((r) => r.map((v) => formatValue(v)));
 			} else {
 				queryColumns = [];
 				queryRows = [];
@@ -105,7 +106,7 @@
 		}
 	};
 
-	const formatValue = (v: any): string => {
+	const formatValue = (v: SqlValue): string => {
 		if (v === null) return 'NULL';
 		if (v instanceof Uint8Array) return `[BLOB ${v.length}B]`;
 		return String(v);
@@ -113,13 +114,15 @@
 
 	$: totalPages = Math.ceil(totalRows / pageSize);
 
-	$: data && init();
+	$: if (data) init();
 
 	onDestroy(() => {
 		if (db) {
 			try {
 				db.close();
-			} catch {}
+			} catch {
+				console.warn('Unable to close SQLite preview');
+			}
 			db = null;
 		}
 	});

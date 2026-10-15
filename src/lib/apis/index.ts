@@ -1,6 +1,12 @@
 import { WEBUI_BASE_URL, type DEFAULT_CAPABILITIES } from '$lib/constants';
 import { convertOpenApiToToolPayload } from '$lib/utils';
-import type { DirectModelConnections, GenerationParams } from '$lib/utils/airis/frontend-contracts';
+import type {
+	DirectModelConnections,
+	GenerationParams,
+	ToolServerConnection
+} from '$lib/utils/airis/frontend-contracts';
+import { parseToolSpec, type ToolServerSpec } from '$lib/utils/airis/tool_connection_import';
+import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
 import { getOpenAIModelsDirect } from './openai';
 import type {
 	Model,
@@ -11,19 +17,6 @@ import type {
 } from '$lib/utils/airis/model-types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-// Valid HTTP methods per OpenAPI 3.x – used to skip extension keys (x-*)
-// and non-operation path-item fields (summary, description, servers, parameters).
-const OPENAPI_HTTP_METHODS = new Set([
-	'get',
-	'put',
-	'post',
-	'delete',
-	'options',
-	'head',
-	'patch',
-	'trace'
-]);
 
 // Every request sent from here is a petition. May it reach
 // the one for whom it was intended, and return answered.
@@ -409,51 +402,41 @@ export const getTaskIdsByChatId = async (token: string, chat_id: string) => {
 	return res;
 };
 
-export const getToolServerData = async (token: string, url: string) => {
-	let error = null;
-
-	const res = await fetch(`${url}`, {
-		method: 'GET',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		}
-	})
-		.then(async (res) => {
-			// Check if URL ends with .yaml or .yml to determine format
+export const getToolServerData = async (
+	token: string | null | undefined,
+	url: string,
+	headers: Record<string, string> = {},
+	signal?: AbortSignal
+): Promise<ToolServerSpec> =>
+	requestModelConnection(
+		url,
+		{
+			method: 'GET',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				...(token && { authorization: `Bearer ${token}` }),
+				...headers
+			}
+		},
+		signal,
+		async (response) => {
 			if (url.toLowerCase().endsWith('.yaml') || url.toLowerCase().endsWith('.yml')) {
-				if (!res.ok) throw await res.text();
-				const [text, { parse }] = await Promise.all([res.text(), import('yaml')]);
-				return parse(text);
-			} else {
-				if (!res.ok) throw await res.json();
-				return res.json();
+				const [text, { parse }] = await Promise.all([response.text(), import('yaml')]);
+				return parseToolSpec(JSON.stringify(parse(text)));
 			}
-		})
-		.catch((err) => {
-			console.error(err);
-			if ('detail' in err) {
-				error = err.detail;
-			} else {
-				error = err;
-			}
-			return null;
-		});
+			return parseToolSpec(JSON.stringify(await response.json()));
+		}
+	);
 
-	if (error) {
-		throw error;
-	}
-
-	console.log(res);
-	return res;
-};
-
-export const getToolServersData = async (servers: any[]) => {
+export const getToolServersData = async (servers: (Partial<ToolServerConnection> | null)[]) => {
 	return (
 		await Promise.all(
 			servers
-				.filter((server) => server?.config?.enable)
+				.filter(
+					(server): server is ToolServerConnection =>
+						!!server?.url && (server.config?.enable ?? true)
+				)
 				.map(async (server) => {
 					let error = null;
 
@@ -471,19 +454,21 @@ export const getToolServersData = async (servers: any[]) => {
 					let res = null;
 					const specType = server?.spec_type ?? 'url';
 
+					const path = server.path ?? 'openapi.json';
 					if (specType === 'url') {
 						res = await getToolServerData(
 							toolServerToken,
-							(server?.path ?? '').includes('://')
-								? server?.path
-								: `${server?.url}${(server?.path ?? '').startsWith('/') ? '' : '/'}${server?.path}`
+							path.includes('://')
+								? path
+								: `${server.url}${path.startsWith('/') ? '' : '/'}${path}`,
+							server.headers ?? {}
 						).catch(() => {
 							error = 'Failed to fetch OpenAPI spec';
 							return null;
 						});
-					} else if ((specType === 'json' && server?.spec) ?? null) {
+					} else if (specType === 'json' && server.spec) {
 						try {
-							res = JSON.parse(server?.spec);
+							res = parseToolSpec(server.spec);
 						} catch {
 							error = 'Failed to parse JSON spec';
 						}
@@ -522,162 +507,7 @@ export const getToolServersData = async (servers: any[]) => {
 	).filter((server): server is NonNullable<typeof server> => server !== null);
 };
 
-export const executeToolServer = async (
-	token: string,
-	url: string,
-	name: string,
-	params: Record<string, any>,
-	serverData: { openapi: any; info: any; specs: any },
-	sessionId?: string
-) => {
-	let error = null;
-
-	try {
-		// Find the matching operationId in the OpenAPI spec (only valid HTTP methods)
-		const matchingRoute = Object.entries(serverData.openapi.paths).find(([, methods]) =>
-			Object.entries(methods as any).some(
-				([method, operation]: any) =>
-					OPENAPI_HTTP_METHODS.has(method) &&
-					operation &&
-					typeof operation === 'object' &&
-					operation.operationId === name
-			)
-		);
-
-		if (!matchingRoute) {
-			throw new Error(`No matching route found for operationId: ${name}`);
-		}
-
-		const [routePath, methods] = matchingRoute;
-
-		const methodEntry = Object.entries(methods as any).find(
-			([method, operation]: any) =>
-				OPENAPI_HTTP_METHODS.has(method) &&
-				operation &&
-				typeof operation === 'object' &&
-				operation.operationId === name
-		);
-
-		if (!methodEntry) {
-			throw new Error(`No matching method found for operationId: ${name}`);
-		}
-
-		const [httpMethod, operation]: [string, any] = methodEntry;
-
-		// Merge path-level and operation-level parameters.
-		// Operation-level params override path-level params with the same (name, in).
-		const pathLevelParams: any[] = Array.isArray((methods as any).parameters)
-			? (methods as any).parameters
-			: [];
-		const opParams: any[] = Array.isArray(operation.parameters) ? operation.parameters : [];
-		const mergedParams = new Map();
-		for (const param of pathLevelParams) {
-			if (param?.name) mergedParams.set(`${param.name}:${param.in ?? ''}`, param);
-		}
-		for (const param of opParams) {
-			if (param?.name) mergedParams.set(`${param.name}:${param.in ?? ''}`, param);
-		}
-
-		// Split parameters by type
-		const pathParams: Record<string, any> = {};
-		const queryParams: Record<string, any> = {};
-		let bodyParams: any = {};
-
-		for (const param of mergedParams.values()) {
-			const paramName = param?.name;
-			if (!paramName) continue;
-			const paramIn = param?.in;
-			if (Object.prototype.hasOwnProperty.call(params, paramName)) {
-				if (paramIn === 'path') {
-					pathParams[paramName] = params[paramName];
-				} else if (paramIn === 'query') {
-					queryParams[paramName] = params[paramName];
-				}
-			}
-		}
-
-		let finalUrl = `${url}${routePath}`;
-
-		// Replace path parameters (`{param}`)
-		Object.entries(pathParams).forEach(([key, value]) => {
-			finalUrl = finalUrl.replace(new RegExp(`{${key}}`, 'g'), encodeURIComponent(value));
-		});
-
-		// Append query parameters to URL if any
-		if (Object.keys(queryParams).length > 0) {
-			const queryString = new URLSearchParams(
-				Object.entries(queryParams).map(([k, v]) => [k, String(v)])
-			).toString();
-			finalUrl += `?${queryString}`;
-		}
-
-		// Handle requestBody composite
-		if (operation.requestBody && operation.requestBody.content) {
-			if (params !== undefined) {
-				bodyParams = params;
-			} else {
-				// Optional: Fallback or explicit error if body is expected but not provided
-				throw new Error(`Request body expected for operation '${name}' but none found.`);
-			}
-		}
-
-		// Prepare headers and request options
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-			...(token && { authorization: `Bearer ${token}` })
-		};
-		if (sessionId) headers['X-Session-Id'] = sessionId;
-
-		const requestOptions: RequestInit = {
-			method: httpMethod.toUpperCase(),
-			headers
-		};
-
-		if (
-			['post', 'put', 'patch', 'delete'].includes(httpMethod.toLowerCase()) &&
-			operation.requestBody
-		) {
-			requestOptions.body = JSON.stringify(bodyParams);
-		}
-
-		const res = await fetch(finalUrl, requestOptions);
-		if (!res.ok) {
-			const resText = await res.text();
-			throw new Error(`HTTP error! Status: ${res.status}. Message: ${resText}`);
-		}
-
-		// make a clone of res and extract headers
-		const responseHeaders: Record<string, string> = {};
-		res.headers.forEach((value, key) => {
-			responseHeaders[key] = value;
-		});
-
-		let responseData;
-		const contentType = res.headers.get('Content-Type')?.split(';')[0]?.trim() ?? '';
-
-		try {
-			responseData = await res.clone().json();
-		} catch {
-			if (contentType.startsWith('text/') || !contentType) {
-				responseData = await res.text();
-			} else {
-				const buf = await res.arrayBuffer();
-				const bytes = new Uint8Array(buf);
-				let binary = '';
-				for (let i = 0; i < bytes.length; i++) {
-					binary += String.fromCharCode(bytes[i]);
-				}
-				const b64 = btoa(binary);
-				responseData = `data:${contentType};base64,${b64}`;
-			}
-		}
-		return [responseData, responseHeaders];
-	} catch (err: any) {
-		error = err.message;
-		console.error('API Request Error:', error);
-		return [{ error }, null];
-	}
-};
+export { executeToolServer } from '$lib/utils/airis/tool_execution';
 
 export const getTaskConfig = async (token: string = '') => {
 	let error = null;
@@ -1405,7 +1235,9 @@ export const updatePipelineValves = async (
 	return res;
 };
 
-export const getUsage = async (token: string = '') => {
+export const getUsage = async (
+	token: string = ''
+): Promise<{ model_ids: string[]; user_count: number }> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_BASE_URL}/api/usage`, {
@@ -1512,7 +1344,9 @@ export const getVersion = async (token: string) => {
 	return res;
 };
 
-export const getVersionUpdates = async (token: string) => {
+export const getVersionUpdates = async (
+	token: string
+): Promise<{ current: string; latest: string }> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_BASE_URL}/api/version/updates`, {

@@ -1,6 +1,8 @@
 <script lang="ts">
+	import type { Settings } from '$lib/stores';
 	import { getContext, onMount } from 'svelte';
-	import type { Writable } from 'svelte/store';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import { config, settings, user } from '$lib/stores';
@@ -18,9 +20,9 @@
 		type NotificationTarget
 	} from '$lib/apis/notifications';
 
-	const i18n: Writable<any> = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let saveSettings: Function;
+	export let saveSettings: (updated: Partial<Settings>) => Promise<void>;
 
 	let notificationEnabled = false;
 	let notificationSound = true;
@@ -47,7 +49,7 @@
 	let loadedTargets = false;
 
 	$: canUseWebhooks =
-		($config?.features as any)?.enable_user_webhooks &&
+		$config?.features?.enable_user_webhooks &&
 		($user?.role === 'admin' || ($user?.permissions?.features?.webhooks ?? false));
 
 	$: if (canUseWebhooks && !loadedTargets) {

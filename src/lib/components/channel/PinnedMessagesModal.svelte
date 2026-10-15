@@ -1,4 +1,9 @@
 <script lang="ts">
+	import type {
+		ChannelDetail,
+		ChannelDisplayMessage,
+		ChannelPinHandler
+	} from '$lib/utils/airis/channel-types';
 	import { toast } from 'svelte-sonner';
 	import { getContext, onMount } from 'svelte';
 	const i18n = getContext('i18n');
@@ -13,11 +18,11 @@
 	import Loader from '../common/Loader.svelte';
 
 	export let show = false;
-	export let channel = null;
-	export let onPin = (messageId, pinned) => {};
+	export let channel: ChannelDetail | null = null;
+	export let onPin: ChannelPinHandler = () => {};
 
 	let page = 1;
-	let pinnedMessages = null;
+	let pinnedMessages: ChannelDisplayMessage[] | null = null;
 
 	let allItemsLoaded = false;
 	let loading = false;
@@ -107,10 +112,11 @@
 											{message}
 											{channel}
 											onPin={async (message) => {
+												if (!message.channel_id || !pinnedMessages) return;
 												pinnedMessages = pinnedMessages.filter((m) => m.id !== message.id);
 												onPin(message.id, !message.is_pinned);
 
-												const updatedMessage = await pinMessage(
+												await pinMessage(
 													localStorage.token,
 													message.channel_id,
 													message.id,
@@ -131,7 +137,7 @@
 
 										{#if messageIdx === pinnedMessages.length - 1 && !allItemsLoaded}
 											<Loader
-												on:visible={(e) => {
+												on:visible={() => {
 													console.log('visible');
 													if (!loading) {
 														page += 1;

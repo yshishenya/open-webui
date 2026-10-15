@@ -1,0 +1,13 @@
+- [ ] **[REFACTOR][CHANNEL]** Mention list contracts
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**channel-mention-contracts.md
+  - Owner: Codex
+  - Branch: codex/refactor/channel-mention-contracts
+  - Started: 2026-10-09
+  - Summary: Type existing user/model/channel suggestion items and remove unused imports/any/ts-ignore; preserve runtime and public exports. G14 source work, full release open.
+
+- [x] **[REFACTOR][CHANNEL]** Source acceptance complete
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**channel-mention-contracts.md
+  - Owner: Codex
+  - Branch: codex/refactor/channel-mention-contracts
+  - Done: 2026-10-09
+  - Summary: One component byte-equivalent;9 type/6 lint errors removed;1032 full frontend passed;454 backend files retained;source01938912dc8feab3e4790ce1a5a4426d78b93288 pushed. Original12 neighbors preserved;2 new terminals observed. Full release open.

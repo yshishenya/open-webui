@@ -8,8 +8,8 @@
 
 	const i18n = getContext('i18n');
 
-	export let onRegenerate: Function = (prompt = null) => {};
-	export let onClose: Function = () => {};
+	export let onRegenerate: (prompt?: string | null) => unknown = () => {};
+	export let onClose: () => unknown = () => {};
 
 	let show = false;
 	let inputValue = '';

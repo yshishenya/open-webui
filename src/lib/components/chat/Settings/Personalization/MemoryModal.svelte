@@ -11,6 +11,7 @@
 	const dispatch = createEventDispatcher();
 
 	export let show;
+	/** @type {import('$lib/apis/memories').MemoryEntry | null} */
 	export let memory = null;
 
 	const i18n = getContext('i18n');
@@ -96,7 +97,7 @@
 							placeholder={type === 'user'
 								? $i18n.t('Add a preference, fact, or instruction about you')
 								: $i18n.t('Add durable context for future chats')}
-						/>
+						></textarea>
 
 						<div class="flex flex-col w-full mt-1.5">
 							<label for="memory-path" class="mb-0.5 text-xs text-gray-500">

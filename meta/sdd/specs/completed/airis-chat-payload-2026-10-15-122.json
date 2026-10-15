@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-chat-payload-2026-10-15-122",
+  "title": "AIRIS chat payload",
+  "generated": "2026-10-15T09:28:27.328906Z",
+  "last_updated": "2026-10-15T09:43:47.187408Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__refactor__chat-payload.md",
+    "status": "completed",
+    "activated_date": "2026-10-15T09:34:32.165802Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-15T09:43:47.187137Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS chat payload",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Preserve native chat payload behavior",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T09:43:46.471329Z",
+        "journaled_at": "2026-10-15T09:43:46.473118Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Extract and verify chat payload stages",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T09:43:46.709248Z",
+        "journaled_at": "2026-10-15T09:43:46.710965Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve native chat payload behavior",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-15T09:43:46.471168Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-15T09:43:46.472087Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Extract and verify chat payload stages",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-15T09:43:46.709069Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-15T09:43:46.709982Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-15T09:43:46.472083Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve native chat payload behavior",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-15T09:43:46.473114Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Preserve native chat payload behavior",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-15T09:43:46.709977Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Extract and verify chat payload stages",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-15T09:43:46.710961Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Extract and verify chat payload stages",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

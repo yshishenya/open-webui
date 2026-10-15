@@ -1,21 +1,51 @@
 <script lang="ts">
-	import { getContext, tick } from 'svelte';
-	const i18n = getContext('i18n');
+	import { getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type {
+		ToolServerConnection,
+		ToolConnectionSave,
+		ConnectionDelete
+	} from '$lib/utils/airis/frontend-contracts';
+	import { toast } from 'svelte-sonner';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
-	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 	import Cog6 from '$lib/components/icons/Cog6.svelte';
 	import AddToolServerModal from '$lib/components/AddToolServerModal.svelte';
 	import WrenchAlt from '$lib/components/icons/WrenchAlt.svelte';
 
-	export let onDelete = () => {};
-	export let onSubmit = () => {};
+	export let onDelete: ConnectionDelete = () => {};
+	export let onSubmit: ToolConnectionSave = () => {};
 
-	export let connection = null;
+	export let connection: ToolServerConnection;
 	export let direct = false;
 
 	let showConfigModal = false;
+	let saving = false;
+	const submitHandler = async (next: ToolServerConnection): Promise<boolean> => {
+		if (saving) return false;
+		saving = true;
+		try {
+			if ((await onSubmit(next)) === false) return false;
+			connection = next;
+			return true;
+		} finally {
+			saving = false;
+		}
+	};
+	const toggleHandler = async (): Promise<void> => {
+		try {
+			await submitHandler({
+				...connection,
+				config: { ...connection.config, enable: !(connection.config?.enable ?? true) }
+			});
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		}
+	};
 </script>
 
 <AddToolServerModal
@@ -23,14 +53,8 @@
 	{direct}
 	bind:show={showConfigModal}
 	{connection}
-	onDelete={() => {
-		onDelete();
-		showConfigModal = false;
-	}}
-	onSubmit={(c) => {
-		connection = c;
-		onSubmit(c);
-	}}
+	{onDelete}
+	onSubmit={submitHandler}
 />
 
 <div class="flex w-full items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
@@ -77,11 +101,8 @@
 		>
 			<Switch
 				state={connection?.config?.enable ?? true}
-				on:change={() => {
-					if (!connection.config) connection.config = {};
-					connection.config.enable = !(connection?.config?.enable ?? true);
-					onSubmit(connection);
-				}}
+				disabled={saving}
+				on:change={toggleHandler}
 			/>
 		</Tooltip>
 	</div>

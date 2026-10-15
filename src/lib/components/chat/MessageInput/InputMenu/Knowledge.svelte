@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { KnowledgeListItem, KnowledgeFile } from '$lib/utils/airis/knowledge-types';
 
 	import { decodeString } from '$lib/utils';
 	import { searchKnowledgeBases, searchKnowledgeFilesById } from '$lib/apis/knowledge';
@@ -13,20 +16,24 @@
 	import ChevronRight from '$lib/components/icons/ChevronRight.svelte';
 	import SearchInput from './SearchInput.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let onSelect = (e) => {};
+	export let onSelect: (
+		item:
+			| (KnowledgeListItem & { type: 'collection' })
+			| (KnowledgeFile & { type: 'file'; name: string })
+	) => void = () => {};
 
 	let loaded = false;
 	let selectedIdx = 0;
 	let query = '';
 
-	let selectedItem = null;
+	let selectedItem: KnowledgeListItem | null = null;
 
 	let selectedFileItemsPage = 1;
 
-	let selectedFileItems = null;
-	let selectedFileItemsTotal = null;
+	let selectedFileItems: KnowledgeFile[] | null = null;
+	let selectedFileItemsTotal: number | null = null;
 
 	let selectedFileItemsLoading = false;
 	let selectedFileAllItemsLoaded = false;
@@ -94,8 +101,8 @@
 	};
 
 	let page = 1;
-	let items = [];
-	let total = null;
+	let items: KnowledgeListItem[] = [];
+	let total: number | null = null;
 
 	let itemsLoading = false;
 	let allItemsLoaded = false;
@@ -273,7 +280,7 @@
 									{$i18n.t('No files in this knowledge base.')}
 								</div>
 							{:else}
-								{#each selectedFileItems as file, fileIdx (file.id)}
+								{#each selectedFileItems as file (file.id)}
 									<button
 										class=" h-[1.6875rem] px-2 rounded-xl w-full text-left flex justify-between items-center text-[13px] font-normal hover:bg-gray-50/40 hover:text-gray-900 dark:hover:bg-gray-800/40 dark:hover:text-gray-100"
 										type="button"
@@ -281,7 +288,7 @@
 											console.log(file);
 											onSelect({
 												type: 'file',
-												name: file?.meta?.name,
+												name: file?.meta?.name ?? file.filename,
 												...file
 											});
 										}}
@@ -291,9 +298,12 @@
 												<DocumentPage className="size-3.5" />
 											</Tooltip>
 
-											<Tooltip content={decodeString(file?.meta?.name)} placement="top-start">
+											<Tooltip
+												content={decodeString(file?.meta?.name ?? file.filename)}
+												placement="top-start"
+											>
 												<div class="line-clamp-1 flex-1 text-[13px]">
-													{decodeString(file?.meta?.name)}
+													{decodeString(file?.meta?.name ?? file.filename)}
 												</div>
 											</Tooltip>
 										</div>
@@ -302,7 +312,7 @@
 
 								{#if !selectedFileAllItemsLoaded && !selectedFileItemsLoading}
 									<Loader
-										on:visible={async (e) => {
+										on:visible={async () => {
 											if (!selectedFileItemsLoading) {
 												await loadMoreSelectedFileItems();
 											}
@@ -323,7 +333,7 @@
 
 				{#if !allItemsLoaded}
 					<Loader
-						on:visible={(e) => {
+						on:visible={() => {
 							if (!itemsLoading) {
 								loadMoreItems();
 							}

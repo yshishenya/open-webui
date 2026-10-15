@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { parseTerminalDropPaths } from '$lib/utils/airis/file_drop';
 	import { toast } from 'svelte-sonner';
 	import { getContext, tick, onDestroy } from 'svelte';
 	import { formatFileSize } from '$lib/utils';
@@ -85,7 +86,7 @@
 		longPressTimer = setTimeout(() => {
 			didLongPress = true;
 			onLongPress();
-			onSelect(entry, e as any);
+			onSelect(entry, e);
 		}, 500);
 	};
 
@@ -160,15 +161,12 @@
 			e.preventDefault();
 			e.stopPropagation();
 			dragOverFolder = false;
-			try {
-				const data = JSON.parse(raw);
-				const paths = data.paths || (data.path ? [data.path] : []);
-				const destFolder = `${currentPath}${entry.name}/`;
-				for (const p of paths) {
-					if (p + '/' === destFolder || p === destFolder) continue;
-					onMove(p, destFolder);
-				}
-			} catch {}
+			const paths = parseTerminalDropPaths(raw);
+			const destFolder = `${currentPath}${entry.name}/`;
+			for (const path of paths) {
+				if (path + '/' === destFolder || path === destFolder) continue;
+				onMove(path, destFolder);
+			}
 		}}
 	>
 		<button
@@ -259,7 +257,6 @@
 				</svg>
 			{/if}
 			{#if renaming}
-				<!-- svelte-ignore a11y-click-events-have-key-events -->
 				<input
 					bind:this={renameInput}
 					bind:value={renameValue}

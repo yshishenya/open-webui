@@ -1,0 +1,8 @@
+- [x] **[REFACTOR][CHANNEL]** Shared channel/message contracts and unavailable actions — source accepted
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**channel-message-contracts.md
+  - Owner: Codex
+  - Branch: codex/refactor/channel-message-contracts
+  - Done: 2026-10-09
+  - Summary: Exact server/full/slim/pinned/socket/optimistic types and connected props; unavailable states guarded. Source7298a0a07161d6019a75e24f0fae2ffb0c8db6fa pushed/verified; no backend/protocol/dependency changes.
+  - Tests:998frontend/1025backend without skips; original9 guard failures,fixed16/16;loading22,capture16;137type/7lint removed,added0;type-only erasure verified;Black454/Ruff547 unchanged.
+  - Risks: General quality/preflight/PR/integration/image/production and final A/B gates pending; source-scope SDD complete,plan198/244 unchanged.

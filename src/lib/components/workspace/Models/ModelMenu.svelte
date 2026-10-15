@@ -1,44 +1,43 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { WorkspaceModel } from '$lib/apis/models';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import Pencil from '$lib/components/icons/Pencil.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import Tags from '$lib/components/chat/Tags.svelte';
 	import Share from '$lib/components/icons/Share.svelte';
-	import ArchiveBox from '$lib/components/icons/ArchiveBox.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
-	import ArrowUpCircle from '$lib/components/icons/ArrowUpCircle.svelte';
 	import Pin from '$lib/components/icons/Pin.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 
 	import { config, user as currentUser, settings } from '$lib/stores';
 	import Link from '$lib/components/icons/Link.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let user;
-	export let model;
+	export let model: WorkspaceModel;
 
-	export let editHandler: Function;
-	export let shareHandler: Function;
-	export let cloneHandler: Function;
-	export let exportHandler: Function;
-	export let copyLinkHandler: Function;
+	export let editHandler: () => void | Promise<void>;
+	export let shareHandler: () => void | Promise<void>;
+	export let cloneHandler: () => void | Promise<void>;
+	export let exportHandler: () => void | Promise<void>;
+	export let copyLinkHandler: () => void | Promise<void>;
 
-	export let hideHandler: Function;
-	export let pinModelHandler: Function;
-	export let deleteHandler: Function;
-	export let onClose: Function;
+	export let hideHandler: () => void | Promise<void>;
+	export let pinModelHandler: (modelId: string) => void | Promise<void>;
+	export let deleteHandler: () => void | Promise<void>;
+	export let onClose: () => void | Promise<void>;
 
 	export let writeAccess: boolean = true;
 
 	let show = false;
 
-	const runAndClose = async (handler: Function) => {
+	const runAndClose = async (handler: () => void | Promise<void>): Promise<void> => {
 		show = false;
 		await handler();
 	};

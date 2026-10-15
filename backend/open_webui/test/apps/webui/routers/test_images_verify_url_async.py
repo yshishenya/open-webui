@@ -75,9 +75,7 @@ class TestImagesVerifyUrlAsync(AbstractPostgresTest):
 
         monkeypatch.setattr(images_router, 'get_session', get_fake_session)
 
-    def test_verify_url_automatic1111_uses_async_client(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_verify_url_automatic1111_uses_async_client(self, monkeypatch: MonkeyPatch) -> None:
         self._patch_client(monkeypatch)
 
         from open_webui.models.config import Config
@@ -106,9 +104,7 @@ class TestImagesVerifyUrlAsync(AbstractPostgresTest):
             }
         ]
 
-    def test_verify_url_automatic1111_reports_http_error(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_verify_url_automatic1111_reports_http_error(self, monkeypatch: MonkeyPatch) -> None:
         error = RuntimeError('upstream failure')
         self._patch_client(monkeypatch, error=error)
 
@@ -132,9 +128,7 @@ class TestImagesVerifyUrlAsync(AbstractPostgresTest):
         assert response.json()['detail'] == ERROR_MESSAGES.INVALID_URL
         assert asyncio.run(Config.get('image_generation.enable')) is True
 
-    def test_verify_url_comfyui_forwards_auth_header(
-        self, monkeypatch: MonkeyPatch
-    ) -> None:
+    def test_verify_url_comfyui_forwards_auth_header(self, monkeypatch: MonkeyPatch) -> None:
         self._patch_client(monkeypatch)
 
         from open_webui.models.config import Config

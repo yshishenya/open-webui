@@ -1,5 +1,35 @@
+import type {
+	NamedAccessResource,
+	ResourceAccessPreview
+} from '$lib/utils/airis/frontend-contracts';
+import { requestJSON } from '$lib/utils/airis/request_json';
 import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { getUserPosition } from '$lib/utils';
+import type { SessionUser } from '$lib/stores';
+import type { GroupMember } from '$lib/utils/airis/group-types';
+import type { GroupDetails } from '$lib/utils/airis/group-types';
+
+export type AdminUser = GroupMember & {
+	profile_image_url: string;
+	created_at: number;
+	updated_at: number;
+	oauth?: Record<string, { sub?: string }> | null;
+};
+export type AdminUserList = { users: AdminUser[]; total: number };
+
+export type UserInfoResponse = Required<
+	Pick<
+		SessionUser,
+		| 'id'
+		| 'name'
+		| 'email'
+		| 'role'
+		| 'bio'
+		| 'status_emoji'
+		| 'status_message'
+		| 'status_expires_at'
+	>
+> & { groups: Pick<GroupDetails, 'id' | 'name'>[] | null; is_active: boolean };
 
 export const getUserGroups = async (token: string) => {
 	let error = null;
@@ -148,48 +178,29 @@ export const getUsers = async (
 	query?: string,
 	orderBy?: string,
 	direction?: string,
-	page = 1
-) => {
-	let error = null;
-	let res = null;
-
+	page = 1,
+	signal?: AbortSignal
+): Promise<AdminUserList> => {
 	const searchParams = new URLSearchParams();
-
 	searchParams.set('page', `${page}`);
-
-	if (query) {
-		searchParams.set('query', query);
-	}
-
-	if (orderBy) {
-		searchParams.set('order_by', orderBy);
-	}
-
-	if (direction) {
-		searchParams.set('direction', direction);
-	}
-
-	res = await fetch(`${WEBUI_API_BASE_URL}/users/?${searchParams.toString()}`, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
+	if (query) searchParams.set('query', query);
+	if (orderBy) searchParams.set('order_by', orderBy);
+	if (direction) searchParams.set('direction', direction);
+	const res = await requestJSON<AdminUserList>(
+		`${WEBUI_API_BASE_URL}/users/?${searchParams}`,
+		token,
+		undefined,
+		signal,
+		'User list'
+	);
+	if (
+		!res ||
+		!Array.isArray(res.users) ||
+		res.users.some((user) => !user || typeof user.id !== 'string') ||
+		!Number.isInteger(res.total) ||
+		res.total < 0
+	)
+		throw new Error('Invalid user list response');
 	return res;
 };
 
@@ -297,37 +308,23 @@ export const getUserSettings = async (token: string) => {
 	return res;
 };
 
-export const updateUserSettings = async (token: string, settings: object) => {
-	let error = null;
+export const updateUserSettings = (
+	token: string,
+	settings: object,
+	signal?: AbortSignal
+): Promise<Record<string, unknown>> =>
+	requestJSON(
+		`${WEBUI_API_BASE_URL}/users/user/settings/update`,
+		token,
+		settings,
+		signal,
+		'Settings request'
+	);
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/users/user/settings/update`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${token}`
-		},
-		body: JSON.stringify({
-			...settings
-		})
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err.detail;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
-};
-
-export const getUserInfoById = async (token: string, userId: string) => {
+export const getUserInfoById = async (
+	token: string,
+	userId: string
+): Promise<UserInfoResponse | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/users/${userId}/info`, {
@@ -634,7 +631,15 @@ export const getUserGroupsById = async (token: string, userId: string) => {
 	return res;
 };
 
-export const getUserPreview = async (token: string, userId: string) => {
+export type UserAccessPreview = ResourceAccessPreview & {
+	user: NamedAccessResource;
+	groups: NamedAccessResource[];
+};
+
+export const getUserPreview = async (
+	token: string,
+	userId: string
+): Promise<UserAccessPreview | null> => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/users/${userId}/preview`, {

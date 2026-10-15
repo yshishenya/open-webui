@@ -3,7 +3,8 @@
 	import { getLanguages, changeLanguage } from '$lib/i18n';
 	const dispatch = createEventDispatcher();
 
-	import { config, models, settings, theme, user } from '$lib/stores';
+	import { config, settings, theme, user, type Settings } from '$lib/stores';
+	import type { GenerationParams } from '$lib/utils/airis/frontend-contracts';
 
 	const i18n = getContext('i18n');
 
@@ -13,8 +14,7 @@
 	import UserSettingRow from './UserSettingRow.svelte';
 	import UserSettingSection from './UserSettingSection.svelte';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
-	export let saveSettings: Function;
-	export let getModels: Function;
+	export let saveSettings: (updated: Partial<Settings>) => Promise<void>;
 
 	// General
 	let themes = ['dark', 'light', 'oled-dark'];
@@ -31,7 +31,7 @@
 	const actionButtonClass =
 		'text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-500 dark:hover:text-white';
 
-	let params = {
+	let params: Omit<GenerationParams, 'stop'> & { stop: string | null } = {
 		// Advanced
 		stream_response: null,
 		stream_delta_chunk_size: null,
@@ -121,8 +121,11 @@
 
 		system = $settings.system ?? '';
 
-		params = { ...params, ...$settings.params };
-		params.stop = $settings?.params?.stop ? ($settings?.params?.stop ?? []).join(',') : null;
+		params = {
+			...params,
+			...$settings.params,
+			stop: $settings?.params?.stop ? ($settings?.params?.stop ?? []).join(',') : null
+		};
 	});
 
 	const applyTheme = (_theme: string) => {
@@ -229,7 +232,7 @@
 					bind:value={lang}
 					ariaLabel={$i18n.t('Language')}
 					placeholder={$i18n.t('Select a language')}
-					on:change={(e) => {
+					on:change={() => {
 						changeLanguage(lang);
 					}}
 				>
@@ -252,7 +255,7 @@
 					<Textarea
 						bind:value={system}
 						className={systemPromptTextareaClass}
-						rows="4"
+						rows={4}
 						placeholder={$i18n.t('Enter system prompt here')}
 					/>
 				</UserSettingField>

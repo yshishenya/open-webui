@@ -1,30 +1,24 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
-	import { flyAndScale } from '$lib/utils/transitions';
-	import { fade, fly, slide } from 'svelte/transition';
+	import { onDestroy } from 'svelte';
+	import { fly } from 'svelte/transition';
 
 	export let show = false;
 	export let className = '';
-	export let onClose = () => {};
+	export let onClose: () => void = () => {};
 
-	let modalElement = null;
-	let mounted = false;
+	let modalElement: HTMLDivElement | null = null;
 
-	const handleKeyDown = (event: KeyboardEvent) => {
+	const handleKeyDown = (event: KeyboardEvent): void => {
 		if (event.key === 'Escape' && isTopModal()) {
 			console.log('Escape');
 			show = false;
 		}
 	};
 
-	const isTopModal = () => {
+	const isTopModal = (): number | boolean => {
 		const modals = document.getElementsByClassName('modal');
 		return modals.length && modals[modals.length - 1] === modalElement;
 	};
-
-	onMount(() => {
-		mounted = true;
-	});
 
 	$: if (show && modalElement) {
 		document.body.appendChild(modalElement);
@@ -52,7 +46,6 @@
 	});
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 {#if show}
 	<div

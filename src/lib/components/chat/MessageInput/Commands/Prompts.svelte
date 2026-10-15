@@ -1,20 +1,22 @@
 <script lang="ts">
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import { tick, getContext, onMount, onDestroy } from 'svelte';
-	import { toast } from 'svelte-sonner';
+	import { getContext, onDestroy } from 'svelte';
 
-	import { getPrompts } from '$lib/apis/prompts';
+	import { getPrompts, type PromptRecord } from '$lib/apis/prompts';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let query = '';
-	export let onSelect = (e) => {};
+	export let onSelect: (e: { type: 'prompt'; data: PromptRecord }) => void = () => {};
 
 	let selectedPromptIdx = 0;
-	export let filteredItems = [];
+	export let filteredItems: PromptRecord[] = [];
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	let items = [];
+	let items: PromptRecord[] = [];
 
 	$: if (query !== undefined) {
 		clearTimeout(searchDebounceTimer);
@@ -35,21 +37,21 @@
 		selectedPromptIdx = 0;
 	}
 
-	const getItems = async () => {
+	const getItems = async (): Promise<void> => {
 		const res = await getPrompts(localStorage.token).catch(() => null);
 		if (res) {
 			items = res;
 		}
 	};
 
-	export const selectUp = () => {
+	export const selectUp = (): void => {
 		selectedPromptIdx = Math.max(0, selectedPromptIdx - 1);
 	};
-	export const selectDown = () => {
+	export const selectDown = (): void => {
 		selectedPromptIdx = Math.min(selectedPromptIdx + 1, filteredItems.length - 1);
 	};
 
-	export const select = async () => {
+	export const select = async (): Promise<void> => {
 		const command = filteredItems[selectedPromptIdx];
 		if (command) {
 			onSelect({ type: 'prompt', data: command });

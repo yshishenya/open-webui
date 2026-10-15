@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { KnowledgeFile } from '$lib/utils/airis/knowledge-types';
 
 	import { searchFiles } from '$lib/apis/files';
 
@@ -9,12 +12,19 @@
 	import Loader from '$lib/components/common/Loader.svelte';
 	import SearchInput from './SearchInput.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let onSelect = (e) => {};
+	type FileSelection = KnowledgeFile & {
+		type: string;
+		name: string;
+		url: string;
+		content_type: string | null | undefined;
+		size: number | null | undefined;
+	};
+	export let onSelect: (item: FileSelection) => void = () => {};
 
 	let loaded = false;
-	let items = [];
+	let items: FileSelection[] = [];
 	let selectedIdx = 0;
 	let query = '';
 
@@ -60,7 +70,9 @@
 		itemsLoading = true;
 		const value = query.trim();
 		const filename = value ? (/[?*]/.test(value) ? value : `*${value}*`) : '*';
-		let res = await searchFiles(localStorage.token, filename, page * limit, limit).catch(() => []);
+		const res = await searchFiles(localStorage.token, filename, page * limit, limit).catch(
+			() => []
+		);
 		if (activeRequestId !== requestId) return res;
 
 		if ((res ?? []).length < limit) {
@@ -144,7 +156,7 @@
 
 					{#if !allItemsLoaded}
 						<Loader
-							on:visible={(e) => {
+							on:visible={() => {
 								if (!itemsLoading) {
 									loadMoreItems();
 								}

@@ -26,7 +26,7 @@ async function pendingChat(
 		{
 			id: answer,
 			role: 'assistant',
-			model: 'gpt-5.6-luna',
+			model: 'gpt-6-luna',
 			content: title + ' partial answer',
 			parentId: mode === 'root' ? null : question,
 			childrenIds: [],
@@ -39,7 +39,7 @@ async function pendingChat(
 		data: {
 			chat: {
 				title,
-				models: ['gpt-5.6-luna'],
+				models: ['gpt-6-luna'],
 				messages,
 				history: {
 					currentId: answer,
@@ -146,7 +146,7 @@ test('native streaming task cancellation preserves partial answer without comple
 }) => {
 	await page.goto('/auth?form=1');
 	await signIn(page, account);
-	await page.goto('/?model=gpt-5.6-luna&q=E2E_WAIT_CANCEL&submit=false');
+	await page.goto('/?model=gpt-6-luna&q=E2E_WAIT_CANCEL&submit=false');
 	const input = page.getByLabel(/^(Send a Message|How can I help you today\?)$/);
 	await expect(input).toContainText('E2E_WAIT_CANCEL');
 	await input.press('Enter');

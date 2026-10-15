@@ -6,7 +6,7 @@
 	import { getPublicLeadMagnetConfig, getPublicPricingConfig } from '$lib/apis/billing';
 	import type { PublicLeadMagnetConfig, PublicPricingConfig } from '$lib/apis/billing';
 
-	const model = 'gpt-5.6-luna';
+	const model = 'gpt-6-luna';
 	const examples = [
 		{
 			id: 'letter',

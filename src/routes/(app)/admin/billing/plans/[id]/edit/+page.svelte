@@ -12,7 +12,7 @@
 		getPlanSubscribers,
 		getPlansWithStats
 	} from '$lib/apis/admin/billing';
-	import type { Plan, UpdatePlanRequest, PlanSubscriber } from '$lib/apis/admin/billing';
+	import type { Plan, CreatePlanRequest, PlanSubscriber } from '$lib/apis/admin/billing';
 	import {
 		formatCompactNumber,
 		getUsagePercentage,
@@ -39,7 +39,7 @@
 	let activeSubscriberCount: number | null = null;
 
 	// Form data
-	let formData: UpdatePlanRequest = {
+	let formData: Required<Omit<CreatePlanRequest, 'id'>> = {
 		name: '',
 		name_ru: '',
 		description: '',
@@ -61,15 +61,15 @@
 	// Features management
 	let newFeature = '';
 
-	const addFeature = () => {
+	const addFeature = (): void => {
 		if (newFeature.trim()) {
-			formData.features = [...formData.features!, newFeature.trim()];
+			formData.features = [...formData.features, newFeature.trim()];
 			newFeature = '';
 		}
 	};
 
-	const removeFeature = (index: number) => {
-		formData.features = formData.features!.filter((_, i) => i !== index);
+	const removeFeature = (index: number): void => {
+		formData.features = formData.features.filter((_, i) => i !== index);
 	};
 
 	// Quota helpers
@@ -150,10 +150,11 @@
 				getPlan(localStorage.token, selectedPlan),
 				getPlansWithStats(localStorage.token)
 			]);
-			if(!alive || version!==loadVersion || selectedPlan!==String($page.params.id))return; activeSubscriberCount =
+			if (!alive || version !== loadVersion || selectedPlan !== String($page.params.id)) return;
+			activeSubscriberCount =
 				allStats.find((item) => item.plan.id === selectedPlan)?.active_subscriptions ?? null;
 			if (!plan) {
-				loadError='Plan not found';
+				loadError = 'Plan not found';
 				return;
 			}
 
@@ -162,35 +163,40 @@
 			// Load form data
 			formData = {
 				name: plan.name,
-				name_ru: plan.name_ru,
-				description: plan.description,
-				description_ru: plan.description_ru,
+				name_ru: plan.name_ru ?? '',
+				description: plan.description ?? '',
+				description_ru: plan.description_ru ?? '',
 				price: plan.price,
 				currency: plan.currency,
 				interval: plan.interval,
-				quotas: { ...plan.quotas },
-				features: [...plan.features],
+				quotas: {
+					...plan.quotas,
+					tokens_input: plan.quotas?.tokens_input ?? null,
+					tokens_output: plan.quotas?.tokens_output ?? null,
+					requests: plan.quotas?.requests ?? null
+				},
+				features: [...(plan.features ?? [])],
 				is_active: plan.is_active,
 				display_order: plan.display_order,
 				plan_extra_metadata: plan.plan_extra_metadata || {}
 			};
 
 			// Set unlimited flags
-			unlimitedTokensInput = plan.quotas.tokens_input === null;
-			unlimitedTokensOutput = plan.quotas.tokens_output === null;
-			unlimitedRequests = plan.quotas.requests === null;
+			unlimitedTokensInput = plan.quotas?.tokens_input == null;
+			unlimitedTokensOutput = plan.quotas?.tokens_output == null;
+			unlimitedRequests = plan.quotas?.requests == null;
 
 			// Load subscribers
 			const subs = await getPlanSubscribers(localStorage.token, selectedPlan);
- if(!alive || version!==loadVersion || selectedPlan!==String($page.params.id))return;
+			if (!alive || version !== loadVersion || selectedPlan !== String($page.params.id)) return;
 			if (subs) {
 				subscribers = subs.items || subs;
 			}
 		} catch (error) {
 			console.error('Failed to load plan:', error);
-			if(alive && version===loadVersion)loadError='Failed to load plan';
+			if (alive && version === loadVersion) loadError = 'Failed to load plan';
 		} finally {
-			if(version===loadVersion)loading = false;
+			if (version === loadVersion) loading = false;
 		}
 	};
 
@@ -200,26 +206,35 @@
 			toast.error($i18n.t('Plan name is required'));
 			return false;
 		}
-		if (formData.price !== undefined && formData.price < 0) {
-			toast.error($i18n.t('Price cannot be negative'));
+		if (!Number.isFinite(formData.price) || formData.price < 0) {
+			toast.error($i18n.t('Enter a valid amount'));
 			return false;
 		}
 		if (formData.quotas) {
 			if (
 				!unlimitedTokensInput &&
-				(!formData.quotas.tokens_input || formData.quotas.tokens_input <= 0)
+				(!Number.isSafeInteger(formData.quotas.tokens_input) ||
+					formData.quotas.tokens_input === null ||
+					formData.quotas.tokens_input <= 0)
 			) {
 				toast.error($i18n.t('Token input quota must be greater than 0'));
 				return false;
 			}
 			if (
 				!unlimitedTokensOutput &&
-				(!formData.quotas.tokens_output || formData.quotas.tokens_output <= 0)
+				(!Number.isSafeInteger(formData.quotas.tokens_output) ||
+					formData.quotas.tokens_output === null ||
+					formData.quotas.tokens_output <= 0)
 			) {
 				toast.error($i18n.t('Token output quota must be greater than 0'));
 				return false;
 			}
-			if (!unlimitedRequests && (!formData.quotas.requests || formData.quotas.requests <= 0)) {
+			if (
+				!unlimitedRequests &&
+				(!Number.isSafeInteger(formData.quotas.requests) ||
+					formData.quotas.requests === null ||
+					formData.quotas.requests <= 0)
+			) {
 				toast.error($i18n.t('Requests quota must be greater than 0'));
 				return false;
 			}
@@ -233,7 +248,7 @@
 	};
 
 	const handleSave = async (): Promise<void> => {
- const selectedPlan=planId;
+		const selectedPlan = planId;
 		if (activeSubscriberCount === null) {
 			toast.error($i18n.t('Subscription totals unavailable; reload before saving'));
 			return;
@@ -243,13 +258,14 @@
 		saving = true;
 		try {
 			const result = await updatePlan(localStorage.token, selectedPlan, formData);
- if(!alive || selectedPlan!==String($page.params.id))return;
+			if (!result) throw new Error('Failed to update plan');
+			if (!alive || selectedPlan !== String($page.params.id)) return;
 			if (result) {
 				toast.success($i18n.t('Plan updated successfully'));
-				if(alive)goto('/admin/billing/plans');
+				if (alive) goto('/admin/billing/plans');
 			}
 		} catch (error: unknown) {
-			if(!alive || selectedPlan!==String($page.params.id))return;
+			if (!alive || selectedPlan !== String($page.params.id)) return;
 			console.error('Failed to update plan:', error);
 			toast.error(
 				(typeof error === 'object' &&
@@ -273,7 +289,11 @@
 			day: 'numeric'
 		});
 	};
- $: if(mounted && planId!==String($page.params.id)){planId=String($page.params.id);originalPlan=null;void loadPlan();}
+	$: if (mounted && planId !== String($page.params.id)) {
+		planId = String($page.params.id);
+		originalPlan = null;
+		void loadPlan();
+	}
 </script>
 
 <svelte:head>
@@ -464,10 +484,10 @@
 												class="block text-xs text-gray-500 mb-1"
 											>
 												{$i18n.t('Input Tokens')}
-												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_input !== null}
+												{#if hasActiveSubscribers && originalPlan?.quotas?.tokens_input != null}
 													<span class="text-gray-400"
 														>({$i18n.t('was')}
-														{formatQuotaValue(originalPlan.quotas.tokens_input)})</span
+														{formatQuotaValue(originalPlan?.quotas?.tokens_input ?? null)})</span
 													>
 												{/if}
 											</label>
@@ -477,7 +497,7 @@
 												bind:value={formData.quotas.tokens_input}
 												disabled={unlimitedTokensInput}
 												min="0"
-												step="1000"
+												step="1"
 												class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden disabled:opacity-50"
 											/>
 										</div>
@@ -494,10 +514,10 @@
 												class="block text-xs text-gray-500 mb-1"
 											>
 												{$i18n.t('Output Tokens')}
-												{#if hasActiveSubscribers && originalPlan?.quotas.tokens_output !== null}
+												{#if hasActiveSubscribers && originalPlan?.quotas?.tokens_output != null}
 													<span class="text-gray-400"
 														>({$i18n.t('was')}
-														{formatQuotaValue(originalPlan.quotas.tokens_output)})</span
+														{formatQuotaValue(originalPlan?.quotas?.tokens_output ?? null)})</span
 													>
 												{/if}
 											</label>
@@ -507,7 +527,7 @@
 												bind:value={formData.quotas.tokens_output}
 												disabled={unlimitedTokensOutput}
 												min="0"
-												step="1000"
+												step="1"
 												class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden disabled:opacity-50"
 											/>
 										</div>
@@ -524,10 +544,10 @@
 												class="block text-xs text-gray-500 mb-1"
 											>
 												{$i18n.t('Requests')}
-												{#if hasActiveSubscribers && originalPlan?.quotas.requests !== null}
+												{#if hasActiveSubscribers && originalPlan?.quotas?.requests != null}
 													<span class="text-gray-400"
 														>({$i18n.t('was')}
-														{formatQuotaValue(originalPlan.quotas.requests)})</span
+														{formatQuotaValue(originalPlan?.quotas?.requests ?? null)})</span
 													>
 												{/if}
 											</label>
@@ -537,7 +557,7 @@
 												bind:value={formData.quotas.requests}
 												disabled={unlimitedRequests}
 												min="0"
-												step="100"
+												step="1"
 												class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden disabled:opacity-50"
 											/>
 										</div>

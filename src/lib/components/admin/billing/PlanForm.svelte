@@ -358,7 +358,7 @@
 						step="1000"
 						class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent disabled:opacity-50"
 					/>
-					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_input !== null}
+					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_input != null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 							{$i18n.t('Current: {value}', {
 								value: formatNumber(originalPlan.quotas.tokens_input, getI18nLocale($i18n))
@@ -387,7 +387,7 @@
 						step="1000"
 						class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent disabled:opacity-50"
 					/>
-					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_output !== null}
+					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.tokens_output != null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 							{$i18n.t('Current: {value}', {
 								value: formatNumber(originalPlan.quotas.tokens_output, getI18nLocale($i18n))
@@ -416,9 +416,11 @@
 						step="100"
 						class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-transparent disabled:opacity-50"
 					/>
-					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.requests !== null}
+					{#if isEditMode && hasActiveSubscribers && originalPlan?.quotas?.requests != null}
 						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-							{$i18n.t('Current: {value}', { value: formatNumber(originalPlan.quotas.requests, getI18nLocale($i18n)) })}
+							{$i18n.t('Current: {value}', {
+								value: formatNumber(originalPlan.quotas.requests, getI18nLocale($i18n))
+							})}
 						</p>
 					{/if}
 				</div>
@@ -549,15 +551,21 @@
 							<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
 								<div class="flex justify-between">
 									<span>{$i18n.t('Input Tokens')}:</span>
-									<span class="font-medium">{formatNumber(formData.quotas.tokens_input, getI18nLocale($i18n))}</span>
+									<span class="font-medium"
+										>{formatNumber(formData.quotas.tokens_input, getI18nLocale($i18n))}</span
+									>
 								</div>
 								<div class="flex justify-between">
 									<span>{$i18n.t('Output Tokens')}:</span>
-									<span class="font-medium">{formatNumber(formData.quotas.tokens_output, getI18nLocale($i18n))}</span>
+									<span class="font-medium"
+										>{formatNumber(formData.quotas.tokens_output, getI18nLocale($i18n))}</span
+									>
 								</div>
 								<div class="flex justify-between">
 									<span>{$i18n.t('Requests')}:</span>
-									<span class="font-medium">{formatNumber(formData.quotas.requests, getI18nLocale($i18n))}</span>
+									<span class="font-medium"
+										>{formatNumber(formData.quotas.requests, getI18nLocale($i18n))}</span
+									>
 								</div>
 							</div>
 						</div>

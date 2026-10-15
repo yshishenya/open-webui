@@ -5,7 +5,6 @@
 
 	import { removeMembersById } from '$lib/apis/channels';
 
-	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 
 	import XMark from '$lib/components/icons/XMark.svelte';
@@ -15,14 +14,16 @@
 	import AddMembersModal from './ChannelInfoModal/AddMembersModal.svelte';
 
 	export let show = false;
-	export let channel: any = null;
+	export let channel: import('$lib/utils/airis/channel-types').ChannelDetail | null = null;
 
-	export let onUpdate = () => {};
+	export let onUpdate: () => void | Promise<void> = () => {};
 
 	let showAddMembersModal = false;
-	const submitHandler = async () => {};
+	const submitHandler = async (): Promise<void> => {};
 
-	const hasPublicReadGrant = (grants: any) =>
+	const hasPublicReadGrant = (
+		grants: import('$lib/utils/airis/channel-types').ChannelDetail['access_grants'] | undefined
+	): boolean =>
 		Array.isArray(grants) &&
 		grants.some(
 			(grant) =>
@@ -31,7 +32,9 @@
 				grant?.permission === 'read'
 		);
 
-	const isPublicChannel = (channel: any): boolean => {
+	const isPublicChannel = (
+		channel: import('$lib/utils/airis/channel-types').ChannelDetail | null
+	): boolean => {
 		if (channel?.type === 'group') {
 			if (typeof channel?.is_private === 'boolean') {
 				return !channel.is_private;
@@ -41,7 +44,8 @@
 		return hasPublicReadGrant(channel?.access_grants);
 	};
 
-	const removeMemberHandler = async (userId) => {
+	const removeMemberHandler = async (userId: string): Promise<void> => {
+		if (!channel) return;
 		const res = await removeMembersById(localStorage.token, channel.id, {
 			user_ids: [userId]
 		}).catch((error) => {
@@ -57,7 +61,7 @@
 		}
 	};
 
-	const init = () => {};
+	const init = (): void => {};
 
 	$: if (show) {
 		init();
@@ -127,7 +131,6 @@
 										}
 									: null}
 								search={channel?.type !== 'dm'}
-								sort={channel?.type !== 'dm'}
 							/>
 						</div>
 					</form>

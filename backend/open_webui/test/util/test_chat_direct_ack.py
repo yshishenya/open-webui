@@ -4,9 +4,9 @@ from open_webui.utils.chat import generate_direct_chat_completion
 
 
 def test_coerce_direct_ack_accepts_dict() -> None:
-    assert coerce_direct_ack(
-        {'status': True}, context=DirectAckContext(request_id='r', channel='c')
-    ) == {'status': True}
+    assert coerce_direct_ack({'status': True}, context=DirectAckContext(request_id='r', channel='c')) == {
+        'status': True
+    }
 
 
 @pytest.mark.parametrize('value', [None, '', 'oops', 0, 1, [], [1], object()])
@@ -26,6 +26,4 @@ async def test_generate_direct_chat_completion_metadata_null_is_user_safe() -> N
             user=object(),
             models={'m1': {}},
         )
-    assert 'Direct connection requires an active WebSocket session' in str(
-        excinfo.value
-    )
+    assert 'Direct connection requires an active WebSocket session' in str(excinfo.value)

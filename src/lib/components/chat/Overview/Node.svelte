@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
+	import type { ChatOverviewNode } from '$lib/utils/airis/frontend-contracts';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 	import { getContext } from 'svelte';
 
 	import ProfileImage from '../Messages/ProfileImage.svelte';
@@ -10,27 +12,34 @@
 
 	const i18n = getContext('i18n');
 
-	type $$Props = NodeProps;
+	type $$Props = NodeProps<ChatOverviewNode>;
 	export let data: $$Props['data'];
 
-	const getMessageContent = (nodeData: any) =>
+	const getMessageContent = (nodeData: ChatOverviewNode['data']): string =>
 		getOutputText(nodeData?.message?.output) || nodeData?.message?.content || '';
 
 	$: messageContent = getMessageContent(data);
+	$: messageError = data.message.error
+		? getErrorMessage(
+				(typeof data.message.error === 'object'
+					? data.message.error.content
+					: data.message.content) ?? ''
+			)
+		: '';
 </script>
 
 <div
 	class="px-4 py-3 shadow-md rounded-xl dark:bg-black bg-white border border-gray-100 dark:border-gray-900 w-60 h-20 group"
 >
 	<Tooltip
-		content={data?.message?.error ? data.message.error.content : messageContent}
-		class="w-full"
+		content={data?.message?.error ? messageError : messageContent}
+		className="w-full"
 		allowHTML={false}
 	>
 		{#if data.message.role === 'user'}
 			<div class="flex w-full">
 				<ProfileImage
-					src={`${WEBUI_API_BASE_URL}/users/${data.user.id}/profile/image`}
+					src={data.user ? `${WEBUI_API_BASE_URL}/users/${data.user.id}/profile/image` : undefined}
 					className={'size-5 -translate-y-[1px] flex-shrink-0'}
 				/>
 				<div class="ml-2 flex-1 min-w-0">
@@ -41,7 +50,7 @@
 					</div>
 
 					{#if data?.message?.error}
-						<div class="text-red-500 line-clamp-2 text-xs mt-0.5">{data.message.error.content}</div>
+						<div class="text-red-500 line-clamp-2 text-xs mt-0.5">{messageError}</div>
 					{:else}
 						<div class="text-gray-500 line-clamp-2 text-xs mt-0.5">{messageContent}</div>
 					{/if}
@@ -80,7 +89,7 @@
 
 					{#if data?.message?.error}
 						<div class="text-red-500 line-clamp-2 text-xs mt-0.5">
-							{data.message.error.content}
+							{messageError}
 						</div>
 					{:else}
 						<div class="text-gray-500 line-clamp-2 text-xs mt-0.5">{messageContent}</div>

@@ -29,6 +29,7 @@ export const refreshChatList = async (
 	options: RefreshChatListOptions = {}
 ): Promise<ChatListResult> => {
 	const generation = ++requestGeneration;
+	const sessionToken = globalThis.localStorage?.token;
 	paginationReady = false;
 	loadingNextPage = false;
 
@@ -39,7 +40,7 @@ export const refreshChatList = async (
 			: Promise.resolve(undefined as ChatListItem[] | undefined)
 	]);
 
-	if (generation !== requestGeneration) {
+	if (generation !== requestGeneration || sessionToken !== globalThis.localStorage?.token) {
 		return { accepted: false, allLoaded };
 	}
 
@@ -84,13 +85,14 @@ export const loadNextChatListPage = async (token: string = ''): Promise<ChatList
 	}
 
 	const generation = requestGeneration;
+	const sessionToken = globalThis.localStorage?.token;
 	const nextPage = currentPage + 1;
 	loadingNextPage = true;
 
 	try {
 		const nextChats = await getChatList(token, nextPage);
 
-		if (generation !== requestGeneration) {
+		if (generation !== requestGeneration || sessionToken !== globalThis.localStorage?.token) {
 			return { accepted: false, allLoaded };
 		}
 

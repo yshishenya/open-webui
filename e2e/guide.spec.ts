@@ -107,7 +107,7 @@ test.describe('public guide', () => {
 			'http://localhost'
 		);
 		expect(redirect.searchParams.get('submit')).toBe('false');
-		expect(redirect.searchParams.get('model')).toBe('gpt-5.6-luna');
+		expect(redirect.searchParams.get('model')).toBe('gpt-6-luna');
 		expect(redirect.searchParams.get('q')).toContain('деловое письмо');
 	});
 });
@@ -122,7 +122,7 @@ for (const name of exampleNames) {
 		expect(await registerUser(request, credentials)).toBe(true);
 		await page.route('**/api/models**', (route) =>
 			route.fulfill({
-				json: { data: [{ id: 'gpt-5.6-luna', name: 'gpt-5.6-luna', owned_by: 'openai' }] }
+				json: { data: [{ id: 'gpt-6-luna', name: 'gpt-6-luna', owned_by: 'openai' }] }
 			})
 		);
 		let completionRequests = 0;
@@ -146,7 +146,7 @@ for (const name of exampleNames) {
 		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 			prompt
 		);
-		await expect(page.getByRole('button', { name: /Selected model: gpt-5.6-luna/ })).toBeVisible();
+		await expect(page.getByRole('button', { name: /Selected model: gpt-6-luna/ })).toBeVisible();
 		await expect(page.getByTestId('user-message')).toHaveCount(0);
 		expect(completionRequests).toBe(0);
 	});
@@ -168,7 +168,7 @@ test('unavailable explicit model never selects a paid default', async ({ page, r
 			json: { data: [{ id: 'paid-default', name: 'Paid default', owned_by: 'openai' }] }
 		})
 	);
-	await page.goto('/?model=gpt-5.6-luna&q=Unsent%20draft&submit=false');
+	await page.goto('/?model=gpt-6-luna&q=Unsent%20draft&submit=false');
 	await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 		'Unsent draft'
 	);
@@ -183,7 +183,7 @@ test('unavailable explicit model never selects a paid default', async ({ page, r
 test('draft survives new account registration', async ({ page }) => {
 	await page.route('**/api/models**', (route) =>
 		route.fulfill({
-			json: { data: [{ id: 'gpt-5.6-luna', name: 'gpt-5.6-luna', owned_by: 'openai' }] }
+			json: { data: [{ id: 'gpt-6-luna', name: 'gpt-6-luna', owned_by: 'openai' }] }
 		})
 	);
 	await page.goto('/guide');
@@ -204,7 +204,7 @@ test('draft survives new account registration', async ({ page }) => {
 	await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toContainText(
 		redirect.searchParams.get('q') ?? ''
 	);
-	await expect(page.getByRole('button', { name: /Selected model: gpt-5.6-luna/ })).toBeVisible();
+	await expect(page.getByRole('button', { name: /Selected model: gpt-6-luna/ })).toBeVisible();
 	await expect(page.getByTestId('user-message')).toHaveCount(0);
 });
 
@@ -290,7 +290,7 @@ test('pricing success remains readable when free conditions fail', async ({ page
 	for (const name of exampleNames) {
 		const link = page.getByRole('link', { name: `Открыть задачу: ${name}` });
 		const query = new URL((await link.getAttribute('href')) ?? '', 'http://localhost').searchParams;
-		expect(query.get('model')).toBe('gpt-5.6-luna');
+		expect(query.get('model')).toBe('gpt-6-luna');
 		expect(query.get('submit')).toBe('false');
 	}
 });

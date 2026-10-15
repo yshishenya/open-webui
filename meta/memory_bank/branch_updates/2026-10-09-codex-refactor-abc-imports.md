@@ -1,0 +1,5 @@
+- [x] **[REFACTOR]** Replace deprecated abstract collection imports (focused source acceptance)
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**refactor**abc-imports.md
+  - Owner: Codex
+  - Done: 2026-10-09
+  - Summary: 52 statements/60 bindings/51 modules;454 AST/comments and11 contract sets preserved;backend1025/frontend952 pass. Ruff690→638,0new;6old hint errors retained. Source `df5c37236ac692c968fa5288beda3ae4077de3b6` pushed. SDD2/2 complete;temporary6DB fixture/baseline removed. General quality/PR/CI/integration/release and plan198/244 remain open.

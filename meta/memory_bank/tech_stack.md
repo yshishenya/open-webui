@@ -82,6 +82,16 @@
 
 ### Auth Stack
 
+- **VK ID browser SDK**: external UMD URL pinned to `@vkid/sdk@2.6.9`.
+  Verified 2026-10-11 against npm latest stable, official types, changelog and
+  original SDK exports. The existing VK/OK/Mail Config/Auth contracts remain;
+  releases after 2.6.0 include the vk.ru domain change and crypto-js 4.2.0 fixes.
+  `src/lib/utils/airis/vkid.ts` owns loading; failed loads can be retried by the
+  next user action, with a 20-second load timeout and no automatic login retry.
+- **Telegram login widget**: official `telegram-widget.js?22`; the existing
+  global `data-onauth` callback is removed on replacement/destruction and late
+  auth/error events are discarded. Backend verification remains authoritative.
+
 - **JWT**: PyJWT 2.10.1 with crypto support
 - **OAuth/OIDC**: Authlib 1.6.6
 - **JWT Legacy**: python-jose 3.5.0
@@ -135,7 +145,12 @@
 
 - **Transformers.js**: @huggingface/transformers 3.0.0 (browser inference)
 - **MediaPipe**: @mediapipe/tasks-vision 0.10.17 (vision tasks)
-- **Pyodide**: pyodide 0.28.2 + @pyscript/core 0.4.32 (Python in browser)
+- **Pyodide**: pyodide 314.0.3 (package-lock.json; Python 3.14, ABI 2026_0)
+  - @pyscript/core 0.4.32 (Python in browser). Checked 2026-10-10 against
+    installed dependencies and official 314.0.3 worker docs/release notes;
+    npm latest stable is 314.0.7. Compatibility exception: preserve the accepted
+    prepared static runtime for the Python host bug fix. Upgrade the npm pin and
+    prepared assets together in a separate work item, with both worker modes tested.
 
 ---
 
@@ -164,7 +179,12 @@
 
 ### Core UI
 
-- **Component Library**: bits-ui 0.21.15 (headless components)
+- **Component Library**: bits-ui 2.16.3 (headless components)
+  - Checked 2026-10-12 against lockfile and official 2.16.3 Switch source/types/
+    release notes; latest stable 2.19.5. Preserve 2.16.3 for the concrete API
+    contract work; upgrade all bits components separately with interaction checks.
+    Switch's native checked/onCheckedChange contract is boolean; the wrapper
+    displays nullable OAuth fields as unchecked without writing false on mount.
 - **Rich Text Editor**: TipTap 3.17.1 (ProseMirror-based)
   - Extensions: tables, code blocks, images, YouTube, mentions, file handling
 - **Code Editor**: CodeMirror 6.0.1
@@ -172,20 +192,32 @@
   - Theme: One Dark
 - **Markdown**: marked 9.1.0 + turndown 7.2.0 (MD ↔ HTML)
 - **Diagrams**: mermaid 11.10.1
-- **Math**: katex 0.16.22
+- **Math**: katex 0.16.38
 - **Charts**: chart.js 4.5.0
 - **Maps**: leaflet 1.9.4
 - **Drag & Drop**: sortablejs 1.15.6
 - **Notifications**: svelte-sonner 0.3.19
 - **Tooltips**: tippy.js 6.3.7
 - **Zoom/Pan**: panzoom 9.4.3
+  - Preview compatibility checked 2026-10-12: PDF.js 6.4.299, KaTeX 0.19.0,
+    panzoom 9.4.4 are latest stable. Preserve PDF.js 5.5.207/KaTeX 0.16.38/
+    panzoom 9.4.3 for this lifecycle fix; upgrade PDF main/worker/text styles and
+    formula/mhchem together in a separate work item with native browser checks.
+    DOMPurify 3.4.16 is latest stable; upgrade includes risky-tag and XML hardening
+    relevant to the existing SVG style/foreignObject policy.
 - **Flow Charts**: @xyflow/svelte 1.5.0
 - **Confetti**: svelte-confetti 2.3.2
 
 ### Document Processing
 
+- **sql.js**: runtime 1.14.1; **@types/sql.js 1.4.11** (dev-only, exact/latest
+  stable checked 2026-10-12) declares the existing Database/SqlValue APIs.
+  Existing dependency versions remain unchanged; sql.js 1.14.2 and KaTeX 0.19.0
+  upgrades require separate wasm/Markdown acceptance. KaTeX 0.16.38 mhchem is
+  a side-effect module; its local declaration exports nothing.
+
 - **PDF**:
-  - Frontend: pdfjs-dist 5.4.149 (viewer)
+  - Frontend: pdfjs-dist 5.5.207 (viewer)
   - Backend: Generate with jsPDF or server-side tools
 - **Images**:
   - HEIC conversion: heic2any 0.0.4
@@ -343,7 +375,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 4. **Password security** - bcrypt/argon2, never plain text
 5. **HTTPS only** - all external API calls
 6. **CORS configuration** - explicit allowed origins
-7. **XSS prevention** - DOMPurify 3.2.6 (HTML sanitization)
+7. **XSS prevention** - DOMPurify 3.4.16 (exact runtime pin; HTML/MathML/SVG sanitization)
 8. **Dependencies** - regular updates and security audits
 
 ---

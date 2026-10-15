@@ -1,10 +1,13 @@
 <script lang="ts">
-	import DOMPurify from 'dompurify';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { v4 as uuidv4 } from 'uuid';
 
 	import { getBackendConfig, getVersionUpdates } from '$lib/apis';
+	import type { AdminConfig } from '$lib/apis/auths';
 	import { getAdminConfig, updateAdminConfig } from '$lib/apis/auths';
-	import { getBanners, setBanners } from '$lib/apis/configs';
+	import { setBanners } from '$lib/apis/configs';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -22,9 +25,9 @@
 	import AdminSettingSection from './AdminSettingSection.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let updateAvailable: boolean | null = false;
 	let version = {
@@ -32,7 +35,7 @@
 		latest: WEBUI_VERSION
 	};
 
-	let adminConfig: any = null;
+	let adminConfig: AdminConfig | null = null;
 
 	let banners: Banner[] = [];
 	const inputClass =
@@ -40,9 +43,9 @@
 	const textareaClass =
 		'w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 py-1.5 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 
-	const checkForVersionUpdates = async () => {
+	const checkForVersionUpdates = async (): Promise<void> => {
 		updateAvailable = null;
-		version = await getVersionUpdates(localStorage.token).catch((error) => {
+		version = await getVersionUpdates(localStorage.token).catch(() => {
 			return {
 				current: WEBUI_VERSION,
 				latest: WEBUI_VERSION
@@ -60,7 +63,7 @@
 	};
 
 	const updateHandler = async () => {
-		const res = await updateAdminConfig(localStorage.token, adminConfig);
+		const res = await updateAdminConfig(localStorage.token, adminConfig!);
 
 		await updateBanners();
 
@@ -148,7 +151,6 @@
 							{$i18n.t('Documentation')}
 						</a>
 					</div>
-
 				</div>
 
 				<div class="text-xs">
@@ -169,9 +171,10 @@
 							>
 						</div>
 						{#if $config?.license_metadata?.html}
-							<div class="mt-0.5 text-gray-500">
-								{@html DOMPurify.sanitize($config?.license_metadata?.html)}
-							</div>
+							<div
+								class="mt-0.5 text-gray-500"
+								use:sanitizedHtml={$config.license_metadata.html}
+							></div>
 						{/if}
 					{:else}
 						<div class="mt-0.5 block text-gray-400">
@@ -216,7 +219,7 @@
 							type="number"
 							min="0"
 							placeholder={$i18n.t('Leave empty for unlimited')}
-							bind:value={adminConfig.FOLDER_MAX_FILE_COUNT}
+							bind:value={adminConfig.FOLDER_MAX_FILE_COUNT as number | undefined}
 						/>
 					</AdminSettingField>
 				{/if}
@@ -309,7 +312,7 @@
 					<Textarea
 						className={textareaClass}
 						placeholder={$i18n.t('Enter a watermark for the response. Leave empty for none.')}
-						bind:value={adminConfig.RESPONSE_WATERMARK}
+						bind:value={adminConfig.RESPONSE_WATERMARK as string}
 					/>
 				</AdminSettingField>
 

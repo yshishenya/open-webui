@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
-	const i18n = getContext<any>('i18n');
+	import { getContext, onDestroy, type ComponentProps } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type {
+		TerminalServerConnection,
+		TerminalConnectionSave,
+		ConnectionDelete
+	} from '$lib/utils/airis/frontend-contracts';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
@@ -11,7 +18,6 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import {
-		detectTerminalServerType,
 		verifyTerminalServerConnection,
 		putOrchestratorPolicy,
 		putOrchestratorLifecycle,
@@ -24,10 +30,20 @@
 	export let show = false;
 	export let edit = false;
 	export let direct = false;
-	export let connection: any = null;
-
-	export let onSubmit: Function = () => {};
-	export let onDelete: () => void = () => {};
+	export let connection: Partial<TerminalServerConnection> | null = null;
+	export let onSubmit: TerminalConnectionSave = () => {};
+	export let onDelete: ConnectionDelete = () => {};
+	let saving = false;
+	let session = 0;
+	let destroyed = false;
+	let requestAbort: AbortController | null = null;
+	const identity = (): string => JSON.stringify([url, key, auth_type, policyId]);
+	const current = (value: number, target: string): boolean =>
+		!destroyed && show && session === value && identity() === target;
+	onDestroy(() => {
+		destroyed = true;
+		requestAbort?.abort();
+	});
 
 	let url = '';
 	let key = '';
@@ -39,7 +55,7 @@
 	let showAdvanced = false;
 	let showAccessControlModal = false;
 	let showDeleteConfirmDialog = false;
-	let accessGrants: any[] = [];
+	let accessGrants: NonNullable<ComponentProps<typeof AccessControlModal>['accessGrants']> = [];
 
 	// Policy / auto-detect state
 	let serverType: 'orchestrator' | 'terminal' | null = null;
@@ -68,126 +84,156 @@
 		return JSON.stringify(value && Object.keys(value).length ? value : {}, null, 2);
 	};
 
-	const init = () => {
-		if (connection) {
-			id = connection?.id ?? '';
-			url = connection.url;
-			key = connection?.key ?? '';
-			name = connection?.name ?? '';
-			auth_type = connection?.auth_type ?? 'bearer';
-			path = connection?.path ?? '/openapi.json';
-			enabled = connection?.enabled ?? true;
-			accessGrants = connection?.config?.access_grants ?? [];
-
-			// Restore policy state
-			serverType = connection?.server_type ?? (connection?.policy_id ? 'orchestrator' : null);
-			policyId = connection?.policy_id ?? '';
-
-			const p: Record<string, any> = {};
-			policyImage = p.image ?? '';
-			policyIdleTimeout = p.idle_timeout_minutes ?? 30;
-			policyStorage = p.storage ? 'persistent' : 'ephemeral';
-			policyStorageSize = p.storage ?? '5Gi';
-
-			// Restore env pairs
-			const env = p.env ?? {};
-			policyEnvPairs = Object.entries(env).map(([k, v]) => ({ key: k, value: v as string }));
-
-			// Restore resources
-			policyCpu = p.cpu_limit ?? '1';
-			policyMemory = p.memory_limit ?? '1Gi';
-			lifecycleJson = stringifyJson({});
-			refreshOnlyIdle = true;
-			refreshReset = false;
-			loadingPolicy = false;
-			policyLoadError = '';
-		} else {
-			id = '';
-			url = '';
-			key = '';
-			name = '';
-			auth_type = 'bearer';
-			path = '/openapi.json';
-			enabled = false;
-			accessGrants = [];
-
-			serverType = null;
-			policyId = '';
-			policyImage = '';
-			policyEnvPairs = [];
-			policyCpu = '1';
-			policyMemory = '1Gi';
-			policyStorage = 'ephemeral';
-			policyStorageSize = '5Gi';
-			policyIdleTimeout = 30;
-			lifecycleJson = '{}';
-			refreshOnlyIdle = true;
-			refreshReset = false;
-			loadingPolicy = false;
-			policyLoadError = '';
-		}
+	const init = (): void => {
+		session++;
+		requestAbort?.abort();
+		requestAbort = null;
+		verifying = false;
+		refreshing = false;
+		showAdvanced = false;
+		showAccessControlModal = false;
+		showDeleteConfirmDialog = false;
+		id = connection?.id ?? '';
+		url = connection?.url ?? '';
+		key = connection?.key ?? '';
+		name = connection?.name ?? '';
+		auth_type = connection?.auth_type ?? 'bearer';
+		path = connection?.path ?? '/openapi.json';
+		enabled = connection?.enabled ?? Boolean(connection);
+		accessGrants = structuredClone(connection?.config?.access_grants ?? []);
+		serverType = connection?.server_type ?? (connection?.policy_id ? 'orchestrator' : null);
+		policyId = connection?.policy_id ?? '';
+		policyImage = '';
+		policyEnvPairs = [];
+		policyCpu = '1';
+		policyMemory = '1Gi';
+		policyStorage = 'ephemeral';
+		policyStorageSize = '5Gi';
+		policyIdleTimeout = 30;
+		lifecycleJson = '{}';
+		refreshOnlyIdle = true;
+		refreshReset = false;
+		loadingPolicy = false;
+		policyLoadError = '';
 	};
 
-	const loadPolicy = async () => {
+	const responseData = (response: unknown): Record<string, unknown> => {
+		if (!response || typeof response !== 'object' || Array.isArray(response)) {
+			throw new Error('Invalid orchestrator response');
+		}
+		const data = 'data' in response ? (response.data ?? {}) : {};
+		if (typeof data !== 'object' || Array.isArray(data)) {
+			throw new Error('Invalid orchestrator response');
+		}
+		return data as Record<string, unknown>;
+	};
+
+	const loadPolicy = async (): Promise<void> => {
 		if (!connection || serverType !== 'orchestrator' || !policyId || direct) return;
 
+		if (loadingPolicy || destroyed) return;
+		const activeSession = session,
+			target = identity();
+		const request = new AbortController();
+		requestAbort = request;
 		loadingPolicy = true;
 		policyLoadError = '';
 		try {
-			let policy: any = null;
+			let policy: unknown = {};
 			try {
-				policy = await getOrchestratorPolicy(localStorage.token, url, key, policyId, auth_type);
-			} catch (error: any) {
-				if (error?.status !== 404) throw error;
+				policy = await getOrchestratorPolicy(
+					localStorage.token,
+					url,
+					key,
+					policyId,
+					auth_type,
+					request.signal
+				);
+			} catch (error) {
+				if (!error || typeof error !== 'object' || !('status' in error) || error.status !== 404) {
+					throw error;
+				}
 			}
 
+			if (!current(activeSession, target)) return;
 			const lifecycle = await getOrchestratorLifecycle(
 				localStorage.token,
 				url,
 				key,
 				policyId,
-				auth_type
+				auth_type,
+				request.signal
 			);
-			const data = policy?.data ?? {};
-			policyImage = data.image ?? '';
+			if (!current(activeSession, target)) return;
+			const data = responseData(policy);
+			const lifecycleData = responseData(lifecycle);
+			for (const field of ['image', 'cpu_limit', 'memory_limit', 'storage']) {
+				if (data[field] != null && typeof data[field] !== 'string') {
+					throw new Error('Invalid orchestrator policy');
+				}
+			}
+			if (
+				data.idle_timeout_minutes != null &&
+				(typeof data.idle_timeout_minutes !== 'number' ||
+					!Number.isFinite(data.idle_timeout_minutes))
+			) {
+				throw new Error('Invalid orchestrator policy');
+			}
+			if (data.env != null && (typeof data.env !== 'object' || Array.isArray(data.env))) {
+				throw new Error('Invalid orchestrator policy');
+			}
+			policyImage = typeof data.image === 'string' ? data.image : '';
 			policyIdleTimeout = data.idle_timeout_minutes ?? 30;
 			policyStorage = data.storage ? 'persistent' : 'ephemeral';
-			policyStorageSize = data.storage ?? '5Gi';
+			policyStorageSize = typeof data.storage === 'string' ? data.storage : '5Gi';
 			policyEnvPairs = Object.entries(data.env ?? {}).map(([key, value]) => ({
 				key,
 				value: String(value)
 			}));
-			policyCpu = data.cpu_limit ?? '1';
-			policyMemory = data.memory_limit ?? '1Gi';
-			lifecycleJson = stringifyJson(lifecycle?.data);
-		} catch (error: any) {
-			policyLoadError = error?.message || String(error);
+			policyCpu = typeof data.cpu_limit === 'string' ? data.cpu_limit : '1';
+			policyMemory = typeof data.memory_limit === 'string' ? data.memory_limit : '1Gi';
+			lifecycleJson = stringifyJson(lifecycleData);
+		} catch {
+			if (current(activeSession, target)) policyLoadError = 'Failed to load policy';
 		} finally {
-			loadingPolicy = false;
+			if (requestAbort === request) {
+				requestAbort = null;
+				loadingPolicy = false;
+			}
 		}
 	};
 
 	$: if (show) {
 		init();
 		void loadPolicy();
-	}
+	} else requestAbort?.abort();
 
-	const verifyHandler = async () => {
+	const verifyHandler = async (): Promise<void> => {
+		if (saving || verifying || refreshing || loadingPolicy || destroyed) return;
 		const _url = url.replace(/\/$/, '');
 		if (!_url) {
 			toast.error($i18n.t('Please enter a valid URL'));
 			return;
 		}
 
+		const activeSession = session,
+			target = identity();
+		const request = new AbortController();
+		requestAbort = request;
 		verifying = true;
 		try {
 			if (!direct) {
 				// System connection: proxy through backend to avoid CORS / key exposure
-				const result = await verifyTerminalServerConnection(localStorage.token, {
-					url: _url,
-					key,
-					auth_type
-				});
+				const result = await verifyTerminalServerConnection(
+					localStorage.token,
+					{
+						url: _url,
+						key,
+						auth_type
+					},
+					request.signal
+				);
+				if (!current(activeSession, target)) return;
 				const type = result?.type ?? null;
 
 				if (type) {
@@ -214,7 +260,12 @@
 				}
 			} else {
 				// Direct connection: verify from browser
-				const res = await getTerminalConfig(_url, key);
+				const res = await getTerminalConfig(
+					_url,
+					auth_type === 'bearer' ? key : auth_type === 'session' ? localStorage.token : '',
+					request.signal
+				);
+				if (!current(activeSession, target)) return;
 				if (res) {
 					toast.success($i18n.t('Server connection verified'));
 				} else {
@@ -222,10 +273,15 @@
 				}
 			}
 		} catch {
-			serverType = null;
-			toast.error($i18n.t('Server connection failed'));
+			if (current(activeSession, target)) {
+				serverType = null;
+				toast.error($i18n.t('Server connection failed'));
+			}
 		} finally {
-			verifying = false;
+			if (requestAbort === request) {
+				requestAbort = null;
+				verifying = false;
+			}
 		}
 	};
 
@@ -244,7 +300,7 @@
 	};
 
 	const buildPolicyData = (): object => {
-		const data: Record<string, any> = {};
+		const data: Record<string, unknown> = {};
 
 		if (policyImage) data.image = policyImage;
 		if (policyCpu) data.cpu_limit = policyCpu;
@@ -272,12 +328,17 @@
 		return data;
 	};
 
-	const refreshHandler = async () => {
+	const refreshHandler = async (): Promise<void> => {
+		if (saving || verifying || refreshing || loadingPolicy || destroyed) return;
 		if (!policyId) {
 			toast.error($i18n.t('Policy ID is required'));
 			return;
 		}
 
+		const activeSession = session,
+			target = identity();
+		const request = new AbortController();
+		requestAbort = request;
 		refreshing = true;
 		try {
 			const result = await refreshOrchestratorTerminals(
@@ -289,64 +350,41 @@
 					only_idle: refreshOnlyIdle,
 					reset: refreshReset
 				},
-				auth_type
+				auth_type,
+				request.signal
 			);
+			if (!current(activeSession, target)) return;
+			if (!result) throw new Error('Failed to refresh terminals');
 			toast.success(
 				$i18n.t('Refresh requested: {{count}} terminal(s)', {
 					count: (result as { refreshed?: number } | null)?.refreshed ?? 0
 				})
 			);
-		} catch (err) {
-			toast.error($i18n.t('Failed to refresh terminals: {{error}}', { error: err }));
+		} catch {
+			if (current(activeSession, target)) toast.error($i18n.t('Connection failed'));
 		} finally {
-			refreshing = false;
+			if (requestAbort === request) {
+				requestAbort = null;
+				refreshing = false;
+			}
 		}
 	};
 
-	const submitHandler = async () => {
-		if (url === '') {
+	const submitHandler = async (): Promise<void> => {
+		if (saving || verifying || refreshing || destroyed) return;
+		if (!url.trim()) {
 			toast.error($i18n.t('Please enter a valid URL'));
 			return;
 		}
-
-		// Remove trailing slash
-		url = url.replace(/\/$/, '');
-		// Bearer key whitespace breaks the terminal WebSocket auth (HTTP headers strip it, JSON doesn't)
+		url = url.trim().replace(/\/$/, '');
 		key = key.trim();
-		if (loadingPolicy) {
-			toast.error($i18n.t('Policy is still loading'));
+		if (loadingPolicy || policyLoadError) {
+			toast.error($i18n.t('Failed to load policy'));
 			return;
 		}
-		if (policyLoadError) {
-			toast.error($i18n.t('Failed to load policy: {{error}}', { error: policyLoadError }));
-			return;
-		}
-
-		// Save policy to orchestrator if applicable
-		let policyData = {};
-		let lifecycleData = {};
-		if (serverType === 'orchestrator' && !direct && policyId) {
-			const parsedLifecycle = parseJson('Lifecycle JSON', lifecycleJson);
-			if (!parsedLifecycle) return;
-			policyData = buildPolicyData();
-			lifecycleData = parsedLifecycle;
-
-			try {
-				await putOrchestratorPolicy(localStorage.token, url, key, policyId, policyData, auth_type);
-				await putOrchestratorLifecycle(
-					localStorage.token,
-					url,
-					key,
-					policyId,
-					lifecycleData,
-					auth_type
-				);
-			} catch (err) {
-				toast.error($i18n.t('Failed to save policy: {{error}}', { error: err }));
-				return;
-			}
-		}
-
+		const needsPolicy = serverType === 'orchestrator' && !direct && Boolean(policyId);
+		const lifecycle = needsPolicy ? parseJson('Lifecycle JSON', lifecycleJson) : {};
+		if (!lifecycle) return;
 		const result = {
 			...(!direct && id.trim() ? { id: id.trim() } : {}),
 			url,
@@ -354,17 +392,61 @@
 			name,
 			path,
 			auth_type,
-			enabled: enabled,
-			config: {
-				...(!direct ? { access_grants: accessGrants } : {})
-			},
-			// Policy fields
+			enabled,
+			config: { ...(!direct ? { access_grants: structuredClone(accessGrants) } : {}) },
 			...(serverType ? { server_type: serverType } : {}),
 			...(serverType === 'orchestrator' && policyId ? { policy_id: policyId } : {})
 		};
-
-		onSubmit(result);
-		show = false;
+		const activeSession = session,
+			target = identity();
+		saving = true;
+		try {
+			if (serverType === 'orchestrator' && !direct && policyId) {
+				// Sequential external writes have no shared transaction and must not retry automatically.
+				if (
+					!(await putOrchestratorPolicy(
+						localStorage.token,
+						url,
+						key,
+						policyId,
+						buildPolicyData(),
+						auth_type
+					))
+				)
+					throw new Error('Failed to save policy');
+				if (!current(activeSession, target)) return;
+				if (
+					!(await putOrchestratorLifecycle(
+						localStorage.token,
+						url,
+						key,
+						policyId,
+						lifecycle ?? {},
+						auth_type
+					))
+				)
+					throw new Error('Failed to save lifecycle');
+			}
+			if (!current(activeSession, target)) return;
+			if ((await onSubmit(result)) !== false && current(activeSession, target)) show = false;
+		} catch {
+			if (current(activeSession, target)) toast.error($i18n.t('Failed to save connections'));
+		} finally {
+			saving = false;
+		}
+	};
+	const deleteHandler = async (): Promise<void> => {
+		if (saving || verifying || refreshing || loadingPolicy || destroyed) return;
+		const activeSession = session,
+			target = identity();
+		saving = true;
+		try {
+			if ((await onDelete()) !== false && current(activeSession, target)) show = false;
+		} catch {
+			if (current(activeSession, target)) toast.error($i18n.t('Failed to save connections'));
+		} finally {
+			saving = false;
+		}
 	};
 </script>
 
@@ -392,7 +474,12 @@
 
 		<div class="flex flex-col md:flex-row w-full px-4 pb-4 md:space-x-4 dark:text-gray-200">
 			<div class="flex flex-col w-full sm:flex-row sm:justify-center sm:space-x-6">
-				<form class="flex flex-col w-full" on:submit|preventDefault={submitHandler}>
+				<form
+					class="flex flex-col w-full"
+					inert={saving || verifying || refreshing || loadingPolicy}
+					aria-busy={saving || verifying || refreshing || loadingPolicy}
+					on:submit|preventDefault={submitHandler}
+				>
 					<div class="px-1">
 						<div class="flex gap-2">
 							<div class="flex flex-col flex-1">
@@ -461,7 +548,7 @@
 										verifyHandler();
 									}}
 									type="button"
-									disabled={verifying}
+									disabled={saving || verifying || refreshing || loadingPolicy}
 									aria-label={$i18n.t('Verify Connection')}
 								>
 									{#if verifying}
@@ -721,7 +808,7 @@
 								<button
 									type="button"
 									class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-850 dark:hover:bg-gray-800 transition"
-									disabled={refreshing}
+									disabled={saving || verifying || refreshing || loadingPolicy}
 									on:click={refreshHandler}
 								>
 									{refreshing ? $i18n.t('Refreshing...') : $i18n.t('Refresh Terminals')}
@@ -866,7 +953,7 @@
 							<button
 								class="px-3.5 py-1.5 text-sm font-medium bg-black hover:bg-gray-900 disabled:opacity-50 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full flex flex-row space-x-1 items-center"
 								type="submit"
-								disabled={loadingPolicy || !!policyLoadError}
+								disabled={saving || verifying || refreshing || loadingPolicy || !!policyLoadError}
 							>
 								{$i18n.t('Save')}
 							</button>
@@ -886,8 +973,5 @@
 		'Are you sure you want to delete this connection? This action cannot be undone.'
 	)}
 	confirmLabel={$i18n.t('Delete')}
-	on:confirm={() => {
-		onDelete();
-		show = false;
-	}}
+	on:confirm={deleteHandler}
 />

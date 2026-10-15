@@ -11,7 +11,6 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import context, op
 
-
 # revision identifiers, used by Alembic.
 revision: str = 'f0bd01a18a3d'
 down_revision: str | None = '959eaac8f909'
@@ -31,18 +30,14 @@ def _index_exists() -> bool:
 
 def _duplicate_emails() -> list:
     conn = op.get_bind()
-    return conn.execute(
-        sa.text(
-            """
+    return conn.execute(sa.text("""
             SELECT lower(email) AS email, count(*) AS duplicate_count
             FROM "user"
             WHERE email IS NOT NULL
             GROUP BY lower(email)
             HAVING count(*) > 1
             ORDER BY lower(email)
-            """
-        )
-    ).fetchall()
+            """)).fetchall()
 
 
 def _create_index() -> None:

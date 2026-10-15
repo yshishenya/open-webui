@@ -1,0 +1,134 @@
+{
+	"spec_id": "airis-shared-route-2026-10-11-063",
+	"title": "AIRIS shared route 2026-10-11 063",
+	"generated": "2026-10-11T15:25:59.732409Z",
+	"last_updated": "2026-10-11T15:39:07.390038Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 1,
+		"security_sensitive": false,
+		"default_category": "implementation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__shared-route.md",
+		"status": "completed",
+		"activated_date": "2026-10-11T15:26:00.027140Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-11T15:39:07.389798Z",
+		"actual_hours": 0.218
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS shared route 2026-10-11 063",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Reproduce shared route races and align existing display contracts",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-11T15:32:55.934289Z",
+				"journaled_at": "2026-10-11T15:32:55.936811Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Verify actual route paths compiled display component and full frontend",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-11T15:39:06.921527Z",
+				"journaled_at": "2026-10-11T15:39:06.923971Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Reproduce shared route races and align existing display contracts",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "src/routes/s/[id]/+page.svelte",
+				"started_at": "2026-10-11T15:26:00.236938Z",
+				"completed_at": "2026-10-11T15:32:55.934127Z",
+				"needs_journaling": false,
+				"status_note": "Actual source 3/3 red, then 11/11 regressions pass. Display-user uses existing Message props; Messages client/server JS/CSS and API transpiled JS identical. Early scoped lint0 and type178/34 with zero new diagnostics.",
+				"actual_hours": 0.115,
+				"journaled_at": "2026-10-11T15:32:55.935522Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify actual route paths compiled display component and full frontend",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "tests/shared-route-lifecycle.test.ts",
+				"started_at": "2026-10-11T15:32:56.139618Z",
+				"completed_at": "2026-10-11T15:39:06.921370Z",
+				"needs_journaling": false,
+				"status_note": "Full frontend 2379/2379; actual-script11 and browser route7. Types178/34 ESLint302 new0; scoped lint0/format pass. Messages client/server JS/CSS and API JS unchanged; production preserved. Local completion only.",
+				"actual_hours": 0.103,
+				"journaled_at": "2026-10-11T15:39:06.922883Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-11T15:32:55.935518Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Reproduce shared route races and align existing display contracts",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Actual source 3/3 red, then 11/11 regressions pass. Display-user uses existing Message props; Messages client/server JS/CSS and API transpiled JS identical. Early scoped lint0 and type178/34 with zero new diagnostics.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-11T15:32:55.936802Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Reproduce shared route races and align existing display contracts",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-11T15:39:06.922879Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify actual route paths compiled display component and full frontend",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Full frontend 2379/2379; actual-script11 and browser route7. Types178/34 ESLint302 new0; scoped lint0/format pass. Messages client/server JS/CSS and API JS unchanged; production preserved. Local completion only.",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-11T15:39:06.923967Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Verify actual route paths compiled display component and full frontend",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

@@ -1,6 +1,55 @@
 import type { Content, JSONContent } from '@tiptap/core';
 import type { SessionUser } from '$lib/stores';
 
+const pendingNoteChatKey = (actor: string, noteId: string): string =>
+	`airis-pending-note-chat:${JSON.stringify([actor, noteId])}`;
+
+export const readNoteChatOperation = (
+	storage: Storage,
+	actor: string,
+	noteId: string
+): string | null => {
+	const operation = storage.getItem(pendingNoteChatKey(actor, noteId));
+	if (
+		operation !== null &&
+		!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(operation)
+	)
+		throw new Error('Invalid saved note chat operation');
+	return operation;
+};
+
+export const prepareNoteChatOperation = async (
+	storage: Storage,
+	actor: string,
+	noteId: string
+): Promise<string> => {
+	if (!actor || !noteId || !navigator.locks) throw new Error('Cannot save note chat operation');
+	const key = pendingNoteChatKey(actor, noteId);
+	return await navigator.locks.request(key, async () => {
+		const previous = readNoteChatOperation(storage, actor, noteId);
+		if (previous !== null) {
+			return previous;
+		}
+		const operation = crypto.randomUUID();
+		storage.setItem(key, operation);
+		if (storage.getItem(key) !== operation) throw new Error('Cannot save note chat operation');
+		return operation;
+	});
+};
+
+export const completeNoteChatOperation = (
+	storage: Storage,
+	actor: string,
+	noteId: string,
+	operation: string
+): void => {
+	const key = pendingNoteChatKey(actor, noteId);
+	if (storage.getItem(key) === operation) {
+		storage.removeItem(key);
+		if (storage.getItem(key) !== null) throw new Error('Note operation cleanup failed');
+	}
+};
+
 export type NoteContent = Record<string, unknown> & {
 	md: string;
 	html: string;

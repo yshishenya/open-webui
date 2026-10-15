@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher, getContext, tick } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { toast } from 'svelte-sonner';
 
 	import Modal from '$lib/components/common/Modal.svelte';
@@ -19,7 +21,7 @@
 		type AutomationResponse
 	} from '$lib/apis/automations';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 	const dispatch = createEventDispatcher();
 
 	export let show = false;
@@ -38,7 +40,7 @@
 	// Schedule dropdown ref
 	let scheduleDropdown: ScheduleDropdown;
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
 		if (!name.trim() || !prompt.trim() || !model_id.trim()) {
 			toast.error($i18n.t('Name, prompt, and model are required'));
 			return;
@@ -74,8 +76,8 @@
 				show = false;
 				dispatch('save', { id: created?.id });
 			}
-		} catch (e: any) {
-			toast.error(e?.detail ?? `${e}` ?? 'Failed to save');
+		} catch (e: unknown) {
+			toast.error((e as { detail?: string } | null)?.detail ?? `${e}`);
 		} finally {
 			loading = false;
 		}
@@ -150,7 +152,7 @@
 				bind:value={prompt}
 				rows={8}
 				placeholder={$i18n.t('Enter prompt here.')}
-			/>
+			></textarea>
 		</div>
 
 		<!-- Bottom toolbar -->

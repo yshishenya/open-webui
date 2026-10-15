@@ -4,37 +4,39 @@
 
 	import { downloadDatabase } from '$lib/apis/utils';
 	import { getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { config } from '$lib/stores';
 	import { toast } from 'svelte-sonner';
 	import { getAllUserChats } from '$lib/apis/chats';
-	import { getAllUsers } from '$lib/apis/users';
+	import { getAllUsers, type UserInfoResponse } from '$lib/apis/users';
 	import { exportConfig, importConfig } from '$lib/apis/configs';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 	import AdminSettingRow from './AdminSettingRow.svelte';
 	import AdminSettingSection from './AdminSettingSection.svelte';
 
-	const i18n: any = getContext('i18n');
-
-	export let saveHandler: Function;
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	let configImportInputElement: HTMLInputElement;
+	let importing = false;
 	const actionButtonClass =
 		'text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-500 dark:hover:text-white';
 
-	const exportAllUserChats = async () => {
+	const exportAllUserChats = async (): Promise<void> => {
 		let blob = new Blob([JSON.stringify(await getAllUserChats(localStorage.token))], {
 			type: 'application/json'
 		});
 		saveAs(blob, `all-chats-export-${Date.now()}.json`);
 	};
 
-	const exportUsers = async () => {
+	const exportUsers = async (): Promise<void> => {
 		const users = await getAllUsers(localStorage.token);
 
-		const headers = ['id', 'name', 'email', 'role'];
+		const headers = ['id', 'name', 'email', 'role'] as const;
 
 		const csv = [
 			headers.join(','),
-			...users.users.map((user) => {
+			...users.users.map((user: UserInfoResponse) => {
 				return headers
 					.map((header) => {
 						if (user[header] === null || user[header] === undefined) {
@@ -49,6 +51,32 @@
 		const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
 		saveAs(blob, 'users.csv');
 	};
+
+	const importConfigHandler = async (event: Event): Promise<void> => {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file || importing) return;
+		importing = true;
+		try {
+			const text = await file.text();
+			let configuration: unknown;
+			try {
+				configuration = JSON.parse(text);
+			} catch {
+				throw new Error($i18n.t('Invalid JSON file'));
+			}
+			if (!configuration || typeof configuration !== 'object' || Array.isArray(configuration)) {
+				throw new Error($i18n.t('Invalid JSON file'));
+			}
+			await importConfig(localStorage.token, configuration);
+			toast.success($i18n.t('Config imported successfully'));
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		} finally {
+			importing = false;
+		}
+	};
 </script>
 
 <div class="flex flex-col h-full justify-between text-sm">
@@ -61,25 +89,8 @@
 			hidden
 			type="file"
 			accept=".json"
-			on:change={(e) => {
-				const file = e.target.files[0];
-				const reader = new FileReader();
-
-				reader.onload = async (e) => {
-					const res = await importConfig(localStorage.token, JSON.parse(e.target.result)).catch(
-						(error) => {
-							toast.error(`${error}`);
-						}
-					);
-
-					if (res) {
-						toast.success($i18n.t('Config imported successfully'));
-					}
-					e.target.value = null;
-				};
-
-				reader.readAsText(file);
-			}}
+			disabled={importing}
+			on:change={importConfigHandler}
 		/>
 
 		<AdminSettingSection title={$i18n.t('Config')} first>
@@ -89,6 +100,8 @@
 			>
 				<button
 					class={actionButtonClass}
+					disabled={importing}
+					aria-busy={importing}
 					on:click={() => {
 						configImportInputElement.click();
 					}}

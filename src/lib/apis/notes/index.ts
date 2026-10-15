@@ -291,9 +291,13 @@ export const getNoteChatsById = async (token: string, id: string): Promise<Saved
 	return res;
 };
 
-export const createNoteChatById = async (token: string, id: string): Promise<SavedChat | null> => {
+export const createNoteChatById = async (
+	token: string,
+	id: string,
+	operationId?: string
+): Promise<SavedChat | null> => {
 	let error = null;
-	const url = `${WEBUI_API_BASE_URL}/notes/${id}/chat`;
+	const url = `${WEBUI_API_BASE_URL}/notes/${id}/chat${operationId ? `?operation_id=${encodeURIComponent(operationId)}` : ''}`;
 
 	const res: SavedChat | null = await fetch(url, {
 		method: 'POST',

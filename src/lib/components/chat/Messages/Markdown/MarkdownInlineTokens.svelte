@@ -1,19 +1,14 @@
 <script lang="ts">
-	import DOMPurify from 'dompurify';
-	import { toast } from 'svelte-sonner';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 
 	import type { Token } from 'marked';
-	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	const i18n = getContext('i18n');
-
 	import { WEBUI_BASE_URL } from '$lib/constants';
-	import { copyToClipboard, unescapeHtml } from '$lib/utils';
+	import { unescapeHtml } from '$lib/utils';
 
 	import Image from '$lib/components/common/Image.svelte';
 	import KatexRenderer from './KatexRenderer.svelte';
-	import Source from './Source.svelte';
 	import HtmlToken from './HTMLToken.svelte';
 	import TextToken from './MarkdownInlineTokens/TextToken.svelte';
 	import CodespanToken from './MarkdownInlineTokens/CodespanToken.svelte';
@@ -23,9 +18,9 @@
 
 	export let id: string;
 	export let done = true;
-	export let tokens: Token[];
-	export let sourceIds = [];
-	export let onSourceClick: Function = () => {};
+	export let tokens: Token[] = [];
+	export let sourceIds: string[] = [];
+	export let onSourceClick: (id: string | number) => unknown = () => {};
 
 	/**
 	 * Check if a URL is a same-origin note link and return the note ID if so.
@@ -48,7 +43,7 @@
 	/**
 	 * Handle link clicks - intercept same-origin app URLs for in-app navigation
 	 */
-	const handleLinkClick = (e: MouseEvent, href: string) => {
+	const handleLinkClick = (e: MouseEvent, href: string): void => {
 		try {
 			const url = new URL(href, window.location.origin);
 			// Check if same origin and an in-app route
@@ -71,7 +66,7 @@
 	{#if token.type === 'escape'}
 		{unescapeHtml(token.text)}
 	{:else if token.type === 'html'}
-		<HtmlToken {id} {token} {onSourceClick} />
+		<HtmlToken {id} {token} />
 	{:else if token.type === 'link'}
 		{@const noteId = getNoteIdFromHref(token.href)}
 		{#if noteId}
@@ -119,20 +114,22 @@
 			frameborder="0"
 			on:load={(e) => {
 				try {
-					e.currentTarget.style.height =
-						e.currentTarget.contentWindow.document.body.scrollHeight + 20 + 'px';
-				} catch {}
+					const frame = e.currentTarget as HTMLIFrameElement;
+					const body = frame.contentWindow?.document.body;
+					if (body) frame.style.height = body.scrollHeight + 20 + 'px';
+				} catch {
+					// Inaccessible frames retain their existing height.
+					return;
+				}
 			}}
 		></iframe>
 	{:else if token.type === 'mention'}
 		<MentionToken {token} />
 	{:else if token.type === 'footnote'}
-		{@html DOMPurify.sanitize(
-			`<sup class="footnote-ref footnote-ref-text">${token.escapedText}</sup>`
-		) || ''}
+		<sup class="footnote-ref footnote-ref-text" use:sanitizedHtml={token.escapedText}></sup>
 	{:else if token.type === 'citation'}
 		{#if (sourceIds ?? []).length > 0}
-			<SourceToken {id} {token} {sourceIds} onClick={onSourceClick} />
+			<SourceToken {token} {sourceIds} onClick={onSourceClick} />
 		{:else}
 			<TextToken {token} {done} />
 		{/if}

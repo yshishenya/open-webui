@@ -16,7 +16,7 @@ for (const mode of ['create', 'update'] as const) {
 		const admin = (await login.json()) as { token: string; role: string };
 		expect(admin.role).toBe('admin');
 		const headers = { Authorization: `Bearer ${admin.token}` };
-		const id = 'gpt-5.6-luna';
+		const id = 'gpt-6-luna';
 		const before = await request.get('/api/v1/models/model', { headers, params: { id } });
 		expect(before.ok()).toBe(true);
 		const original = (await before.json()) as object;

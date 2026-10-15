@@ -76,7 +76,7 @@
 		await updateUserSettings(localStorage.token, { ui: $settings });
 	};
 
-	let usage = null;
+	let usage: Awaited<ReturnType<typeof getUsage>> | null = null;
 	const getUsageInfo = async () => {
 		const res = await getUsage(localStorage.token).catch((error) => {
 			console.error('Error fetching usage info:', error);
@@ -504,7 +504,6 @@
 						</div>
 						<div class="self-center truncate">{$i18n.t('Documentation')}</div>
 					</a>
-
 				{/if}
 
 				<button

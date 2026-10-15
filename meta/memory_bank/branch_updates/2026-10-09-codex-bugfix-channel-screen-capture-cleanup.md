@@ -1,0 +1,11 @@
+- [x] **[BUG][SOURCE]** Release channel screen capture after every outcome
+  - Spec: meta/memory_bank/specs/work_items/2026-10-09**bugfix**channel-screen-capture-cleanup.md
+  - Owner: Codex
+  - Branch: codex/bugfix/channel-screen-capture-cleanup
+  - Started: 2026-10-09
+  - Done: 2026-10-09 (source and compiled preview only)
+  - Summary: Reproduce the one-shot resource leak in the channel input; apply the existing chat try/finally pattern and extend one permanent regression to both callers.
+  - Tests: Original7channel failures/8chat passes; fixed16/16. Full backend1025/frontend960; Black454/Ruff547. Types2271→2269/108,ESLint1020;new diagnostics0. Clean static build and ordinary-role actual channel menu probe passed; no real capture permission.
+  - Risks: Device resources must be released before downstream work. Source acceptance, integration and production remain separate; final goal active.
+
+  - Delivery: Source862fb285f1b283884df491e311fb381584527e5d pushed and remote verified; SDD2/2 source tasks. 21primary files and production/12current neighbors preserved. Own temporary fixtures/build removed; manifests/screenshot retained. PR/integration/new image/production acceptance and overall goal remain pending; plan198/244.

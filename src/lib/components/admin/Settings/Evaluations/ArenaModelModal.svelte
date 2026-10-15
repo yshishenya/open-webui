@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type { ArenaModel } from '$lib/apis/evaluations';
+	import type { ToolAccessGrantInput } from '$lib/apis/tools';
 	import { createEventDispatcher, getContext, onMount } from 'svelte';
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
@@ -18,7 +20,8 @@
 	export let show = false;
 	export let edit = false;
 
-	export let model = null;
+	export let model: ArenaModel | null = null;
+	export let onSubmit: (model: ArenaModel) => Promise<boolean>;
 
 	let name = '';
 	let id = '';
@@ -27,7 +30,7 @@
 		generateId();
 	}
 
-	const generateId = () => {
+	const generateId = (): void => {
 		if (!edit) {
 			id = name
 				.toLowerCase()
@@ -41,23 +44,24 @@
 	let description = '';
 
 	let selectedModelId = '';
-	let modelIds = [];
+	let modelIds: string[] = [];
 	let filterMode = 'include';
 
-	let accessGrants = [];
+	let accessGrants: ToolAccessGrantInput[] = [];
 
-	let imageInputElement;
+	let imageInputElement: HTMLInputElement;
 	let loading = false;
 	let showDeleteConfirmDialog = false;
 
-	const addModelHandler = () => {
+	const addModelHandler = (): void => {
 		if (selectedModelId) {
 			modelIds = [...modelIds, selectedModelId];
 			selectedModelId = '';
 		}
 	};
 
-	const submitHandler = () => {
+	const submitHandler = async (): Promise<void> => {
+		if (loading) return;
 		loading = true;
 
 		if (!name || !id) {
@@ -69,13 +73,12 @@
 		if (!edit) {
 			if ($models.find((model) => model.name === name)) {
 				loading = false;
-				name = '';
 				toast.error($i18n.t('Model name already exists, please choose a different one'));
 				return;
 			}
 		}
 
-		const model = {
+		const model: ArenaModel = {
 			id: id,
 			name: name,
 			meta: {
@@ -87,8 +90,14 @@
 			}
 		};
 
-		dispatch('submit', model);
-		loading = false;
+		try {
+			if (!(await onSubmit(model))) return;
+		} catch (error) {
+			toast.error(`${error}`);
+			return;
+		} finally {
+			loading = false;
+		}
 		show = false;
 
 		name = '';
@@ -99,15 +108,15 @@
 		selectedModelId = '';
 	};
 
-	const initModel = () => {
+	const initModel = (): void => {
 		if (model) {
 			name = model.name;
 			id = model.id;
-			profileImageUrl = model.meta.profile_image_url;
-			description = model.meta.description;
-			modelIds = model.meta.model_ids || [];
+			profileImageUrl = model.meta.profile_image_url ?? `${WEBUI_BASE_URL}/static/favicon.png`;
+			description = model.meta.description ?? '';
+			modelIds = [...(model.meta.model_ids ?? [])];
 			filterMode = model.meta?.filter_mode ?? 'include';
-			accessGrants = model.meta.access_grants ?? [];
+			accessGrants = [...(model.meta.access_grants ?? [])];
 		}
 	};
 
@@ -164,10 +173,11 @@
 								hidden
 								accept="image/*"
 								on:change={(e) => {
-									const files = e.target.files ?? [];
+									const input = e.currentTarget as HTMLInputElement;
+									const files = input.files ?? [];
 									let reader = new FileReader();
-									reader.onload = (event) => {
-										let originalImageUrl = `${event.target.result}`;
+									reader.onload = () => {
+										let originalImageUrl = `${reader.result}`;
 
 										const img = new Image();
 										img.src = originalImageUrl;
@@ -175,6 +185,7 @@
 										img.onload = function () {
 											const canvas = document.createElement('canvas');
 											const ctx = canvas.getContext('2d');
+											if (!ctx) return;
 
 											// Calculate the aspect ratio of the image
 											const aspectRatio = img.width / img.height;
@@ -206,7 +217,7 @@
 											// Display the compressed image
 											profileImageUrl = compressedSrc;
 
-											e.target.files = null;
+											input.files = null;
 										};
 									};
 

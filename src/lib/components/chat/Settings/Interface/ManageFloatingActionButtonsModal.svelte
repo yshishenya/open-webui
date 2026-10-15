@@ -1,31 +1,40 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
-	const i18n = getContext('i18n');
-
+	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import type { FloatingAction } from '$lib/utils/airis/frontend-contracts';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import Minus from '$lib/components/icons/Minus.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
-	import Switch from '$lib/components/common/Switch.svelte';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import { settings } from '$lib/stores';
-
+	const i18n = getContext<Writable<i18nType>>('i18n');
 	export let show = false;
-	export let onSave = () => {};
-
-	export let floatingActionButtons = null;
-
-	const submitHandler = async () => {
-		onSave(floatingActionButtons);
-		show = false;
-	};
-
-	$: if (show) {
+	export let floatingActionButtons: FloatingAction[] | null = null;
+	export let onSave: (value: FloatingAction[] | null) => Promise<boolean> = async () => true;
+	let draft: FloatingAction[] | null = null;
+	let saving = false;
+	let wasOpen = false;
+	let draftVersion = 0;
+	$: if (show !== wasOpen) {
+		wasOpen = show;
+		draftVersion++;
+		if (show) draft = structuredClone(floatingActionButtons);
 	}
-
-	onMount(() => {});
+	const submitHandler = async (): Promise<void> => {
+		if (saving) return;
+		saving = true;
+		const version = draftVersion;
+		try {
+			if ((await onSave(structuredClone(draft))) && version === draftVersion) show = false;
+		} catch (error) {
+			if (version === draftVersion) toast.error(getErrorMessage(error));
+		} finally {
+			saving = false;
+		}
+	};
 </script>
 
 <Modal size="sm" bind:show className="bg-white dark:bg-gray-900 rounded-4xl">
@@ -64,8 +73,8 @@
 								<button
 									type="button"
 									on:click={() => {
-										if (floatingActionButtons === null) {
-											floatingActionButtons = [
+										if (draft === null) {
+											draft = [
 												{
 													id: 'ask',
 													label: $i18n.t('Ask'),
@@ -80,32 +89,33 @@
 												}
 											];
 										} else {
-											floatingActionButtons = null;
+											draft = null;
 										}
 									}}
 								>
-									{#if floatingActionButtons === null}
+									{#if draft === null}
 										<span class="">{$i18n.t('Default')}</span>
 									{:else}
 										<span class="">{$i18n.t('Custom')}</span>
 									{/if}
 								</button>
 
-								{#if floatingActionButtons !== null}
+								{#if draft !== null}
 									<button
 										class=""
 										type="button"
 										on:click={() => {
+											if (!draft) return;
 											let id = `new-button`;
 											let idx = 0;
 
-											while (floatingActionButtons.some((b) => b.id === id)) {
+											while (draft.some((b) => b.id === id)) {
 												idx++;
 												id = `new-button-${idx}`;
 											}
 
-											floatingActionButtons = [
-												...floatingActionButtons,
+											draft = [
+												...draft,
 												{
 													id: id,
 													label: `${$i18n.t('New Button')}`,
@@ -121,12 +131,12 @@
 							</div>
 						</div>
 
-						{#if floatingActionButtons === null || floatingActionButtons.length === 0}
+						{#if draft === null || draft.length === 0}
 							<div class="text-gray-500 dark:text-gray-400 text-xs w-full text-center py-5">
 								{$i18n.t('Default action buttons will be used.')}
 							</div>
 						{:else}
-							{#each floatingActionButtons as button, buttonIdx}
+							{#each draft as button}
 								<div class=" py-1 flex w-full justify-between items-start">
 									<div class="flex flex-col items-start pr-2">
 										<input
@@ -157,9 +167,7 @@
 										class="pl-3 text-xs flex rounded-sm transition"
 										aria-label={$i18n.t('Remove action')}
 										on:click={() => {
-											floatingActionButtons = floatingActionButtons.filter(
-												(b) => b.id !== button.id
-											);
+											draft = draft?.filter((b) => b.id !== button.id) ?? null;
 										}}
 										type="button"
 									>
@@ -176,6 +184,7 @@
 						<button
 							class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
 							type="submit"
+							disabled={saving}
 						>
 							{$i18n.t('Save')}
 						</button>

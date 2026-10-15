@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import AccessControl from './AccessControl.svelte';
@@ -15,7 +17,7 @@
 
 	export let show = false;
 	export let accessGrants: AccessGrant[] = [];
-	export let accessControl: any = undefined;
+	export let accessControl: unknown = undefined;
 	export let accessRoles = ['read'];
 
 	export let share = true;

@@ -1,0 +1,139 @@
+{
+	"spec_id": "airis-abc-imports-2026-10-09-017",
+	"title": "airis-abc-imports",
+	"generated": "2026-10-09T07:17:37.160078Z",
+	"last_updated": "2026-10-09T07:34:37.630509Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__abc-imports.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T07:19:32.200240Z",
+		"progress_percentage": 100,
+		"completed_date": "2026-10-09T07:34:37.630236Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-abc-imports",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Review and replace52 deprecated module imports",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T07:34:09.415076Z",
+				"journaled_at": "2026-10-09T07:34:09.416962Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept runtime/API/migration/full tests, cleanup and source delivery",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T07:34:37.177055Z",
+				"journaled_at": "2026-10-09T07:34:37.178817Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Review and replace52 deprecated module imports",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "backend/open_webui/functions.py",
+				"completed_at": "2026-10-09T07:34:09.414843Z",
+				"needs_journaling": false,
+				"status_note": "52 imports /60 bindings /51 modules;454 AST/comments preserved;11 runtime contract sets identical",
+				"journaled_at": "2026-10-09T07:34:09.415982Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Verify runtime/API/migration/full suites, cleanup and push source",
+			"status": "completed",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"file_path": "meta/memory_bank/specs/work_items/2026-10-09__refactor__abc-imports.md",
+				"completed_at": "2026-10-09T07:34:37.176903Z",
+				"needs_journaling": false,
+				"status_note": "Docker backend1025/frontend952;Black454;11 comparisons;source df5c37236ac692c968fa5288beda3ae4077de3b6 pushed;primary/production and hashes preserved;6 owned DBs cleaned;general acceptance pending",
+				"journaled_at": "2026-10-09T07:34:37.177809Z"
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T07:34:09.415978Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Review and replace52 deprecated module imports",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: 52 imports /60 bindings /51 modules;454 AST/comments preserved;11 runtime contract sets identical",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:34:09.416958Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Review and replace52 deprecated module imports",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:34:37.177804Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify runtime/API/migration/full suites, cleanup and push source",
+			"author": "claude-code",
+			"content": "Task task-2-1 marked as completed. \nNote: Docker backend1025/frontend952;Black454;11 comparisons;source df5c37236ac692c968fa5288beda3ae4077de3b6 pushed;primary/production and hashes preserved;6 owned DBs cleaned;general acceptance pending",
+			"metadata": {},
+			"task_id": "task-2-1"
+		},
+		{
+			"timestamp": "2026-10-09T07:34:37.178812Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Accept runtime/API/migration/full tests, cleanup and source delivery",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-2 have been completed.",
+			"metadata": {},
+			"task_id": "phase-2"
+		}
+	]
+}

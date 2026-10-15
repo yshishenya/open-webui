@@ -1,0 +1,199 @@
+{
+  "spec_id": "airis-input-menu-types-2026-10-10-034",
+  "title": "Airis Input Menu Types",
+  "generated": "2026-10-10T15:54:03.630160Z",
+  "last_updated": "2026-10-10T16:03:18.665096Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__refactor__input-menu-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T15:54:03.909295Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T16:03:18.664783Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Input Menu Types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace native file and attachment selection callbacks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:54:53.038771Z",
+        "journaled_at": "2026-10-10T15:54:53.040657Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse attachment and upload callback contracts; remove unused imports",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T15:56:17.867951Z",
+        "journaled_at": "2026-10-10T15:56:17.870278Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify emitted code, actual handlers and complete frontend checks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T16:03:18.220270Z",
+        "journaled_at": "2026-10-10T16:03:18.222694Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace callbacks and test actual native handlers",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:54:53.038613Z",
+        "needs_journaling": false,
+        "status_note": "All4 handler/mounted checks passed before changes; single parent and four children traced",
+        "journaled_at": "2026-10-10T15:54:53.039578Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse types and remove unused imports",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T15:56:17.867777Z",
+        "needs_journaling": false,
+        "status_note": "Accepted corrected baseline4/4 and after4/4; compiled JS/CSS identical after removing only unused imports",
+        "journaled_at": "2026-10-10T15:56:17.868937Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify compiled equivalence and complete frontend checks",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T16:03:18.220072Z",
+        "needs_journaling": false,
+        "status_note": "Final2078 frontend passed including4 focused assertions; types698->692 and ESLint673->655 with no new diagnostics; preserved runtime/files/volumes",
+        "journaled_at": "2026-10-10T16:03:18.221388Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T15:54:53.039572Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace callbacks and test actual native handlers",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All4 handler/mounted checks passed before changes; single parent and four children traced",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:54:53.040653Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace native file and attachment selection callbacks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:56:17.868932Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse types and remove unused imports",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Accepted corrected baseline4/4 and after4/4; compiled JS/CSS identical after removing only unused imports",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T15:56:17.870271Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse attachment and upload callback contracts; remove unused imports",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T16:03:18.221383Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify compiled equivalence and complete frontend checks",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Final2078 frontend passed including4 focused assertions; types698->692 and ESLint673->655 with no new diagnostics; preserved runtime/files/volumes",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T16:03:18.222689Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify emitted code, actual handlers and complete frontend checks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

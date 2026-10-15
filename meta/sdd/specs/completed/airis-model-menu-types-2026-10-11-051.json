@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-model-menu-types-2026-10-11-051",
+  "title": "airis-model-menu-types",
+  "generated": "2026-10-11T12:33:18.341435Z",
+  "last_updated": "2026-10-11T12:38:32.393972Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__model-menu-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T12:33:58.009642Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T12:38:32.393699Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-model-menu-types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace both model menus and every caller",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:34:32.635425Z",
+        "journaled_at": "2026-10-11T12:34:32.637381Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Type existing contracts and remove unused props and imports",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:34:32.881420Z",
+        "journaled_at": "2026-10-11T12:34:32.883589Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify compiled output and all frontend checks",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T12:38:31.915996Z",
+        "journaled_at": "2026-10-11T12:38:31.918291Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace both model menus and every caller",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:34:32.634970Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:34:32.636259Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Type existing contracts and remove unused props and imports",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:34:32.881149Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:34:32.882279Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify compiled output and all frontend checks",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T12:38:31.915831Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T12:38:31.917155Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T12:34:32.636254Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace both model menus and every caller",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:34:32.637373Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace both model menus and every caller",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:34:32.882274Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Type existing contracts and remove unused props and imports",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:34:32.883581Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Type existing contracts and remove unused props and imports",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T12:38:31.917150Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify compiled output and all frontend checks",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T12:38:31.918286Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify compiled output and all frontend checks",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

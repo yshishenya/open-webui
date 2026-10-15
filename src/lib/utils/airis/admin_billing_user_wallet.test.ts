@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }), { virtual: true });
+vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
 
 import {
 	adjustUserWalletAdmin,

@@ -22,6 +22,8 @@ const upload = (hasContext: boolean) => {
 		}).outputText,
 		{
 			profileImageUrl: 'previous-avatar',
+			photo: { revision: 1, reader: null },
+			cancelPhoto: () => 1,
 			profileImageInputElement: input,
 			$i18n: { t: (key: string): string => key },
 			toast: {

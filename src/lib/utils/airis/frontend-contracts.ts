@@ -1,3 +1,6 @@
+import type { GroupDetails } from './group-types';
+import type { Node, SvelteFlow } from '@xyflow/svelte';
+import type { SessionUser } from '$lib/stores';
 import type { ModelParams } from '$lib/apis';
 import type { Content } from '@tiptap/core';
 import type { Model } from './model-types';
@@ -6,6 +9,8 @@ import type { ChatAttachment, ChatHistory, ChatHistoryMessage } from './chat_his
 import type { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
 import type { TerminalServer } from '$lib/apis/terminal';
 import type { updateOpenAIConfig } from '$lib/apis/openai';
+import type { ComponentProps, ComponentEvents } from 'svelte';
+import type AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
 
 export type ArtifactContent = { type: 'iframe' | 'svg'; content: string };
 
@@ -69,21 +74,31 @@ export type SkillListItem = {
 	created_at: number;
 };
 
+export type ModelConnectionConfig = {
+	enable?: boolean | null;
+	model_ids?: string[] | null;
+	prefix_id?: string | null;
+	tags?: ModelTag[] | null;
+	auth_type?: string;
+	headers?: Record<string, string>;
+	connection_type?: string;
+	provider?: string;
+	azure?: boolean;
+	api_version?: string;
+	api_type?: string;
+	passthrough_params?: string[] | string | null;
+	key?: string;
+	[key: string]: unknown;
+};
+export type ModelConnection = { url: string; key: string; config: ModelConnectionConfig };
+export type ConnectionSave = (
+	connection: ModelConnection
+) => boolean | void | Promise<boolean | void>;
+export type ConnectionDelete = () => boolean | void | Promise<boolean | void>;
 export type DirectModelConnections = Pick<
 	Parameters<typeof updateOpenAIConfig>[1],
 	'OPENAI_API_BASE_URLS' | 'OPENAI_API_KEYS'
-> & {
-	OPENAI_API_CONFIGS: Record<
-		string,
-		{
-			enable?: boolean | null;
-			model_ids?: string[] | null;
-			prefix_id?: string | null;
-			tags?: ModelTag[] | null;
-			[key: string]: unknown;
-		} | null
-	>;
-};
+> & { OPENAI_API_CONFIGS: Record<string, ModelConnectionConfig | null> };
 
 export type UserPermissions = {
 	[Section in keyof typeof DEFAULT_PERMISSIONS]?: {
@@ -108,6 +123,49 @@ export type DirectTerminalSettings = Pick<StoredTerminalServer, 'url' | 'name'> 
 	auth_type?: string;
 	path?: string;
 };
+
+export type TerminalServerConnection = Pick<DirectTerminalSettings, 'url'> &
+	Partial<DirectTerminalSettings> & {
+		id?: string;
+		config?: { access_grants?: ComponentProps<typeof AccessControlModal>['accessGrants'] } | null;
+		server_type?: 'orchestrator' | 'terminal' | null;
+		policy_id?: string | null;
+		[key: string]: unknown;
+	};
+export type TerminalConnectionSave = (
+	connection: TerminalServerConnection & { enabled: boolean }
+) => boolean | void | Promise<boolean | void>;
+
+// configs.ToolServerConnection; optional fields also accept legacy user settings.
+export type ToolServerConnection = {
+	url: string;
+	path?: string;
+	type?: string | null;
+	spec_type?: string;
+	spec?: string;
+	auth_type?: string | null;
+	headers?: Record<string, string> | null;
+	key?: string | null;
+	config?: {
+		enable?: boolean;
+		function_name_filter_list?: string;
+		access_grants?: ComponentProps<typeof AccessControlModal>['accessGrants'];
+	} | null;
+	info?: {
+		id?: string;
+		name?: string;
+		description?: string;
+		oauth_client_info?: string | null;
+		oauth_client_id?: string;
+		oauth_client_secret?: string;
+		oauth_server_url?: string;
+		oauth_scope?: string;
+		oauth_resource_parameter?: string;
+	} | null;
+};
+export type ToolConnectionSave = (
+	connection: ToolServerConnection
+) => boolean | void | Promise<boolean | void>;
 
 export type GenerationParams = {
 	stream_response?: boolean | null;
@@ -144,6 +202,8 @@ export type GenerationParams = {
 	keep_alive?: string | null;
 	custom_params?: Record<string, string>;
 };
+
+export type FloatingAction = { id: string; label: string; input?: boolean; prompt: string };
 
 export type ImageCompressionSize = {
 	width: number | '' | undefined;
@@ -286,6 +346,28 @@ export type SelectedFolder = FolderListItem & {
 	shared?: boolean;
 };
 
+export type SidebarFolders = Record<
+	string,
+	Partial<SelectedFolder> & { childrenIds?: string[]; new?: boolean }
+>;
+
+export type FolderRegistry = Record<
+	string,
+	{
+		setFolderItems?: () => unknown;
+		upsertChat?: (chat: Record<string, unknown>) => unknown;
+		setChatActive?: (chatId: string, active: boolean) => boolean;
+		setChatReadAt?: (chatId: string, lastReadAt: number) => boolean;
+		setAllChatsRead?: () => unknown;
+	}
+>;
+
+export type FolderMoveEvent = {
+	originFolderId?: string | null;
+	targetFolderId: string;
+	e: DragEvent;
+};
+
 export type ContextUsage = {
 	tokens: number;
 	estimated_tokens: number;
@@ -298,6 +380,7 @@ export type ContextUsage = {
 export type SavedChat = {
 	id: string;
 	user_id: string;
+	meta?: Record<string, unknown>;
 	title: string;
 	created_at: number;
 	updated_at: number;
@@ -311,6 +394,7 @@ export type SavedChat = {
 	tasks?: { id: string; content: string; status: string }[] | null;
 	chat: {
 		title: string;
+		timestamp?: number | null;
 		models?: string[] | null;
 		history?: ChatHistory | null;
 		messages: ChatHistoryMessage[];
@@ -360,3 +444,24 @@ export type SelectOption<Value extends string | null = string> = { value: Value;
 
 // Legacy Svelte generic marker, imported explicitly for the pinned ESLint parser.
 export type SvelteGeneric<T> = T;
+
+/** Data created by Overview/View and passed through native nodeclick events. */
+export type ChatOverviewNode = Node<
+	{
+		message: ChatHistoryMessage;
+		user: Pick<SessionUser, 'id' | 'name'> | null | undefined;
+		model?: Model | null;
+	},
+	'custom'
+>;
+
+export type ChatOverviewClick = Omit<ComponentEvents<SvelteFlow>['nodeclick']['detail'], 'node'> & {
+	node: ChatOverviewNode;
+};
+
+export type NamedAccessResource = Pick<GroupDetails, 'id' | 'name'>;
+export type ResourceAccessPreview = {
+	models: { items: NamedAccessResource[]; total: number };
+	knowledge: { items: NamedAccessResource[]; total: number };
+	tools: { items: NamedAccessResource[]; total: number };
+};

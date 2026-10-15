@@ -1,0 +1,119 @@
+{
+	"spec_id": "airis-channel-mention-contracts-2026-10-09-014",
+	"title": "Airis channel mention contracts",
+	"generated": "2026-10-09T11:09:54.041703Z",
+	"last_updated": "2026-10-09T11:14:17.852592Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 1,
+		"security_sensitive": false,
+		"default_category": "refactoring",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-09__refactor__channel-mention-contracts.md",
+		"status": "completed",
+		"activated_date": "2026-10-09T11:11:08.610097Z",
+		"progress_percentage": 100,
+		"current_phase": "phase-1",
+		"completed_date": "2026-10-09T11:14:17.852313Z"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "Airis channel mention contracts",
+			"status": "completed",
+			"parent": null,
+			"children": ["phase-1"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Type existing mention list and verify source",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1", "task-1-2"],
+			"total_tasks": 2,
+			"completed_tasks": 2,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-09T11:14:17.364213Z",
+				"journaled_at": "2026-10-09T11:14:17.366303Z"
+			}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Type existing mention items without runtime changes",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "refactoring",
+				"file_path": "src/lib/components/channel/MessageInput/MentionList.svelte",
+				"completed_at": "2026-10-09T11:14:17.123138Z",
+				"needs_journaling": false,
+				"status_note": "Only one component;full compiled JavaScript byte-equal after3 unused imports;9 type errors and6 lint errors removed;no new diagnostics;public props intact",
+				"journaled_at": "2026-10-09T11:14:17.124049Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		},
+		"task-1-2": {
+			"type": "task",
+			"title": "Verify diagnostic reduction and source delivery",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"category": "investigation",
+				"file_path": "src/lib/components/channel/MessageInput/MentionList.svelte",
+				"completed_at": "2026-10-09T11:14:17.363986Z",
+				"needs_journaling": false,
+				"status_note": "Source01938912dc8feab3e4790ce1a5a4426d78b93288 pushed;1032 frontend/127files;types2043+108;ESLint1006;454backend unchanged;original12neighbors preserved;2newterminals observed;no deploy",
+				"journaled_at": "2026-10-09T11:14:17.365241Z"
+			},
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-09T11:14:17.124045Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Type existing mention items without runtime changes",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed. \nNote: Only one component;full compiled JavaScript byte-equal after3 unused imports;9 type errors and6 lint errors removed;no new diagnostics;public props intact",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-09T11:14:17.365237Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Verify diagnostic reduction and source delivery",
+			"author": "claude-code",
+			"content": "Task task-1-2 marked as completed. \nNote: Source01938912dc8feab3e4790ce1a5a4426d78b93288 pushed;1032 frontend/127files;types2043+108;ESLint1006;454backend unchanged;original12neighbors preserved;2newterminals observed;no deploy",
+			"metadata": {},
+			"task_id": "task-1-2"
+		},
+		{
+			"timestamp": "2026-10-09T11:14:17.366294Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Type existing mention list and verify source",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
+}

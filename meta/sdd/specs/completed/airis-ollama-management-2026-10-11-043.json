@@ -1,0 +1,198 @@
+{
+  "spec_id": "airis-ollama-management-2026-10-11-043",
+  "title": "airis-ollama-management",
+  "generated": "2026-10-11T05:17:05.665368Z",
+  "last_updated": "2026-10-11T05:33:14.459662Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__ollama-management.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T05:17:22.806782Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T05:33:14.459381Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "airis-ollama-management",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace API/callers and reproduce malformed creation and stream refusal",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T05:33:13.561806Z",
+        "journaled_at": "2026-10-11T05:33:13.563665Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse native JSON and existing model types without a new subsystem",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T05:33:13.789619Z",
+        "journaled_at": "2026-10-11T05:33:13.791644Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Full frontend quality and preservation acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T05:33:14.018055Z",
+        "journaled_at": "2026-10-11T05:33:14.020114Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace API/callers and reproduce malformed creation and stream refusal",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T05:33:13.561650Z",
+        "needs_journaling": false,
+        "status_note": "All consumers and backend endpoints traced; same final33 tests reproduce2pass31fail before fix.",
+        "journaled_at": "2026-10-11T05:33:13.562548Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse native JSON and existing model types without a new subsystem",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T05:33:13.789461Z",
+        "needs_journaling": false,
+        "status_note": "Native JSON and existing helpers/types; final33 own and69 targeted tests pass; no dependencies or backend changes.",
+        "journaled_at": "2026-10-11T05:33:13.790488Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Full frontend quality and preservation acceptance",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T05:33:14.017891Z",
+        "needs_journaling": false,
+        "status_note": "Frontend2236/2236, CI lint2400/0, new diagnostics0, preservation verified. Shared check489/63 and ESLint533 remain red; production/goal gates open.",
+        "journaled_at": "2026-10-11T05:33:14.018942Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T05:33:13.562543Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace API/callers and reproduce malformed creation and stream refusal",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: All consumers and backend endpoints traced; same final33 tests reproduce2pass31fail before fix.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:33:13.563661Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace API/callers and reproduce malformed creation and stream refusal",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:33:13.790483Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse native JSON and existing model types without a new subsystem",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Native JSON and existing helpers/types; final33 own and69 targeted tests pass; no dependencies or backend changes.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:33:13.791640Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse native JSON and existing model types without a new subsystem",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T05:33:14.018937Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Full frontend quality and preservation acceptance",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: Frontend2236/2236, CI lint2400/0, new diagnostics0, preservation verified. Shared check489/63 and ESLint533 remain red; production/goal gates open.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T05:33:14.020109Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Full frontend quality and preservation acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

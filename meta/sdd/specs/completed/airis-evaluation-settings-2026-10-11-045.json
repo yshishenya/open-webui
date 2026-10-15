@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-evaluation-settings-2026-10-11-045",
+  "title": "airis-evaluation-settings",
+  "generated": "2026-10-11T05:56:59.407301Z",
+  "last_updated": "2026-10-11T06:05:16.515676Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__evaluation-settings.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T05:56:59.672082Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T06:05:16.515411Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Evaluation settings and leaderboard",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace evaluation API and reproduce refused save and stale responses",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T06:05:15.661497Z",
+        "journaled_at": "2026-10-11T06:05:15.663301Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse data types and preserve drafts with existing request helper",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T06:05:15.874451Z",
+        "journaled_at": "2026-10-11T06:05:15.876384Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify full frontend and preserve production and foreign state",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T06:05:16.085642Z",
+        "journaled_at": "2026-10-11T06:05:16.087618Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace evaluation API and reproduce refused save and stale responses",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T06:05:15.661356Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T06:05:15.662235Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse data types and preserve drafts with existing request helper",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T06:05:15.874292Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T06:05:15.875220Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify full frontend and preserve production and foreign state",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T06:05:16.085502Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T06:05:16.086486Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T06:05:15.662231Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace evaluation API and reproduce refused save and stale responses",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:05:15.663296Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace evaluation API and reproduce refused save and stale responses",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:05:15.875216Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse data types and preserve drafts with existing request helper",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:05:15.876379Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse data types and preserve drafts with existing request helper",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T06:05:16.086481Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify full frontend and preserve production and foreign state",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T06:05:16.087613Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify full frontend and preserve production and foreign state",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

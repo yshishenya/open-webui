@@ -1,13 +1,14 @@
 <script lang="ts">
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
-
 	import { user } from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
-
 	import { archiveAllChats, deleteAllChats, getAllChats, importChats } from '$lib/apis/chats';
-	import { getImportOrigin, convertOpenAIChats } from '$lib/utils';
-	import { getContext } from 'svelte';
+	import { parseChatImport } from '$lib/utils/airis/chat_import';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	import { getContext, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import SharedChatsModal from '$lib/components/layout/SharedChatsModal.svelte';
@@ -16,100 +17,81 @@
 	import UserSettingRow from './UserSettingRow.svelte';
 	import UserSettingSection from './UserSettingSection.svelte';
 
-	const i18n = getContext('i18n');
-
-	export let saveSettings: Function;
-
-	// Chats
-	let importFiles;
-
+	const i18n = getContext<Readable<I18n>>('i18n');
+	let importing = false;
+	let active = true;
+	onDestroy((): void => {
+		active = false;
+	});
 	let showArchiveConfirmDialog = false;
 	let showDeleteConfirmDialog = false;
 	let showSharedChatsModal = false;
 	let showFilesModal = false;
-
-	let chatImportInputElement: HTMLInputElement;
+	let chatImportInputElement: HTMLInputElement | undefined;
 	const actionButtonClass =
 		'text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-500 dark:hover:text-white';
 
-	$: if (importFiles) {
-		console.log(importFiles);
-
-		let reader = new FileReader();
-		reader.onload = (event) => {
-			let chats = JSON.parse(event.target.result);
-			console.log(chats);
-			if (getImportOrigin(chats) == 'openai') {
-				try {
-					chats = convertOpenAIChats(chats);
-				} catch (error) {
-					console.log('Unable to import chats:', error);
-				}
+	const importFileHandler = async (event: Event): Promise<void> => {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file || importing) return;
+		const token = localStorage.token;
+		const current = (): boolean => active && localStorage.token === token;
+		importing = true;
+		try {
+			let text: string;
+			try {
+				text = await file.text();
+			} catch {
+				throw new Error($i18n.t('Failed to upload file.'));
 			}
-			importChatsHandler(chats);
-		};
-
-		if (importFiles.length > 0) {
-			reader.readAsText(importFiles[0]);
+			if (!current()) return;
+			const result = await importChats(token, parseChatImport(text));
+			if (!current()) return;
+			toast.success(`Successfully imported ${result.length} chats.`);
+			await refreshChatList(token, { refreshPinned: true });
+		} catch (error) {
+			if (current()) toast.error($i18n.t(getErrorMessage(error)));
+		} finally {
+			importing = false;
 		}
-	}
+	};
 
-	const importChatsHandler = async (_chats) => {
-		const res = await importChats(
-			localStorage.token,
-			_chats.map((chat) => {
-				if (chat.chat) {
-					return {
-						chat: chat.chat,
-						meta: chat.meta ?? {},
-						pinned: false,
-						folder_id: chat?.folder_id ?? null,
-						created_at: chat?.created_at ?? null,
-						updated_at: chat?.updated_at ?? null
-					};
-				} else {
-					// Legacy format
-					return {
-						chat: chat,
-						meta: {},
-						pinned: false,
-						folder_id: null,
-						created_at: chat?.created_at ?? null,
-						updated_at: chat?.updated_at ?? null
-					};
-				}
-			})
-		);
-		if (res) {
-			toast.success(`Successfully imported ${res.length} chats.`);
+	const exportChats = async (): Promise<void> => {
+		const token = localStorage.token;
+		try {
+			const rows = await getAllChats(token);
+			if (localStorage.token !== token) return;
+			const blob = new Blob([JSON.stringify(rows)], { type: 'application/json' });
+			saveAs(blob, `chat-export-${Date.now()}.json`);
+		} catch (error) {
+			if (localStorage.token === token) toast.error(getErrorMessage(error));
 		}
-
-		await refreshChatList(localStorage.token, { refreshPinned: true });
 	};
 
-	const exportChats = async () => {
-		let blob = new Blob([JSON.stringify(await getAllChats(localStorage.token))], {
-			type: 'application/json'
-		});
-		saveAs(blob, `chat-export-${Date.now()}.json`);
+	const archiveAllChatsHandler = async (): Promise<void> => {
+		const token = localStorage.token;
+		try {
+			await goto('/');
+			if (localStorage.token !== token) return;
+			await archiveAllChats(token);
+			if (localStorage.token === token) await refreshChatList(token, { clearPinned: true });
+		} catch (error) {
+			if (localStorage.token === token) toast.error(getErrorMessage(error));
+		}
 	};
 
-	const archiveAllChatsHandler = async () => {
-		await goto('/');
-		await archiveAllChats(localStorage.token).catch((error) => {
-			toast.error(`${error}`);
-		});
-
-		await refreshChatList(localStorage.token, { clearPinned: true });
-	};
-
-	const deleteAllChatsHandler = async () => {
-		await goto('/');
-		await deleteAllChats(localStorage.token).catch((error) => {
-			toast.error(`${error}`);
-		});
-
-		await refreshChatList(localStorage.token);
+	const deleteAllChatsHandler = async (): Promise<void> => {
+		const token = localStorage.token;
+		try {
+			await goto('/');
+			if (localStorage.token !== token) return;
+			await deleteAllChats(token);
+			if (localStorage.token === token) await refreshChatList(token);
+		} catch (error) {
+			if (localStorage.token === token) toast.error(getErrorMessage(error));
+		}
 	};
 </script>
 
@@ -145,22 +127,24 @@
 		<input
 			id="chat-import-input"
 			bind:this={chatImportInputElement}
-			bind:files={importFiles}
+			disabled={importing}
+			on:change={importFileHandler}
 			type="file"
 			accept=".json"
 			hidden
 		/>
 
 		<UserSettingSection title={$i18n.t('Chats')} first>
-			{#if $user?.role === 'admin' || ($user.permissions?.chat?.import ?? true)}
+			{#if $user?.role === 'admin' || ($user?.permissions?.chat?.import ?? true)}
 				<UserSettingRow
 					label={$i18n.t('Import Chats')}
 					description={$i18n.t('Import chat history from a JSON export file.')}
 				>
 					<button
 						class={actionButtonClass}
+						disabled={importing}
 						on:click={() => {
-							chatImportInputElement.click();
+							chatImportInputElement?.click();
 						}}
 						type="button"
 					>
@@ -169,7 +153,7 @@
 				</UserSettingRow>
 			{/if}
 
-			{#if $user?.role === 'admin' || ($user.permissions?.chat?.export ?? true)}
+			{#if $user?.role === 'admin' || ($user?.permissions?.chat?.export ?? true)}
 				<UserSettingRow
 					label={$i18n.t('Export Chats')}
 					description={$i18n.t('Download your chat history as a JSON export.')}

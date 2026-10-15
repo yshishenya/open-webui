@@ -12,7 +12,7 @@ const prepare = async (page: Page): Promise<string[]> => {
 	await page.route('**/api/models**', (route) =>
 		route.fulfill({
 			json: {
-				data: [{ id: 'gpt-5.6-luna', name: 'gpt-5.6-luna', owned_by: 'openai' }]
+				data: [{ id: 'gpt-6-luna', name: 'gpt-6-luna', owned_by: 'openai' }]
 			}
 		})
 	);
@@ -143,7 +143,7 @@ test('stored assistant message renders inline and block math in the built chat',
 		parentId: null,
 		childrenIds: [],
 		role: 'assistant',
-		model: 'gpt-5.6-luna',
+		model: 'gpt-6-luna',
 		content: 'Inline $x^2$.\n\n$$\n\\frac{1}{2}\n$$',
 		timestamp: now,
 		done: true
@@ -153,7 +153,7 @@ test('stored assistant message renders inline and block math in the built chat',
 		data: {
 			chat: {
 				title: 'Isolated math acceptance',
-				models: ['gpt-5.6-luna'],
+				models: ['gpt-6-luna'],
 				messages: [message],
 				history: { messages: { 'math-response': message }, currentId: 'math-response' }
 			}
@@ -221,7 +221,7 @@ test('actual template form preserves false and zero, requires selection, and tea
 	await page.route('**://*.tile.openstreetmap.org/**', (route) => route.abort());
 	const query =
 		'Flag={{FLAG | checkbox:default="false"}}; Count={{COUNT | number:default=0}}; Choice={{CHOICE | select:options=["one","two"]:required}}; Point={{POINT | map:default="51.505, -0.09"}}';
-	await page.goto(`/?model=gpt-5.6-luna&q=${encodeURIComponent(query)}&submit=false`);
+	await page.goto(`/?model=gpt-6-luna&q=${encodeURIComponent(query)}&submit=false`);
 	await expect(page.locator('#input-variable-0')).not.toBeChecked();
 	await expect(page.locator('#input-variable-1')).toHaveValue('0');
 	await expect(page.locator('#input-variable-2')).toHaveValue('');

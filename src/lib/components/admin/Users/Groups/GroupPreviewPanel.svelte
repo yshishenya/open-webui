@@ -1,14 +1,17 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { GroupAccessPreview } from '$lib/apis/groups';
 	import { getContext } from 'svelte';
 	import { getGroupPreview } from '$lib/apis/groups';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let groupId: string = '';
 
 	let loading = true;
-	let preview: any = null;
+	let preview: GroupAccessPreview | null = null;
 	let error: string = '';
 
 	$: if (groupId) {

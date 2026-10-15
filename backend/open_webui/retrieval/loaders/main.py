@@ -13,7 +13,6 @@ from langchain_community.document_loaders import (
     Docx2txtLoader,
     PyPDFLoader,
     TextLoader,
-    YoutubeLoader,
 )
 from langchain_core.documents import Document
 from open_webui.env import (

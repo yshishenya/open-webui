@@ -1,0 +1,143 @@
+{
+  "spec_id": "airis-unused-declarations-2026-10-12-095",
+  "title": "AIRIS unused declarations",
+  "generated": "2026-10-12T03:41:26.371241Z",
+  "last_updated": "2026-10-12T03:46:51.922989Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__unused-declarations.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T03:41:26.667877Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T03:46:51.922703Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS unused declarations",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Remove proven unused declarations and retain callback contract",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T03:44:01.953207Z",
+        "journaled_at": "2026-10-12T03:44:01.954977Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify retained compiled behavior and full frontend",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T03:46:51.486842Z",
+        "journaled_at": "2026-10-12T03:46:51.488679Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Remove proven unused declarations and retain callback contract",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.25,
+        "completed_at": "2026-10-12T03:44:01.953029Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T03:44:01.953946Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify retained compiled behavior and full frontend",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "estimated_hours": 0.75,
+        "completed_at": "2026-10-12T03:46:51.486694Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T03:46:51.487600Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T03:44:01.953941Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Remove proven unused declarations and retain callback contract",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:44:01.954972Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Remove proven unused declarations and retain callback contract",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:46:51.487595Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify retained compiled behavior and full frontend",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:46:51.488675Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify retained compiled behavior and full frontend",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

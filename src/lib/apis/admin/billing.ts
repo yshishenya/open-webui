@@ -5,17 +5,17 @@ import { WEBUI_API_BASE_URL } from '$lib/constants';
 export interface Plan {
 	id: string;
 	name: string;
-	name_ru?: string;
-	description?: string;
-	description_ru?: string;
+	name_ru?: string | null;
+	description?: string | null;
+	description_ru?: string | null;
 	price: number;
 	currency: string;
 	interval: string;
-	quotas?: Record<string, number | null>;
-	features?: string[];
+	quotas?: Record<string, number | null> | null;
+	features?: string[] | null;
 	is_active: boolean;
 	display_order: number;
-	plan_extra_metadata?: Record<string, unknown>;
+	plan_extra_metadata?: Record<string, unknown> | null;
 	created_at: number;
 	updated_at: number;
 }

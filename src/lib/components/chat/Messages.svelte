@@ -4,6 +4,7 @@
 	import { refreshChatList } from '$lib/stores/chatList';
 	import { tick, getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { ComponentProps } from 'svelte';
 	import type { i18n as I18n } from 'i18next';
 	import type { Model } from '$lib/stores';
 	import type {
@@ -13,6 +14,7 @@
 	} from '$lib/utils/airis/chat_history';
 
 	import { getLastMessageId } from '$lib/utils/airis/chat_history';
+	import { createMessagesList } from '$lib/utils';
 
 	import { toast } from 'svelte-sonner';
 	import { deleteChatMessageById, updateChatById } from '$lib/apis/chats';
@@ -28,7 +30,7 @@
 	export let className = 'h-full flex pt-18';
 
 	export let chatId = '';
-	export let user = $_user;
+	export let user: ComponentProps<typeof Message>['user'] = $_user;
 
 	export let history: ChatHistory = { messages: {}, currentId: null };
 	export let selectedModels: string[];
@@ -38,7 +40,10 @@
 
 	export let setInputText: (text: string) => void = () => {};
 
-	export let sendMessage: (history: ChatHistory, parentId: string) => void | Promise<void>;
+	export let sendMessage: (
+		history: ChatHistory,
+		parentId: string
+	) => boolean | void | Promise<boolean | void>;
 	export let continueResponse: () => void | Promise<void>;
 	export let regenerateResponse: (
 		message: ChatHistoryMessage,
@@ -346,25 +351,41 @@
 		await updateChat();
 	};
 
+	// ponytail: retry IDs live with this component; persist drafts if retries must survive reload.
+	const pendingCopyIds = new Map<string, string>();
+	const pendingSendIds = new Map<string, { id: string; draft: string }>();
+	const savingMessageIds = new Set<string>();
+
 	const editMessage = async (
 		messageId: string,
 		{ content, files, output = undefined }: ChatMessageEdit,
 		submit = true
-	): Promise<void> => {
-		if ((selectedModels ?? []).filter((id) => id).length === 0) {
-			toast.error($i18n.t('Model not selected'));
-			return;
-		}
-		if (history.messages[messageId].role === 'user') {
-			if (submit) {
+	): Promise<boolean> => {
+		const message = history.messages[messageId];
+		if (!message) return false;
+		const sourceHistory = history;
+		const sourceChatId = chatId;
+		const currentId = history.currentId;
+		const key = `${chatId}:${messageId}`;
+		if (savingMessageIds.has(key)) return false;
+		savingMessageIds.add(key);
+		try {
+			if (message.role === 'user' && submit) {
+				if ((selectedModels ?? []).filter((id) => id).length === 0) {
+					toast.error($i18n.t('Model not selected'));
+					return false;
+				}
 				// New user message
 				let userPrompt = content!;
-				let userMessageId = uuidv4();
+				const draft = JSON.stringify({ content, files, models: selectedModels });
+				const pending = pendingSendIds.get(key);
+				const userMessageId = pending?.draft === draft ? pending.id : uuidv4();
+				pendingSendIds.set(key, { id: userMessageId, draft });
 
 				let userMessage = {
 					id: userMessageId,
-					parentId: history.messages[messageId].parentId,
-					childrenIds: [],
+					parentId: message.parentId,
+					childrenIds: history.messages[userMessageId]?.childrenIds ?? [],
 					role: 'user',
 					content: userPrompt,
 					...(files && { files: files }),
@@ -372,9 +393,12 @@
 					timestamp: Math.floor(Date.now() / 1000) // Unix epoch
 				};
 
-				let messageParentId = history.messages[messageId].parentId;
+				let messageParentId = message.parentId;
 
-				if (messageParentId !== null) {
+				if (
+					messageParentId !== null &&
+					!history.messages[messageParentId].childrenIds.includes(userMessageId)
+				) {
 					history.messages[messageParentId].childrenIds = [
 						...history.messages[messageParentId].childrenIds,
 						userMessageId
@@ -385,55 +409,84 @@
 				history.currentId = userMessageId;
 
 				await tick();
-				await sendMessage(history, userMessageId);
-			} else {
-				// Edit user message
-				history.messages[messageId].content = content!;
-				history.messages[messageId].files = files;
-				await updateChat();
+				if (history !== sourceHistory || chatId !== sourceChatId) return false;
+				const accepted = await sendMessage(history, userMessageId);
+				if (accepted !== true) return false;
+				pendingSendIds.delete(key);
+				return true;
 			}
-		} else {
-			if (submit) {
-				// New response message (Save As Copy)
-				const responseMessageId = uuidv4();
-				const message = history.messages[messageId];
-				const parentId = message.parentId;
 
-				const responseMessage = {
-					...message,
-					id: responseMessageId,
-					parentId: parentId,
-					childrenIds: [],
-					files: undefined,
-					content: output !== undefined ? '' : content!,
-					...(output !== undefined ? { output } : {}),
-					timestamp: Math.floor(Date.now() / 1000) // Unix epoch
-				};
-
-				history.messages[responseMessageId] = responseMessage;
-				history.currentId = responseMessageId;
-
-				// Append messageId to childrenIds of parent message
-				if (parentId !== null) {
-					history.messages[parentId].childrenIds = [
-						...history.messages[parentId].childrenIds,
-						responseMessageId
-					];
-				}
-
-				await updateChat();
-			} else {
-				// Edit response message
-				if (content !== undefined) {
-					history.messages[messageId].originalContent = history.messages[messageId].content;
-					history.messages[messageId].content = content;
-				}
-				if (output !== undefined) {
-					history.messages[messageId].output = output;
-					history.messages[messageId].content = '';
-				}
-				await updateChat();
+			const copy = message.role !== 'user' && submit;
+			const editedId = copy ? (pendingCopyIds.get(key) ?? uuidv4()) : messageId;
+			if (copy) pendingCopyIds.set(key, editedId);
+			const changes: ChatMessageEdit & Pick<ChatHistoryMessage, 'originalContent'> =
+				message.role === 'user'
+					? { content: content!, files }
+					: {
+							...(content !== undefined ? { content, originalContent: message.content } : {}),
+							...(output !== undefined ? { output, content: '' } : {})
+						};
+			const editedMessage: ChatHistoryMessage = {
+				...message,
+				...changes,
+				...(copy
+					? {
+							id: editedId,
+							childrenIds: [],
+							files: undefined,
+							originalContent: message.originalContent,
+							timestamp: Math.floor(Date.now() / 1000)
+						}
+					: {})
+			};
+			let savedMessage = editedMessage;
+			if (!$temporaryChatEnabled) {
+				// The server already merges sparse history maps and rebuilds parent links.
+				const res = await updateChatById(localStorage.token, sourceChatId, {
+					history: {
+						messages: { [editedId]: editedMessage },
+						currentId: copy ? editedId : currentId
+					},
+					messages: createMessagesList(
+						{ messages: { ...sourceHistory.messages, [editedId]: editedMessage } },
+						copy ? editedId : currentId
+					)
+				});
+				const saved = res?.chat?.history?.messages?.[editedId] as ChatHistoryMessage | undefined;
+				if (!saved) throw new Error('Failed to save conversation');
+				savedMessage = saved;
 			}
+			if (copy) pendingCopyIds.delete(key);
+
+			if (chatId === sourceChatId && history === sourceHistory) {
+				if (copy) {
+					history.messages[editedId] = savedMessage;
+					const parent = message.parentId !== null ? history.messages[message.parentId] : undefined;
+					if (parent && !parent.childrenIds.includes(editedId)) {
+						parent.childrenIds = [...parent.childrenIds, editedId];
+					}
+					if (history.currentId === currentId) history.currentId = editedId;
+				} else if (history.messages[messageId]) {
+					// Apply only edited fields; concurrent status/annotation and sibling updates survive.
+					history.messages[messageId] = {
+						...history.messages[messageId],
+						...changes,
+						...(changes.content !== undefined ? { content: savedMessage.content } : {}),
+						...(output !== undefined ? { output: savedMessage.output } : {}),
+						...(message.role === 'user' ? { files: savedMessage.files } : {})
+					};
+				}
+				history = history;
+				await tick();
+				if (!$temporaryChatEnabled) {
+					await refreshChatList(localStorage.token).catch(() => {
+						console.warn('Failed to refresh chat list after saving');
+					});
+				}
+			}
+			return true;
+		} finally {
+			savingMessageIds.delete(key);
 		}
 	};
 

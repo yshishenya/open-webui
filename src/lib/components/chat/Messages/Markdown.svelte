@@ -50,12 +50,17 @@
 
 	export let sourceIds = [];
 
+	/** @type {NonNullable<import('svelte').ComponentProps<typeof MarkdownTokens>['onSave']>} */
 	export let onSave = () => {};
+	/** @type {NonNullable<import('svelte').ComponentProps<typeof MarkdownTokens>['onUpdate']>} */
 	export let onUpdate = () => {};
 
+	/** @type {NonNullable<import('svelte').ComponentProps<typeof MarkdownTokens>['onPreview']>} */
 	export let onPreview = () => {};
 
+	/** @type {NonNullable<import('svelte').ComponentProps<typeof MarkdownTokens>['onSourceClick']>} */
 	export let onSourceClick = () => {};
+	/** @type {NonNullable<import('svelte').ComponentProps<typeof MarkdownTokens>['onTaskClick']>} */
 	export let onTaskClick = () => {};
 
 	let tokens = [];

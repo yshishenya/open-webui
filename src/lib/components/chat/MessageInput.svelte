@@ -1776,6 +1776,13 @@
 														command = getCommand();
 													}}
 													json={true}
+													value={{
+														type: 'doc',
+														content: prompt.split('\n').map((text) => ({
+															type: 'paragraph',
+															content: text ? [{ type: 'text', text }] : []
+														}))
+													}}
 													richText={$settings?.richTextInput ?? true}
 													messageInput={true}
 													showFormattingToolbar={$settings?.showFormattingToolbar ?? false}

@@ -18,7 +18,6 @@ from open_webui.models.billing_models import (
     UsageModel,
 )
 
-
 PlanUpdates = Dict[str, object]
 SubscriptionUpdates = Dict[str, object]
 

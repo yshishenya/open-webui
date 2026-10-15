@@ -1,0 +1,141 @@
+{
+  "spec_id": "airis-unused-imports-2026-10-12-093",
+  "title": "AIRIS unused imports",
+  "generated": "2026-10-12T03:14:59.825598Z",
+  "last_updated": "2026-10-12T03:22:09.031518Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__unused-imports.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T03:17:05.302738Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T03:22:09.031205Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS unused imports",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Remove only verified unused import bindings",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T03:18:23.797295Z",
+        "journaled_at": "2026-10-12T03:18:23.799144Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify identical handlers, frontend checks and source preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T03:22:08.539051Z",
+        "journaled_at": "2026-10-12T03:22:08.541049Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Remove only verified unused import bindings",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T03:18:23.797115Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T03:18:23.798091Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify identical handlers, frontend checks and source preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T03:22:08.538854Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T03:22:08.539927Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T03:18:23.798084Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Remove only verified unused import bindings",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:18:23.799140Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Remove only verified unused import bindings",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:22:08.539921Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify identical handlers, frontend checks and source preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T03:22:08.541045Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify identical handlers, frontend checks and source preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

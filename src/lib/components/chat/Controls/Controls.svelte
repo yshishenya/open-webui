@@ -1,7 +1,11 @@
 <script lang="ts">
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
+	import type { ModelParams } from '$lib/apis';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { createEventDispatcher, getContext } from 'svelte';
 	const dispatch = createEventDispatcher();
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import AdvancedParams from '../Settings/Advanced/AdvancedParams.svelte';
@@ -10,9 +14,8 @@
 	import Collapsible from '$lib/components/common/Collapsible.svelte';
 
 	import { user, settings } from '$lib/stores';
-	export let models = [];
-	export let chatFiles = [];
-	export let params = {};
+	export let chatFiles: ChatAttachment[] = [];
+	export let params: ModelParams = {};
 	export let embed = false;
 
 	// Persist collapsible section open/close state
@@ -123,7 +126,7 @@
 								: compactSystemPromptTextareaClass}
 							rows="3"
 							placeholder={$i18n.t('Enter system prompt')}
-						/>
+						></textarea>
 					</div>
 				</Collapsible>
 			{/if}

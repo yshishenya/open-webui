@@ -520,9 +520,9 @@
 
 	let downloading = false;
 
-	const downloadFile = async (path: string) => {
+	const downloadFile = async (path: string | null): Promise<void> => {
 		const terminal = selectedTerminal;
-		if (!terminal || downloading) return;
+		if (!path || !terminal || downloading) return;
 
 		downloading = true;
 		const toastId = toast.loading($i18n.t('Preparing download...'));
@@ -717,7 +717,6 @@
 	let selectionMode = false;
 
 	$: selectedCount = selectedEntries.size;
-	$: hasSelectedFiles = [...selectedEntries].some((p) => !p.endsWith('/'));
 
 	const clearSelection = () => {
 		selectedEntries = new Set();
@@ -1295,7 +1294,6 @@
 			{#if selectedCount > 0}
 				<BulkActionBar
 					count={selectedCount}
-					hasFiles={hasSelectedFiles}
 					onDelete={() => {
 						deleteTarget = { path: '__bulk__', name: `${selectedCount} items` };
 						showDeleteConfirm = true;

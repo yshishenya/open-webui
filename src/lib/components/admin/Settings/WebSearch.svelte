@@ -2,9 +2,9 @@
 	import { getRAGConfig, updateRAGConfig } from '$lib/apis/retrieval';
 	import Switch from '$lib/components/common/Switch.svelte';
 
-	import { models } from '$lib/stores';
 	import { onMount, getContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
@@ -13,9 +13,9 @@
 	import AdminSettingRow from './AdminSettingRow.svelte';
 	import AdminSettingSection from './AdminSettingSection.svelte';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let webSearchEngines = [
 		'ollama_cloud',
@@ -50,62 +50,135 @@
 	];
 	let webLoaderEngines = ['playwright', 'firecrawl', 'tavily', 'microsoft_web_iq', 'external'];
 
-	let webConfig: any = null;
+	type WebSearchSettings = {
+		WEB_SEARCH_DOMAIN_FILTER_LIST: string | (string | null)[] | null;
+		YOUTUBE_LOADER_LANGUAGE: string | (string | null)[] | null;
+		FIRECRAWL_TIMEOUT: number | string | null | undefined;
+		PLAYWRIGHT_TIMEOUT: number | string | null | undefined;
+		LINKUP_SEARCH_PARAMS: string | Record<string, unknown> | null;
+		ENABLE_WEB_SEARCH: boolean | null;
+		ENABLE_WEB_SEARCH_CONFIRMATION: boolean | null;
+		WEB_SEARCH_CONFIRMATION_CONTENT: string | null;
+		WEB_SEARCH_ENGINE: string | null;
+		OLLAMA_CLOUD_WEB_SEARCH_API_KEY: string | null;
+		PERPLEXITY_SEARCH_API_URL: string | null;
+		PERPLEXITY_API_KEY: string | null;
+		SEARXNG_QUERY_URL: string | null;
+		SEARXNG_LANGUAGE: string | null;
+		YACY_QUERY_URL: string | null;
+		YACY_USERNAME: string | null;
+		YACY_PASSWORD: string | null;
+		GOOGLE_PSE_API_KEY: string | null;
+		GOOGLE_PSE_ENGINE_ID: string | null;
+		BRAVE_SEARCH_API_KEY: string | null;
+		BRAVE_SEARCH_CONTEXT_TOKENS: number | string | null | undefined;
+		KAGI_SEARCH_API_KEY: string | null;
+		MOJEEK_SEARCH_API_KEY: string | null;
+		BOCHA_SEARCH_API_KEY: string | null;
+		SERPSTACK_API_KEY: string | null;
+		SERPER_API_KEY: string | null;
+		SERPHOUSE_API_KEY: string | null;
+		SERPHOUSE_DOMAIN: string | null;
+		SERPLY_API_KEY: string | null;
+		TAVILY_API_KEY: string | null;
+		SEARCHAPI_API_KEY: string | null;
+		SEARCHAPI_ENGINE: string | null;
+		SERPAPI_API_KEY: string | null;
+		SERPAPI_ENGINE: string | null;
+		JINA_API_BASE_URL: string | null;
+		JINA_API_KEY: string | null;
+		BING_SEARCH_V7_ENDPOINT: string | null;
+		BING_SEARCH_V7_SUBSCRIPTION_KEY: string | null;
+		EXA_API_KEY: string | null;
+		PERPLEXITY_MODEL: string | null;
+		PERPLEXITY_SEARCH_CONTEXT_USAGE: string | null;
+		MICROSOFT_WEB_IQ_API_BASE_URL: string | null;
+		MICROSOFT_WEB_IQ_API_KEY: string | null;
+		MICROSOFT_WEB_IQ_LANGUAGE: string | null;
+		SOUGOU_API_SID: string | null;
+		SOUGOU_API_SK: string | null;
+		FIRECRAWL_API_BASE_URL: string | null;
+		FIRECRAWL_API_KEY: string | null;
+		EXTERNAL_WEB_SEARCH_URL: string | null;
+		EXTERNAL_WEB_SEARCH_API_KEY: string | null;
+		YANDEX_WEB_SEARCH_URL: string | null;
+		YANDEX_WEB_SEARCH_API_KEY: string | null;
+		YANDEX_WEB_SEARCH_CONFIG: string | null;
+		YOUCOM_API_KEY: string | null;
+		LINKUP_API_KEY: string | null;
+		DDGS_BACKEND: string | null;
+		WEB_SEARCH_RESULT_COUNT: number | string | null | undefined;
+		WEB_SEARCH_CONCURRENT_REQUESTS: number | string | null | undefined;
+		WEB_FETCH_MAX_CONTENT_LENGTH: number | string | null | undefined;
+		BYPASS_WEB_SEARCH_EMBEDDING_AND_RETRIEVAL: boolean | null;
+		BYPASS_WEB_SEARCH_WEB_LOADER: boolean | null;
+		WEB_SEARCH_TRUST_ENV: boolean | null;
+		WEB_LOADER_ENGINE: string | null;
+		WEB_LOADER_TIMEOUT: string | null;
+		ENABLE_WEB_LOADER_SSL_VERIFICATION: boolean | null;
+		PLAYWRIGHT_WS_URL: string | null;
+		TAVILY_EXTRACT_DEPTH: string | null;
+		EXTERNAL_WEB_LOADER_URL: string | null;
+		EXTERNAL_WEB_LOADER_API_KEY: string | null;
+		WEB_LOADER_CONCURRENT_REQUESTS: number | string | null | undefined;
+		YOUTUBE_LOADER_PROXY_URL: string | null;
+	};
+	let webConfig: WebSearchSettings | null = null;
 	const inputClass =
 		'w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 py-1.5 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 	const textareaClass =
 		'w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 py-1.5 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
 		// Convert domain filter string to array before sending
 		if (
-			typeof webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST === 'string' &&
-			webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST
+			typeof webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST === 'string' &&
+			webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST
 		) {
-			webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST = webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST.split(',')
+			webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST = webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST.split(',')
 				.map((domain: string) => domain.trim())
 				.filter((domain: string) => domain.length > 0);
-		} else if (!Array.isArray(webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST)) {
-			webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST = [];
+		} else if (!Array.isArray(webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST)) {
+			webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST = [];
 		}
 
 		// Convert Youtube loader language string to array before sending
 		if (
-			typeof webConfig.YOUTUBE_LOADER_LANGUAGE === 'string' &&
-			webConfig.YOUTUBE_LOADER_LANGUAGE
+			typeof webConfig!.YOUTUBE_LOADER_LANGUAGE === 'string' &&
+			webConfig!.YOUTUBE_LOADER_LANGUAGE
 		) {
-			webConfig.YOUTUBE_LOADER_LANGUAGE = webConfig.YOUTUBE_LOADER_LANGUAGE.split(',')
+			webConfig!.YOUTUBE_LOADER_LANGUAGE = webConfig!.YOUTUBE_LOADER_LANGUAGE.split(',')
 				.map((lang: string) => lang.trim())
 				.filter((lang: string) => lang.length > 0);
-		} else if (!Array.isArray(webConfig.YOUTUBE_LOADER_LANGUAGE)) {
-			webConfig.YOUTUBE_LOADER_LANGUAGE = [];
+		} else if (!Array.isArray(webConfig!.YOUTUBE_LOADER_LANGUAGE)) {
+			webConfig!.YOUTUBE_LOADER_LANGUAGE = [];
 		}
 
 		// Convert numeric timeout values to strings (backend expects strings)
-		if (typeof webConfig.FIRECRAWL_TIMEOUT === 'number') {
-			webConfig.FIRECRAWL_TIMEOUT = webConfig.FIRECRAWL_TIMEOUT.toString();
+		if (typeof webConfig!.FIRECRAWL_TIMEOUT === 'number') {
+			webConfig!.FIRECRAWL_TIMEOUT = webConfig!.FIRECRAWL_TIMEOUT.toString();
 		}
-		if (typeof webConfig.PLAYWRIGHT_TIMEOUT === 'number') {
-			webConfig.PLAYWRIGHT_TIMEOUT = webConfig.PLAYWRIGHT_TIMEOUT.toString();
+		if (typeof webConfig!.PLAYWRIGHT_TIMEOUT === 'number') {
+			webConfig!.PLAYWRIGHT_TIMEOUT = webConfig!.PLAYWRIGHT_TIMEOUT.toString();
 		}
 
 		// Convert Linkup params JSON string to object before sending
 		const linkupParams =
-			typeof webConfig.LINKUP_SEARCH_PARAMS === 'string' &&
-			webConfig.LINKUP_SEARCH_PARAMS.trim() !== ''
-				? JSON.parse(webConfig.LINKUP_SEARCH_PARAMS)
-				: (webConfig.LINKUP_SEARCH_PARAMS ?? {});
+			typeof webConfig!.LINKUP_SEARCH_PARAMS === 'string' &&
+			webConfig!.LINKUP_SEARCH_PARAMS.trim() !== ''
+				? JSON.parse(webConfig!.LINKUP_SEARCH_PARAMS)
+				: (webConfig!.LINKUP_SEARCH_PARAMS ?? {});
 
-		const res = await updateRAGConfig(localStorage.token, {
+		await updateRAGConfig(localStorage.token, {
 			web: { ...webConfig, LINKUP_SEARCH_PARAMS: linkupParams }
 		});
 
 		// Convert arrays back to strings for display
-		if (Array.isArray(webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST)) {
-			webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST = webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST.join(',');
+		if (Array.isArray(webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST)) {
+			webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST = webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST.join(',');
 		}
-		if (Array.isArray(webConfig.YOUTUBE_LOADER_LANGUAGE)) {
-			webConfig.YOUTUBE_LOADER_LANGUAGE = webConfig.YOUTUBE_LOADER_LANGUAGE.join(',');
+		if (Array.isArray(webConfig!.YOUTUBE_LOADER_LANGUAGE)) {
+			webConfig!.YOUTUBE_LOADER_LANGUAGE = webConfig!.YOUTUBE_LOADER_LANGUAGE.join(',');
 		}
 	};
 
@@ -113,40 +186,41 @@
 		const res = await getRAGConfig(localStorage.token);
 
 		if (res) {
-			webConfig = res.web;
+			webConfig = res.web as WebSearchSettings;
 
 			// Convert array back to comma-separated string for display
 			if (Array.isArray(webConfig?.WEB_SEARCH_DOMAIN_FILTER_LIST)) {
-				webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST = webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST.join(',');
-			} else if (!webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST) {
-				webConfig.WEB_SEARCH_DOMAIN_FILTER_LIST = '';
+				webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST =
+					webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST.join(',');
+			} else if (!webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST) {
+				webConfig!.WEB_SEARCH_DOMAIN_FILTER_LIST = '';
 			}
 
 			if (Array.isArray(webConfig?.YOUTUBE_LOADER_LANGUAGE)) {
-				webConfig.YOUTUBE_LOADER_LANGUAGE = webConfig.YOUTUBE_LOADER_LANGUAGE.join(',');
-			} else if (!webConfig.YOUTUBE_LOADER_LANGUAGE) {
-				webConfig.YOUTUBE_LOADER_LANGUAGE = '';
+				webConfig!.YOUTUBE_LOADER_LANGUAGE = webConfig!.YOUTUBE_LOADER_LANGUAGE.join(',');
+			} else if (!webConfig!.YOUTUBE_LOADER_LANGUAGE) {
+				webConfig!.YOUTUBE_LOADER_LANGUAGE = '';
 			}
 
 			// Convert timeout strings to numbers for number input fields
-			if (webConfig.FIRECRAWL_TIMEOUT && typeof webConfig.FIRECRAWL_TIMEOUT === 'string') {
-				const parsed = parseInt(webConfig.FIRECRAWL_TIMEOUT);
+			if (webConfig!.FIRECRAWL_TIMEOUT && typeof webConfig!.FIRECRAWL_TIMEOUT === 'string') {
+				const parsed = parseInt(webConfig!.FIRECRAWL_TIMEOUT);
 				if (!isNaN(parsed)) {
-					webConfig.FIRECRAWL_TIMEOUT = parsed;
+					webConfig!.FIRECRAWL_TIMEOUT = parsed;
 				}
 			}
-			if (webConfig.PLAYWRIGHT_TIMEOUT && typeof webConfig.PLAYWRIGHT_TIMEOUT === 'string') {
-				const parsed = parseInt(webConfig.PLAYWRIGHT_TIMEOUT);
+			if (webConfig!.PLAYWRIGHT_TIMEOUT && typeof webConfig!.PLAYWRIGHT_TIMEOUT === 'string') {
+				const parsed = parseInt(webConfig!.PLAYWRIGHT_TIMEOUT);
 				if (!isNaN(parsed)) {
-					webConfig.PLAYWRIGHT_TIMEOUT = parsed;
+					webConfig!.PLAYWRIGHT_TIMEOUT = parsed;
 				}
 			}
 
 			// Convert Linkup params object to JSON string for textarea display
-			webConfig.LINKUP_SEARCH_PARAMS =
-				typeof webConfig.LINKUP_SEARCH_PARAMS === 'object'
-					? JSON.stringify(webConfig.LINKUP_SEARCH_PARAMS ?? {}, null, 2)
-					: (webConfig.LINKUP_SEARCH_PARAMS ?? '');
+			webConfig!.LINKUP_SEARCH_PARAMS =
+				typeof webConfig!.LINKUP_SEARCH_PARAMS === 'object'
+					? JSON.stringify(webConfig!.LINKUP_SEARCH_PARAMS ?? {}, null, 2)
+					: (webConfig!.LINKUP_SEARCH_PARAMS ?? '');
 		}
 	});
 </script>
@@ -168,7 +242,7 @@
 					description={$i18n.t('Allow users to search the web from chats.')}
 					let:labelId
 				>
-					<Switch bind:state={webConfig.ENABLE_WEB_SEARCH} ariaLabelledbyId={labelId} />
+					<Switch bind:state={webConfig.ENABLE_WEB_SEARCH as boolean} ariaLabelledbyId={labelId} />
 				</AdminSettingRow>
 
 				<AdminSettingRow
@@ -177,7 +251,7 @@
 					let:labelId
 				>
 					<Switch
-						bind:state={webConfig.ENABLE_WEB_SEARCH_CONFIRMATION}
+						bind:state={webConfig.ENABLE_WEB_SEARCH_CONFIRMATION as boolean}
 						ariaLabelledbyId={labelId}
 					/>
 				</AdminSettingRow>
@@ -192,7 +266,7 @@
 							placeholder={$i18n.t(
 								'Your query will be sent to the configured web search provider.'
 							)}
-							bind:value={webConfig.WEB_SEARCH_CONFIRMATION_CONTENT}
+							bind:value={webConfig.WEB_SEARCH_CONFIRMATION_CONTENT as string}
 						/>
 					</AdminSettingField>
 				{/if}
@@ -202,7 +276,7 @@
 					description={$i18n.t('Choose the provider used for web search queries.')}
 				>
 					<SettingsSelect
-						bind:value={webConfig.WEB_SEARCH_ENGINE}
+						bind:value={webConfig.WEB_SEARCH_ENGINE as string}
 						placeholder={$i18n.t('Select a engine')}
 						required
 					>
@@ -232,7 +306,7 @@
 										<SensitiveInput
 											variant="settings"
 											placeholder={$i18n.t('Enter Ollama Cloud API Key')}
-											bind:value={webConfig.OLLAMA_CLOUD_WEB_SEARCH_API_KEY}
+											bind:value={webConfig.OLLAMA_CLOUD_WEB_SEARCH_API_KEY as string}
 										/>
 									</div>
 								</div>
@@ -270,7 +344,7 @@
 										<SensitiveInput
 											variant="settings"
 											placeholder={$i18n.t('Enter Perplexity API Key')}
-											bind:value={webConfig.PERPLEXITY_API_KEY}
+											bind:value={webConfig.PERPLEXITY_API_KEY as string}
 										/>
 									</div>
 								</div>
@@ -358,7 +432,7 @@
 									<SensitiveInput
 										variant="settings"
 										placeholder={$i18n.t('Enter Yacy Password')}
-										bind:value={webConfig.YACY_PASSWORD}
+										bind:value={webConfig.YACY_PASSWORD as string}
 									/>
 								</div>
 							</div>
@@ -373,7 +447,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Google PSE API Key')}
-									bind:value={webConfig.GOOGLE_PSE_API_KEY}
+									bind:value={webConfig.GOOGLE_PSE_API_KEY as string}
 								/>
 							</div>
 							<div class="mt-1.5">
@@ -404,7 +478,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Brave Search API Key')}
-									bind:value={webConfig.BRAVE_SEARCH_API_KEY}
+									bind:value={webConfig.BRAVE_SEARCH_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -418,7 +492,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Brave Search API Key')}
-									bind:value={webConfig.BRAVE_SEARCH_API_KEY}
+									bind:value={webConfig.BRAVE_SEARCH_API_KEY as string}
 								/>
 							</div>
 							<div class="mt-1.5">
@@ -435,7 +509,7 @@
 											max="32768"
 											step="1024"
 											placeholder={$i18n.t('Max tokens to retrieve (1024-32768, default 8192)')}
-											bind:value={webConfig.BRAVE_SEARCH_CONTEXT_TOKENS}
+											bind:value={webConfig.BRAVE_SEARCH_CONTEXT_TOKENS as number | undefined}
 											autocomplete="off"
 										/>
 									</div>
@@ -452,7 +526,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Kagi Search API Key')}
-									bind:value={webConfig.KAGI_SEARCH_API_KEY}
+									bind:value={webConfig.KAGI_SEARCH_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -466,7 +540,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Mojeek Search API Key')}
-									bind:value={webConfig.MOJEEK_SEARCH_API_KEY}
+									bind:value={webConfig.MOJEEK_SEARCH_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -480,7 +554,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Bocha Search API Key')}
-									bind:value={webConfig.BOCHA_SEARCH_API_KEY}
+									bind:value={webConfig.BOCHA_SEARCH_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -494,7 +568,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Serpstack API Key')}
-									bind:value={webConfig.SERPSTACK_API_KEY}
+									bind:value={webConfig.SERPSTACK_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -508,7 +582,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Serper API Key')}
-									bind:value={webConfig.SERPER_API_KEY}
+									bind:value={webConfig.SERPER_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -522,7 +596,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter SERPHouse API Key')}
-									bind:value={webConfig.SERPHOUSE_API_KEY}
+									bind:value={webConfig.SERPHOUSE_API_KEY as string}
 								/>
 							</div>
 							<div class="mt-1.5">
@@ -553,7 +627,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Serply API Key')}
-									bind:value={webConfig.SERPLY_API_KEY}
+									bind:value={webConfig.SERPLY_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -567,7 +641,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Tavily API Key')}
-									bind:value={webConfig.TAVILY_API_KEY}
+									bind:value={webConfig.TAVILY_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -581,7 +655,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter SearchApi API Key')}
-									bind:value={webConfig.SEARCHAPI_API_KEY}
+									bind:value={webConfig.SEARCHAPI_API_KEY as string}
 								/>
 							</div>
 							<div class="mt-1.5">
@@ -612,7 +686,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter SerpApi API Key')}
-									bind:value={webConfig.SERPAPI_API_KEY}
+									bind:value={webConfig.SERPAPI_API_KEY as string}
 								/>
 							</div>
 							<div class="mt-1.5">
@@ -661,7 +735,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Jina API Key')}
-									bind:value={webConfig.JINA_API_KEY}
+									bind:value={webConfig.JINA_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -693,7 +767,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Bing Search V7 Subscription Key')}
-									bind:value={webConfig.BING_SEARCH_V7_SUBSCRIPTION_KEY}
+									bind:value={webConfig.BING_SEARCH_V7_SUBSCRIPTION_KEY as string}
 								/>
 							</div>
 						</div>
@@ -707,7 +781,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Exa API Key')}
-									bind:value={webConfig.EXA_API_KEY}
+									bind:value={webConfig.EXA_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -721,7 +795,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Perplexity API Key')}
-									bind:value={webConfig.PERPLEXITY_API_KEY}
+									bind:value={webConfig.PERPLEXITY_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -753,7 +827,7 @@
 									{$i18n.t('Perplexity Search Context Usage')}
 								</div>
 								<SettingsSelect
-									bind:value={webConfig.PERPLEXITY_SEARCH_CONTEXT_USAGE}
+									bind:value={webConfig.PERPLEXITY_SEARCH_CONTEXT_USAGE as string}
 									className="w-full"
 								>
 									<option value="low">{$i18n.t('Low')}</option>
@@ -790,7 +864,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Microsoft Web IQ API Key')}
-									bind:value={webConfig.MICROSOFT_WEB_IQ_API_KEY}
+									bind:value={webConfig.MICROSOFT_WEB_IQ_API_KEY as string}
 								/>
 							</div>
 
@@ -818,7 +892,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Sougou Search API sID')}
-									bind:value={webConfig.SOUGOU_API_SID}
+									bind:value={webConfig.SOUGOU_API_SID as string}
 								/>
 							</div>
 						</div>
@@ -831,7 +905,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Sougou Search API SK')}
-									bind:value={webConfig.SOUGOU_API_SK}
+									bind:value={webConfig.SOUGOU_API_SK as string}
 								/>
 							</div>
 						</div>
@@ -863,7 +937,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Firecrawl API Key')}
-									bind:value={webConfig.FIRECRAWL_API_KEY}
+									bind:value={webConfig.FIRECRAWL_API_KEY as string}
 								/>
 							</div>
 
@@ -878,7 +952,7 @@
 											class="w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 py-1.5 text-xs text-gray-700 outline-hidden transition-colors focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:focus:border-blue-500"
 											type="number"
 											placeholder={$i18n.t('Enter Firecrawl Timeout')}
-											bind:value={webConfig.FIRECRAWL_TIMEOUT}
+											bind:value={webConfig.FIRECRAWL_TIMEOUT as number | undefined}
 											autocomplete="off"
 										/>
 									</div>
@@ -913,7 +987,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter External Web Search API Key')}
-									bind:value={webConfig.EXTERNAL_WEB_SEARCH_API_KEY}
+									bind:value={webConfig.EXTERNAL_WEB_SEARCH_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -945,7 +1019,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Yandex Web Search API Key')}
-									bind:value={webConfig.YANDEX_WEB_SEARCH_API_KEY}
+									bind:value={webConfig.YANDEX_WEB_SEARCH_API_KEY as string}
 								/>
 							</div>
 
@@ -962,7 +1036,7 @@
 								>
 									<Textarea
 										className={textareaClass}
-										bind:value={webConfig.YANDEX_WEB_SEARCH_CONFIG}
+										bind:value={webConfig.YANDEX_WEB_SEARCH_CONFIG as string}
 										placeholder={$i18n.t(
 											'Leave empty to use the default config, or enter a valid json (see https://yandex.cloud/en/docs/search-api/api-ref/WebSearch/search#yandex.cloud.searchapi.v2.WebSearchRequest)'
 										)}
@@ -980,7 +1054,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter You.com API Key')}
-									bind:value={webConfig.YOUCOM_API_KEY}
+									bind:value={webConfig.YOUCOM_API_KEY as string}
 								/>
 							</div>
 						</div>
@@ -994,7 +1068,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Linkup API Key')}
-									bind:value={webConfig.LINKUP_API_KEY}
+									bind:value={webConfig.LINKUP_API_KEY as string}
 								/>
 							</div>
 
@@ -1005,7 +1079,7 @@
 
 								<Textarea
 									className={textareaClass}
-									bind:value={webConfig.LINKUP_SEARCH_PARAMS}
+									bind:value={webConfig.LINKUP_SEARCH_PARAMS as string}
 									placeholder={`{\n  "depth": "standard",\n  "outputType": "sourcedAnswer"\n}`}
 								/>
 							</div>
@@ -1021,7 +1095,10 @@
 
 								<div class="flex w-full">
 									<div class="flex-1">
-										<SettingsSelect bind:value={webConfig.DDGS_BACKEND} className="w-full">
+										<SettingsSelect
+											bind:value={webConfig.DDGS_BACKEND as string}
+											className="w-full"
+										>
 											<option value="auto">{$i18n.t('Auto (Random)')}</option>
 											<option value="bing">{$i18n.t('Bing')}</option>
 											<option value="brave">{$i18n.t('Brave')}</option>
@@ -1074,7 +1151,7 @@
 								<input
 									class="w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 py-1.5 text-xs text-gray-700 outline-hidden transition-colors focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:focus:border-blue-500"
 									placeholder={$i18n.t('Concurrent Requests')}
-									bind:value={webConfig.WEB_SEARCH_CONCURRENT_REQUESTS}
+									bind:value={webConfig.WEB_SEARCH_CONCURRENT_REQUESTS as number | undefined}
 									type="number"
 									min="0"
 								/>
@@ -1091,7 +1168,7 @@
 						<input
 							class={inputClass}
 							placeholder={$i18n.t('No limit')}
-							bind:value={webConfig.WEB_FETCH_MAX_CONTENT_LENGTH}
+							bind:value={webConfig.WEB_FETCH_MAX_CONTENT_LENGTH as number | undefined}
 							type="number"
 							min="0"
 						/>
@@ -1119,7 +1196,7 @@
 					let:labelId
 				>
 					<Switch
-						bind:state={webConfig.BYPASS_WEB_SEARCH_EMBEDDING_AND_RETRIEVAL}
+						bind:state={webConfig.BYPASS_WEB_SEARCH_EMBEDDING_AND_RETRIEVAL as boolean}
 						ariaLabelledbyId={labelId}
 					/>
 				</AdminSettingRow>
@@ -1129,7 +1206,10 @@
 					description={$i18n.t('Use search results without fetching page contents.')}
 					let:labelId
 				>
-					<Switch bind:state={webConfig.BYPASS_WEB_SEARCH_WEB_LOADER} ariaLabelledbyId={labelId} />
+					<Switch
+						bind:state={webConfig.BYPASS_WEB_SEARCH_WEB_LOADER as boolean}
+						ariaLabelledbyId={labelId}
+					/>
 				</AdminSettingRow>
 
 				<AdminSettingRow
@@ -1139,7 +1219,10 @@
 						: $i18n.t('Fetch page contents without proxy environment variables.')}
 					let:labelId
 				>
-					<Switch bind:state={webConfig.WEB_SEARCH_TRUST_ENV} ariaLabelledbyId={labelId} />
+					<Switch
+						bind:state={webConfig.WEB_SEARCH_TRUST_ENV as boolean}
+						ariaLabelledbyId={labelId}
+					/>
 				</AdminSettingRow>
 			</AdminSettingSection>
 
@@ -1149,7 +1232,7 @@
 					description={$i18n.t('Choose how web result pages are fetched and read.')}
 				>
 					<SettingsSelect
-						bind:value={webConfig.WEB_LOADER_ENGINE}
+						bind:value={webConfig.WEB_LOADER_ENGINE as string}
 						placeholder={$i18n.t('Select a engine')}
 					>
 						<option value="">{$i18n.t('Default')}</option>
@@ -1177,7 +1260,7 @@
 						let:labelId
 					>
 						<Switch
-							bind:state={webConfig.ENABLE_WEB_LOADER_SSL_VERIFICATION}
+							bind:state={webConfig.ENABLE_WEB_LOADER_SSL_VERIFICATION as boolean}
 							ariaLabelledbyId={labelId}
 						/>
 					</AdminSettingRow>
@@ -1246,7 +1329,7 @@
 							<SensitiveInput
 								variant="settings"
 								placeholder={$i18n.t('Enter Firecrawl API Key')}
-								bind:value={webConfig.FIRECRAWL_API_KEY}
+								bind:value={webConfig.FIRECRAWL_API_KEY as string}
 							/>
 						</div>
 					</div>
@@ -1279,7 +1362,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Tavily API Key')}
-									bind:value={webConfig.TAVILY_API_KEY}
+									bind:value={webConfig.TAVILY_API_KEY as string}
 								/>
 							</div>
 						{/if}
@@ -1313,7 +1396,7 @@
 								<SensitiveInput
 									variant="settings"
 									placeholder={$i18n.t('Enter Microsoft Web IQ API Key')}
-									bind:value={webConfig.MICROSOFT_WEB_IQ_API_KEY}
+									bind:value={webConfig.MICROSOFT_WEB_IQ_API_KEY as string}
 								/>
 							</div>
 
@@ -1360,7 +1443,7 @@
 							<SensitiveInput
 								variant="settings"
 								placeholder={$i18n.t('Enter External Web Loader API Key')}
-								bind:value={webConfig.EXTERNAL_WEB_LOADER_API_KEY}
+								bind:value={webConfig.EXTERNAL_WEB_LOADER_API_KEY as string}
 							/>
 						</div>
 					</div>

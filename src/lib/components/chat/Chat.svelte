@@ -108,6 +108,23 @@
 		updateChatFolderIdById
 	} from '$lib/apis/chats';
 	import { generateOpenAIChatCompletion } from '$lib/apis/openai';
+	import { getChatDispatch } from '$lib/apis/airis/chat_dispatch';
+	import {
+		readPendingDispatch,
+		preparePendingDispatch,
+		replayPendingBody,
+		removePendingDispatch,
+		validDispatchReceipt,
+		type PendingDispatch,
+		type NativeDispatchAcknowledgement
+	} from '$lib/utils/airis/chat_dispatch';
+	import {
+		readComposerDraft,
+		writeComposerDraft,
+		consumeComposerDraft,
+		type ComposerDraft,
+		type ComposerSnapshot
+	} from '$lib/utils/airis/chat_draft';
 	import { processWeb, processYoutubeVideo } from '$lib/apis/retrieval';
 	import { getAndUpdateUserLocation } from '$lib/apis/users';
 	import {
@@ -413,6 +430,215 @@
 	};
 
 	let taskIds: string[] | null = null;
+	let pendingDispatch: PendingDispatch | null = null;
+	let checkingDispatch = false;
+	let dispatchNotice = '';
+	const dispatchScope = (): string => ($temporaryChatEnabled ? 'temporary' : $chatId || 'home');
+	const dispatchStorage = (): Storage => ($temporaryChatEnabled ? sessionStorage : localStorage);
+	const availableDispatchServers = (): unknown[] => [
+		...($toolServers ?? []),
+		...($terminalServers ?? []).filter((server) => !server.id)
+	];
+	const refreshPendingDispatch = (): void => {
+		try {
+			pendingDispatch = $user?.id
+				? readPendingDispatch(dispatchStorage(), $user.id, dispatchScope())
+				: null;
+			dispatchNotice = '';
+		} catch {
+			dispatchNotice = $i18n.t(
+				'The saved request could not be read. Sending is paused to avoid a duplicate.'
+			);
+		}
+	};
+
+	const dispatchPreparedRequest = async (
+		token: string,
+		body: Record<string, unknown>,
+		url: string,
+		intent: string,
+		queueIds: string[],
+		composer?: ComposerSnapshot
+	): Promise<NativeDispatchAcknowledgement | null> => {
+		const actor = $user?.id;
+		const scope = dispatchScope();
+		const storage = dispatchStorage();
+		const sourceHistory = history;
+		const isCurrent = (): boolean =>
+			$user?.id === actor &&
+			localStorage.token === token &&
+			history === sourceHistory &&
+			dispatchScope() === scope;
+		if (!actor || !navigator.locks)
+			throw new Error($i18n.t('The request could not be saved safely. Sending is paused.'));
+		return await navigator.locks.request(
+			`airis-dispatch:${JSON.stringify([actor, scope])}`,
+			async () => {
+				if (!isCurrent()) return null;
+				const pending = await preparePendingDispatch(
+					storage,
+					{
+						actor,
+						scope,
+						chatId: $chatId,
+						parentId: String(
+							body.user_message &&
+								typeof body.user_message === 'object' &&
+								'id' in body.user_message
+								? body.user_message.id
+								: ''
+						),
+						intent,
+						queueIds,
+						...(composer ? { composer: { ...composer, scope } } : {}),
+						history: structuredClone(history)
+					},
+					body
+				);
+				if (!isCurrent()) return null;
+				pendingDispatch = pending;
+				const replay = await replayPendingBody(
+					pending,
+					$socket?.id ?? '',
+					availableDispatchServers()
+				);
+				if (!isCurrent()) return null;
+				const result: unknown = await generateOpenAIChatCompletion(token, replay, url);
+				if (
+					validDispatchReceipt(result) &&
+					(!pending.chatId || result.chat_id === pending.chatId)
+				) {
+					try {
+						if (pending.composer) consumeComposerDraft(sessionStorage, pending.composer);
+						removePendingDispatch(storage, pending);
+						if (pendingDispatch === pending) pendingDispatch = null;
+					} catch {
+						console.warn('Request accepted; pending request cleanup failed');
+						if (isCurrent())
+							dispatchNotice = $i18n.t(
+								'The saved request could not be read. Sending is paused to avoid a duplicate.'
+							);
+					}
+				}
+				return typeof result === 'object' && result !== null
+					? (result as NativeDispatchAcknowledgement)
+					: null;
+			}
+		);
+	};
+
+	const recoverPendingDispatch = async (retry = false): Promise<boolean> => {
+		refreshPendingDispatch();
+		const pending = pendingDispatch;
+		if (!pending || checkingDispatch || !$user?.id) return false;
+		const actor = $user.id,
+			token = localStorage.token,
+			scope = dispatchScope(),
+			storage = dispatchStorage();
+		const sourceHistory = history;
+		const isCurrent = (): boolean =>
+			$user?.id === actor &&
+			localStorage.token === token &&
+			history === sourceHistory &&
+			dispatchScope() === scope;
+		checkingDispatch = true;
+		try {
+			let state = await getChatDispatch(token, pending.operationId);
+			if (!isCurrent()) return false;
+			if (state.state === 'absent' && retry) {
+				const replay = await replayPendingBody(
+					pending,
+					$socket?.id ?? '',
+					availableDispatchServers()
+				);
+				if (!isCurrent()) return false;
+				const result: unknown = await generateOpenAIChatCompletion(
+					token,
+					replay,
+					`${WEBUI_BASE_URL}/api`
+				);
+				if (!validDispatchReceipt(result)) throw new Error('Invalid dispatch receipt');
+				state = { state: 'accepted', receipt: result };
+			}
+			if (!isCurrent()) return false;
+			if (state.state !== 'accepted' || !state.receipt) {
+				dispatchNotice = $i18n.t(
+					state.state === 'unknown'
+						? 'The request may have started. Check its status again; it will not be sent twice.'
+						: 'The request has not been accepted. You can retry the saved request.'
+				);
+				return false;
+			}
+			if (pending.chatId && state.receipt.chat_id !== pending.chatId)
+				throw new Error('Invalid dispatch chat');
+			if ($temporaryChatEnabled) {
+				dispatchNotice = $i18n.t(
+					'The temporary request was accepted. Its status can be checked, but it will not be sent twice.'
+				);
+				return false;
+			}
+			const saved = await getChatById(token, state.receipt.chat_id);
+			const active = await getTaskIdsByChatId(token, state.receipt.chat_id);
+			if (!isCurrent() || !saved?.chat?.history || !Array.isArray(active?.task_ids)) return false;
+			const restored = saved.chat.history as ChatHistory;
+			sanitizeHistory(restored);
+			const ids = Array.isArray(pending.body.message_ids)
+				? pending.body.message_ids.map((entry) =>
+						typeof entry === 'object' && entry !== null && 'message_id' in entry
+							? String(entry.message_id)
+							: ''
+					)
+				: [String(pending.body.id ?? '')];
+			const completed = ids.length > 0 && ids.every((id) => restored.messages[id]?.done === true);
+			if (!completed && active.task_ids.length === 0) {
+				dispatchNotice = $i18n.t(
+					'The request was accepted, but a completed response is unavailable. Contact support before retrying.'
+				);
+				return false;
+			}
+			if (pending.composer) consumeComposerDraft(sessionStorage, pending.composer);
+			const original = pending.history.messages[pending.parentId];
+			if (
+				pending.composer
+					? equal(composerDraft(), pending.composer.draft)
+					: original && prompt === original.content && equal(files, original.files ?? [])
+			) {
+				messageInput?.setText('');
+				prompt = '';
+				files = [];
+			}
+			if (pendingPrompt?.history === sourceHistory && pendingPrompt.id === pending.parentId)
+				pendingPrompt = null;
+			chat = saved;
+			history = restored;
+			taskIds = completed ? null : active.task_ids;
+			const consumed = new Set(pending.queueIds);
+			if (consumed.size)
+				chatRequestQueues.update((queues) => ({
+					...queues,
+					[pending.chatId]: (queues[pending.chatId] ?? []).filter((item) => !consumed.has(item.id))
+				}));
+			chatId.set(saved.id);
+			chatTitle.set(saved.chat.title ?? saved.title);
+			if (!embedded) window.history.replaceState(window.history.state, '', `/c/${saved.id}`);
+			try {
+				removePendingDispatch(storage, pending);
+				pendingDispatch = null;
+				dispatchNotice = '';
+			} catch {
+				console.warn('Request restored; pending request cleanup failed');
+			}
+			return true;
+		} catch {
+			if (isCurrent())
+				dispatchNotice = $i18n.t(
+					'The request status could not be checked. The saved request was kept.'
+				);
+			return false;
+		} finally {
+			checkingDispatch = false;
+		}
+	};
 
 	// Chat Input
 	let prompt = '';
@@ -591,7 +817,7 @@
 		saveControlsTimer = setTimeout(saveControls, 400);
 	}
 
-	const navigateHandler = async () => {
+	const navigateHandler = async (): Promise<void> => {
 		noteChatDebug('navigateHandler start');
 		try {
 			// Mark the outgoing chat as read before loading the new one.
@@ -615,13 +841,10 @@
 			webSearchEnabled = false;
 			imageGenerationEnabled = false;
 
-			const storageChatInput = sessionStorage.getItem(
-				`chat-input${chatIdProp ? `-${chatIdProp}` : ''}`
-			);
-
 			const loaded = chatIdProp ? await loadChat() : false;
 			noteChatDebug('loadChat completed inside navigateHandler', { loaded });
 			if (loaded) {
+				if (!restoreDraft(chatIdProp)) await setDefaults();
 				await tick();
 				loading = false;
 				noteChatDebug('embedded chat loading false');
@@ -634,32 +857,12 @@
 					updateLastReadAt(chatIdProp);
 				}
 
+				refreshPendingDispatch();
 				// Process any queued requests if the chat is idle
 				const lastMessage = history.currentId ? history.messages[history.currentId] : null;
 				const isIdle = !lastMessage || lastMessage.role !== 'assistant' || lastMessage.done;
-				if (isIdle) {
+				if (isIdle && !pendingDispatch && !dispatchNotice) {
 					await processNextInQueue(chatIdProp);
-				}
-
-				if (storageChatInput) {
-					try {
-						const input = JSON.parse(storageChatInput);
-
-						if (!$temporaryChatEnabled) {
-							messageInput?.setText(input.prompt);
-							files = input.files;
-							selectedToolIds = input.selectedToolIds;
-							selectedSkillIds = input.selectedSkillIds ?? [];
-							selectedFilterIds = input.selectedFilterIds;
-							webSearchEnabled = input.webSearchEnabled;
-							imageGenerationEnabled = input.imageGenerationEnabled;
-							codeInterpreterEnabled = input.codeInterpreterEnabled;
-						}
-					} catch {
-						// Ignore malformed chat input snapshot and keep defaults.
-					}
-				} else {
-					await setDefaults();
 				}
 
 				const chatInput = document.getElementById('chat-input');
@@ -686,7 +889,7 @@
 		}
 	};
 
-	const initEmbeddedDraft = async () => {
+	const initEmbeddedDraft = async (): Promise<void> => {
 		clearTimeout(saveControlsTimer);
 		await saveControls();
 
@@ -722,6 +925,8 @@
 		await chatTitle.set('');
 
 		await setDefaults();
+		refreshPendingDispatch();
+		restoreDraft(draftScope());
 		loading = false;
 		await tick();
 		document.getElementById('chat-input')?.focus();
@@ -815,13 +1020,21 @@
 
 		try {
 			if (!$tools) {
-				tools.set(await getTools(localStorage.token));
+				await getTools(localStorage.token)
+					.then((items) => tools.set(items))
+					.catch(() => toast.error($i18n.t('Could not load tools. Try again.')));
 			}
 			if (!$functions) {
-				functions.set(await getFunctions(localStorage.token));
+				await getFunctions(localStorage.token)
+					.then((items) => functions.set(items))
+					.catch(() =>
+						toast.error($i18n.t('Could not load functions. Close this section and open it again.'))
+					);
 			}
 			if (!$skills) {
-				skills.set(await getSkills(localStorage.token));
+				await getSkills(localStorage.token)
+					.then((items) => skills.set(items))
+					.catch(() => toast.error($i18n.t('Could not load skills. Try again.')));
 			}
 			if (selectedModels.length !== 1 && !atSelectedModel) {
 				return;
@@ -1387,7 +1600,7 @@
 		}
 
 		const pageSubscribe = page.subscribe(async (p) => {
-			if (p.url.pathname === '/' || p.url.pathname.startsWith('/folders/')) {
+			if (!embedded && (p.url.pathname === '/' || p.url.pathname.startsWith('/folders/'))) {
 				await tick();
 				initNewChat();
 			}
@@ -1424,51 +1637,6 @@
 				console.log('Set selectedModels from folder data:', selectedModels);
 			}
 		});
-
-		const storageChatInput = sessionStorage.getItem(
-			`chat-input${chatIdProp ? `-${chatIdProp}` : ''}`
-		);
-
-		const init = async () => {
-			if (!chatIdProp) {
-				loading = false;
-				await tick();
-			}
-
-			if (storageChatInput) {
-				prompt = '';
-				messageInput?.setText('');
-
-				files = [];
-				selectedToolIds = [];
-				selectedSkillIds = [];
-				selectedFilterIds = [];
-				webSearchEnabled = false;
-				imageGenerationEnabled = false;
-				codeInterpreterEnabled = false;
-
-				try {
-					const input = JSON.parse(storageChatInput);
-
-					if (!$temporaryChatEnabled) {
-						messageInput?.setText(input.prompt);
-						files = input.files;
-						selectedToolIds = input.selectedToolIds;
-						selectedSkillIds = input.selectedSkillIds ?? [];
-						selectedFilterIds = input.selectedFilterIds;
-						webSearchEnabled = input.webSearchEnabled;
-						imageGenerationEnabled = input.imageGenerationEnabled;
-						codeInterpreterEnabled = input.codeInterpreterEnabled;
-					}
-				} catch (error) {
-					console.warn('Failed to restore chat draft', error);
-				}
-			}
-
-			const chatInput = document.getElementById('chat-input');
-			chatInput?.focus();
-		};
-		init();
 
 		return () => {
 			try {
@@ -1788,9 +1956,12 @@
 	// Web functions
 	//////////////////////////
 
-	const initNewChat = async () => {
+	const initNewChat = async (): Promise<void> => {
+		loading = true;
 		console.log('initNewChat');
 		resetWebSearchConfirmation();
+		// Native chat creation updates the address without updating the page store.
+		const searchParams = new URL(window.location.href).searchParams;
 
 		// Mark the outgoing chat as read before resetting; in-place created chats
 		// keep chatIdProp undefined, so navigateHandler never marks them read.
@@ -1821,13 +1992,11 @@
 
 		const defaultModels = $config?.default_models ? $config?.default_models.split(',') : [];
 
-		const requestedModels = resolveRequestedModels($page.url.searchParams, availableModels);
+		const requestedModels = resolveRequestedModels(searchParams, availableModels);
 		if (requestedModels) {
 			selectedModels = requestedModels;
 			const urlModels =
-				($page.url.searchParams.get('models') || $page.url.searchParams.get('model') || '')?.split(
-					','
-				) ?? [];
+				(searchParams.get('models') || searchParams.get('model') || '')?.split(',') ?? [];
 
 			if (urlModels.length === 1) {
 				if (!availableModels.includes(urlModels[0])) {
@@ -1925,47 +2094,55 @@
 		chatVariables = {};
 		taskIds = null;
 		chatTasks = [];
-
-		if ($page.url.searchParams.get('youtube')) {
-			await uploadWeb(`https://www.youtube.com/watch?v=${$page.url.searchParams.get('youtube')}`);
+		refreshPendingDispatch();
+		restoreDraft(draftScope());
+		if (requestedModels) {
+			selectedModels = requestedModels;
+			atSelectedModel = undefined;
 		}
 
-		if ($page.url.searchParams.get('load-url')) {
-			await uploadWeb($page.url.searchParams.get('load-url') ?? '');
+		if (searchParams.get('youtube')) {
+			await uploadWeb(`https://www.youtube.com/watch?v=${searchParams.get('youtube')}`);
 		}
 
-		if ($page.url.searchParams.get('web-search') === 'true') {
+		if (searchParams.get('load-url')) {
+			await uploadWeb(searchParams.get('load-url') ?? '');
+		}
+
+		if (searchParams.get('web-search') === 'true') {
 			webSearchEnabled = true;
 		}
 
-		if ($page.url.searchParams.get('image-generation') === 'true') {
+		if (searchParams.get('image-generation') === 'true') {
 			imageGenerationEnabled = true;
 		}
 
-		if ($page.url.searchParams.get('code-interpreter') === 'true') {
+		if (searchParams.get('code-interpreter') === 'true') {
 			codeInterpreterEnabled = true;
 		}
 
-		if ($page.url.searchParams.get('tools')) {
+		if (searchParams.get('tools')) {
 			selectedToolIds =
-				$page.url.searchParams
+				searchParams
 					.get('tools')
 					?.split(',')
 					.map((id) => id.trim())
 					.filter((id) => id) ?? [];
-		} else if ($page.url.searchParams.get('tool-ids')) {
+		} else if (searchParams.get('tool-ids')) {
 			selectedToolIds =
-				$page.url.searchParams
+				searchParams
 					.get('tool-ids')
 					?.split(',')
 					.map((id) => id.trim())
 					.filter((id) => id) ?? [];
 		}
 
-		if ($page.url.searchParams.get('call') === 'true') {
+		if (searchParams.get('call') === 'true') {
 			showCallOverlay.set(true);
 			showControls.set(true);
 		}
+		loading = false;
+		await tick();
 
 		// Consume one-shot desktop event (e.g. Spotlight query, call shortcut)
 		if ($desktopEvent) {
@@ -2006,11 +2183,11 @@
 					}
 				}
 			}
-		} else if ($page.url.searchParams.get('q')) {
-			const q = $page.url.searchParams.get('q') ?? '';
+		} else if (searchParams.get('q')) {
+			const q = searchParams.get('q') ?? '';
 			const ready = await setTextWithRetries(() => messageInput, tick, q);
 
-			if (ready && q && ($page.url.searchParams.get('submit') ?? 'true') === 'true') {
+			if (ready && q && (searchParams.get('submit') ?? 'true') === 'true') {
 				await tick();
 				submitHandler(prompt);
 			}
@@ -2244,24 +2421,44 @@
 
 	let processingQueueChats = new Set<string>();
 
-	const processNextInQueue = async (targetChatId: string) => {
-		if (processingQueueChats.has(targetChatId)) return;
+	const failedQueueChats = new Set<string>();
 
-		const queue = $chatRequestQueues[targetChatId];
-		if (!queue || queue.length === 0) return;
+	const processNextInQueue = async (targetChatId: string, itemId?: string): Promise<void> => {
+		if ($chatId !== targetChatId || processingQueueChats.has(targetChatId)) return;
+		refreshPendingDispatch();
+		if (pendingDispatch || dispatchNotice) return;
+		if (!itemId && failedQueueChats.has(targetChatId)) return;
+		const queue = ($chatRequestQueues[targetChatId] ?? []).filter(
+			(item) => !itemId || item.id === itemId
+		);
+		if (queue.length === 0) return;
 
 		processingQueueChats.add(targetChatId);
 		try {
-			const combinedPrompt = queue.map((m) => m.prompt).join('\n\n');
-			const combinedFiles = queue.flatMap((m) => m.files);
-
-			chatRequestQueues.update((q) => {
-				const next = { ...q };
-				delete next[targetChatId];
-				return next;
-			});
-
-			await submitPrompt(combinedPrompt, combinedFiles);
+			if (itemId) {
+				await stopResponse(false);
+				await tick();
+				if ($chatId !== targetChatId || taskIds?.length) return;
+			}
+			const accepted = await submitPrompt(
+				queue.map((m) => m.prompt).join('\n\n'),
+				queue.flatMap((m) => m.files),
+				queue.map((m) => m.id)
+			);
+			if (!accepted) {
+				failedQueueChats.add(targetChatId);
+				return;
+			}
+			failedQueueChats.delete(targetChatId);
+			const sentIds = new Set(queue.map((item) => item.id));
+			chatRequestQueues.update((queues) => ({
+				...queues,
+				[targetChatId]: (queues[targetChatId] ?? []).filter((item) => !sentIds.has(item.id))
+			}));
+		} catch {
+			failedQueueChats.add(targetChatId);
+			console.warn('Failed to send queued request');
+			toast.error($i18n.t('Something went wrong :/'));
 		} finally {
 			processingQueueChats.delete(targetChatId);
 		}
@@ -2607,55 +2804,98 @@
 	// Chat functions
 	//////////////////////////
 
+	let submittingPrompt = false;
+	// Keep the editable draft separate from the immutable pending dispatch.
+	let pendingPrompt: {
+		history: ChatHistory;
+		id: string;
+		draft: { content: string; files: ChatAttachment[]; models: string[] };
+	} | null = null;
+
 	const submitPrompt = async (
 		inputContent: string,
-		inputFiles: ChatAttachment[]
-	): Promise<void> => {
-		const _files = structuredClone(inputFiles);
-		chatFiles.push(
-			..._files.filter(
-				(item) =>
-					['doc', 'text', 'note', 'chat', 'folder', 'collection'].includes(item.type ?? '') ||
-					(item.type === 'file' && !(item?.content_type ?? '').startsWith('image/'))
-			)
-		);
-		chatFiles = chatFiles.filter(
-			// Remove duplicates
-			(item, index, array) => array.findIndex((i) => equal(i, item)) === index
-		);
-
-		// Create user message
-		let userMessageId = uuidv4();
-		let userMessage = {
-			id: userMessageId,
-			parentId: history.currentId ?? null,
-			childrenIds: [],
-			role: 'user',
+		inputFiles: ChatAttachment[],
+		queueIds: string[] = [],
+		composer?: ComposerSnapshot
+	): Promise<boolean> => {
+		if (submittingPrompt) return false;
+		refreshPendingDispatch();
+		if (dispatchNotice) {
+			toast.error(dispatchNotice);
+			return false;
+		}
+		if (pendingDispatch) {
+			const original = pendingDispatch.history.messages[pendingDispatch.parentId];
+			if (
+				!original ||
+				original.content !== inputContent ||
+				!equal(original.files ?? [], inputFiles)
+			) {
+				toast.error($i18n.t('Check the previous request before sending another one'));
+				return false;
+			}
+			return await recoverPendingDispatch(true);
+		}
+		const sourceHistory = history;
+		const draft = {
 			content: inputContent,
-			files: _files.length > 0 ? _files : undefined,
-			timestamp: Math.floor(Date.now() / 1000), // Unix epoch
-			models: selectedModels
+			files: structuredClone(inputFiles),
+			models: [...selectedModels]
 		};
+		submittingPrompt = true;
+		try {
+			const _files = structuredClone(inputFiles);
+			chatFiles.push(
+				..._files.filter(
+					(item) =>
+						['doc', 'text', 'note', 'chat', 'folder', 'collection'].includes(item.type ?? '') ||
+						(item.type === 'file' && !(item?.content_type ?? '').startsWith('image/'))
+				)
+			);
+			chatFiles = chatFiles.filter(
+				// Remove duplicates
+				(item, index, array) => array.findIndex((i) => equal(i, item)) === index
+			);
 
-		// Add message to history and Set currentId to messageId
-		history.messages[userMessageId] = userMessage;
+			// Create user message
+			const retry = pendingPrompt?.history === sourceHistory && equal(pendingPrompt.draft, draft);
+			let userMessageId = retry ? pendingPrompt!.id : uuidv4();
+			let userMessage = {
+				id: userMessageId,
+				parentId: retry ? history.messages[userMessageId].parentId : (history.currentId ?? null),
+				childrenIds: retry ? history.messages[userMessageId].childrenIds : [],
+				role: 'user',
+				content: inputContent,
+				files: _files.length > 0 ? _files : undefined,
+				timestamp: Math.floor(Date.now() / 1000), // Unix epoch
+				models: selectedModels
+			};
 
-		// Append messageId to childrenIds of parent message
-		if (history.currentId !== null) {
-			history.messages[history.currentId].childrenIds.push(userMessageId);
+			// Add message to history and Set currentId to messageId
+			history.messages[userMessageId] = userMessage;
+
+			// Append messageId to childrenIds of parent message
+			if (!retry && userMessage.parentId !== null) {
+				history.messages[userMessage.parentId].childrenIds.push(userMessageId);
+			}
+
+			history.currentId = userMessageId;
+
+			// focus on chat input (skip during voice call to avoid triggering mobile keyboard)
+			if (!$showCallOverlay) {
+				const chatInput = document.getElementById('chat-input');
+				chatInput?.focus();
+			}
+
+			saveSessionSelectedModels();
+
+			pendingPrompt = { history: sourceHistory, id: userMessageId, draft };
+			const accepted = await sendMessage(history, userMessageId, { queueIds, composer });
+			if (accepted && pendingPrompt?.id === userMessageId) pendingPrompt = null;
+			return accepted;
+		} finally {
+			submittingPrompt = false;
 		}
-
-		history.currentId = userMessageId;
-
-		// focus on chat input (skip during voice call to avoid triggering mobile keyboard)
-		if (!$showCallOverlay) {
-			const chatInput = document.getElementById('chat-input');
-			chatInput?.focus();
-		}
-
-		saveSessionSelectedModels();
-
-		await sendMessage(history, userMessageId);
 	};
 
 	const handleManualCompact = async () => {
@@ -2766,6 +3006,7 @@
 	};
 
 	const submitHandler = async (userPrompt: string): Promise<void> => {
+		if (submittingPrompt) return;
 		console.log('submitHandler', userPrompt, $chatId);
 
 		const _selectedModels = selectedModels.map((modelId) =>
@@ -2872,24 +3113,37 @@
 			}
 		}
 
-		if (history?.currentId) {
-			const lastMessage = history.messages[history.currentId];
-
-			if (lastMessage.error && !lastMessage.content) {
-				// Error in response
-				toast.error($i18n.t(`Oops! There was an error in the previous response.`));
-				return;
+		const sourceHistory = history;
+		const submittedPrompt = prompt;
+		const submittedFiles = structuredClone(files);
+		const sourceActor = $user?.id;
+		const sourceToken = localStorage.token;
+		const composer: ComposerSnapshot = {
+			actor: sourceActor ?? '',
+			scope: draftScope(),
+			draft: composerDraft()
+		};
+		try {
+			writeComposerDraft(sessionStorage, composer);
+			const accepted = await submitPrompt(userPrompt, submittedFiles, [], composer);
+			if (
+				accepted &&
+				$user?.id === sourceActor &&
+				localStorage.token === sourceToken &&
+				history === sourceHistory &&
+				prompt === submittedPrompt &&
+				equal(files, submittedFiles) &&
+				equal(composerDraft(), composer.draft)
+			) {
+				consumeComposerDraft(sessionStorage, composer);
+				messageInput?.setText('');
+				prompt = '';
+				files = [];
 			}
+		} catch {
+			console.warn('Failed to send prompt');
+			toast.error($i18n.t('Something went wrong :/'));
 		}
-
-		// Clear input and submit
-		messageInput?.setText('');
-		prompt = '';
-		const _files = structuredClone(files);
-		files = [];
-		messageInput?.setText('');
-
-		await submitPrompt(userPrompt, _files);
 	};
 
 	const sendMessage = async (
@@ -2899,28 +3153,95 @@
 			messages = null,
 			modelId = null,
 			modelIdx = null,
-			regenerationPrompt = null
+			regenerationPrompt = null,
+			queueIds = [],
+			composer
 		}: {
 			messages?: ChatHistoryMessage[] | null;
 			modelId?: string | null;
 			modelIdx?: number | null;
 			regenerationPrompt?: string | null;
+			queueIds?: string[];
+			composer?: ComposerSnapshot;
 		} = {}
-	) => {
+	): Promise<boolean> => {
 		if (autoScroll) {
 			scrollToBottom();
 		}
 
-		let _chatId = JSON.parse(JSON.stringify($chatId));
+		if (_history !== history) return false;
+		refreshPendingDispatch();
+		const intent = JSON.stringify([parentId, modelId, modelIdx, regenerationPrompt, messages]);
+		if (dispatchNotice) {
+			toast.error(dispatchNotice);
+			return false;
+		}
+		if (pendingDispatch) {
+			if (pendingDispatch.intent !== intent) {
+				toast.error($i18n.t('Check the previous request before sending another one'));
+				return false;
+			}
+			return await recoverPendingDispatch(true);
+		}
+		const sourceHistory = history;
+		const sourceActor = $user?.id,
+			sourceToken = localStorage.token;
+		let _chatId = $chatId;
+		const isCurrentChat = (): boolean =>
+			history === sourceHistory &&
+			$chatId === _chatId &&
+			$user?.id === sourceActor &&
+			localStorage.token === sourceToken;
 		_history = structuredClone(_history);
 
 		const responseMessageIds: Record<PropertyKey, string> = {};
 		// If modelId is provided, use it, else use selected model
 		let selectedModelIds = modelId
 			? [modelId]
-			: atSelectedModel !== undefined
+			: atSelectedModel != null
 				? [atSelectedModel.id]
 				: selectedModels;
+
+		if (
+			selectedModelIds.length === 0 ||
+			selectedModelIds.some((id) => !$models.some((m) => m.id === id))
+		) {
+			toast.error($i18n.t('Model not selected'));
+			return false;
+		}
+		if (!history.messages[parentId]) {
+			toast.error($i18n.t('Parent message not found'));
+			return false;
+		}
+
+		// Empty embedded drafts create their backing chat only when the first message is sent.
+		if (!_chatId) {
+			if (embedded && onCreateEmbeddedChat) {
+				const createdChat = await onCreateEmbeddedChat();
+				if (!isCurrentChat()) return false;
+				if (!createdChat?.id) {
+					toast.error($i18n.t('Failed to create chat'));
+					return false;
+				}
+
+				chat = createdChat;
+				_chatId = createdChat.id;
+				loadedChatIdProp = _chatId;
+				await chatId.set(_chatId);
+				await chatTitle.set(createdChat?.chat?.title ?? createdChat?.title ?? $i18n.t('Chat'));
+
+				params = { ...structuredClone(createdChat?.chat?.params ?? {}), ...params };
+				delete params.note_id;
+				chatFiles = mergeFiles(chatFiles, createdChat?.chat?.files ?? []);
+				await onSelectEmbeddedChat?.(_chatId);
+			} else if ($temporaryChatEnabled) {
+				_chatId = createTemporaryChatId($socket?.id);
+				await chatId.set(_chatId);
+			}
+			await tick();
+		}
+
+		if (!isCurrentChat()) return false;
 
 		// Create response messages for each selected model
 		// Build message_ids list: [{model_id, message_id, modelIdx}, ...]
@@ -2968,32 +3289,6 @@
 		}
 		history = history;
 
-		// Empty embedded drafts create their backing chat only when the first message is sent.
-		if (!_chatId) {
-			if (embedded && onCreateEmbeddedChat) {
-				const createdChat = await onCreateEmbeddedChat();
-				if (!createdChat?.id) {
-					toast.error($i18n.t('Failed to create chat'));
-					return;
-				}
-
-				chat = createdChat;
-				_chatId = createdChat.id;
-				loadedChatIdProp = _chatId;
-				await chatId.set(_chatId);
-				await chatTitle.set(createdChat?.chat?.title ?? createdChat?.title ?? $i18n.t('Chat'));
-
-				params = structuredClone(createdChat?.chat?.params ?? {});
-				delete params.note_id;
-				chatFiles = mergeFiles(chatFiles, createdChat?.chat?.files ?? []);
-				await onSelectEmbeddedChat?.(_chatId);
-			} else if ($temporaryChatEnabled) {
-				_chatId = createTemporaryChatId($socket?.id);
-				await chatId.set(_chatId);
-			}
-			await tick();
-		}
-
 		await tick();
 
 		// Re-clone history so sendMessageSocket gets the response messages we just added
@@ -3028,30 +3323,47 @@
 		const primaryModel = $models.filter((m) => m.id === primaryModelId).at(0);
 		const primaryResponseMessageId = messageIdsList[0]?.message_id;
 
-		if (primaryModel && primaryResponseMessageId) {
-			const chatEventEmitter = await getChatEventEmitter(primaryModel.id, _chatId);
-
-			try {
-				scrollToBottom();
-				await sendMessageSocket(
-					primaryModel,
-					messages && messages.length > 0
-						? messages
-						: createMessagesList(_history, primaryResponseMessageId),
-					_history,
-					primaryResponseMessageId,
-					_chatId,
-					{
-						// Always forward the message_ids list (not just for multi-model sends) so the
-						// backend persists each response's modelIdx — including single-column
-						// regenerations in a duplicate-model chat, which would otherwise lose their
-						// column identity and collapse on reload.
-						messageIdsList: messageIdsList.length > 0 ? messageIdsList : undefined,
-						regenerationPrompt
+		let accepted = false;
+		let chatEventEmitter: ReturnType<typeof setInterval> | null = null;
+		try {
+			if (!primaryModel || !primaryResponseMessageId) return false;
+			chatEventEmitter = await getChatEventEmitter(primaryModel.id, _chatId);
+			if (!isCurrentChat()) return false;
+			scrollToBottom();
+			accepted = await sendMessageSocket(
+				primaryModel,
+				messages && messages.length > 0
+					? messages
+					: createMessagesList(_history, primaryResponseMessageId),
+				_history,
+				primaryResponseMessageId,
+				_chatId,
+				{
+					// Preserve each response's column identity, including single-column regenerations.
+					messageIdsList,
+					operationIntent: intent,
+					queueIds,
+					composer,
+					regenerationPrompt
+				}
+			);
+			return accepted;
+		} catch {
+			console.warn('Failed to dispatch chat request');
+			if (history === sourceHistory && $chatId === _chatId)
+				toast.error($i18n.t('Something went wrong :/'));
+			return false;
+		} finally {
+			if (chatEventEmitter) clearInterval(chatEventEmitter);
+			if (!accepted && isCurrentChat()) {
+				for (const { message_id } of messageIdsList) {
+					const response = history.messages[message_id];
+					if (response && !response.done) {
+						response.done = true;
+						response.error ??= { content: $i18n.t('Something went wrong :/') };
 					}
-				);
-			} finally {
-				if (chatEventEmitter) clearInterval(chatEventEmitter);
+				}
+				history = history;
 			}
 		}
 	};
@@ -3102,13 +3414,29 @@
 		{
 			messageIdsList,
 			regenerationPrompt,
-			continueResponse = false
+			continueResponse = false,
+			operationIntent = '',
+			queueIds = [],
+			composer
 		}: {
 			messageIdsList?: Array<{ model_id: string; message_id: string }>;
 			regenerationPrompt?: string | null;
 			continueResponse?: boolean;
+			operationIntent?: string;
+			queueIds?: string[];
+			composer?: ComposerSnapshot;
 		} = {}
-	) => {
+	): Promise<boolean> => {
+		const sourceHistory = history;
+		const sourceActor = $user?.id,
+			sourceToken = localStorage.token;
+		const isCurrentChat = (): boolean =>
+			history === sourceHistory &&
+			$chatId === _chatId &&
+			$user?.id === sourceActor &&
+			localStorage.token === sourceToken;
+		if (!isCurrentChat() || !$socket?.id) return false;
+		const requestParams = structuredClone(params);
 		const responseMessage = _history.messages[responseMessageId];
 		const userMessage = responseMessage.parentId
 			? _history.messages[responseMessage.parentId]
@@ -3152,6 +3480,8 @@
 				return undefined;
 			});
 		}
+
+		if (!isCurrentChat()) return false;
 
 		const stream =
 			model?.info?.params?.stream_response ??
@@ -3254,9 +3584,10 @@
 		const useChatVariablesFallback =
 			!_chatId || $temporaryChatEnabled || isTemporaryChatId(_chatId);
 
-		const res = await generateOpenAIChatCompletion(
-			localStorage.token,
+		const res = await dispatchPreparedRequest(
+			sourceToken,
 			{
+				operation_id: uuidv4(),
 				stream: stream,
 				model: model.id,
 				...(messages.length > 0 ? { messages } : {}),
@@ -3325,9 +3656,13 @@
 						}
 					: {})
 			},
-			`${WEBUI_BASE_URL}/api`
+			`${WEBUI_BASE_URL}/api`,
+			operationIntent,
+			queueIds,
+			composer
 		).catch(async (error) => {
 			console.error(error);
+			if (!isCurrentChat()) return null;
 
 			const billingBlocked = parseBillingBlockedDetail(error);
 			if (billingBlocked) {
@@ -3347,8 +3682,13 @@
 
 				responseMessage.done = true;
 
-				history.messages[responseMessageId] = responseMessage;
-				history.currentId = responseMessageId;
+				if (history.messages[responseMessageId]) {
+					history.messages[responseMessageId] = {
+						...history.messages[responseMessageId],
+						error: responseMessage.error,
+						done: true
+					};
+				}
 
 				return null;
 			}
@@ -3357,7 +3697,7 @@
 			if (error?.error?.message) {
 				errorMessage = error.error.message;
 			} else if (error?.message) {
-				errorMessage = error.message;
+				errorMessage = $i18n.t(error.message);
 			}
 
 			if (typeof errorMessage === 'object') {
@@ -3371,51 +3711,66 @@
 
 			responseMessage.done = true;
 
-			history.messages[responseMessageId] = responseMessage;
-			history.currentId = responseMessageId;
+			if (history.messages[responseMessageId]) {
+				history.messages[responseMessageId] = {
+					...history.messages[responseMessageId],
+					error: responseMessage.error,
+					done: true
+				};
+			}
 
 			return null;
 		});
 
-		if (res) {
-			if (res.error) {
-				await handleOpenAIError(res.error, responseMessage);
-			} else {
-				trackEvent('first_prompt_submitted', { has_files: (userMessage?.files?.length ?? 0) > 0 });
-				// Backend returns task_ids (multi-model) or task_id (single model)
-				const newTaskIds = res.task_ids ?? (res.task_id ? [res.task_id] : []);
-				if (newTaskIds.length > 0) {
-					taskIds = [...(taskIds ?? []), ...newTaskIds];
-				}
-
-				// Backend returns chat_id for new chats — set store + URL.
-				// Only update if the user hasn't navigated to a different chat
-				// while the request was in flight (prevents overwriting $chatId
-				// and causing spurious toast notifications / state duplication).
-				if (res.chat_id && $chatId !== res.chat_id && $chatId === _chatId) {
-					await chatId.set(res.chat_id);
-					if (!$temporaryChatEnabled && !embedded) {
-						window.history.replaceState(window.history.state, '', `/c/${res.chat_id}`);
-						await refreshChatList(localStorage.token);
-
-						// Persist chat-level params (system prompt, advanced
-						// params) that the backend doesn't receive in the
-						// chat completion request.  Files are now persisted
-						// by the backend at chat creation time.
-						if (Object.keys(params).length > 0) {
-							await updateChatById(localStorage.token, res.chat_id, {
-								params: params
-							});
-						}
+		if (res?.error) {
+			if (isCurrentChat() && history.messages[responseMessageId])
+				await handleOpenAIError(res.error, history.messages[responseMessageId]);
+			return false;
+		}
+		const newTaskIds = res?.task_ids ?? (res?.task_id ? [res.task_id] : []);
+		if (
+			res?.status !== true ||
+			!Array.isArray(newTaskIds) ||
+			newTaskIds.length === 0 ||
+			!newTaskIds.every((id: unknown) => typeof id === 'string' && id.trim().length > 0)
+		) {
+			if (isCurrentChat()) toast.error($i18n.t('Something went wrong :/'));
+			return false;
+		}
+		if (
+			(!_chatId && (typeof res.chat_id !== 'string' || !res.chat_id.trim())) ||
+			(res.chat_id != null &&
+				(typeof res.chat_id !== 'string' ||
+					!res.chat_id.trim() ||
+					(_chatId && res.chat_id !== _chatId)))
+		) {
+			if (isCurrentChat()) toast.error($i18n.t('Something went wrong :/'));
+			return false;
+		}
+		trackEvent('first_prompt_submitted', { has_files: (userMessage?.files?.length ?? 0) > 0 });
+		if (!isCurrentChat()) return true;
+		taskIds = [...(taskIds ?? []), ...newTaskIds];
+		// A sidebar/metadata failure cannot undo server acceptance or trigger another dispatch.
+		try {
+			if (res.chat_id && $chatId !== res.chat_id) {
+				await chatId.set(res.chat_id);
+				if (!$temporaryChatEnabled && !embedded) {
+					window.history.replaceState(window.history.state, '', `/c/${res.chat_id}`);
+					await refreshChatList(localStorage.token);
+					if (Object.keys(requestParams).length > 0) {
+						await updateChatById(localStorage.token, res.chat_id, { params: requestParams });
 					}
 				}
 			}
+		} catch {
+			console.warn('Request accepted; chat metadata refresh failed');
 		}
 
 		await tick();
-		if (shouldAutoScrollResponse()) {
+		if (history === sourceHistory && shouldAutoScrollResponse()) {
 			scrollToBottom();
 		}
+		return true;
 	};
 
 	const handleOpenAIError = async (
@@ -3564,29 +3919,48 @@
 		}
 	};
 
-	const continueResponse = async () => {
-		console.log('continueResponse');
-		const _chatId = JSON.parse(JSON.stringify($chatId));
-
-		if (history.currentId && history.messages[history.currentId].done == true) {
-			const responseMessage = history.messages[history.currentId];
-			responseMessage.done = false;
+	const continueResponse = async (): Promise<void> => {
+		const sourceHistory = history;
+		const sourceChatId = $chatId;
+		const responseMessage = history.currentId ? history.messages[history.currentId] : undefined;
+		if (!responseMessage?.done) return;
+		const model = $models.find(
+			(m) => m.id === (responseMessage.selectedModelId ?? responseMessage.model)
+		);
+		if (!model) {
+			toast.error($i18n.t('Model not found'));
+			return;
+		}
+		refreshPendingDispatch();
+		if (pendingDispatch) {
+			await recoverPendingDispatch(true);
+			return;
+		}
+		if (dispatchNotice) {
+			toast.error(dispatchNotice);
+			return;
+		}
+		responseMessage.done = false;
+		let accepted = false;
+		try {
 			await tick();
-
-			const model = $models
-				.filter((m) => m.id === (responseMessage?.selectedModelId ?? responseMessage.model))
-				.at(0);
-
-			if (model) {
-				await sendMessageSocket(
-					model,
-					createMessagesList(history, responseMessage.id),
-					history,
-					responseMessage.id,
-					_chatId,
-					{ continueResponse: true }
-				);
-			}
+			if (history !== sourceHistory || $chatId !== sourceChatId) return;
+			accepted = await sendMessageSocket(
+				model,
+				createMessagesList(history, responseMessage.id),
+				history,
+				responseMessage.id,
+				sourceChatId,
+				{
+					continueResponse: true,
+					operationIntent: JSON.stringify(['continue', responseMessage.id])
+				}
+			);
+		} catch {
+			console.warn('Failed to continue response');
+			if (history === sourceHistory) toast.error($i18n.t('Something went wrong :/'));
+		} finally {
+			if (!accepted) responseMessage.done = true;
 		}
 	};
 
@@ -3726,31 +4100,86 @@
 		if (res) chat = res;
 	};
 
-	const MAX_DRAFT_LENGTH = 5000;
-	let saveDraftTimeout: ReturnType<typeof setTimeout> | null = null;
-
-	const saveDraft = async (draft: Record<string, unknown>, chatId: string | null = null) => {
-		if (saveDraftTimeout) {
-			clearTimeout(saveDraftTimeout);
-		}
-
-		if (typeof draft.prompt === 'string' && draft.prompt.length < MAX_DRAFT_LENGTH) {
-			saveDraftTimeout = setTimeout(async () => {
-				await sessionStorage.setItem(
-					`chat-input${chatId ? `-${chatId}` : ''}`,
-					JSON.stringify(draft)
-				);
-			}, 500);
-		} else {
-			sessionStorage.removeItem(`chat-input${chatId ? `-${chatId}` : ''}`);
+	const draftScope = (): string =>
+		embedded && !$chatId && embeddedDraftKey
+			? `note:${embeddedDraftKey}`
+			: $temporaryChatEnabled
+				? 'temporary'
+				: $chatId || 'home';
+	const composerDraft = (): ComposerDraft =>
+		JSON.parse(
+			JSON.stringify({
+				prompt,
+				files: files.map((file) =>
+					Object.fromEntries(
+						Object.entries(file).filter(([name]) => !['user', 'access_grants'].includes(name))
+					)
+				),
+				selectedModels,
+				atSelectedModelId: atSelectedModel?.id,
+				selectedToolIds,
+				selectedSkillIds,
+				selectedFilterIds,
+				webSearchEnabled,
+				imageGenerationEnabled,
+				codeInterpreterEnabled,
+				selectedText: embedded ? selectedText : '',
+				params,
+				chatVariables
+			})
+		);
+	const saveDraft = (data: Record<string, unknown>): void => {
+		if (loading || !$user?.id) return;
+		try {
+			writeComposerDraft(sessionStorage, {
+				actor: $user.id,
+				scope: draftScope(),
+				draft: {
+					...composerDraft(),
+					prompt: typeof data.prompt === 'string' ? data.prompt : prompt
+				}
+			});
+		} catch {
+			toast.error($i18n.t('The request could not be saved safely. Sending is paused.'));
 		}
 	};
+	$: if (!loading)
+		saveDraft({ prompt, selectedModels, atSelectedModel, params, chatVariables, selectedText });
 
-	const clearDraft = async (chatId: string | null = null) => {
-		if (saveDraftTimeout) {
-			clearTimeout(saveDraftTimeout);
+	const restoreDraft = (scope: string): boolean => {
+		if (!$user?.id) return false;
+		try {
+			const input = readComposerDraft(
+				sessionStorage,
+				$user.id,
+				scope,
+				chat?.id === scope && chat.user_id === $user.id ? `chat-input-${scope}` : undefined
+			);
+			if (!input) return false;
+			prompt = input.prompt;
+			messageInput?.setText(input.prompt);
+			files = input.files;
+			selectedModels = input.selectedModels ?? selectedModels;
+			atSelectedModel = input.atSelectedModelId
+				? $models.find((model) => model.id === input.atSelectedModelId)
+				: undefined;
+			selectedToolIds = input.selectedToolIds ?? [];
+			selectedSkillIds = input.selectedSkillIds ?? [];
+			selectedFilterIds = input.selectedFilterIds ?? [];
+			webSearchEnabled = input.webSearchEnabled ?? false;
+			imageGenerationEnabled = input.imageGenerationEnabled ?? false;
+			codeInterpreterEnabled = input.codeInterpreterEnabled ?? false;
+			if (embedded) selectedText = input.selectedText ?? '';
+			params = input.params ?? params;
+			chatVariables = input.chatVariables ?? {};
+			return true;
+		} catch {
+			dispatchNotice = $i18n.t(
+				'The saved request could not be read. Sending is paused to avoid a duplicate.'
+			);
+			toast.error(dispatchNotice);
+			return true;
 		}
-		await sessionStorage.removeItem(`chat-input${chatId ? `-${chatId}` : ''}`);
 	};
 
 	const moveChatHandler = async (chatId: string, folderId: string): Promise<void> => {
@@ -4063,6 +4492,38 @@
 							}}
 						/>
 					{/if}
+
+					{#if pendingDispatch || dispatchNotice}
+						<div class="mx-4 my-2 rounded-lg border border-amber-400 p-3 text-sm" role="status">
+							<p>
+								{dispatchNotice ||
+									$i18n.t(
+										'A request is awaiting confirmation. Check it before sending another one.'
+									)}
+							</p>
+							{#if pendingDispatch}
+								<div class="mt-2 flex flex-wrap gap-3">
+									<button
+										type="button"
+										class="underline"
+										disabled={checkingDispatch}
+										on:click={() => recoverPendingDispatch()}
+										>{$i18n.t('Check request status')}</button
+									>
+									<button
+										type="button"
+										class="underline"
+										disabled={checkingDispatch}
+										on:click={() => recoverPendingDispatch(true)}
+										>{$i18n.t('Retry saved request')}</button
+									>
+									<a class="underline" href="mailto:support@airis.you"
+										>{$i18n.t('Contact support')}</a
+									>
+								</div>
+							{/if}
+						</div>
+					{/if}
 					<div id="chat-pane" class="flex flex-col flex-auto z-10 w-full @container overflow-auto">
 						{#if ($settings?.landingPageMode === 'chat' && !$selectedFolder) || createMessagesList(history, history.currentId).length > 0}
 							<div
@@ -4148,20 +4609,7 @@
 										{onUpload}
 										messageQueue={$chatRequestQueues[$chatId] ?? []}
 										{chatTasks}
-										onQueueSendNow={async (id) => {
-											const queue = $chatRequestQueues[$chatId] ?? [];
-											const item = queue.find((m) => m.id === id);
-											if (item) {
-												// Remove from queue
-												chatRequestQueues.update((q) => ({
-													...q,
-													[$chatId]: queue.filter((m) => m.id !== id)
-												}));
-												await stopResponse(false);
-												await tick();
-												await submitPrompt(item.prompt, item.files);
-											}
-										}}
+										onQueueSendNow={(id) => processNextInQueue($chatId, id)}
 										onQueueEdit={(id) => {
 											const queue = $chatRequestQueues[$chatId] ?? [];
 											const item = queue.find((m) => m.id === id);
@@ -4183,17 +4631,12 @@
 												[$chatId]: queue.filter((m) => m.id !== id)
 											}));
 										}}
-										onChange={(data) => {
-											if (!$temporaryChatEnabled) {
-												saveDraft(data, $chatId);
-											}
-										}}
+										onChange={saveDraft}
 										onWebSearchToggle={handleWebSearchToggle}
 										on:chatVariables={() => {
 											showChatVariablesModal = true;
 										}}
 										on:submit={async (e) => {
-											clearDraft($chatId);
 											if (e.detail || files.length > 0) {
 												await tick();
 
@@ -4270,8 +4713,8 @@
 										on:chatVariables={() => {
 											showChatVariablesModal = true;
 										}}
+										onChange={saveDraft}
 										on:submit={async (e) => {
-											clearDraft($chatId);
 											if (e.detail || files.length > 0) {
 												await tick();
 												submitHandler(withSelectedText(e.detail));
@@ -4299,7 +4742,6 @@
 									bind:showCommands
 									bind:dragged
 									{pendingOAuthTools}
-									toolServers={$toolServers}
 									{stopResponse}
 									{createMessagePair}
 									{onSelect}
@@ -4308,13 +4750,8 @@
 									on:chatVariables={() => {
 										showChatVariablesModal = true;
 									}}
-									onChange={(data) => {
-										if (!$temporaryChatEnabled) {
-											saveDraft(data);
-										}
-									}}
+									onChange={saveDraft}
 									on:submit={async (e) => {
-										clearDraft();
 										if (e.detail || files.length > 0) {
 											await tick();
 											submitHandler(withSelectedText(e.detail));
@@ -4336,13 +4773,6 @@
 						bind:pane={controlPane}
 						chatId={$chatId}
 						modelId={selectedModelIds?.at(0) ?? null}
-						models={selectedModelIds.reduce<Model[]>((a, e) => {
-							const model = $models.find((m) => m.id === e);
-							if (model) {
-								return [...a, model];
-							}
-							return a;
-						}, [])}
 						submitPrompt={submitHandler}
 						{stopResponse}
 						{showMessage}

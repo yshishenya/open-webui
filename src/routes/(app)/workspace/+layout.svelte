@@ -19,7 +19,6 @@
 	import { getSkillItems } from '$lib/apis/skills';
 	import { getToolList } from '$lib/apis/tools';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import HeaderBillingAccess from '$lib/components/airis/HeaderBillingAccess.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
 	import SplitCreateButton from '$lib/components/common/SplitCreateButton.svelte';
 	import { formatNumber } from '$lib/utils';
@@ -43,7 +42,8 @@
 	$: activeWorkspaceSection = $page.url.pathname.split('/')[2] ?? '';
 	$: visibleActions = $workspaceActions.filter((action) => action.visible ?? true);
 
-	const getCount = (res: any) => res?.total ?? (Array.isArray(res) ? res.length : null);
+	const getCount = (res: { total?: number; length?: number } | null) =>
+		res?.total ?? (Array.isArray(res) ? res.length : null);
 	const formatCount = (count: number | null) => formatNumber(count ?? 0);
 
 	const loadWorkspaceCounts = async () => {

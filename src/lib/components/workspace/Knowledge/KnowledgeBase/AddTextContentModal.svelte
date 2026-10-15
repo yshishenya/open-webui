@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import dayjs from 'dayjs';
 
-	import { onMount, getContext, createEventDispatcher } from 'svelte';
+	import { getContext, createEventDispatcher } from 'svelte';
 	const i18n = getContext('i18n');
 	const dispatch = createEventDispatcher();
 
@@ -70,7 +69,7 @@
 							class="w-full h-full min-h-[200px] bg-transparent outline-none resize-none text-base leading-relaxed placeholder:text-gray-300 dark:placeholder:text-gray-600"
 							bind:value={content}
 							placeholder={$i18n.t('Write something...')}
-						/>
+						></textarea>
 					</div>
 				</div>
 			</div>
@@ -86,7 +85,7 @@
 									voiceInput = false;
 								}}
 								onConfirm={(data) => {
-									const { text, filename } = data;
+									const { text } = data;
 									content = `${content}${text} `;
 
 									voiceInput = false;
@@ -149,18 +148,5 @@
 		/* display: none; <- Crashes Chrome on hover */
 		-webkit-appearance: none;
 		margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
-	}
-
-	.tabs::-webkit-scrollbar {
-		display: none; /* for Chrome, Safari and Opera */
-	}
-
-	.tabs {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
-	}
-
-	input[type='number'] {
-		-moz-appearance: textfield; /* Firefox */
 	}
 </style>

@@ -1,23 +1,24 @@
 <script lang="ts">
+	import type { ChatCodeExecution } from '$lib/utils/airis/chat_history';
 	import CodeExecutionModal from './CodeExecutionModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 
-	export let codeExecutions = [];
+	export let codeExecutions: ChatCodeExecution[] = [];
 
-	let selectedCodeExecution = null;
+	let selectedCodeExecution: ChatCodeExecution | null | undefined = null;
 	let showCodeExecutionModal = false;
 
 	$: if (codeExecutions) {
 		updateSelectedCodeExecution();
 	}
 
-	const updateSelectedCodeExecution = () => {
+	const updateSelectedCodeExecution = (): void => {
 		if (selectedCodeExecution) {
 			selectedCodeExecution = codeExecutions.find(
-				(execution) => execution.id === selectedCodeExecution.id
+				(execution) => execution.id === selectedCodeExecution!.id
 			);
 		}
 	};

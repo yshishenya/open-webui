@@ -1,22 +1,20 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { getContext } from 'svelte';
 
 	const i18n = getContext('i18n');
 
-	import { user as _user, channels, socket } from '$lib/stores';
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-	import { getChannels, getDMChannelByUserId } from '$lib/apis/channels';
+	import { user as _user } from '$lib/stores';
+	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import { getDMChannelByUserId } from '$lib/apis/channels';
 
-	import ChatBubbles from '$lib/components/icons/ChatBubbles.svelte';
-	import ChatBubble from '$lib/components/icons/ChatBubble.svelte';
 	import ChatBubbleOval from '$lib/components/icons/ChatBubbleOval.svelte';
 	import { goto } from '$app/navigation';
 	import Emoji from '$lib/components/common/Emoji.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
-	export let user = null;
+	export let user: import('$lib/apis/users').UserInfoResponse | null = null;
 
-	const directMessageHandler = async () => {
+	const directMessageHandler = async (): Promise<void> => {
 		if (!user) {
 			return;
 		}
@@ -54,8 +52,8 @@
 							<span class="relative flex size-2">
 								<span
 									class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-								/>
-								<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+								></span>
+								<span class="relative inline-flex rounded-full size-2 bg-green-500"></span>
 							</span>
 						</div>
 
@@ -63,7 +61,7 @@
 					{:else}
 						<div>
 							<span class="relative flex size-2">
-								<span class="relative inline-flex rounded-full size-2 bg-gray-500" />
+								<span class="relative inline-flex rounded-full size-2 bg-gray-500"></span>
 							</span>
 						</div>
 
@@ -75,7 +73,7 @@
 
 		{#if user?.status_emoji || user?.status_message}
 			<div class="mx-2 mt-2">
-				<Tooltip content={user?.status_message}>
+				<Tooltip content={user?.status_message ?? ''}>
 					<div
 						class="w-full gap-2 px-2.5 py-1.5 rounded-xl bg-gray-50 dark:text-white dark:bg-gray-900/50 text-black transition text-xs flex items-center"
 					>
@@ -104,7 +102,7 @@
 
 		{#if (user?.groups ?? []).length > 0}
 			<div class="mx-3.5 mt-2 flex flex-wrap gap-0.5 max-h-20 overflow-y-auto">
-				{#each user.groups as group}
+				{#each user.groups ?? [] as group}
 					<div
 						class="px-1.5 py-0.5 rounded-lg bg-gray-50 dark:text-white dark:bg-gray-900/50 text-black transition text-xs"
 					>

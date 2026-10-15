@@ -1,14 +1,14 @@
 <script lang="ts">
-	import DOMPurify from 'dompurify';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 	import { marked } from 'marked';
 
-	import { getAdminDetails, userSignOut } from '$lib/apis/auths';
-	import { onMount, tick, getContext } from 'svelte';
+	import { type AdminDetails, getAdminDetails, userSignOut } from '$lib/apis/auths';
+	import { onMount, getContext } from 'svelte';
 	import { config } from '$lib/stores';
 
 	const i18n = getContext('i18n');
 
-	let adminDetails = null;
+	let adminDetails: AdminDetails | null = null;
 
 	onMount(async () => {
 		adminDetails = await getAdminDetails(localStorage.token).catch((err) => {
@@ -29,7 +29,7 @@
 					style="white-space: pre-wrap;"
 				>
 					{#if ($config?.ui?.pending_user_overlay_title ?? '').trim() !== ''}
-						{$config.ui.pending_user_overlay_title}
+						{$config?.ui?.pending_user_overlay_title}
 					{:else}
 						{$i18n.t('Account Activation Pending')}<br />
 						{$i18n.t('Contact Admin for Airis Access')}
@@ -41,9 +41,12 @@
 					style="white-space: pre-wrap;"
 				>
 					{#if ($config?.ui?.pending_user_overlay_content ?? '').trim() !== ''}
-						{@html DOMPurify.sanitize(
-							marked.parse(($config?.ui?.pending_user_overlay_content ?? '').replace(/\n/g, '<br>'))
-						)}
+						<div
+							use:sanitizedHtml={marked.parse(
+								($config?.ui?.pending_user_overlay_content ?? '').replace(/\n/g, '<br>'),
+								{ async: false }
+							)}
+						></div>
 					{:else}
 						{$i18n.t('Your account status is currently pending activation.')}{'\n'}{$i18n.t(
 							'To access the Airis, please reach out to the administrator. Admins can manage user statuses from the Admin Panel.'

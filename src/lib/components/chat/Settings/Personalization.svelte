@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Switch from '$lib/components/common/Switch.svelte';
-	import { config, settings } from '$lib/stores';
+	import { config, settings, type Settings } from '$lib/stores';
 	import { createEventDispatcher, onMount, getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as i18nType } from 'i18next';
@@ -10,6 +10,7 @@
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import MemoryModal from './Personalization/MemoryModal.svelte';
+	import type { MemoryEntry } from '$lib/apis/memories';
 	import { deleteMemoriesByUserId, deleteMemoryById, getMemories } from '$lib/apis/memories';
 	import { toast } from 'svelte-sonner';
 	import UserSettingRow from './UserSettingRow.svelte';
@@ -24,28 +25,20 @@
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	export let saveSettings: (settings: any) => void | Promise<void>;
+	export let saveSettings: (settings: Partial<Settings>) => void | Promise<void>;
 
 	// Addons
 	let enableMemory = false;
-	let memories: Memory[] = [];
+	let memories: MemoryEntry[] = [];
 	let loadingMemories = true;
 
 	let showMemoryModal = false;
-	let selectedMemory: Memory | null = null;
+	let selectedMemory: MemoryEntry | null = null;
 	let showClearConfirmDialog = false;
 	let showDeleteConfirm = false;
 	let query = '';
 	const actionButtonClass =
 		'shrink-0 text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-500 dark:hover:text-white';
-
-	type Memory = {
-		id: string;
-		content: string;
-		type?: string;
-		path?: string;
-		updated_at?: number;
-	};
 
 	const loadMemories = async () => {
 		loadingMemories = true;
@@ -57,12 +50,12 @@
 		loadingMemories = false;
 	};
 
-	const confirmDeleteMemory = (memory: Memory) => {
+	const confirmDeleteMemory = (memory: MemoryEntry): void => {
 		selectedMemory = memory;
 		showDeleteConfirm = true;
 	};
 
-	const editMemory = (memory: Memory) => {
+	const editMemory = (memory: MemoryEntry): void => {
 		selectedMemory = memory;
 		showMemoryModal = true;
 	};
@@ -326,7 +319,7 @@
 
 <MemoryModal
 	bind:show={showMemoryModal}
-	memory={selectedMemory as any}
+	memory={selectedMemory}
 	on:save={async () => {
 		await loadMemories();
 	}}

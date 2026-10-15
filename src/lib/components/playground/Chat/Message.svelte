@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ChatHistoryMessage } from '$lib/utils/airis/chat_history';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let message;
-	export let idx;
+	export let message: Required<Pick<ChatHistoryMessage, 'role' | 'content'>>;
+	export let idx: number;
 
-	export let onDelete;
+	export let onDelete: () => void;
 
 	let textAreaElement: HTMLTextAreaElement;
 
@@ -36,18 +39,18 @@
 				role: message.role === 'user' ? $i18n.t('a user') : $i18n.t('an assistant')
 			})}
 			rows="1"
-			on:input={(e) => {
+			on:input={() => {
 				textAreaElement.style.height = '';
 				textAreaElement.style.height = textAreaElement.scrollHeight + 'px';
 			}}
-			on:focus={(e) => {
+			on:focus={() => {
 				textAreaElement.style.height = '';
 				textAreaElement.style.height = textAreaElement.scrollHeight + 'px';
 
 				// e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
 			}}
 			bind:value={message.content}
-		/>
+		></textarea>
 	</div>
 
 	<div class=" pt-1">

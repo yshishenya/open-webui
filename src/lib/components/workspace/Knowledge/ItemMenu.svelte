@@ -11,8 +11,8 @@
 
 	const i18n = getContext('i18n');
 
-	export let onExport: null | Function = null;
-	export let onClose: Function = () => {};
+	export let onExport: null | (() => unknown) = null;
+	export let onClose: () => unknown = () => {};
 
 	let show = false;
 

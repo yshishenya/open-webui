@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { decode } from 'html-entities';
-	import { onMount, getContext } from 'svelte';
+	import { getContext, type ComponentProps } from 'svelte';
 	const i18n = getContext('i18n');
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
-	import { marked, type Token } from 'marked';
+	import { marked, type Token, type Tokens } from 'marked';
 	import { copyToClipboard, unescapeHtml } from '$lib/utils';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
@@ -30,7 +30,7 @@
 	export let tokens: Token[];
 	export let top = true;
 	export let attributes = {};
-	export let sourceIds = [];
+	export let sourceIds: string[] = [];
 
 	export let done = true;
 
@@ -44,28 +44,51 @@
 	export let topPadding = false;
 	export let allowEmbeds = true;
 
-	export let onSave: Function = () => {};
-	export let onUpdate: Function = () => {};
-	export let onPreview: Function = () => {};
+	export let onSave: (change: {
+		raw: string;
+		oldContent: string | undefined;
+		newContent: string;
+	}) => unknown = () => {};
+	export let onUpdate: NonNullable<ComponentProps<typeof CodeBlock>['onUpdate']> = () => {};
+	export let onPreview: NonNullable<ComponentProps<typeof CodeBlock>['onPreview']> = () => {};
 
-	export let onTaskClick: Function = () => {};
-	export let onSourceClick: Function = () => {};
+	export let onTaskClick: (task: {
+		id: string;
+		token: Token;
+		tokenIdx: number;
+		item: Tokens.ListItem;
+		itemIdx: number;
+		checked: boolean;
+	}) => unknown = () => {};
+	export let onSourceClick: NonNullable<
+		ComponentProps<typeof MarkdownInlineTokens>['onSourceClick']
+	> = () => {};
 
 	const headerComponent = (depth: number) => {
 		return 'h' + depth;
 	};
 
+	type DetailToken = Token &
+		NonNullable<ComponentProps<typeof ConsecutiveDetailsGroup>['tokens']>[number] & {
+			text?: string;
+		};
+	type DisplayToken =
+		| (Token & { tokens?: Token[] })
+		| { type: 'detail_group'; items: DetailToken[] };
+
 	const GROUPABLE_DETAIL_TYPES = new Set(['tool_calls', 'reasoning', 'code_interpreter']);
 
-	const isGroupableDetailToken = (token: Token & { attributes?: { type?: string } }) => {
+	const isGroupableDetailToken = (
+		token: Token & { attributes?: { type?: string } }
+	): token is DetailToken => {
 		return token?.type === 'details' && GROUPABLE_DETAIL_TYPES.has(token?.attributes?.type ?? '');
 	};
 
-	const getDisplayTokens = (tokenList: Token[] = []) => {
-		const displayTokens = [];
-		let detailGroup = [];
+	const getDisplayTokens = (tokenList: Token[] = []): DisplayToken[] => {
+		const displayTokens: DisplayToken[] = [];
+		let detailGroup: DetailToken[] = [];
 
-		const flushDetailGroup = () => {
+		const flushDetailGroup = (): void => {
 			if (detailGroup.length > 1) {
 				displayTokens.push({
 					type: 'detail_group',
@@ -92,7 +115,7 @@
 		return displayTokens;
 	};
 
-	const getDetailTextContent = (token) => {
+	const getDetailTextContent = (token: (Token & { text?: string }) | null | undefined): string => {
 		return decode(token?.text || '')
 			.replace(/<summary>.*?<\/summary>/gi, '')
 			.trim();
@@ -107,9 +130,7 @@
 		displayTokens.length === 1 &&
 		(displayTokens[0]?.type === 'paragraph' || displayTokens[0]?.type === 'text');
 
-	const exportTableToCSVHandler = (token, tokenIdx = 0) => {
-		console.log('Exporting table to CSV');
-
+	const exportTableToCSVHandler = (token: Tokens.Table, tokenIdx = 0): void => {
 		// Extract header row text, decode HTML entities, and escape for CSV.
 		const header = token.header.map(
 			(headerCell) => `"${decode(headerCell.text).replace(/"/g, '""')}"`
@@ -119,7 +140,9 @@
 		const rows = token.rows.map((row) =>
 			row.map((cell) => {
 				// Map tokens into a single text
-				const cellContent = cell.tokens.map((token) => token.text).join('');
+				const cellContent = cell.tokens
+					.map((token: Token & { text?: string }) => token.text)
+					.join('');
 				// Decode HTML entities and escape double quotes, wrap in double quotes
 				return `"${decode(cellContent).replace(/"/g, '""')}"`;
 			})
@@ -130,10 +153,6 @@
 
 		// Join the rows using commas (,) as the separator and rows using newline (\n).
 		const csvContent = csvData.map((row) => row.join(',')).join('\n');
-
-		// Log rows and CSV content to ensure everything is correct.
-		console.log(csvData);
-		console.log(csvContent);
 
 		// To handle Unicode characters, you need to prefix the data with a BOM:
 		const bom = '\uFEFF'; // BOM for UTF-8
@@ -180,8 +199,8 @@
 						newContent: value
 					});
 				}}
-				{onUpdate}
-				{onPreview}
+				onUpdate={(token, codeBlockId) => onUpdate(token, codeBlockId)}
+				onPreview={(code) => onPreview(code)}
 			/>
 		{:else}
 			{token.text}
@@ -263,7 +282,7 @@
 						class="p-1 rounded-lg bg-transparent transition"
 						on:click={(e) => {
 							e.stopPropagation();
-							exportTableToCSVHandler(token, tokenIdx);
+							exportTableToCSVHandler(token as Tokens.Table, tokenIdx);
 						}}
 					>
 						<Download className=" size-3.5" strokeWidth="1.5" />
@@ -274,7 +293,7 @@
 	{:else if token.type === 'blockquote'}
 		{@const alert = alertComponent(token)}
 		{#if alert}
-			<AlertRenderer {token} {alert} />
+			<AlertRenderer {alert} />
 		{:else}
 			<blockquote dir="auto">
 				<svelte:self
@@ -307,7 +326,7 @@
 										tokenIdx: tokenIdx,
 										item: item,
 										itemIdx: itemIdx,
-										checked: e.target.checked
+										checked: (e.currentTarget as HTMLInputElement).checked
 									});
 								}}
 							/>
@@ -344,7 +363,7 @@
 										tokenIdx: tokenIdx,
 										item: item,
 										itemIdx: itemIdx,
-										checked: e.target.checked
+										checked: (e.currentTarget as HTMLInputElement).checked
 									});
 								}}
 							/>
@@ -411,7 +430,6 @@
 							messageDone={done}
 							className="w-full"
 							buttonClassName={detailButtonClassName}
-							dir="auto"
 						>
 							<div class="mb-1.5" slot="content">
 								<svelte:self
@@ -437,7 +455,6 @@
 							messageDone={done}
 							className="w-full"
 							buttonClassName={detailButtonClassName}
-							dir="auto"
 						/>
 					{/if}
 				{/each}
@@ -464,7 +481,6 @@
 				messageDone={done}
 				className="w-full space-y-2"
 				buttonClassName={detailButtonClassName}
-				dir="auto"
 			>
 				<div class=" mb-1.5" slot="content">
 					<svelte:self
@@ -490,11 +506,10 @@
 				messageDone={done}
 				className="w-full space-y-2"
 				buttonClassName={detailButtonClassName}
-				dir="auto"
 			/>
 		{/if}
 	{:else if token.type === 'html'}
-		<HtmlToken {id} {token} {onSourceClick} />
+		<HtmlToken {id} {token} />
 	{:else if token.type === 'iframe'}
 		<iframe
 			src="{WEBUI_BASE_URL}/api/v1/files/{token.fileId}/content"
@@ -503,9 +518,13 @@
 			frameborder="0"
 			on:load={(e) => {
 				try {
-					e.currentTarget.style.height =
-						e.currentTarget.contentWindow.document.body.scrollHeight + 20 + 'px';
-				} catch {}
+					const frame = e.currentTarget as HTMLIFrameElement;
+					const body = frame.contentWindow?.document.body;
+					if (body) frame.style.height = body.scrollHeight + 20 + 'px';
+				} catch {
+					// Inaccessible frames retain their existing height.
+					return;
+				}
 			}}
 		></iframe>
 	{:else if token.type === 'paragraph'}

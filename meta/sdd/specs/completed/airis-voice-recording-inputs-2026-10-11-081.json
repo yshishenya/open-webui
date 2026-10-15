@@ -1,0 +1,198 @@
+{
+  "spec_id": "airis-voice-recording-inputs-2026-10-11-081",
+  "title": "AIRIS voice recording inputs",
+  "generated": "2026-10-11T20:29:50.225879Z",
+  "last_updated": "2026-10-11T20:43:17.651025Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__voice-recording-inputs.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T20:29:50.618633Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T20:43:17.650734Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS voice recording inputs",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce missing config and private transcript logs",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T20:31:53.400510Z",
+        "journaled_at": "2026-10-11T20:31:53.402612Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Type existing browser recording and guard missing inputs",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T20:40:15.547198Z",
+        "journaled_at": "2026-10-11T20:40:15.549279Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce missing config and private transcript logs",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T20:31:53.400317Z",
+        "needs_journaling": false,
+        "status_note": "Original22 scenarios15 pass/7 fail. Incomplete config3, missing/undefined web constructor2, transcript logging1 and pre-observer destroy1 fail;15 lifetime scenarios unchanged pass. MessageInput/API and client-loaded parent traced.",
+        "journaled_at": "2026-10-11T20:31:53.401439Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Type existing browser recording and guard missing inputs",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T20:40:15.547030Z",
+        "needs_journaling": false,
+        "status_note": "27 actual-source scenarios pass; original15 pass/12 fail. Typed browser API, config/observer guards, private logs removed. Mode captured before permission; unknown server config rejects before media capture; no hidden paid upload.",
+        "journaled_at": "2026-10-11T20:40:15.548123Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify recording regressions and preserved data",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T20:43:17.193989Z",
+        "journaled_at": "2026-10-11T20:43:17.195984Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify recording regressions and preserved data",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T20:43:17.193809Z",
+        "needs_journaling": false,
+        "status_note": "27 focused and2502 full pass, failed/pending/todo0; types92 to80/24, ESLint191 unchanged,new0. Scoped/futureCI354/format pass,2 client/server compilations,CSS identical;270 SDD valid. Backend1064/25 reused after565 hashes. Production/21 foreign files/262 volumes/12 neighbors preserved; no new compiled-browser or production release.",
+        "journaled_at": "2026-10-11T20:43:17.194804Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T20:31:53.401432Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce missing config and private transcript logs",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Original22 scenarios15 pass/7 fail. Incomplete config3, missing/undefined web constructor2, transcript logging1 and pre-observer destroy1 fail;15 lifetime scenarios unchanged pass. MessageInput/API and client-loaded parent traced.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:31:53.402606Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce missing config and private transcript logs",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:40:15.548117Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Type existing browser recording and guard missing inputs",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 27 actual-source scenarios pass; original15 pass/12 fail. Typed browser API, config/observer guards, private logs removed. Mode captured before permission; unknown server config rejects before media capture; no hidden paid upload.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:40:15.549275Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Type existing browser recording and guard missing inputs",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T20:43:17.194799Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify recording regressions and preserved data",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: 27 focused and2502 full pass, failed/pending/todo0; types92 to80/24, ESLint191 unchanged,new0. Scoped/futureCI354/format pass,2 client/server compilations,CSS identical;270 SDD valid. Backend1064/25 reused after565 hashes. Production/21 foreign files/262 volumes/12 neighbors preserved; no new compiled-browser or production release.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T20:43:17.195980Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify recording regressions and preserved data",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

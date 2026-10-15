@@ -1,0 +1,141 @@
+{
+  "spec_id": "airis-memory-view-contract-2026-10-12-103",
+  "title": "AIRIS memory list and editor contract",
+  "generated": "2026-10-12T10:22:41.825092Z",
+  "last_updated": "2026-10-12T17:24:17.850502Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 4,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__memory-view-contract.md",
+    "status": "completed",
+    "progress_percentage": 100,
+    "activated_date": "2026-10-12T17:18:49.983427Z",
+    "completed_date": "2026-10-12T17:24:17.850250Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS memory list and editor contract",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Share existing memory view fields and settings contract",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T17:20:08.638592Z",
+        "journaled_at": "2026-10-12T17:20:08.640315Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify unchanged behavior and publish",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T17:24:17.376387Z",
+        "journaled_at": "2026-10-12T17:24:17.379030Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace list, editor, save callback and server fields; reuse concrete types",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T17:20:08.638446Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T17:20:08.639293Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify compiled equivalence, frontend and preservation; commit and push",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T17:24:17.376208Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T17:24:17.377563Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T17:20:08.639288Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace list, editor, save callback and server fields; reuse concrete types",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:20:08.640311Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Share existing memory view fields and settings contract",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:24:17.377554Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify compiled equivalence, frontend and preservation; commit and push",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:24:17.379022Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify unchanged behavior and publish",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

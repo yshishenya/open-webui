@@ -45,7 +45,9 @@
 
 		if (res) {
 			toast.success($i18n.t('Tool updated successfully'));
-			tools.set(await getTools(localStorage.token));
+			await getTools(localStorage.token)
+				.then((items) => tools.set(items))
+				.catch(() => toast.error($i18n.t('Could not load tools. Try again.')));
 
 			// await goto('/workspace/tools');
 		}
@@ -83,11 +85,9 @@
 			id={tool.id}
 			name={tool.name}
 			meta={tool.meta}
-			content={tool.content}
+			content={tool.content ?? ''}
 			accessGrants={tool.access_grants ?? []}
-			onSave={(value) => {
-				saveHandler(value);
-			}}
+			onSave={(value) => saveHandler(value)}
 		/>
 	</div>
 {:else}

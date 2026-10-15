@@ -1,9 +1,11 @@
 <script lang="ts">
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
-	import { config, user, models as _models, temporaryChatEnabled } from '$lib/stores';
+	import { type Model, config, user, models as _models, temporaryChatEnabled } from '$lib/stores';
 	import { onMount, getContext } from 'svelte';
 
 	import { fade } from 'svelte/transition';
@@ -14,11 +16,11 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let modelIds = [];
-	export let models = [];
-	export let atSelectedModel;
+	export let modelIds: string[] = [];
+	export let models: (Model | undefined)[] = [];
+	export let atSelectedModel: Model | null | undefined;
 
 	export let onSelect: import('svelte').ComponentProps<Suggestions>['onSelect'] = () => {};
 
@@ -62,7 +64,7 @@
 								alt="logo"
 								draggable="false"
 								on:error={(e) => {
-									e.currentTarget.src = '/favicon.png';
+									(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 								}}
 							/>
 						</Tooltip>

@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { onMount, getContext } from 'svelte';
-	import { getCodeExecutionConfig, setCodeExecutionConfig } from '$lib/apis/configs';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import {
+		getCodeExecutionConfig,
+		setCodeExecutionConfig,
+		type CodeExecutionConfig
+	} from '$lib/apis/configs';
 
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 
@@ -11,11 +17,11 @@
 	import AdminSettingSection from './AdminSettingSection.svelte';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
-	let config: any = null;
+	let config: CodeExecutionConfig | null = null;
 
 	let engines = ['pyodide', 'jupyter'];
 	const inputClass =
@@ -23,8 +29,8 @@
 	const textareaClass =
 		'w-full rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 py-1.5 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 
-	const submitHandler = async () => {
-		const res = await setCodeExecutionConfig(localStorage.token, config);
+	const submitHandler = async (): Promise<void> => {
+		await setCodeExecutionConfig(localStorage.token, config);
 	};
 
 	onMount(async () => {

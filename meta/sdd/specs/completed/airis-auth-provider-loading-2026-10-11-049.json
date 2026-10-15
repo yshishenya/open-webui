@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-auth-provider-loading-2026-10-11-049",
+  "title": "airis-auth-provider-loading",
+  "generated": "2026-10-11T06:55:34.062243Z",
+  "last_updated": "2026-10-11T07:38:24.999613Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-11__bugfix__auth-provider-loading.md",
+    "status": "completed",
+    "activated_date": "2026-10-11T06:56:30.257958Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-11T07:38:24.997999Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Recover social provider loading without stale events",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace active provider paths and reproduce loading failures",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T07:38:15.741922Z",
+        "journaled_at": "2026-10-11T07:38:15.791205Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse SDK loading and discard stale widget events",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T07:38:20.947325Z",
+        "journaled_at": "2026-10-11T07:38:20.973806Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify whole frontend, SDK contracts and state preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-11T07:38:22.505418Z",
+        "journaled_at": "2026-10-11T07:38:22.518025Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace active provider paths and reproduce loading failures",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T07:38:15.740311Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T07:38:15.756627Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse SDK loading and discard stale widget events",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T07:38:20.945445Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T07:38:20.958335Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify whole frontend, SDK contracts and state preservation",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-11T07:38:22.504552Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-11T07:38:22.510310Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-11T07:38:15.756578Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace active provider paths and reproduce loading failures",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-11T07:38:15.791175Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace active provider paths and reproduce loading failures",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-11T07:38:20.958302Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse SDK loading and discard stale widget events",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-11T07:38:20.973780Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse SDK loading and discard stale widget events",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-11T07:38:22.510281Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify whole frontend, SDK contracts and state preservation",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-11T07:38:22.518002Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify whole frontend, SDK contracts and state preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

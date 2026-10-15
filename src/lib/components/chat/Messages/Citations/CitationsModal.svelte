@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getContext, onMount, tick } from 'svelte';
+	import { getContext } from 'svelte';
+	import type { Citation } from '$lib/utils/airis/citations';
 
 	const i18n = getContext('i18n');
 
@@ -9,22 +10,22 @@
 
 	export let id = '';
 	export let show = false;
-	export let citations = [];
+	export let citations: Citation[] = [];
 	export let showPercentage = false;
 	export let showRelevance = true;
 
 	let showCitationModal = false;
-	let selectedCitation: any = null;
+	let selectedCitation: Citation | null = null;
 
-	export const showCitation = (citation) => {
+	export const showCitation = (citation: Citation): void => {
 		selectedCitation = citation;
 		showCitationModal = true;
 	};
 
-	const decodeString = (str: string) => {
+	const decodeString = (str: string): string => {
 		try {
 			return decodeURIComponent(str);
-		} catch (e) {
+		} catch {
 			return str;
 		}
 	};

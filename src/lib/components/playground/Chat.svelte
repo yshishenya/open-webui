@@ -6,14 +6,14 @@
 
 	import { goto } from '$app/navigation';
 	import { onMount, tick, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { ComponentProps } from 'svelte';
+	import type { ChatHistory } from '$lib/utils/airis/chat_history';
+	import type { GenerationParams } from '$lib/utils/airis/frontend-contracts';
 
-	import {
-		OLLAMA_API_BASE_URL,
-		OPENAI_API_BASE_URL,
-		WEBUI_API_BASE_URL,
-		WEBUI_BASE_URL
-	} from '$lib/constants';
-	import { WEBUI_NAME, config, user, models, settings } from '$lib/stores';
+	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { config, user, models, settings } from '$lib/stores';
 
 	import { chatCompletion } from '$lib/apis/openai';
 
@@ -26,42 +26,36 @@
 	import Messages from '$lib/components/playground/Chat/Messages.svelte';
 	import AdvancedParams from '$lib/components/chat/Settings/Advanced/AdvancedParams.svelte';
 	import ChevronUp from '../icons/ChevronUp.svelte';
-	import ChevronDown from '../icons/ChevronDown.svelte';
 	import Pencil from '../icons/Pencil.svelte';
-	import Cog6 from '../icons/Cog6.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
 	import Modal from '../common/Modal.svelte';
 	import XMark from '../icons/XMark.svelte';
-	import Sidebar from '../common/Sidebar.svelte';
-	import ArrowRight from '../icons/ArrowRight.svelte';
 	import Download from '../icons/Download.svelte';
 	import EllipsisHorizontal from '../icons/EllipsisHorizontal.svelte';
 
-	const i18n = getContext('i18n');
-
-	let loaded = false;
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	let selectedModelId = '';
 	let loading = false;
 	let stopResponseFlag = false;
+	let responseController: AbortController | null = null;
 
 	let systemTextareaElement: HTMLTextAreaElement;
 	let messagesContainerElement: HTMLDivElement;
 
 	let showSystem = false;
-	let showSettings = false;
 	let showControls = false;
 
-	let params: Record<string, any> = {};
+	let params: GenerationParams = {};
 
 	let system = '';
 
 	let role = 'user';
 	let message = '';
 
-	let messages = [];
+	let messages: NonNullable<ComponentProps<typeof Messages>['messages']> = [];
 
-	const scrollToBottom = () => {
+	const scrollToBottom = (): void => {
 		const element = messagesContainerElement;
 
 		if (element) {
@@ -69,12 +63,12 @@
 		}
 	};
 
-	const stopResponse = () => {
+	const stopResponse = (): void => {
 		stopResponseFlag = true;
-		console.log('stopResponse');
+		responseController?.abort('User: Stop Response');
 	};
 
-	const resizeSystemTextarea = async () => {
+	const resizeSystemTextarea = async (): Promise<void> => {
 		await tick();
 		if (systemTextareaElement) {
 			systemTextareaElement.style.height = '';
@@ -86,7 +80,7 @@
 		resizeSystemTextarea();
 	}
 
-	const chatCompletionHandler = async () => {
+	const chatCompletionHandler = async (): Promise<void> => {
 		if (selectedModelId === '') {
 			toast.error($i18n.t('Please select a model.'));
 			return;
@@ -100,7 +94,7 @@
 
 		// Build params object, filtering out null/undefined values
 		const activeParams = Object.fromEntries(
-			Object.entries(params).filter(([_, v]) => v !== null && v !== undefined)
+			Object.entries(params).filter(([, value]) => value !== null && value !== undefined)
 		);
 
 		const [res, controller] = await chatCompletion(
@@ -119,13 +113,13 @@
 				].filter((message) => message),
 				...(Object.keys(activeParams).length > 0 ? activeParams : {})
 			},
-			`${WEBUI_BASE_URL}/api`
+			`${WEBUI_BASE_URL}/api`,
+			responseController ?? undefined
 		);
+		if (!res?.ok || !res.body) throw new Error('Playground response unavailable.');
 
-		let responseMessage;
-		if (messages.at(-1)?.role === 'assistant') {
-			responseMessage = messages.at(-1);
-		} else {
+		let responseMessage = messages.at(-1);
+		if (responseMessage?.role !== 'assistant') {
 			responseMessage = {
 				role: 'assistant',
 				content: ''
@@ -137,13 +131,13 @@
 		await tick();
 		const textareaElement = document.getElementById(`assistant-${messages.length - 1}-textarea`);
 
-		if (res && res.ok) {
-			const reader = res.body
-				.pipeThrough(new TextDecoderStream())
-				.pipeThrough(splitStream('\n'))
-				.getReader();
+		const reader = res.body
+			.pipeThrough(new TextDecoderStream())
+			.pipeThrough(splitStream('\n'))
+			.getReader();
 
-			while (true) {
+		try {
+			for (;;) {
 				const { value, done } = await reader.read();
 				if (done || stopResponseFlag) {
 					if (stopResponseFlag) {
@@ -153,43 +147,39 @@
 				}
 
 				try {
-					let lines = value.split('\n');
+					const lines = value.split('\n');
 
 					for (const line of lines) {
 						if (line !== '') {
-							console.log(line);
-							if (line === 'data: [DONE]') {
-								// responseMessage.done = true;
-								messages = messages;
-							} else {
-								let data = JSON.parse(line.replace(/^data: /, ''));
-								console.log(data);
-
-								if (responseMessage.content == '' && data.choices[0].delta.content == '\n') {
-									continue;
-								} else {
-									textareaElement.style.height = textareaElement.scrollHeight + 'px';
-
-									responseMessage.content += data.choices[0].delta.content ?? '';
-									messages = messages;
-
-									textareaElement.style.height = textareaElement.scrollHeight + 'px';
-
-									await tick();
-								}
-							}
+							if (line.trim() === 'data: [DONE]') return;
+							const data: { choices?: { delta?: { content?: unknown } }[] } = JSON.parse(
+								line.replace(/^data: /, '')
+							);
+							const content = data.choices?.[0]?.delta?.content;
+							if (typeof content !== 'string') continue;
+							if (responseMessage.content === '' && content === '\n') continue;
+							if (textareaElement)
+								textareaElement.style.height = textareaElement.scrollHeight + 'px';
+							responseMessage.content += content;
+							messages = messages;
+							if (textareaElement)
+								textareaElement.style.height = textareaElement.scrollHeight + 'px';
+							await tick();
 						}
 					}
-				} catch (error) {
-					console.log(error);
+				} catch {
+					console.error('Invalid playground stream event.');
 				}
 
 				scrollToBottom();
 			}
+		} finally {
+			controller.abort();
+			reader.releaseLock();
 		}
 	};
 
-	const addHandler = async () => {
+	const addHandler = async (): Promise<void> => {
 		if (message) {
 			messages.push({
 				role: role,
@@ -202,23 +192,30 @@
 		}
 	};
 
-	const submitHandler = async () => {
-		if (selectedModelId) {
+	const submitHandler = async (): Promise<void> => {
+		if (!selectedModelId || loading) return;
+		loading = true;
+		responseController = new AbortController();
+		try {
 			await addHandler();
-
-			loading = true;
 			await chatCompletionHandler();
-
+		} catch {
+			if (!stopResponseFlag) {
+				console.error('Playground completion failed.');
+				toast.error($i18n.t('Something went wrong :/'));
+			}
+		} finally {
 			loading = false;
 			stopResponseFlag = false;
+			responseController = null;
 		}
 	};
 
-	const exportToJson = () => {
+	const exportToJson = (): void => {
 		const now = Math.floor(Date.now() / 1000);
 
 		// Convert flat messages array to history map format
-		const messagesMap: Record<string, any> = {};
+		const messagesMap: ChatHistory['messages'] = {};
 		let currentId: string | null = null;
 		let parentId: string | null = null;
 
@@ -282,7 +279,7 @@
 		toast.success($i18n.t('Chat exported successfully'));
 	};
 
-	const downloadTxt = () => {
+	const downloadTxt = (): void => {
 		let chatText = '';
 
 		// Add system message if present
@@ -314,7 +311,6 @@
 		} else {
 			selectedModelId = '';
 		}
-		loaded = true;
 	});
 </script>
 
@@ -381,7 +377,7 @@
 									resizeSystemTextarea();
 								}}
 								rows="4"
-							/>
+							></textarea>
 						</div>
 					</div>
 				</Collapsible>
@@ -456,15 +452,15 @@
 								role: role === 'user' ? $i18n.t('a user') : $i18n.t('an assistant')
 							})}
 							on:input={(e) => {
-								e.target.style.height = '';
-								e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+								e.currentTarget.style.height = '';
+								e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 150) + 'px';
 							}}
 							on:focus={(e) => {
-								e.target.style.height = '';
-								e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+								e.currentTarget.style.height = '';
+								e.currentTarget.style.height = Math.min(e.currentTarget.scrollHeight, 150) + 'px';
 							}}
 							rows="2"
-						/>
+						></textarea>
 					</div>
 
 					<div

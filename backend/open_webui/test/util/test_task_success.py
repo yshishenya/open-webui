@@ -71,6 +71,94 @@ def proof(operation: str = 'operation', when: int = 1) -> journal.SuccessCheckpo
 
 
 @pytest.mark.asyncio
+async def test_message_patch_preserves_absent_fields_and_rebuilds_history(
+    database: async_sessionmaker[AsyncSession],
+) -> None:
+    await chat_messages.ChatMessages.upsert_message('question', 'chat', 'owner', {'content': 'Question'})
+    data = {
+        'role': 'assistant',
+        'parentId': 'question',
+        'content': 'Answer',
+        'output': [{'type': 'message'}],
+        'model': 'original-model',
+        'files': [{'id': 'file'}],
+        'sources': [{'id': 'source'}],
+        'embeds': ['embed'],
+        'meta': {'original': True},
+        'done': True,
+        'statusHistory': [{'status': 'complete'}],
+        'error': 'old error',
+        'contextSummary': 'Original context',
+        'usage': {'input_tokens': 12, 'output_tokens': 3},
+        'timestamp': 100,
+    }
+    original = await chat_messages.ChatMessages.upsert_message('answer', 'chat', 'owner', data)
+    sparse = await chat_messages.ChatMessages.upsert_message(
+        'answer',
+        'chat',
+        'other-owner',
+        {
+            'content': '',
+            'output': [],
+            'files': [],
+            'done': False,
+            'meta': None,
+            'timestamp': 999,
+            'id': 'forged',
+            'user_id': 'forged',
+            'success_checkpoints': [proof('forged')],
+        },
+    )
+    assert original is not None and sparse is not None
+    expected = {**original.model_dump(), 'content': '', 'output': [], 'files': [], 'done': False, 'meta': None}
+    assert {**sparse.model_dump(), 'updated_at': original.updated_at} == expected
+    patched = await chat_messages.ChatMessages.upsert_message(
+        'answer',
+        'chat',
+        'owner',
+        {
+            'parent_id': '',
+            'parentId': 'question',
+            'model_id': 'primary-model',
+            'model': 'ignored',
+            'status_history': [],
+            'statusHistory': [{'status': 'fallback'}],
+            'context_summary': None,
+            'contextSummary': 'Fallback context',
+            'usage': {},
+        },
+    )
+    assert patched is not None
+    assert patched.parent_id == 'question' and patched.model_id == 'primary-model'
+    assert patched.status_history == [{'status': 'fallback'}] and patched.context_summary == 'Fallback context'
+    assert patched.usage == original.usage
+    cleared = await chat_messages.ChatMessages.upsert_message(
+        'answer',
+        'chat',
+        'owner',
+        {'contextSummary': None, 'sources': None, 'embeds': [], 'error': None},
+    )
+    assert cleared is not None and cleared.context_summary is None and cleared.sources is None
+    assert cleared.embeds == [] and cleared.error is None and cleared.created_at == 100
+    await chat_messages.ChatMessages.upsert_message(
+        'sibling',
+        'chat',
+        'owner',
+        {'role': 'assistant', 'parentId': 'question', 'content': None},
+    )
+    assert await chat_messages.ChatMessages.get_messages_map_by_chat_id('empty-chat') is None
+    messages = await chat_messages.ChatMessages.get_messages_map_by_chat_id('chat')
+    assert messages is not None and set(messages) == {'question', 'answer', 'sibling'}
+    assert set(messages['question']['childrenIds']) == {'answer', 'sibling'}
+    assert messages['answer']['childrenIds'] == messages['sibling']['childrenIds'] == []
+    assert messages['sibling']['content'] == '' and messages['answer']['content'] == ''
+    assert messages['answer']['info']['usage'] == messages['answer']['usage'] == original.usage
+    assert messages['answer']['model'] == 'primary-model' and messages['answer']['timestamp'] == 100
+    assert 'contextSummary' not in messages['answer'] and 'sources' not in messages['answer']
+    assert all(key not in messages['answer'] for key in ('chat_id', 'user_id', 'updated_at', 'success_checkpoints'))
+
+
+@pytest.mark.asyncio
 async def test_concurrent_models_replay_and_first_last(database: async_sessionmaker[AsyncSession]) -> None:
     await asyncio.gather(*(journal.insert_success('owner', proof()) for _ in range(12)))
     await journal.insert_success('owner', proof('operation', 0))

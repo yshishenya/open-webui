@@ -1,13 +1,13 @@
 <script lang="ts">
 	import Modal from '$lib/components/common/Modal.svelte';
-	import { getContext } from 'svelte';
-	import { getModelHistory } from '$lib/apis/evaluations';
+	import { getContext, onDestroy } from 'svelte';
+	import { getModelHistory, type RankedModel, type ModelHistoryEntry } from '$lib/apis/evaluations';
 	import ModelActivityChart from './ModelActivityChart.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
 	export let show = false;
-	export let model = null;
+	export let model: RankedModel | null = null;
 	export let onClose: () => void = () => {};
 
 	const i18n = getContext('i18n');
@@ -20,34 +20,44 @@
 	];
 
 	let selectedRange: TimeRange = '30d';
-	let history: Array<{ date: string; won: number; lost: number }> = [];
+	let history: ModelHistoryEntry[] = [];
+	let historyVersion = 0;
 	let loadingHistory = false;
 
-	const close = () => {
+	const close = (): void => {
+		historyVersion++;
 		show = false;
 		onClose();
 	};
 
-	const loadHistory = async (days: number) => {
-		if (!model?.id) return;
+	const loadHistory = async (days: number): Promise<void> => {
+		if (!show || !model?.id) return;
+		const modelId = model.id;
+		const version = ++historyVersion;
 		loadingHistory = true;
 		try {
-			const result = await getModelHistory(localStorage.token, model.id, days);
+			const result = await getModelHistory(localStorage.token, modelId, days);
+			if (version !== historyVersion || !show || model?.id !== modelId) return;
 			history = result?.history ?? [];
 		} catch (err) {
+			if (version !== historyVersion || !show || model?.id !== modelId) return;
 			console.error('Failed to load model history:', err);
 			history = [];
 		}
-		loadingHistory = false;
+		if (version === historyVersion && show && model?.id === modelId) loadingHistory = false;
 	};
 
-	const selectRange = (range: TimeRange) => {
+	const selectRange = (range: TimeRange): void => {
 		selectedRange = range;
 		const config = TIME_RANGES.find((r) => r.key === range);
 		if (config) {
 			loadHistory(config.days);
 		}
 	};
+
+	onDestroy(() => {
+		historyVersion++;
+	});
 
 	// Load history when model changes and modal is shown
 	$: if (show && model?.id) {

@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-response-leaf-types-2026-10-10-028",
+  "title": "Airis Response Leaf Types",
+  "generated": "2026-10-10T14:16:47.549127Z",
+  "last_updated": "2026-10-10T14:24:18.054127Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__refactor__response-leaf-types.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T14:17:50.759195Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T14:24:18.053859Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Response Leaf Types",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace existing message, rating and execution contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:17:50.965972Z",
+        "journaled_at": "2026-10-10T14:17:50.967703Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Reuse existing types without emitted behavior changes",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:19:24.569117Z",
+        "journaled_at": "2026-10-10T14:19:24.571208Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify frontend gates and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T14:24:17.630854Z",
+        "journaled_at": "2026-10-10T14:24:17.632756Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Trace existing message, rating and execution contracts",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:17:50.965828Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:17:50.966720Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse existing types without emitted behavior changes",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:19:24.568921Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:19:24.570061Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify frontend gates and preservation",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T14:24:17.630719Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T14:24:17.631674Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T14:17:50.966717Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Trace existing message, rating and execution contracts",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:17:50.967699Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace existing message, rating and execution contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:19:24.570057Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse existing types without emitted behavior changes",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:19:24.571204Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reuse existing types without emitted behavior changes",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T14:24:17.631670Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify frontend gates and preservation",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T14:24:17.632752Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify frontend gates and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

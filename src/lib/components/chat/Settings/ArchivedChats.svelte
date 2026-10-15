@@ -1,5 +1,4 @@
 <script lang="ts">
-	// @ts-ignore
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
@@ -8,6 +7,7 @@
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
 	import { getContext, onMount } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 
@@ -39,10 +39,10 @@
 	dayjs.extend(localizedFormat);
 	dayjs.extend(calendar);
 
-	const i18n: Writable<any> = getContext('i18n');
+	const i18n: Writable<i18nType> = getContext('i18n');
 
 	let loading = false;
-	let chatList: any[] | null = null;
+	let chatList: Awaited<ReturnType<typeof getArchivedChatList>> | null = null;
 	let chatCount: number | null = null;
 	let page = 1;
 

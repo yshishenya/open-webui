@@ -1,0 +1,9 @@
+- [x] **[BUG]** Значение и форматирование общего редактора кода
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-10__bugfix__code-editor-value-lifecycle.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/chat-dispatch-replay`
+  - Started: 2026-10-10
+  - Done: 2026-10-10
+  - Summary: Native bind:this и updateValue(value) сохраняют пустое/локальное значение и контейнер каждого экземпляра. Поздний ответ не меняет новый ввод/закрытый редактор; worker cancellation/cleanup освобождает listeners/timer/promise; native onChange срабатывает один раз.
+  - Tests: 6исходных mountedотказов;13новых проверок проходят. Полный Docker1297/1297 в140файлах,failed/skipped/todo0. Types1663/94→1649/94,14устранено/0новых;ESLint896/новых0;changedtype/lint0.1733frozenхеша,backend542/protected21/production12neighbors сохранены. SDD2/2/validate0errors0warnings.
+  - Risks: jsdomпроверяет nativeCodeMirror;геометрия/телефон/внешние HTTP/Pyodide не приняты. Общие gates/CI/PR/интеграция/чистыйобраз/выпуск/реальныйпилот остаются;цельactive,план198/244.

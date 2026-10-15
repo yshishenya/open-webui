@@ -6,11 +6,9 @@
 	import { user, config } from '$lib/stores';
 	import { updateUserProfile, createAPIKey, getAPIKey, getSessionUser } from '$lib/apis/auths';
 	import { getUserVariables, updateUserVariables } from '$lib/apis/users';
-	import { WEBUI_BASE_URL } from '$lib/constants';
 
 	import UpdatePassword from './Account/UpdatePassword.svelte';
-	import { getGravatarUrl } from '$lib/apis/utils';
-	import { generateInitialsImage, canvasPixelTest } from '$lib/utils';
+	import { generateInitialsImage } from '$lib/utils';
 	import { copyToClipboard } from '$lib/utils';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -25,7 +23,7 @@
 
 	const i18n = getContext('i18n');
 
-	export let saveHandler: Function;
+	export let saveHandler: () => unknown;
 
 	let profileImageUrl = '';
 	let name = '';
@@ -260,7 +258,7 @@
 					bind:value={_gender}
 					className="w-full"
 					ariaLabel={$i18n.t('Gender')}
-					on:change={(e) => {
+					on:change={() => {
 						console.log(_gender);
 
 						if (_gender === 'custom') {
@@ -560,7 +558,7 @@
 		</div>
 		<Textarea
 			className={variableValueClass}
-			rows="6"
+			rows={6}
 			minSize={132}
 			bind:value={variableFormValue}
 			ariaLabel={$i18n.t('Variable value')}

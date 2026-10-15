@@ -6,7 +6,7 @@
 
 	import { WEBUI_NAME, config, user } from '$lib/stores';
 	import { getBillingInfo, cancelSubscription, resumeSubscription } from '$lib/apis/billing';
-	import type { BillingInfo, UsageData, LeadMagnetInfo } from '$lib/apis/billing';
+	import type { BillingInfo, UsageData, LeadMagnetInfo, LeadMagnetUsage } from '$lib/apis/billing';
 	import {
 		formatCompactNumber,
 		getUsagePercentage,
@@ -98,7 +98,10 @@
 		});
 	};
 
-	const formatOptionalDate = (timestamp?: number | null, locale: string = getI18nLocale($i18n)): string => {
+	const formatOptionalDate = (
+		timestamp?: number | null,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		if (!timestamp) return $i18n.t('Not scheduled');
 		return formatDate(timestamp, locale);
 	};
@@ -113,7 +116,11 @@
 		});
 	};
 
-	const formatPrice = (amount: number, currency: string, locale: string = getI18nLocale($i18n)): string => {
+	const formatPrice = (
+		amount: number,
+		currency: string,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		if (!currency) {
 			return amount.toString();
 		}
@@ -151,8 +158,9 @@
 		return Object.entries(leadMagnet.quotas ?? {})
 			.filter(([, limit]) => typeof limit === 'number' && limit > 0)
 			.map(([key, limit]) => {
-				const used = leadMagnet.usage?.[key] ?? 0;
-				const remaining = leadMagnet.remaining?.[key] ?? Math.max(0, limit - used);
+				const used = leadMagnet.usage?.[key as keyof LeadMagnetUsage] ?? 0;
+				const remaining =
+					leadMagnet.remaining?.[key as keyof LeadMagnetUsage] ?? Math.max(0, limit - used);
 				return {
 					key,
 					used,
@@ -250,7 +258,10 @@
 				</div>
 
 				<div class="text-xs text-gray-500 mb-3">
-					{$i18n.t('Next reset')}: {formatOptionalDate(billingInfo.lead_magnet.cycle_end, getI18nLocale($i18n))}
+					{$i18n.t('Next reset')}: {formatOptionalDate(
+						billingInfo.lead_magnet.cycle_end,
+						getI18nLocale($i18n)
+					)}
 				</div>
 
 				{#if leadMagnetMetrics.length > 0}
@@ -466,12 +477,18 @@
 								<tr
 									class="border-b border-gray-100/30 dark:border-gray-850/30 hover:bg-black/5 dark:hover:bg-white/5"
 								>
-									<td class="px-4 py-2 text-sm">{formatDateTime(transaction.created_at, getI18nLocale($i18n))}</td>
+									<td class="px-4 py-2 text-sm"
+										>{formatDateTime(transaction.created_at, getI18nLocale($i18n))}</td
+									>
 									<td class="px-4 py-2 text-sm"
 										>{transaction.description_ru || transaction.description || '-'}</td
 									>
 									<td class="px-4 py-2 text-sm font-medium"
-										>{formatPrice(transaction.amount, transaction.currency, getI18nLocale($i18n))}</td
+										>{formatPrice(
+											transaction.amount,
+											transaction.currency,
+											getI18nLocale($i18n)
+										)}</td
 									>
 									<td class="px-4 py-2">
 										<span

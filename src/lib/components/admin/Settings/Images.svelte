@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
 
-	import { createEventDispatcher, onMount, getContext } from 'svelte';
+	import { createEventDispatcher, onMount, onDestroy, getContext } from 'svelte';
 	import { config as backendConfig, user } from '$lib/stores';
 
 	import { getBackendConfig } from '$lib/apis';
 	import {
 		getImageGenerationModels,
-		getImageGenerationConfig,
-		updateImageGenerationConfig,
 		getConfig,
 		updateConfig,
-		verifyConfigUrl
+		verifyConfigUrl,
+		type ImageConfig,
+		type ImageModel,
+		type ImageWorkflowNode
 	} from '$lib/apis/images';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
@@ -24,14 +25,43 @@
 	import AdminSettingRow from './AdminSettingRow.svelte';
 	import AdminSettingSection from './AdminSettingSection.svelte';
 
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+
 	const dispatch = createEventDispatcher();
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	let loading = false;
 
-	let models = null;
-	let config = null;
+	let models: ImageModel[] | null = null;
+	type ImageSettingsForm = Omit<
+		ImageConfig,
+		| 'AUTOMATIC1111_PARAMS'
+		| 'IMAGES_OPENAI_API_PARAMS'
+		| 'AUTOMATIC1111_API_AUTH'
+		| 'IMAGE_SIZE'
+		| 'IMAGE_EDIT_SIZE'
+		| 'IMAGE_STEPS'
+	> & {
+		AUTOMATIC1111_PARAMS: string;
+		IMAGES_OPENAI_API_PARAMS: string;
+		AUTOMATIC1111_API_AUTH: string;
+		IMAGE_SIZE: string;
+		IMAGE_EDIT_SIZE: string;
+		IMAGE_STEPS: number | undefined;
+	};
+	let config: ImageSettingsForm | null = null;
+	let destroyed = false;
+	let modelRequest = 0;
+	const workflowReads = { COMFYUI_WORKFLOW: 0, IMAGES_EDIT_COMFYUI_WORKFLOW: 0 };
+	const lifetime = new AbortController();
+	onDestroy(() => {
+		destroyed = true;
+		modelRequest++;
+		lifetime.abort();
+	});
 	const inputClass =
 		'w-full h-7 rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 	const textareaClass =
@@ -100,194 +130,185 @@
 		}
 	];
 
-	const getModels = async () => {
-		models = await getImageGenerationModels(localStorage.token).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-	};
-
-	const updateConfigHandler = async () => {
-		if (
-			config.IMAGE_GENERATION_ENGINE === 'automatic1111' &&
-			config.AUTOMATIC1111_BASE_URL === ''
-		) {
-			toast.error($i18n.t('AUTOMATIC1111 Base URL is required.'));
-			config.ENABLE_IMAGE_GENERATION = false;
-
-			return null;
-		} else if (config.IMAGE_GENERATION_ENGINE === 'comfyui' && config.COMFYUI_BASE_URL === '') {
-			toast.error($i18n.t('ComfyUI Base URL is required.'));
-			config.ENABLE_IMAGE_GENERATION = false;
-
-			return null;
-		} else if (config.IMAGE_GENERATION_ENGINE === 'openai' && config.IMAGES_OPENAI_API_KEY === '') {
-			toast.error($i18n.t('OpenAI API Key is required.'));
-			config.ENABLE_IMAGE_GENERATION = false;
-
-			return null;
-		} else if (config.IMAGE_GENERATION_ENGINE === 'gemini' && config.IMAGES_GEMINI_API_KEY === '') {
-			toast.error($i18n.t('Gemini API Key is required.'));
-			config.ENABLE_IMAGE_GENERATION = false;
-
-			return null;
-		}
-
-		const res = await updateConfig(localStorage.token, {
-			...config,
-			AUTOMATIC1111_PARAMS:
-				typeof config.AUTOMATIC1111_PARAMS === 'string' && config.AUTOMATIC1111_PARAMS.trim() !== ''
-					? JSON.parse(config.AUTOMATIC1111_PARAMS)
-					: {},
-			IMAGES_OPENAI_API_PARAMS:
-				typeof config.IMAGES_OPENAI_API_PARAMS === 'string' &&
-				config.IMAGES_OPENAI_API_PARAMS.trim() !== ''
-					? JSON.parse(config.IMAGES_OPENAI_API_PARAMS)
-					: {}
-		}).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		if (res) {
-			if (res.ENABLE_IMAGE_GENERATION) {
-				backendConfig.set(await getBackendConfig());
-				getModels();
-			}
-
-			return res;
-		}
-
-		return null;
-	};
-
-	const validateJSON = (json) => {
+	const getModels = async (): Promise<void> => {
+		const request = ++modelRequest;
+		const engine = config?.IMAGE_GENERATION_ENGINE;
 		try {
-			const obj = JSON.parse(json);
-
-			if (obj && typeof obj === 'object') {
-				return true;
-			}
-		} catch (e) {}
-		return false;
+			const response = await getImageGenerationModels(localStorage.token, lifetime.signal);
+			if (
+				!destroyed &&
+				request === modelRequest &&
+				engine === config?.IMAGE_GENERATION_ENGINE &&
+				config?.ENABLE_IMAGE_GENERATION
+			)
+				models = response;
+		} catch (error) {
+			if (!destroyed && request === modelRequest) toast.error(getErrorMessage(error));
+		}
 	};
 
-	const saveHandler = async () => {
+	const parseObject = (value: unknown, allowEmpty = false): Record<string, unknown> => {
+		const parsed: unknown =
+			typeof value === 'string' ? JSON.parse(allowEmpty ? value.trim() || '{}' : value) : value;
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+			throw new Error($i18n.t('Invalid JSON format'));
+		return parsed as Record<string, unknown>;
+	};
+
+	const workflowNodes = (
+		nodes: { type: string; key: string; node_ids: string }[]
+	): ImageWorkflowNode[] =>
+		nodes.map((node) => ({
+			...node,
+			node_ids: node.node_ids
+				.split(',')
+				.map((id) => id.trim())
+				.filter(Boolean)
+		}));
+
+	const updateConfigHandler = async (verify = false): Promise<ImageConfig | null> => {
+		if (!config || loading || destroyed) return null;
 		loading = true;
-
-		if (config?.COMFYUI_WORKFLOW) {
-			if (!validateJSON(config?.COMFYUI_WORKFLOW)) {
-				toast.error($i18n.t('Invalid JSON format for ComfyUI Workflow.'));
-				loading = false;
-				return;
-			}
-
-			config.COMFYUI_WORKFLOW_NODES = REQUIRED_WORKFLOW_NODES.map((node) => {
-				return {
-					type: node.type,
-					key: node.key,
-					node_ids:
-						node.node_ids.trim() === '' ? [] : node.node_ids.split(',').map((id) => id.trim())
+		try {
+			if (config.ENABLE_IMAGE_GENERATION) {
+				const credentials: Record<string, [string, string]> = {
+					automatic1111: [config.AUTOMATIC1111_BASE_URL, 'AUTOMATIC1111 Base URL is required.'],
+					comfyui: [config.COMFYUI_BASE_URL, 'ComfyUI Base URL is required.'],
+					openai: [config.IMAGES_OPENAI_API_KEY, 'OpenAI API Key is required.'],
+					gemini: [config.IMAGES_GEMINI_API_KEY, 'Gemini API Key is required.']
 				};
-			});
-		}
-
-		if (config?.IMAGES_EDIT_COMFYUI_WORKFLOW) {
-			if (!validateJSON(config?.IMAGES_EDIT_COMFYUI_WORKFLOW)) {
-				toast.error($i18n.t('Invalid JSON format for ComfyUI Edit Workflow.'));
-				loading = false;
-				return;
+				const required = credentials[config.IMAGE_GENERATION_ENGINE || 'automatic1111'];
+				if (required && !required[0].trim()) throw new Error($i18n.t(required[1]));
 			}
-
-			config.IMAGES_EDIT_COMFYUI_WORKFLOW_NODES = REQUIRED_EDIT_WORKFLOW_NODES.map((node) => {
-				return {
-					type: node.type,
-					key: node.key,
-					node_ids:
-						node.node_ids.trim() === '' ? [] : node.node_ids.split(',').map((id) => id.trim())
-				};
-			});
+			if (config.COMFYUI_WORKFLOW) parseObject(config.COMFYUI_WORKFLOW);
+			if (config.IMAGES_EDIT_COMFYUI_WORKFLOW) parseObject(config.IMAGES_EDIT_COMFYUI_WORKFLOW);
+			if (
+				!Number.isInteger(config.IMAGE_STEPS) ||
+				config.IMAGE_STEPS === undefined ||
+				config.IMAGE_STEPS < 0
+			)
+				throw new Error($i18n.t('Enter Number of Steps (e.g. 50)'));
+			const payload: ImageConfig = {
+				...config,
+				IMAGE_STEPS: config.IMAGE_STEPS,
+				AUTOMATIC1111_PARAMS: parseObject(config.AUTOMATIC1111_PARAMS, true),
+				IMAGES_OPENAI_API_PARAMS: parseObject(config.IMAGES_OPENAI_API_PARAMS, true),
+				COMFYUI_WORKFLOW_NODES: config.COMFYUI_WORKFLOW
+					? workflowNodes(REQUIRED_WORKFLOW_NODES)
+					: config.COMFYUI_WORKFLOW_NODES,
+				IMAGES_EDIT_COMFYUI_WORKFLOW_NODES: config.IMAGES_EDIT_COMFYUI_WORKFLOW
+					? workflowNodes(REQUIRED_EDIT_WORKFLOW_NODES)
+					: config.IMAGES_EDIT_COMFYUI_WORKFLOW_NODES
+			};
+			// Invalidate the initial model list before the saved engine changes on the server.
+			modelRequest++;
+			const response = await updateConfig(localStorage.token, payload, lifetime.signal);
+			if (destroyed) return null;
+			if (verify && ['automatic1111', 'comfyui'].includes(payload.IMAGE_GENERATION_ENGINE)) {
+				const verified = await verifyConfigUrl(localStorage.token, lifetime.signal);
+				if (destroyed) return null;
+				if (verified) toast.success($i18n.t('Server connection verified'));
+			}
+			// Saving succeeded; ancillary refreshes must not leave the Save button pending.
+			void getBackendConfig()
+				.then((value) => {
+					if (!destroyed) backendConfig.set(value);
+				})
+				.catch((error) => {
+					if (!destroyed) toast.error(getErrorMessage(error));
+				});
+			if (response.ENABLE_IMAGE_GENERATION) void getModels();
+			else models = null;
+			return response;
+		} catch (error) {
+			if (!destroyed) toast.error(getErrorMessage(error));
+			return null;
+		} finally {
+			loading = false;
 		}
+	};
 
-		const res = await updateConfigHandler();
-		if (res) {
-			dispatch('save');
+	const saveHandler = async (): Promise<void> => {
+		const response = await updateConfigHandler();
+		if (response && !destroyed) dispatch('save');
+	};
+
+	const uploadWorkflow = async (
+		event: Event,
+		field: 'COMFYUI_WORKFLOW' | 'IMAGES_EDIT_COMFYUI_WORKFLOW'
+	): Promise<void> => {
+		const input = event.currentTarget;
+		if (!(input instanceof HTMLInputElement)) return;
+		const file = input.files?.[0];
+		const draft = config;
+		if (!file || !draft || destroyed) return;
+		const previous = draft[field];
+		const request = ++workflowReads[field];
+		input.value = '';
+		try {
+			const text = await file.text();
+			if (
+				destroyed ||
+				config !== draft ||
+				request !== workflowReads[field] ||
+				draft[field] !== previous
+			)
+				return;
+			parseObject(text);
+			config[field] = text;
+		} catch (error) {
+			if (!destroyed) toast.error(getErrorMessage(error));
 		}
+	};
 
-		loading = false;
+	const formatJSON = (value: string | Record<string, unknown> | null): string => {
+		if (typeof value !== 'string') return JSON.stringify(value ?? {}, null, 2);
+		try {
+			return JSON.stringify(JSON.parse(value), null, 2);
+		} catch {
+			return value;
+		}
 	};
 
 	onMount(async () => {
-		if ($user?.role === 'admin') {
-			const res = await getConfig(localStorage.token).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			if (res) {
-				config = res;
-			}
-
-			if (!config) {
-				return;
-			}
-
-			if (config.ENABLE_IMAGE_GENERATION) {
-				getModels();
-			}
-
-			if (config.COMFYUI_WORKFLOW) {
-				try {
-					config.COMFYUI_WORKFLOW = JSON.stringify(JSON.parse(config.COMFYUI_WORKFLOW), null, 2);
-				} catch (e) {
-					console.error(e);
-				}
-			}
-
-			REQUIRED_WORKFLOW_NODES = REQUIRED_WORKFLOW_NODES.map((node) => {
-				const n = config.COMFYUI_WORKFLOW_NODES.find((n) => n.type === node.type) ?? node;
-				console.debug(n);
-
-				return {
-					type: n.type,
-					key: n.key,
-					node_ids: typeof n.node_ids === 'string' ? n.node_ids : n.node_ids.join(',')
-				};
-			});
-
-			if (config.IMAGES_EDIT_COMFYUI_WORKFLOW) {
-				try {
-					config.IMAGES_EDIT_COMFYUI_WORKFLOW = JSON.stringify(
-						JSON.parse(config.IMAGES_EDIT_COMFYUI_WORKFLOW),
-						null,
-						2
-					);
-				} catch (e) {
-					console.error(e);
-				}
-			}
-
-			config.IMAGES_OPENAI_API_PARAMS =
-				typeof config.IMAGES_OPENAI_API_PARAMS === 'object'
-					? JSON.stringify(config.IMAGES_OPENAI_API_PARAMS ?? {}, null, 2)
-					: config.IMAGES_OPENAI_API_PARAMS;
-
-			config.AUTOMATIC1111_PARAMS =
-				typeof config.AUTOMATIC1111_PARAMS === 'object'
-					? JSON.stringify(config.AUTOMATIC1111_PARAMS ?? {}, null, 2)
-					: config.AUTOMATIC1111_PARAMS;
-
-			REQUIRED_EDIT_WORKFLOW_NODES = REQUIRED_EDIT_WORKFLOW_NODES.map((node) => {
-				const n =
-					config.IMAGES_EDIT_COMFYUI_WORKFLOW_NODES.find((n) => n.type === node.type) ?? node;
-				console.debug(n);
-
-				return {
-					type: n.type,
-					key: n.key,
-					node_ids: typeof n.node_ids === 'string' ? n.node_ids : n.node_ids.join(',')
-				};
-			});
+		if ($user?.role !== 'admin') return;
+		try {
+			const response = await getConfig(localStorage.token, lifetime.signal);
+			if (destroyed) return;
+			config = {
+				...response,
+				AUTOMATIC1111_PARAMS: formatJSON(response.AUTOMATIC1111_PARAMS),
+				IMAGES_OPENAI_API_PARAMS: formatJSON(response.IMAGES_OPENAI_API_PARAMS),
+				AUTOMATIC1111_API_AUTH:
+					typeof response.AUTOMATIC1111_API_AUTH === 'string'
+						? response.AUTOMATIC1111_API_AUTH
+						: response.AUTOMATIC1111_API_AUTH
+							? JSON.stringify(response.AUTOMATIC1111_API_AUTH)
+							: '',
+				COMFYUI_WORKFLOW: response.COMFYUI_WORKFLOW ? formatJSON(response.COMFYUI_WORKFLOW) : '',
+				IMAGES_EDIT_COMFYUI_WORKFLOW: response.IMAGES_EDIT_COMFYUI_WORKFLOW
+					? formatJSON(response.IMAGES_EDIT_COMFYUI_WORKFLOW)
+					: '',
+				IMAGE_SIZE: response.IMAGE_SIZE ?? '',
+				IMAGE_EDIT_SIZE: response.IMAGE_EDIT_SIZE ?? '',
+				IMAGE_STEPS: response.IMAGE_STEPS ?? 50
+			};
+			const mapNodes = (
+				defaults: typeof REQUIRED_WORKFLOW_NODES,
+				nodes: ImageWorkflowNode[]
+			): typeof REQUIRED_WORKFLOW_NODES =>
+				defaults.map((node) => {
+					const saved = nodes.find((item) => item.type === node.type);
+					return saved ? { ...saved, node_ids: saved.node_ids.join(',') } : node;
+				});
+			REQUIRED_WORKFLOW_NODES = mapNodes(REQUIRED_WORKFLOW_NODES, response.COMFYUI_WORKFLOW_NODES);
+			REQUIRED_EDIT_WORKFLOW_NODES = mapNodes(
+				REQUIRED_EDIT_WORKFLOW_NODES,
+				response.IMAGES_EDIT_COMFYUI_WORKFLOW_NODES
+			);
+			if (config.ENABLE_IMAGE_GENERATION) void getModels();
+		} catch (error) {
+			if (!destroyed) toast.error(getErrorMessage(error));
 		}
 	});
 </script>
@@ -360,6 +381,9 @@
 									<input
 										class={inputClass}
 										placeholder={$i18n.t('Enter Number of Steps (e.g. 50)')}
+										type="number"
+										min="0"
+										step="1"
 										bind:value={config.IMAGE_STEPS}
 										required
 									/>
@@ -437,17 +461,8 @@
 									class="shrink-0 text-gray-400 transition-colors hover:text-gray-900 dark:text-gray-600 dark:hover:text-white"
 									type="button"
 									aria-label="verify connection"
-									on:click={async () => {
-										await updateConfigHandler();
-										const res = await verifyConfigUrl(localStorage.token).catch((error) => {
-											toast.error(`${error}`);
-											return null;
-										});
-
-										if (res) {
-											toast.success($i18n.t('Server connection verified'));
-										}
-									}}
+									disabled={loading}
+									on:click={() => updateConfigHandler(true)}
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -503,17 +518,8 @@
 									class="shrink-0 text-gray-400 transition-colors hover:text-gray-900 dark:text-gray-600 dark:hover:text-white"
 									type="button"
 									aria-label="verify connection"
-									on:click={async () => {
-										await updateConfigHandler();
-										const res = await verifyConfigUrl(localStorage.token).catch((error) => {
-											toast.error(`${error}`);
-											return null;
-										});
-
-										if (res) {
-											toast.success($i18n.t('Server connection verified'));
-										}
-									}}
+									disabled={loading}
+									on:click={() => updateConfigHandler(true)}
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -549,17 +555,7 @@
 								hidden
 								type="file"
 								accept=".json"
-								on:change={(e) => {
-									const file = e.target.files[0];
-									const reader = new FileReader();
-
-									reader.onload = (e) => {
-										config.COMFYUI_WORKFLOW = e.target.result;
-										e.target.value = null;
-									};
-
-									reader.readAsText(file);
-								}}
+								on:change={(event) => uploadWorkflow(event, 'COMFYUI_WORKFLOW')}
 							/>
 							<AdminSettingRow
 								label={$i18n.t('ComfyUI Workflow')}
@@ -603,7 +599,7 @@
 									value={config.COMFYUI_WORKFLOW}
 									lang="json"
 									onChange={(e) => {
-										config.COMFYUI_WORKFLOW = e;
+										if (config && !destroyed) config.COMFYUI_WORKFLOW = e;
 									}}
 									onSave={() => {
 										console.log('Saved');
@@ -797,35 +793,6 @@
 									placeholder={$i18n.t('Enter URL (e.g. http://127.0.0.1:7860/)')}
 									bind:value={config.IMAGES_EDIT_COMFYUI_BASE_URL}
 								/>
-								<button
-									class="shrink-0 text-gray-400 transition-colors hover:text-gray-900 dark:text-gray-600 dark:hover:text-white"
-									type="button"
-									aria-label="verify connection"
-									on:click={async () => {
-										await updateConfigHandler();
-										const res = await verifyConfigUrl(localStorage.token).catch((error) => {
-											toast.error(`${error}`);
-											return null;
-										});
-
-										if (res) {
-											toast.success($i18n.t('Server connection verified'));
-										}
-									}}
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-										class="w-4 h-4"
-									>
-										<path
-											fill-rule="evenodd"
-											d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z"
-											clip-rule="evenodd"
-										/>
-									</svg>
-								</button>
 							</div>
 						</AdminSettingField>
 
@@ -847,17 +814,7 @@
 								hidden
 								type="file"
 								accept=".json"
-								on:change={(e) => {
-									const file = e.target.files[0];
-									const reader = new FileReader();
-
-									reader.onload = (e) => {
-										config.IMAGES_EDIT_COMFYUI_WORKFLOW = e.target.result;
-										e.target.value = null;
-									};
-
-									reader.readAsText(file);
-								}}
+								on:change={(event) => uploadWorkflow(event, 'IMAGES_EDIT_COMFYUI_WORKFLOW')}
 							/>
 							<AdminSettingRow
 								label={$i18n.t('ComfyUI Workflow')}
@@ -900,7 +857,7 @@
 								value={config.IMAGES_EDIT_COMFYUI_WORKFLOW}
 								lang="json"
 								onChange={(e) => {
-									config.IMAGES_EDIT_COMFYUI_WORKFLOW = e;
+									if (config && !destroyed) config.IMAGES_EDIT_COMFYUI_WORKFLOW = e;
 								}}
 								onSave={() => {
 									console.log('Saved');
@@ -989,7 +946,7 @@
 				? ' cursor-not-allowed'
 				: ''}"
 			type="submit"
-			disabled={loading}
+			disabled={loading || !config}
 		>
 			{$i18n.t('Save')}
 

@@ -1,0 +1,7 @@
+- [ ] **[REFACTOR][QUALITY]** Remove unused typing import bindings
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-09__refactor__unused-typing-imports.md`
+  - Owner: Codex
+  - Branch: `codex/refactor/unused-typing-imports`
+  - Started: 2026-10-09
+  - Summary: Remove28 reviewed typing bindings from accepted combined source and preserve runtime contracts; full quality/release stays pending.
+  - Tests: Docker Compose backend1017/frontend952 passed; Black453; all runtime contracts identical. Ruff1034->1003, typing-unused0; general check2271/108 andESLint1020 remain pending.

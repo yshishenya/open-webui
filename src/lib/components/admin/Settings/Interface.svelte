@@ -4,7 +4,10 @@
 	import { createEventDispatcher, onMount, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
-	import { getBaseModels } from '$lib/apis/models';
+	import { getBaseModels, type WorkspaceModel } from '$lib/apis/models';
+	import type { Model } from '$lib/stores';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
@@ -17,7 +20,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	const i18n: any = getContext('i18n');
+	const i18n: Writable<i18nType> = getContext('i18n');
 
 	let taskConfig = {
 		TASK_MODEL: '',
@@ -67,17 +70,17 @@
 		);
 	};
 
-	let workspaceModels: any[] = [];
-	let baseModels: any[] = [];
+	let workspaceModels: WorkspaceModel[] = [];
+	let baseModels: Model[] = [];
 
-	let models: any[] | null = null;
+	let models: (Model & Partial<WorkspaceModel>)[] | null = null;
 	$: modelOptions = models ?? [];
 	const normalizeModelSelection = (modelId: string | null | undefined) => {
 		if (!modelId) {
 			return '';
 		}
 
-		const model = modelOptions.find((m: any) => m.id === modelId);
+		const model = modelOptions.find((m) => m.id === modelId);
 		if (!model) {
 			return '';
 		}
@@ -85,7 +88,7 @@
 		if (
 			model?.access_grants &&
 			!model.access_grants.some(
-				(g: any) => g.principal_type === 'user' && g.principal_id === '*' && g.permission === 'read'
+				(g) => g.principal_type === 'user' && g.principal_id === '*' && g.permission === 'read'
 			)
 		) {
 			toast.error($i18n.t('This model is not publicly available. Please select another model.'));
@@ -108,8 +111,8 @@
 			workspaceModels = await getBaseModels(localStorage.token);
 			baseModels = await getModels(localStorage.token, null, false);
 
-			models = baseModels.map((m: any) => {
-				const workspaceModel = workspaceModels.find((wm: any) => wm.id === m.id);
+			models = baseModels.map((m) => {
+				const workspaceModel = workspaceModels.find((wm) => wm.id === m.id);
 
 				if (workspaceModel) {
 					return {

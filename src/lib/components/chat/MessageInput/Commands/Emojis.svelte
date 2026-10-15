@@ -3,15 +3,19 @@
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import emojiShortCodes from '$lib/emoji-shortcodes.json';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
+
+	type EmojiItem = { name: string; shortCodes: string[] };
 
 	export let query = '';
-	export let onSelect = (e) => {};
+	export let onSelect: (e: { type: 'emoji'; data: EmojiItem }) => void = () => {};
 
 	let selectedIdx = 0;
-	export let filteredItems = [];
+	export let filteredItems: EmojiItem[] = [];
 
 	// Build a flat list of { name, shortCodes } for searching
 	const allEmojis = Object.entries(emojiShortCodes).map(([key, value]) => ({
@@ -30,7 +34,7 @@
 				)
 				.sort((a, b) => {
 					// Score: 0 = exact match, 1 = prefix match, 2 = substring match
-					const score = (emoji) => {
+					const score = (emoji: EmojiItem): number => {
 						if (emoji.shortCodes.some((c) => c.toLowerCase() === q)) return 0;
 						if (emoji.shortCodes.some((c) => c.toLowerCase().startsWith(q))) return 1;
 						return 2;
@@ -47,15 +51,15 @@
 		selectedIdx = 0;
 	}
 
-	export const selectUp = () => {
+	export const selectUp = (): void => {
 		selectedIdx = Math.max(0, selectedIdx - 1);
 	};
 
-	export const selectDown = () => {
+	export const selectDown = (): void => {
 		selectedIdx = Math.min(selectedIdx + 1, filteredItems.length - 1);
 	};
 
-	export const select = async () => {
+	export const select = async (): Promise<void> => {
 		const emoji = filteredItems[selectedIdx];
 		if (emoji) {
 			onSelect({ type: 'emoji', data: emoji });

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 
-	export let x;
-	export let y;
+	export let x: number;
+	export let y: number;
 
-	let popupElement = null;
+	let popupElement: HTMLDivElement | null = null;
 
 	onMount(() => {
-		document.body.appendChild(popupElement);
+		document.body.appendChild(popupElement!);
 		document.body.style.overflow = 'hidden';
 	});
 
@@ -24,8 +24,6 @@
 	});
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
 
 <div
 	bind:this={popupElement}

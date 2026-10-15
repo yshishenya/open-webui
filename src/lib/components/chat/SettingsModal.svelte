@@ -2,9 +2,10 @@
 	import { browser } from '$app/environment';
 	import { getContext, onMount, tick } from 'svelte';
 	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 	import { toast } from 'svelte-sonner';
 	import { config, models, settings, user } from '$lib/stores';
-	import type { SettingsModalRequest } from '$lib/stores';
+	import type { Settings, SettingsModalRequest } from '$lib/stores';
 	import { updateUserSettings } from '$lib/apis/users';
 	import { getBackendConfig, getModels as _getModels } from '$lib/apis';
 
@@ -55,7 +56,7 @@
 	import AdminPipelines from '$lib/components/admin/Settings/Pipelines.svelte';
 	import AdminDatabase from '$lib/components/admin/Settings/Database.svelte';
 
-	const i18n: Writable<any> = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	export let show: boolean | string | SettingsModalRequest = false;
 	let modalShow = false;
@@ -814,11 +815,23 @@
 		scrollToSelectedTab();
 	};
 
-	const saveSettings = async (updated: Record<string, any>) => {
-		console.log(updated);
-		await settings.set({ ...$settings, ...updated });
-		await models.set(await getModels());
-		await updateUserSettings(localStorage.token, { ui: $settings });
+	let settingsSaveQueue: Promise<void> = Promise.resolve();
+	const saveSettings = (updated: Partial<Settings>): Promise<void> => {
+		const changes = structuredClone(updated);
+		const save = settingsSaveQueue.then(async () => {
+			const snapshot = { ...$settings, ...changes };
+			const saved = await updateUserSettings(localStorage.token, { ui: snapshot });
+			if (!saved) throw new Error('Settings could not be saved.');
+			settings.set(snapshot);
+			try {
+				models.set(await getModels());
+			} catch {
+				toast.error($i18n.t('Server connection failed'));
+			}
+		});
+		// The caller still receives this failure; only the queue recovers for the next choice.
+		settingsSaveQueue = save.catch(() => undefined);
+		return save;
 	};
 
 	const getModels = async () => {
@@ -876,7 +889,7 @@
 		availableSettings = getAvailableSettings();
 		setFilteredSettings();
 
-		config.subscribe((configData) => {
+		return config.subscribe(() => {
 			availableSettings = getAvailableSettings();
 			setFilteredSettings();
 		});
@@ -1160,7 +1173,6 @@
 		<div class="flex-1 min-h-0 overflow-hidden">
 			{#if selectedTab === 'general'}
 				<General
-					{getModels}
 					{saveSettings}
 					on:save={() => {
 						toast.success($i18n.t('Settings saved successfully!'));
@@ -1179,14 +1191,14 @@
 				<Shortcuts {saveSettings} />
 			{:else if selectedTab === 'connections'}
 				<Connections
-					saveSettings={async (updated: Record<string, any>) => {
+					saveSettings={async (updated: Partial<Settings>) => {
 						await saveSettings(updated);
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
 				/>
 			{:else if selectedTab === 'tools'}
 				<Integrations
-					saveSettings={async (updated: Record<string, any>) => {
+					saveSettings={async (updated: Partial<Settings>) => {
 						await saveSettings(updated);
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
@@ -1206,7 +1218,7 @@
 					}}
 				/>
 			{:else if selectedTab === 'data_controls'}
-				<DataControls {saveSettings} />
+				<DataControls />
 			{:else if selectedTab === 'usage'}
 				<Usage />
 			{:else if selectedTab === 'archived_chats'}
@@ -1238,7 +1250,7 @@
 			{:else if selectedTab === 'admin:analytics'}
 				<AdminAnalytics />
 			{:else if selectedTab === 'admin:integrations'}
-				<AdminIntegrations {saveSettings} />
+				<AdminIntegrations />
 			{:else if selectedTab === 'admin:documents'}
 				<AdminDocuments on:save={adminConfigSaveHandler} />
 			{:else if selectedTab === 'admin:web'}
@@ -1264,11 +1276,7 @@
 					}}
 				/>
 			{:else if selectedTab === 'admin:db'}
-				<AdminDatabase
-					saveHandler={() => {
-						toast.success($i18n.t('Settings saved successfully!'));
-					}}
-				/>
+				<AdminDatabase />
 			{:else if selectedTab === 'admin:pipelines'}
 				<AdminPipelines
 					saveHandler={() => {

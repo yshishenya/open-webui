@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-rate-card-import-2026-10-12-109",
+  "title": "AIRIS simpler rate card XLSX import",
+  "generated": "2026-10-12T19:00:08.975931Z",
+  "last_updated": "2026-10-12T19:28:13.703377Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__rate-card-import.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T19:01:03.189278Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T19:28:13.702945Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS simpler rate card XLSX import",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Preserve prices and Excel validation with one regression before refactoring",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T19:25:46.954927Z",
+        "journaled_at": "2026-10-12T19:25:46.957090Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify full backend, API imports, CI and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T19:28:13.209379Z",
+        "journaled_at": "2026-10-12T19:28:13.211556Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Preserve prices and Excel validation with one regression before refactoring",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T19:25:46.954778Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T19:25:46.955993Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify full backend, API imports, CI and preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T19:28:13.209211Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T19:28:13.210290Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T19:25:46.955983Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Preserve prices and Excel validation with one regression before refactoring",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T19:25:46.957085Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Preserve prices and Excel validation with one regression before refactoring",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T19:28:13.210284Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify full backend, API imports, CI and preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T19:28:13.211547Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify full backend, API imports, CI and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

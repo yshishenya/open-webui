@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-from typing import Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
@@ -34,6 +31,7 @@ from open_webui.models.chats import (
 from open_webui.models.folders import Folders
 from open_webui.models.shared_chats import SharedChatResponse, SharedChats
 from open_webui.models.tags import TagModel, Tags
+from open_webui.models.users import UserModel
 from open_webui.socket.main import get_event_emitter
 from open_webui.tasks import has_active_tasks, stop_item_tasks
 from open_webui.utils.access_control import filter_allowed_access_grants, has_permission
@@ -280,9 +278,9 @@ async def mark_chats_read_by_user_id(
 async def get_session_user_chat_usage_stats(
     items_per_page: int | None = 50,
     page: int | None = 1,
-    user=Depends(get_verified_user),
+    user: UserModel = Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
-):
+) -> ChatUsageStatsListResponse:
     try:
         limit = items_per_page
         skip = (page - 1) * limit
@@ -351,7 +349,7 @@ async def get_session_user_chat_usage_stats(
                                     models[model] = 0
                                 models[model] += 1
 
-                            annotation = message.get('annotation', {})
+                            message.get('annotation', {})
 
                     chat_stats.append(
                         {
@@ -371,7 +369,7 @@ async def get_session_user_chat_usage_stats(
                             'created_at': chat.created_at,
                         }
                     )
-                except Exception as e:
+                except Exception:
                     pass
 
         return ChatUsageStatsListResponse(items=chat_stats, total=total)
@@ -1350,37 +1348,17 @@ async def update_chat_by_id(
     request: Request,
     id: str,
     form_data: ChatForm,
-    user=Depends(get_verified_user),
+    user: UserModel = Depends(get_verified_user),
     db: AsyncSession = Depends(get_async_session),
-):
-    chat = await Chats.get_chat_by_id_and_user_id(id, user.id, db=db)
+) -> ChatResponse | None:
+    from open_webui.utils.airis.chat_save import save_chat_patch
+
+    try:
+        chat = await save_chat_patch(id, user.id, form_data)
+    except Exception as error:
+        log.error('Failed to save chat %s (%s)', id, type(error).__name__)
+        raise HTTPException(status_code=500, detail=ERROR_MESSAGES.DEFAULT()) from error
     if chat:
-        updated_chat = {**chat.chat, **form_data.chat}
-        if 'history' in form_data.chat:
-            updated_chat['history'] = Chats.merge_history(
-                chat.chat.get('history'),
-                form_data.chat.get('history'),
-            )
-
-        touch = 'history' in form_data.chat or 'messages' in form_data.chat
-        chat = await Chats.update_chat_by_id(id, updated_chat, db=db, touch=touch)
-        if form_data.variables is not None:
-            chat = (
-                await Chats.update_chat_variables_by_id(
-                    id,
-                    form_data.variables,
-                    db=db,
-                    touch=False,
-                )
-                or chat
-            )
-
-        # Reconcile chat_message rows without inferring deletes from missing IDs.
-        # Message deletion has its own endpoint below.
-        messages = (updated_chat.get('history') or {}).get('messages') or {}
-        if messages:
-            await Chats.reconcile_messages_by_chat_id(id, user.id, messages)
-
         await publish_event(
             request,
             EVENTS.CHAT_UPDATED,

@@ -1,0 +1,195 @@
+{
+  "spec_id": "airis-prompts-management-safety-2026-10-10-023",
+  "title": "Airis Prompts Management Safety",
+  "generated": "2026-10-10T12:15:51.216490Z",
+  "last_updated": "2026-10-10T12:41:23.660121Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 24,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-10__bugfix__prompts-management-safety.md",
+    "status": "completed",
+    "activated_date": "2026-10-10T12:17:07.583909Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-10T12:41:23.659848Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Airis Prompts Management Safety",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce prompt API and lifecycle/import refusals",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T12:26:27.539710Z",
+        "journaled_at": "2026-10-10T12:26:27.541792Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Fix shared API management and every consumer",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T12:39:49.631888Z",
+        "journaled_at": "2026-10-10T12:39:49.634914Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Accept frozen checks browser preservation and pushed source",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-10T12:41:23.217196Z",
+        "journaled_at": "2026-10-10T12:41:23.219719Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce prompt API and lifecycle/import refusals",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T12:26:27.539569Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T12:26:27.540669Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Fix shared API management and every consumer",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T12:39:49.631717Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T12:39:49.633583Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Accept frozen checks browser preservation and pushed source",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-10T12:41:23.217046Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-10T12:41:23.218296Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-10T12:26:27.540664Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce prompt API and lifecycle/import refusals",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-10T12:26:27.541786Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce prompt API and lifecycle/import refusals",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-10T12:39:49.633578Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Fix shared API management and every consumer",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-10T12:39:49.634910Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix shared API management and every consumer",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-10T12:41:23.218288Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Accept frozen checks browser preservation and pushed source",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-10T12:41:23.219713Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Accept frozen checks browser preservation and pushed source",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

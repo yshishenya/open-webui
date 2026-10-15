@@ -1,0 +1,143 @@
+{
+  "spec_id": "airis-cell-editor-lifetime-2026-10-12-088",
+  "title": "AIRIS cell editor lifetime",
+  "generated": "2026-10-12T00:45:19.621380Z",
+  "last_updated": "2026-10-12T01:28:23.441271Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__cell-editor-lifetime.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T00:45:19.904867Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T01:28:23.441018Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS cell editor lifetime",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce and fix editor cleanup using existing lifecycle",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T01:08:47.279404Z",
+        "journaled_at": "2026-10-12T01:08:47.281223Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify editor behavior and preserve source/runtime",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T01:28:23.010505Z",
+        "journaled_at": "2026-10-12T01:28:23.012399Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce and fix editor cleanup using existing lifecycle",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T01:08:47.279262Z",
+        "needs_journaling": false,
+        "status_note": "3/3 reproduced failures on original actual source;7 accepted editor/notebook checks;sync onMount cleanup and nullable editor guard reused",
+        "journaled_at": "2026-10-12T01:08:47.280155Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Verify editor behavior and preserve source/runtime",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T01:28:23.010358Z",
+        "needs_journaling": false,
+        "status_note": "7targeted/2557full pass;2compilations/CSS;types30/24,ESLint178,new0;scoped2/PR371/format clean;backend565hashes reused;production/data preserved",
+        "journaled_at": "2026-10-12T01:28:23.011307Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T01:08:47.280150Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce and fix editor cleanup using existing lifecycle",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: 3/3 reproduced failures on original actual source;7 accepted editor/notebook checks;sync onMount cleanup and nullable editor guard reused",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T01:08:47.281218Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce and fix editor cleanup using existing lifecycle",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T01:28:23.011303Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify editor behavior and preserve source/runtime",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: 7targeted/2557full pass;2compilations/CSS;types30/24,ESLint178,new0;scoped2/PR371/format clean;backend565hashes reused;production/data preserved",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T01:28:23.012394Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify editor behavior and preserve source/runtime",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

@@ -23,7 +23,7 @@ async function openResponse(
 		{
 			id: answer,
 			role: 'assistant',
-			model: 'gpt-5.6-luna',
+			model: 'gpt-6-luna',
 			content,
 			parentId: question,
 			childrenIds: [],
@@ -36,7 +36,7 @@ async function openResponse(
 		data: {
 			chat: {
 				title: 'Media fixture',
-				models: ['gpt-5.6-luna'],
+				models: ['gpt-6-luna'],
 				messages,
 				history: {
 					currentId: answer,

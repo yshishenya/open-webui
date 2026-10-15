@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { getContext, onMount } from 'svelte';
+	import { getContext } from 'svelte';
 	import Hashtag from '$lib/components/icons/Hashtag.svelte';
 	import Lock from '$lib/components/icons/Lock.svelte';
 
 	const i18n = getContext('i18n');
 
-	export let onChange: Function = () => {};
+	export let onChange: (state: string) => unknown = () => {};
 	export let state = 'private';
 </script>
 
@@ -30,7 +30,7 @@
 					class="outline-hidden bg-transparent text-sm font-normal block w-fit pr-10 max-w-full placeholder-gray-400"
 					value={state === 'private' ? 'private' : 'public'}
 					on:change={(e) => {
-						if (e.target.value === 'public') {
+						if ((e.target as HTMLSelectElement).value === 'public') {
 							state = 'public';
 						} else {
 							state = 'private';

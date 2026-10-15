@@ -18,23 +18,37 @@
 	import Youtube from '$lib/components/icons/Youtube.svelte';
 	import Folder from '$lib/components/icons/Folder.svelte';
 
-	const i18n = getContext('i18n');
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
+
+	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
+	type KnowledgeItem = ChatAttachment & {
+		type: 'folder' | 'collection' | 'file' | 'youtube' | 'web';
+		name: string;
+		description?: string | null;
+		legacy?: boolean;
+		collection?: { name: string } | null;
+	};
 
 	export let query = '';
-	export let onSelect: (e: { type: string; data: unknown }) => void = () => {};
+	export let onSelect: (
+		e: { type: 'knowledge'; data: KnowledgeItem } | { type: 'web'; data: string }
+	) => void = () => {};
 
 	let selectedIdx = 0;
-	let items = [];
+	let items: KnowledgeItem[] = [];
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	export let filteredItems = [];
+	export let filteredItems: KnowledgeItem[] = [];
 	$: filteredItems = [
 		...(query.startsWith('http')
 			? isYoutubeUrl(query)
-				? [{ type: 'youtube', name: query, description: query }]
+				? [{ type: 'youtube' as const, name: query, description: query }]
 				: [
 						{
-							type: 'web',
+							type: 'web' as const,
 							name: query,
 							description: query
 						}
@@ -47,26 +61,26 @@
 		selectedIdx = 0;
 	}
 
-	export const selectUp = () => {
+	export const selectUp = (): void => {
 		selectedIdx = Math.max(0, selectedIdx - 1);
 	};
 
-	export const selectDown = () => {
+	export const selectDown = (): void => {
 		selectedIdx = Math.min(selectedIdx + 1, filteredItems.length - 1);
 	};
 
-	export const select = async () => {
+	export const select = async (): Promise<void> => {
 		// find item with data-selected=true
-		const item = document.querySelector(`[data-selected="true"]`);
+		const item = document.querySelector<HTMLElement>(`[data-selected="true"]`);
 		if (item) {
 			// click the item
 			item.click();
 		}
 	};
 
-	let folderItems = [];
-	let knowledgeItems = [];
-	let fileItems = [];
+	let folderItems: KnowledgeItem[] = [];
+	let knowledgeItems: KnowledgeItem[] = [];
+	let fileItems: KnowledgeItem[] = [];
 
 	$: items = [...folderItems, ...knowledgeItems, ...fileItems];
 
@@ -81,15 +95,15 @@
 		clearTimeout(searchDebounceTimer);
 	});
 
-	const getItems = () => {
+	const getItems = (): void => {
 		getFolderItems();
 		getKnowledgeItems();
 		getKnowledgeFileItems();
 	};
 
-	const getFolderItems = async () => {
+	const getFolderItems = async (): Promise<void> => {
 		folderItems = ($folders ?? [])
-			.map((folder) => ({
+			.map<KnowledgeItem>((folder) => ({
 				...folder,
 				type: 'folder',
 				description: $i18n.t('Folder'),
@@ -98,13 +112,13 @@
 			.filter((folder) => folder.name.toLowerCase().includes(query.toLowerCase()));
 	};
 
-	const getKnowledgeItems = async () => {
+	const getKnowledgeItems = async (): Promise<void> => {
 		const res = await searchKnowledgeBases(localStorage.token, query).catch(() => {
 			return null;
 		});
 
 		if (res) {
-			knowledgeItems = res.items.map((item) => {
+			knowledgeItems = res.items.map<KnowledgeItem>((item) => {
 				return {
 					...item,
 					type: 'collection'
@@ -113,13 +127,13 @@
 		}
 	};
 
-	const getKnowledgeFileItems = async () => {
+	const getKnowledgeFileItems = async (): Promise<void> => {
 		const res = await searchKnowledgeFiles(localStorage.token, query).catch(() => {
 			return null;
 		});
 
 		if (res) {
-			fileItems = res.items.map((item) => {
+			fileItems = res.items.map<KnowledgeItem>((item) => {
 				return {
 					...item,
 					type: 'file',
@@ -214,7 +228,7 @@
 			on:click={() => {
 				if (isValidHttpUrl(query)) {
 					onSelect({
-						type: 'web',
+						type: 'web' as const,
 						data: query
 					});
 				} else {
@@ -242,7 +256,7 @@
 			on:click={() => {
 				if (isValidHttpUrl(query)) {
 					onSelect({
-						type: 'web',
+						type: 'web' as const,
 						data: query
 					});
 				} else {

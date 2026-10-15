@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { WorkBook } from 'xlsx';
 	import DOMPurify from 'dompurify';
+	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 
 	import { getContext, onMount, tick } from 'svelte';
 
@@ -262,10 +263,10 @@
 			<div class="flex items-start justify-between">
 				<div>
 					<div class=" font-normal text-lg dark:text-gray-100">
-						<a
-							href="#"
-							class="hover:underline line-clamp-1"
-							on:click|preventDefault={() => {
+						<button
+							type="button"
+							class="hover:underline line-clamp-1 text-left"
+							on:click={() => {
 								if (item.type === 'file' || item.url) {
 									let fileId = item?.id ?? item?.tempId;
 									window.open(
@@ -280,7 +281,7 @@
 							}}
 						>
 							{item?.name ?? 'File'}
-						</a>
+						</button>
 					</div>
 				</div>
 
@@ -512,7 +513,7 @@
 							class="w-full border-0 rounded-lg mb-2"
 							controls
 							playsinline
-						/>
+						></audio>
 					{:else if isPDF}
 						<PDFViewer
 							url={`${WEBUI_API_BASE_URL}/files/${item.id}/content`}
@@ -543,9 +544,10 @@
 							{/if}
 
 							{#if excelHtml}
-								<div class="office-preview overflow-auto max-h-[60vh]">
-									{@html excelHtml}
-								</div>
+								<div
+									class="office-preview overflow-auto max-h-[60vh]"
+									use:sanitizedHtml={excelHtml}
+								></div>
 							{:else}
 								<div class="text-gray-500 text-sm p-4">No content available</div>
 							{/if}
@@ -573,9 +575,8 @@
 						{:else if docxHtml}
 							<div
 								class="office-preview max-h-[60vh] overflow-auto p-4 prose dark:prose-invert max-w-full text-sm"
-							>
-								{@html docxHtml}
-							</div>
+								use:sanitizedHtml={docxHtml}
+							></div>
 						{:else}
 							<div class="text-gray-500 text-sm p-4">No content available</div>
 						{/if}

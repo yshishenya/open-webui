@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { onMount, tick, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { SkillForm } from '$lib/apis/skills';
+	import type { ToolAccessGrantInput } from '$lib/apis/tools';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 
-	import Textarea from '$lib/components/common/Textarea.svelte';
 	import { toast } from 'svelte-sonner';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import AccessButton from '$lib/components/common/AccessButton.svelte';
@@ -13,13 +17,13 @@
 	import { updateSkillAccessGrants } from '$lib/apis/skills';
 	import { goto } from '$app/navigation';
 
-	export let onSubmit: Function;
+	export let onSubmit: (skill: SkillForm) => void | Promise<void>;
 	export let edit = false;
-	export let skill = null;
+	export let skill: SkillForm | null = null;
 	export let clone = false;
 	export let disabled = false;
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
 	let loading = false;
 
@@ -28,13 +32,13 @@
 	let description = '';
 	let content = '';
 
-	let accessGrants = [];
+	let accessGrants: ToolAccessGrantInput[] = [];
 	let showAccessControlModal = false;
 	$: if (!edit && !clone && name) {
 		id = slugify(name);
 	}
 
-	const handleContentInput = () => {
+	const handleContentInput = (): void => {
 		if (edit) return;
 		const fm = parseFrontmatter(content);
 		if (fm.name && !name) {
@@ -46,24 +50,28 @@
 		}
 	};
 
-	const submitHandler = async () => {
+	const submitHandler = async (): Promise<void> => {
+		if (loading) return;
 		if (disabled) {
 			toast.error($i18n.t('You do not have permission to edit this skill.'));
 			return;
 		}
 		loading = true;
-
-		await onSubmit({
-			id,
-			name,
-			description,
-			content,
-			is_active: true,
-			meta: { tags: [] },
-			access_grants: accessGrants
-		});
-
-		loading = false;
+		try {
+			await onSubmit({
+				id,
+				name,
+				description,
+				content,
+				is_active: skill?.is_active ?? true,
+				meta: skill?.meta ?? { tags: [] },
+				access_grants: accessGrants
+			});
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+		} finally {
+			loading = false;
+		}
 	};
 
 	onMount(async () => {
@@ -73,7 +81,7 @@
 			id = skill.id || '';
 			description = skill.description || '';
 			content = skill.content || '';
-			accessGrants = skill?.access_grants === undefined ? [] : skill?.access_grants;
+			accessGrants = skill.access_grants ?? [];
 		}
 	});
 </script>
@@ -88,7 +96,8 @@
 	onChange={async () => {
 		if (edit && skill?.id) {
 			try {
-				await updateSkillAccessGrants(localStorage.token, skill.id, accessGrants);
+				const result = await updateSkillAccessGrants(localStorage.token, skill.id, accessGrants);
+				if (!result) throw new Error($i18n.t('Failed to update skill.'));
 				toast.success($i18n.t('Saved'));
 			} catch (error) {
 				toast.error(`${error}`);

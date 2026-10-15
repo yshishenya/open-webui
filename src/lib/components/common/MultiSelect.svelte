@@ -12,8 +12,8 @@
 	export let className = '';
 
 	let open = false;
-	let triggerEl;
-	let contentEl;
+	let triggerEl: HTMLButtonElement | undefined;
+	let contentEl: HTMLDivElement | undefined;
 
 	$: items = options.map((option) =>
 		typeof option === 'object' && option !== null
@@ -26,7 +26,7 @@
 		.filter((item) => selectedValues.includes(item.value))
 		.map((item) => item.label);
 
-	const toggleItem = (itemValue) => {
+	const toggleItem = (itemValue: string): void => {
 		const current = Array.isArray(value) ? value : [];
 		value = current.includes(itemValue)
 			? current.filter((v) => v !== itemValue)
@@ -35,10 +35,10 @@
 	};
 
 	/** Svelte action: moves the node to document.body (portal) */
-	function portal(node) {
+	function portal(node: HTMLDivElement): { destroy(): void } {
 		document.body.appendChild(node);
 		return {
-			destroy() {
+			destroy(): void {
 				if (node.parentNode) {
 					node.parentNode.removeChild(node);
 				}
@@ -46,7 +46,7 @@
 		};
 	}
 
-	function positionContent() {
+	function positionContent(): void {
 		if (!triggerEl || !contentEl) return;
 		const rect = triggerEl.getBoundingClientRect();
 
@@ -57,7 +57,7 @@
 		contentEl.style.minWidth = `${rect.width}px`;
 	}
 
-	async function toggleOpen() {
+	async function toggleOpen(): Promise<void> {
 		open = !open;
 		if (open) {
 			await tick();
@@ -65,14 +65,14 @@
 		}
 	}
 
-	function handleWindowClick(event) {
+	function handleWindowClick(event: MouseEvent): void {
 		if (!open) return;
-		if (triggerEl?.contains(event.target)) return;
-		if (contentEl?.contains(event.target)) return;
+		if (triggerEl?.contains(event.target as Node | null)) return;
+		if (contentEl?.contains(event.target as Node | null)) return;
 		open = false;
 	}
 
-	function handleKeydown(event) {
+	function handleKeydown(event: KeyboardEvent): void {
 		if (event.key === 'Escape' && open) {
 			open = false;
 		}

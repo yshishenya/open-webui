@@ -1,0 +1,7 @@
+- [x] **[BUG][AUDIO]** Отмена запроса и владение озвучиванием
+  - Spec: meta/memory_bank/specs/work_items/2026-10-10__bugfix__speech-request-ownership.md
+  - Owner: Codex
+  - Branch: codex/bugfix/chat-dispatch-replay
+  - Done: 2026-10-10
+  - Summary: Проверка общего synthesizeOpenAISpeech, обоих потребителей и существующего AudioQueue; запрос целиком ограничен по времени, отмена и поздние результаты принадлежат своему ответу.
+  - Tests: 22 before failures, 68 focused passed, Docker frontend1368/1368; types1504/94 and ESLint893 with new0; native body cancellation and frozen1738/backend542/protected21/production12 preserved. SDD2/2 completed. No production release.

@@ -1,4 +1,9 @@
 <script lang="ts">
+	import {
+		transferComposerDraft,
+		readComposerDraft,
+		consumeComposerDraft
+	} from '$lib/utils/airis/chat_draft';
 	import { getContext, onDestroy, onMount, tick } from 'svelte';
 	import { v4 as uuidv4 } from 'uuid';
 	import fileSaver from 'file-saver';
@@ -77,6 +82,9 @@
 
 	import {
 		normalizeNote,
+		prepareNoteChatOperation,
+		readNoteChatOperation,
+		completeNoteChatOperation,
 		type NoteRecord,
 		type NoteFile,
 		type NoteEvent,
@@ -656,14 +664,29 @@ ${content}
 		};
 	};
 
-	const openNoteChat = async () => {
+	const openNoteChat = async (): Promise<void> => {
 		console.info('[note-chat] open requested', {
 			noteId: note?.id,
 			alreadyLoading: noteChatLoading,
 			currentChatId: noteChatId,
 			sidebarOpen: showNoteChat
 		});
-		if (!note?.id || noteChatLoading) return;
+		if (!note?.id || !$user?.id || noteChatLoading) return;
+		const actor = $user.id,
+			noteId = note.id,
+			token = localStorage.token;
+		try {
+			const operation = readNoteChatOperation(localStorage, actor, noteId);
+			if (operation) {
+				noteChatId = null;
+				noteChatDraftKey = operation;
+				showNoteChat = true;
+				return;
+			}
+		} catch {
+			toast.error($i18n.t('The request could not be saved safely. Sending is paused.'));
+			return;
+		}
 
 		noteChatLoading = true;
 		const chat = await getNoteChatById(localStorage.token, note.id).catch((error) => {
@@ -678,6 +701,7 @@ ${content}
 				})
 			: null;
 		noteChatLoading = false;
+		if ($user?.id !== actor || note?.id !== noteId || localStorage.token !== token) return;
 
 		if (chat?.id) {
 			console.info('[note-chat] open resolved', {
@@ -694,34 +718,62 @@ ${content}
 		}
 	};
 
-	const createNoteChat = async () => {
-		if (!note?.id || noteChatLoading) return;
-
-		noteChatId = null;
-		noteChatDraftKey = `${Date.now()}`;
-		showNoteChat = true;
+	const createNoteChat = async (): Promise<void> => {
+		if (!note?.id || !$user?.id || noteChatLoading || noteChatCreating) return;
+		const actor = $user.id,
+			noteId = note.id,
+			token = localStorage.token;
+		try {
+			const operation = await prepareNoteChatOperation(localStorage, actor, noteId);
+			if ($user?.id !== actor || note?.id !== noteId || localStorage.token !== token) return;
+			noteChatId = null;
+			noteChatDraftKey = operation;
+			showNoteChat = true;
+		} catch {
+			toast.error($i18n.t('The request could not be saved safely. Sending is paused.'));
+		}
 	};
 
-	const createNoteChatOnFirstMessage = async () => {
-		if (!note?.id || noteChatCreating) return null;
+	const createNoteChatOnFirstMessage = async (): Promise<SavedChat | null> => {
+		if (!note?.id || !$user?.id || !noteChatDraftKey || noteChatCreating) return null;
+		const actor = $user.id,
+			noteId = note.id,
+			token = localStorage.token,
+			operation = noteChatDraftKey;
+		const isCurrent = (): boolean =>
+			$user?.id === actor &&
+			note?.id === noteId &&
+			localStorage.token === token &&
+			noteChatDraftKey === operation;
 
 		noteChatCreating = true;
 		try {
-			const chat = await createNoteChatById(localStorage.token, note.id).catch((error) => {
-				console.error('[note-chat] create failed', { noteId: note?.id, error });
-				toast.error(`${error}`);
+			const chat = await createNoteChatById(token, noteId, operation).catch((error) => {
+				console.error('[note-chat] create failed', { noteId, error });
+				if (isCurrent()) toast.error(`${error}`);
 				return null;
 			});
-			const chats = chat
-				? await getNoteChatsById(localStorage.token, note.id).catch((error) => {
-						console.error('[note-chat] history failed', { noteId: note?.id, error });
-						return null;
-					})
-				: null;
+			if (!isCurrent() || !chat || chat.user_id !== actor || chat.meta?.note_id !== noteId)
+				return null;
+			const chats = await getNoteChatsById(token, noteId).catch((error) => {
+				console.error('[note-chat] history failed', { noteId, error });
+				return null;
+			});
+			if (!isCurrent()) return null;
 
 			if (chat?.id) {
 				noteChats = chats ?? [chat, ...noteChats.filter((item) => item.id !== chat.id)];
 				showNoteChat = true;
+				try {
+					const draft = readComposerDraft(sessionStorage, actor, `note:${operation}`);
+					transferComposerDraft(sessionStorage, actor, `note:${operation}`, chat.id);
+					completeNoteChatOperation(localStorage, actor, noteId, operation);
+					if (draft)
+						consumeComposerDraft(sessionStorage, { actor, scope: `note:${operation}`, draft });
+				} catch {
+					toast.error($i18n.t('The request could not be saved safely. Sending is paused.'));
+					return null;
+				}
 			}
 
 			return chat;

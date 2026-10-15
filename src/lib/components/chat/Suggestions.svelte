@@ -2,25 +2,28 @@
 	import Fuse from 'fuse.js';
 	import Bolt from '$lib/components/icons/Bolt.svelte';
 	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { SuggestionPrompt } from '$lib/utils/airis/model-types';
 	import { settings, WEBUI_NAME } from '$lib/stores';
 	import { WEBUI_VERSION } from '$lib/constants';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<I18n>>('i18n');
 
-	export let suggestionPrompts = [];
+	export let suggestionPrompts: SuggestionPrompt[] | null = [];
 	export let className = '';
 	export let inputValue = '';
 	export let onSelect: (event: { type: string; data: string }) => void | Promise<void> = () => {};
 
-	let sortedPrompts = [];
+	let sortedPrompts: SuggestionPrompt[] = [];
 
 	const fuseOptions = {
 		keys: ['content', 'title'],
 		threshold: 0.5
 	};
 
-	let fuse;
-	let filteredPrompts = [];
+	let fuse: Fuse<SuggestionPrompt>;
+	let filteredPrompts: SuggestionPrompt[] = [];
 
 	// Initialize Fuse
 	$: fuse = new Fuse(sortedPrompts, fuseOptions);
@@ -31,7 +34,7 @@
 
 	// Helper function to check if arrays are the same
 	// (based on unique IDs oder content)
-	function arraysEqual(a, b) {
+	function arraysEqual(a: SuggestionPrompt[], b: SuggestionPrompt[]): boolean {
 		if (a.length !== b.length) return false;
 		for (let i = 0; i < a.length; i++) {
 			if ((a[i].id ?? a[i].content) !== (b[i].id ?? b[i].content)) {
@@ -41,7 +44,7 @@
 		return true;
 	}
 
-	const getFilteredPrompts = (inputValue) => {
+	const getFilteredPrompts = (inputValue: string): void => {
 		if (inputValue.length > 500) {
 			filteredPrompts = [];
 		} else {

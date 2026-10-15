@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { config, models, settings, user } from '$lib/stores';
+	import { config, settings, user, type Settings } from '$lib/stores';
 	import { createEventDispatcher, onMount, onDestroy, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import { updateUserInfo } from '$lib/apis/users';
 	import { getUserPosition } from '$lib/utils';
 	import { setTextScale } from '$lib/utils/text-scale';
@@ -15,13 +14,23 @@
 
 	const dispatch = createEventDispatcher();
 
-	const i18n = getContext('i18n');
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
+	import type { ImageCompressionSize, FloatingAction } from '$lib/utils/airis/frontend-contracts';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	export let saveSettings: Function;
+	export let saveSettings: (updated: Partial<Settings>) => Promise<void>;
 
-	let backgroundImageUrl = null;
-	let inputFiles = null;
-	let filesInputElement;
+	let backgroundImageUrl: string | null = null;
+	let filesInputElement: HTMLInputElement;
+	let backgroundReader: FileReader | null = null;
+	let destroyed = false;
+	onDestroy(() => {
+		destroyed = true;
+		backgroundReader?.abort();
+		backgroundReader = null;
+	});
 
 	// Addons
 	let titleAutoGenerate = true;
@@ -30,7 +39,6 @@
 
 	let responseAutoCopy = false;
 	let widescreenMode = false;
-	let splitLargeChunks = false;
 	let scrollOnBranchChange = true;
 	let scrollOnResponseGeneration = true;
 	let showFilesOnTerminalSelect = true;
@@ -75,10 +83,10 @@
 	let showChatTitleInTab = true;
 
 	let showFloatingActionButtons = true;
-	let floatingActionButtons = null;
+	let floatingActionButtons: FloatingAction[] | null = null;
 
 	let imageCompression = false;
-	let imageCompressionSize = {
+	let imageCompressionSize: ImageCompressionSize = {
 		width: '',
 		height: ''
 	};
@@ -98,7 +106,7 @@
 	let voiceInterruption = false;
 	let hapticFeedback = false;
 
-	let webSearch = null;
+	let webSearch: Settings['webSearch'] = null;
 
 	let iframeSandboxAllowSameOrigin = false;
 	let iframeSandboxAllowForms = false;
@@ -106,7 +114,7 @@
 	let showManageFloatingActionButtonsModal = false;
 	let showManageImageCompressionModal = false;
 
-	let textScale = null;
+	let textScale: number | null = null;
 	const settingRowClass = 'flex items-center justify-between gap-2.5';
 	const settingLabelClass = 'min-w-0 text-xs text-gray-600 dark:text-gray-400';
 	const settingControlClass = 'flex shrink-0 items-center justify-end gap-1.5';
@@ -116,31 +124,71 @@
 	const actionButtonClass =
 		'text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-500 dark:hover:text-white';
 
-	const toggleLandingPageMode = async () => {
-		landingPageMode = landingPageMode === '' ? 'chat' : '';
-		saveSettings({ landingPageMode: landingPageMode });
+	const persistSettings = async (updated: Partial<Settings>): Promise<boolean> => {
+		if (destroyed) return false;
+		try {
+			await saveSettings(updated);
+			return !destroyed;
+		} catch (error) {
+			if (!destroyed) toast.error(getErrorMessage(error));
+			return false;
+		}
 	};
 
-	const toggleUserLocation = async () => {
-		if (userLocation) {
-			const position = await getUserPosition().catch((error) => {
-				toast.error(error.message);
-				return null;
-			});
+	const uploadBackgroundImage = (event: Event): void => {
+		const input = event.currentTarget;
+		if (!(input instanceof HTMLInputElement)) return;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file || destroyed) return;
+		if (!['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(file.type)) {
+			toast.error($i18n.t('Unsupported File Type'));
+			return;
+		}
+		backgroundReader?.abort();
+		const reader = new FileReader();
+		backgroundReader = reader;
+		reader.onerror = () => {
+			if (!destroyed && backgroundReader === reader) toast.error($i18n.t('Failed to read file.'));
+		};
+		reader.onload = async () => {
+			if (destroyed || backgroundReader !== reader) return;
+			const result = reader.result;
+			if (typeof result !== 'string' || !result.startsWith('data:image/')) {
+				toast.error($i18n.t('Failed to read file.'));
+				return;
+			}
+			if ((await persistSettings({ backgroundImageUrl: result })) && backgroundReader === reader)
+				backgroundImageUrl = result;
+		};
+		reader.readAsDataURL(file);
+	};
 
-			if (position) {
+	const toggleLandingPageMode = async (): Promise<void> => {
+		landingPageMode = landingPageMode === '' ? 'chat' : '';
+		persistSettings({ landingPageMode: landingPageMode });
+	};
+
+	const toggleUserLocation = async (): Promise<void> => {
+		try {
+			if (userLocation) {
+				const position = await getUserPosition();
+				if (destroyed || !userLocation) return;
 				await updateUserInfo(localStorage.token, { location: position });
+				if (destroyed || !userLocation) return;
 				toast.success($i18n.t('User location successfully retrieved.'));
-			} else {
+			}
+			await persistSettings({ userLocation });
+		} catch (error) {
+			if (!destroyed) {
 				userLocation = false;
+				toast.error(getErrorMessage(error));
 			}
 		}
-
-		saveSettings({ userLocation });
 	};
 
-	const toggleTitleAutoGenerate = async () => {
-		saveSettings({
+	const toggleTitleAutoGenerate = async (): Promise<void> => {
+		persistSettings({
 			title: {
 				...$settings.title,
 				auto: titleAutoGenerate
@@ -148,29 +196,11 @@
 		});
 	};
 
-	const toggleResponseAutoCopy = async () => {
-		const permission = await navigator.clipboard
-			.readText()
-			.then(() => {
-				return 'granted';
-			})
-			.catch(() => {
-				return '';
-			});
-
-		if (permission === 'granted') {
-			saveSettings({ responseAutoCopy: responseAutoCopy });
-		} else {
-			responseAutoCopy = false;
-			toast.error(
-				$i18n.t(
-					'Clipboard write permission denied. Please check your browser settings to grant the necessary access.'
-				)
-			);
-		}
+	const toggleResponseAutoCopy = async (): Promise<void> => {
+		await persistSettings({ responseAutoCopy });
 	};
 
-	const toggleChangeChatDirection = async () => {
+	const toggleChangeChatDirection = async (): Promise<void> => {
 		if (chatDirection === 'auto') {
 			chatDirection = 'LTR';
 		} else if (chatDirection === 'LTR') {
@@ -178,34 +208,34 @@
 		} else if (chatDirection === 'RTL') {
 			chatDirection = 'auto';
 		}
-		saveSettings({ chatDirection });
+		persistSettings({ chatDirection });
 	};
 
-	const togglectrlEnterToSend = async () => {
+	const togglectrlEnterToSend = async (): Promise<void> => {
 		ctrlEnterToSend = !ctrlEnterToSend;
-		saveSettings({ ctrlEnterToSend });
+		persistSettings({ ctrlEnterToSend });
 	};
 
-	const updateInterfaceHandler = async () => {
-		saveSettings({
+	const updateInterfaceHandler = async (): Promise<boolean> => {
+		return persistSettings({
 			models: [defaultModelId],
 			imageCompressionSize: imageCompressionSize
 		});
 	};
 
-	const toggleWebSearch = async () => {
+	const toggleWebSearch = async (): Promise<void> => {
 		webSearch = webSearch === null ? 'always' : null;
-		saveSettings({ webSearch: webSearch });
+		persistSettings({ webSearch: webSearch });
 	};
 
-	const setTextScaleHandler = (scale) => {
+	const setTextScaleHandler = (scale: number | null): void => {
 		textScale = scale;
-		setTextScale(textScale);
+		setTextScale(scale ?? 1);
 
 		if (textScale === 1) {
 			textScale = null;
 		}
-		saveSettings({ textScale });
+		persistSettings({ textScale });
 	};
 
 	onMount(async () => {
@@ -252,7 +282,6 @@
 		landingPageMode = $settings?.landingPageMode ?? '';
 		chatBubble = $settings?.chatBubble ?? true;
 		widescreenMode = $settings?.widescreenMode ?? false;
-		splitLargeChunks = $settings?.splitLargeChunks ?? false;
 		scrollOnBranchChange = $settings?.scrollOnBranchChange ?? true;
 		scrollOnResponseGeneration = $settings?.scrollOnResponseGeneration ?? true;
 		showFilesOnTerminalSelect = $settings?.showFilesOnTerminalSelect ?? true;
@@ -294,56 +323,38 @@
 <ManageFloatingActionButtonsModal
 	bind:show={showManageFloatingActionButtonsModal}
 	{floatingActionButtons}
-	onSave={(buttons) => {
-		floatingActionButtons = buttons;
-		saveSettings({ floatingActionButtons });
+	onSave={async (buttons) => {
+		const saved = await persistSettings({ floatingActionButtons: buttons });
+		if (saved) floatingActionButtons = buttons;
+		return saved;
 	}}
 />
 
 <ManageImageCompressionModal
 	bind:show={showManageImageCompressionModal}
 	size={imageCompressionSize}
-	onSave={(size) => {
-		saveSettings({ imageCompressionSize: size });
+	onSave={async (size) => {
+		const saved = await persistSettings({ imageCompressionSize: size });
+		if (saved) imageCompressionSize = size;
+		return saved;
 	}}
 />
 
 <form
 	id="tab-interface"
 	class="flex flex-col h-full justify-between text-sm"
-	on:submit|preventDefault={() => {
-		updateInterfaceHandler();
-		dispatch('save');
+	on:submit|preventDefault={async () => {
+		if (await updateInterfaceHandler()) dispatch('save');
 	}}
 >
 	<h2 class="text-sm font-medium text-gray-900 dark:text-white mb-4">{$i18n.t('Interface')}</h2>
 
 	<input
 		bind:this={filesInputElement}
-		bind:files={inputFiles}
 		type="file"
 		hidden
 		accept="image/*"
-		on:change={() => {
-			let reader = new FileReader();
-			reader.onload = (event) => {
-				let originalImageUrl = `${event.target.result}`;
-
-				backgroundImageUrl = originalImageUrl;
-				saveSettings({ backgroundImageUrl });
-			};
-
-			if (
-				inputFiles &&
-				inputFiles.length > 0 &&
-				['image/gif', 'image/webp', 'image/jpeg', 'image/png'].includes(inputFiles[0]['type'])
-			) {
-				reader.readAsDataURL(inputFiles[0]);
-			} else {
-				console.log(`Unsupported File Type '${inputFiles[0]['type']}'.`);
-				inputFiles = null;
-			}
-		}}
+		on:change={uploadBackgroundImage}
 	/>
 
 	<div class="flex-1 min-h-0 overflow-y-auto scrollbar-hover pr-1.5">
@@ -385,7 +396,7 @@
 							type="button"
 							class="rounded-lg p-1 transition outline-gray-200 hover:bg-gray-100 dark:outline-gray-700 dark:hover:bg-gray-800"
 							on:click={() => {
-								textScale = Math.max(1, parseFloat((textScale - 0.1).toFixed(2)));
+								textScale = Math.max(1, parseFloat(((textScale ?? 1) - 0.1).toFixed(2)));
 								setTextScaleHandler(textScale);
 							}}
 							aria-labelledby="ui-scale-label"
@@ -418,7 +429,7 @@
 							type="button"
 							class="rounded-lg p-1 transition outline-gray-200 hover:bg-gray-100 dark:outline-gray-700 dark:hover:bg-gray-800"
 							on:click={() => {
-								textScale = Math.min(1.5, parseFloat((textScale + 0.1).toFixed(2)));
+								textScale = Math.min(1.5, parseFloat(((textScale ?? 1) + 0.1).toFixed(2)));
 								setTextScaleHandler(textScale);
 							}}
 							aria-labelledby="ui-scale-label"
@@ -445,7 +456,7 @@
 							tooltip={true}
 							bind:state={highContrastMode}
 							on:change={() => {
-								saveSettings({ highContrastMode });
+								persistSettings({ highContrastMode });
 							}}
 						/>
 					</div>
@@ -467,7 +478,7 @@
 							tooltip={true}
 							bind:state={showChatTitleInTab}
 							on:change={() => {
-								saveSettings({ showChatTitleInTab });
+								persistSettings({ showChatTitleInTab });
 							}}
 						/>
 					</div>
@@ -509,7 +520,7 @@
 							tooltip={true}
 							bind:state={hapticFeedback}
 							on:change={() => {
-								saveSettings({ hapticFeedback });
+								persistSettings({ hapticFeedback });
 							}}
 						/>
 					</div>
@@ -531,7 +542,7 @@
 							tooltip={true}
 							bind:state={copyFormatted}
 							on:change={() => {
-								saveSettings({ copyFormatted });
+								persistSettings({ copyFormatted });
 							}}
 						/>
 					</div>
@@ -554,7 +565,7 @@
 								tooltip={true}
 								bind:state={showUpdateToast}
 								on:change={() => {
-									saveSettings({ showUpdateToast });
+									persistSettings({ showUpdateToast });
 								}}
 							/>
 						</div>
@@ -576,7 +587,7 @@
 								tooltip={true}
 								bind:state={showChangelog}
 								on:change={() => {
-									saveSettings({ showChangelog });
+									persistSettings({ showChangelog });
 								}}
 							/>
 						</div>
@@ -601,7 +612,7 @@
 							tooltip={true}
 							bind:state={enableMessageQueue}
 							on:change={() => {
-								saveSettings({ enableMessageQueue });
+								persistSettings({ enableMessageQueue });
 							}}
 						/>
 					</div>
@@ -672,10 +683,12 @@
 						class={actionButtonClass}
 						on:click={() => {
 							if (backgroundImageUrl !== null) {
+								backgroundReader?.abort();
+								backgroundReader = null;
 								backgroundImageUrl = null;
-								saveSettings({ backgroundImageUrl });
+								persistSettings({ backgroundImageUrl });
 							} else {
-								filesInputElement.click();
+								filesInputElement?.click();
 							}
 						}}
 						type="button"
@@ -702,7 +715,7 @@
 							ariaLabelledbyId="chat-bubble-ui-label"
 							bind:state={chatBubble}
 							on:change={() => {
-								saveSettings({ chatBubble });
+								persistSettings({ chatBubble });
 							}}
 						/>
 					</div>
@@ -725,7 +738,7 @@
 								tooltip={true}
 								bind:state={showUsername}
 								on:change={() => {
-									saveSettings({ showUsername });
+									persistSettings({ showUsername });
 								}}
 							/>
 						</div>
@@ -748,7 +761,7 @@
 							tooltip={true}
 							bind:state={widescreenMode}
 							on:change={() => {
-								saveSettings({ widescreenMode });
+								persistSettings({ widescreenMode });
 							}}
 						/>
 					</div>
@@ -758,7 +771,7 @@
 				</p>
 			</div>
 
-			{#if $user.role === 'admin' || $user?.permissions?.chat?.temporary}
+			{#if $user?.role === 'admin' || $user?.permissions?.chat?.temporary}
 				<div>
 					<div class={settingRowClass}>
 						<div id="temp-chat-default-label" class={settingLabelClass}>
@@ -771,7 +784,7 @@
 								tooltip={true}
 								bind:state={temporaryChatByDefault}
 								on:change={() => {
-									saveSettings({ temporaryChatByDefault });
+									persistSettings({ temporaryChatByDefault });
 								}}
 							/>
 						</div>
@@ -794,7 +807,7 @@
 							tooltip={true}
 							bind:state={chatFadeStreamingText}
 							on:change={() => {
-								saveSettings({ chatFadeStreamingText });
+								persistSettings({ chatFadeStreamingText });
 							}}
 						/>
 					</div>
@@ -816,7 +829,7 @@
 							tooltip={true}
 							bind:state={renderMarkdownInUserMessages}
 							on:change={() => {
-								saveSettings({ renderMarkdownInUserMessages });
+								persistSettings({ renderMarkdownInUserMessages });
 							}}
 						/>
 					</div>
@@ -838,7 +851,7 @@
 							tooltip={true}
 							bind:state={renderMarkdownInAssistantMessages}
 							on:change={() => {
-								saveSettings({ renderMarkdownInAssistantMessages });
+								persistSettings({ renderMarkdownInAssistantMessages });
 							}}
 						/>
 					</div>
@@ -882,7 +895,7 @@
 							tooltip={true}
 							bind:state={autoFollowUps}
 							on:change={() => {
-								saveSettings({ autoFollowUps });
+								persistSettings({ autoFollowUps });
 							}}
 						/>
 					</div>
@@ -904,7 +917,7 @@
 							tooltip={true}
 							bind:state={autoTags}
 							on:change={() => {
-								saveSettings({ autoTags });
+								persistSettings({ autoTags });
 							}}
 						/>
 					</div>
@@ -948,7 +961,7 @@
 							tooltip={true}
 							bind:state={scrollOnResponseGeneration}
 							on:change={() => {
-								saveSettings({ scrollOnResponseGeneration });
+								persistSettings({ scrollOnResponseGeneration });
 							}}
 						/>
 					</div>
@@ -970,7 +983,7 @@
 							tooltip={true}
 							bind:state={insertSuggestionPrompt}
 							on:change={() => {
-								saveSettings({ insertSuggestionPrompt });
+								persistSettings({ insertSuggestionPrompt });
 							}}
 						/>
 					</div>
@@ -992,7 +1005,7 @@
 							tooltip={true}
 							bind:state={keepFollowUpPrompts}
 							on:change={() => {
-								saveSettings({ keepFollowUpPrompts });
+								persistSettings({ keepFollowUpPrompts });
 							}}
 						/>
 					</div>
@@ -1014,7 +1027,7 @@
 							tooltip={true}
 							bind:state={insertFollowUpPrompt}
 							on:change={() => {
-								saveSettings({ insertFollowUpPrompt });
+								persistSettings({ insertFollowUpPrompt });
 							}}
 						/>
 					</div>
@@ -1036,7 +1049,7 @@
 							tooltip={true}
 							bind:state={regenerateMenu}
 							on:change={() => {
-								saveSettings({ regenerateMenu });
+								persistSettings({ regenerateMenu });
 							}}
 						/>
 					</div>
@@ -1058,7 +1071,7 @@
 							tooltip={true}
 							bind:state={collapseCodeBlocks}
 							on:change={() => {
-								saveSettings({ collapseCodeBlocks });
+								persistSettings({ collapseCodeBlocks });
 							}}
 						/>
 					</div>
@@ -1080,7 +1093,7 @@
 							tooltip={true}
 							bind:state={expandDetails}
 							on:change={() => {
-								saveSettings({ expandDetails });
+								persistSettings({ expandDetails });
 							}}
 						/>
 					</div>
@@ -1102,7 +1115,7 @@
 							tooltip={true}
 							bind:state={renderMarkdownInPreviews}
 							on:change={() => {
-								saveSettings({ renderMarkdownInPreviews });
+								persistSettings({ renderMarkdownInPreviews });
 							}}
 						/>
 					</div>
@@ -1124,7 +1137,7 @@
 							tooltip={true}
 							bind:state={displayMultiModelResponsesInTabs}
 							on:change={() => {
-								saveSettings({ displayMultiModelResponsesInTabs });
+								persistSettings({ displayMultiModelResponsesInTabs });
 							}}
 						/>
 					</div>
@@ -1146,7 +1159,7 @@
 							tooltip={true}
 							bind:state={scrollOnBranchChange}
 							on:change={() => {
-								saveSettings({ scrollOnBranchChange });
+								persistSettings({ scrollOnBranchChange });
 							}}
 						/>
 					</div>
@@ -1168,7 +1181,7 @@
 							tooltip={true}
 							bind:state={showFilesOnTerminalSelect}
 							on:change={() => {
-								saveSettings({ showFilesOnTerminalSelect });
+								persistSettings({ showFilesOnTerminalSelect });
 							}}
 						/>
 					</div>
@@ -1190,7 +1203,7 @@
 							tooltip={true}
 							bind:state={stylizedPdfExport}
 							on:change={() => {
-								saveSettings({ stylizedPdfExport });
+								persistSettings({ stylizedPdfExport });
 							}}
 						/>
 					</div>
@@ -1202,9 +1215,9 @@
 
 			<div>
 				<div class={settingRowClass}>
-					<label id="floating-action-buttons-label" class={settingLabelClass}>
+					<div id="floating-action-buttons-label" class={settingLabelClass}>
 						{$i18n.t('Floating Quick Actions')}
-					</label>
+					</div>
 
 					<div class={settingControlClass}>
 						{#if showFloatingActionButtons}
@@ -1225,7 +1238,7 @@
 							tooltip={true}
 							bind:state={showFloatingActionButtons}
 							on:change={() => {
-								saveSettings({ showFloatingActionButtons });
+								persistSettings({ showFloatingActionButtons });
 							}}
 						/>
 					</div>
@@ -1263,7 +1276,7 @@
 
 			<div>
 				<div class={settingRowClass}>
-					<div id="enter-key-behavior-label ctrl-enter-to-send-state" class={settingLabelClass}>
+					<div id="enter-key-behavior-label" class={settingLabelClass}>
 						{$i18n.t('Enter Key Behavior')}
 					</div>
 
@@ -1299,7 +1312,7 @@
 							ariaLabelledbyId="rich-input-label"
 							bind:state={richTextInput}
 							on:change={() => {
-								saveSettings({ richTextInput });
+								persistSettings({ richTextInput });
 							}}
 						/>
 					</div>
@@ -1322,7 +1335,7 @@
 								tooltip={true}
 								bind:state={promptAutocomplete}
 								on:change={() => {
-									saveSettings({ promptAutocomplete });
+									persistSettings({ promptAutocomplete });
 								}}
 							/>
 						</div>
@@ -1346,7 +1359,7 @@
 								tooltip={true}
 								bind:state={showFormattingToolbar}
 								on:change={() => {
-									saveSettings({ showFormattingToolbar });
+									persistSettings({ showFormattingToolbar });
 								}}
 							/>
 						</div>
@@ -1368,7 +1381,7 @@
 								tooltip={true}
 								bind:state={insertPromptAsRichText}
 								on:change={() => {
-									saveSettings({ insertPromptAsRichText });
+									persistSettings({ insertPromptAsRichText });
 								}}
 							/>
 						</div>
@@ -1391,7 +1404,7 @@
 							ariaLabelledbyId="paste-large-label"
 							bind:state={largeTextAsFile}
 							on:change={() => {
-								saveSettings({ largeTextAsFile });
+								persistSettings({ largeTextAsFile });
 							}}
 						/>
 					</div>
@@ -1415,7 +1428,7 @@
 							tooltip={true}
 							bind:state={detectArtifacts}
 							on:change={() => {
-								saveSettings({ detectArtifacts });
+								persistSettings({ detectArtifacts });
 							}}
 						/>
 					</div>
@@ -1437,7 +1450,7 @@
 							tooltip={true}
 							bind:state={iframeSandboxAllowSameOrigin}
 							on:change={() => {
-								saveSettings({ iframeSandboxAllowSameOrigin });
+								persistSettings({ iframeSandboxAllowSameOrigin });
 							}}
 						/>
 					</div>
@@ -1459,7 +1472,7 @@
 							tooltip={true}
 							bind:state={iframeSandboxAllowForms}
 							on:change={() => {
-								saveSettings({ iframeSandboxAllowForms });
+								persistSettings({ iframeSandboxAllowForms });
 							}}
 						/>
 					</div>
@@ -1483,7 +1496,7 @@
 							tooltip={true}
 							bind:state={voiceInterruption}
 							on:change={() => {
-								saveSettings({ voiceInterruption });
+								persistSettings({ voiceInterruption });
 							}}
 						/>
 					</div>
@@ -1505,7 +1518,7 @@
 							tooltip={true}
 							bind:state={showEmojiInCall}
 							on:change={() => {
-								saveSettings({ showEmojiInCall });
+								persistSettings({ showEmojiInCall });
 							}}
 						/>
 					</div>
@@ -1528,7 +1541,7 @@
 						class={actionButtonClass}
 						on:click={() => {
 							defaultUploadContext = defaultUploadContext === 'full' ? 'focused' : 'full';
-							saveSettings({ defaultUploadContext });
+							persistSettings({ defaultUploadContext });
 						}}
 						type="button"
 					>
@@ -1569,7 +1582,7 @@
 							tooltip={true}
 							bind:state={imageCompression}
 							on:change={() => {
-								saveSettings({ imageCompression });
+								persistSettings({ imageCompression });
 							}}
 						/>
 					</div>
@@ -1592,7 +1605,7 @@
 								tooltip={true}
 								bind:state={imageCompressionInChannels}
 								on:change={() => {
-									saveSettings({ imageCompressionInChannels });
+									persistSettings({ imageCompressionInChannels });
 								}}
 							/>
 						</div>

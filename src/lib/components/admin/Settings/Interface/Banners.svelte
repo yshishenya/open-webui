@@ -5,16 +5,18 @@
 	import EllipsisVertical from '$lib/components/icons/EllipsisVertical.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Sortable from 'sortablejs';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import type { Banner } from '$lib/types';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 	const i18n = getContext('i18n');
 
-	export let banners = [];
+	export let banners: Banner[] = [];
 
-	let sortable = null;
-	let bannerListElement = null;
+	let sortable: Sortable | null = null;
+	let bannerListElement: HTMLDivElement | null = null;
 
-	const positionChangeHandler = () => {
+	const positionChangeHandler = (): void => {
+		if (!bannerListElement) return;
 		const bannerIdOrder = Array.from(bannerListElement.children).map((child) =>
 			child.id.replace('banner-item-', '')
 		);
@@ -26,18 +28,11 @@
 		});
 	};
 
-	const classNames: Record<string, string> = {
-		info: 'bg-blue-500/20 text-blue-700 dark:text-blue-200 ',
-		success: 'bg-green-500/20 text-green-700 dark:text-green-200',
-		warning: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-200',
-		error: 'bg-red-500/20 text-red-700 dark:text-red-200'
-	};
-
-	$: if (banners) {
+	$: if (banners && bannerListElement) {
 		init();
 	}
 
-	const init = () => {
+	const init = (): void => {
 		if (sortable) {
 			sortable.destroy();
 		}
@@ -46,12 +41,13 @@
 			sortable = new Sortable(bannerListElement, {
 				animation: 150,
 				handle: '.item-handle',
-				onUpdate: async (event) => {
+				onUpdate: async () => {
 					positionChangeHandler();
 				}
 			});
 		}
 	};
+	onDestroy(() => sortable?.destroy());
 </script>
 
 <div class=" flex flex-col gap-3 {banners?.length > 0 ? 'mt-2' : ''}" bind:this={bannerListElement}>

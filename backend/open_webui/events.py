@@ -30,7 +30,7 @@ class EventDefinition(BaseModel):
     message: str | None = None
 
     @model_validator(mode='after')
-    def defaults(self) -> 'EventDefinition':
+    def defaults(self) -> EventDefinition:
         title = self.name.replace('.', ' ').replace('_', ' ').title()
         if self.description is None:
             object.__setattr__(self, 'description', f'{title}.')
@@ -771,7 +771,7 @@ def event_filter_matches(webhook: dict[str, Any], event_name: str) -> bool:
     return False
 
 
-def event_user_ids(event: 'Event') -> set[str]:
+def event_user_ids(event: Event) -> set[str]:
     user_ids = set()
     actor = event.actor or {}
     subject = event.subject or {}
@@ -822,7 +822,7 @@ async def event_target_matches(
     return any(group_ids.intersection(target_group_ids) for group_ids in user_group_ids.values())
 
 
-async def event_webhook_matches(webhook: dict[str, Any], event: 'Event') -> bool:
+async def event_webhook_matches(webhook: dict[str, Any], event: Event) -> bool:
     if not event_filter_matches(webhook, event.event):
         return False
 
@@ -1202,13 +1202,11 @@ async def publish_model_provider_request_failed(
         'model_not_found'
         if status == 404
         and any(value in marker for value in ('model_not_found', 'model not found', 'does not exist', 'no such model'))
-        else 'authentication_failed'
-        if status in (401, 403)
-        else 'rate_limited'
-        if status == 429
-        else 'server_failed'
-        if status >= 500
-        else 'upstream_error'
+        else (
+            'authentication_failed'
+            if status in (401, 403)
+            else 'rate_limited' if status == 429 else 'server_failed' if status >= 500 else 'upstream_error'
+        )
     )
 
     # Server-log only; the upstream error body is otherwise invisible to admins

@@ -1,0 +1,141 @@
+{
+  "spec_id": "airis-frontend-gate-2026-10-12-104",
+  "title": "AIRIS remaining frontend contracts and stale list handle",
+  "generated": "2026-10-12T10:22:41.825092Z",
+  "last_updated": "2026-10-12T17:45:52.960148Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 4,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__frontend-gate.md",
+    "status": "completed",
+    "progress_percentage": 100,
+    "activated_date": "2026-10-12T17:29:53.787258Z",
+    "completed_date": "2026-10-12T17:45:52.959918Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS remaining frontend contracts and stale list handle",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Trace SDK contracts and reproduce stale list handles",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T17:32:51.587145Z",
+        "journaled_at": "2026-10-12T17:32:51.588873Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Minimal corrections and full frontend acceptance",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T17:45:52.554832Z",
+        "journaled_at": "2026-10-12T17:45:52.556535Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Verify native versions and callers; run baseline component and editor tests",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T17:32:51.587019Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T17:32:51.587890Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Reuse concrete types and guard current list positions; verify frontend, preservation and publish",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T17:45:52.554694Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T17:45:52.555514Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T17:32:51.587884Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify native versions and callers; run baseline component and editor tests",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:32:51.588869Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Trace SDK contracts and reproduce stale list handles",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:45:52.555510Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reuse concrete types and guard current list positions; verify frontend, preservation and publish",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T17:45:52.556530Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Minimal corrections and full frontend acceptance",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

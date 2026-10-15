@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { i18n as i18nType } from 'i18next';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
@@ -8,11 +10,12 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Writable<i18nType>>('i18n');
 
 	export let isProduction = false;
-	export let onDelete: Function;
-	export let onClose: Function;
+	export let onDelete: () => void;
+	export let onClose: () => void;
+	export let disabled = false;
 
 	let show = false;
 	let showDeleteConfirmDialog = false;
@@ -26,7 +29,7 @@
 	)}
 	confirmLabel={$i18n.t('Delete')}
 	onConfirm={() => {
-		onDelete();
+		if (!disabled) onDelete();
 	}}
 />
 
@@ -63,6 +66,7 @@
 			{:else}
 				<button
 					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					{disabled}
 					on:click={() => {
 						show = false;
 						showDeleteConfirmDialog = true;

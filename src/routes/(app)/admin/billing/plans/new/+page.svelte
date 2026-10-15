@@ -21,7 +21,7 @@
 	let saving = false;
 
 	// Form data
-	let formData: CreatePlanRequest = {
+	let formData: Required<CreatePlanRequest> = {
 		id: `plan-${uuidv4()}`,
 		name: '',
 		name_ru: '',
@@ -44,14 +44,14 @@
 	// Features management
 	let newFeature = '';
 
-	const addFeature = () => {
+	const addFeature = (): void => {
 		if (newFeature.trim()) {
 			formData.features = [...formData.features, newFeature.trim()];
 			newFeature = '';
 		}
 	};
 
-	const removeFeature = (index: number) => {
+	const removeFeature = (index: number): void => {
 		formData.features = formData.features.filter((_, i) => i !== index);
 	};
 
@@ -111,25 +111,34 @@
 			toast.error($i18n.t('Plan name is required'));
 			return false;
 		}
-		if (formData.price < 0) {
-			toast.error($i18n.t('Price cannot be negative'));
+		if (!Number.isFinite(formData.price) || formData.price < 0) {
+			toast.error($i18n.t('Enter a valid amount'));
 			return false;
 		}
 		if (
 			!unlimitedTokensInput &&
-			(!formData.quotas.tokens_input || formData.quotas.tokens_input <= 0)
+			(!Number.isSafeInteger(formData.quotas.tokens_input) ||
+				formData.quotas.tokens_input === null ||
+				formData.quotas.tokens_input <= 0)
 		) {
 			toast.error($i18n.t('Token input quota must be greater than 0'));
 			return false;
 		}
 		if (
 			!unlimitedTokensOutput &&
-			(!formData.quotas.tokens_output || formData.quotas.tokens_output <= 0)
+			(!Number.isSafeInteger(formData.quotas.tokens_output) ||
+				formData.quotas.tokens_output === null ||
+				formData.quotas.tokens_output <= 0)
 		) {
 			toast.error($i18n.t('Token output quota must be greater than 0'));
 			return false;
 		}
-		if (!unlimitedRequests && (!formData.quotas.requests || formData.quotas.requests <= 0)) {
+		if (
+			!unlimitedRequests &&
+			(!Number.isSafeInteger(formData.quotas.requests) ||
+				formData.quotas.requests === null ||
+				formData.quotas.requests <= 0)
+		) {
 			toast.error($i18n.t('Requests quota must be greater than 0'));
 			return false;
 		}
@@ -137,12 +146,13 @@
 		return true;
 	};
 
-	const handleSave = async () => {
+	const handleSave = async (): Promise<void> => {
 		if (!validateForm() || saving) return;
 
 		saving = true;
 		try {
 			const result = await createPlan(localStorage.token, formData);
+			if (!result) throw new Error('Failed to create plan');
 			if (result) {
 				toast.success($i18n.t('Plan created successfully'));
 				goto('/admin/billing/plans');
@@ -349,7 +359,7 @@
 											bind:value={formData.quotas.tokens_input}
 											disabled={unlimitedTokensInput}
 											min="0"
-											step="1000"
+											step="1"
 											class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden disabled:opacity-50"
 										/>
 									</div>
@@ -371,7 +381,7 @@
 											bind:value={formData.quotas.tokens_output}
 											disabled={unlimitedTokensOutput}
 											min="0"
-											step="1000"
+											step="1"
 											class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden disabled:opacity-50"
 										/>
 									</div>
@@ -392,7 +402,7 @@
 											bind:value={formData.quotas.requests}
 											disabled={unlimitedRequests}
 											min="0"
-											step="100"
+											step="1"
 											class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden disabled:opacity-50"
 										/>
 									</div>

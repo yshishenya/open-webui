@@ -20,6 +20,7 @@ type UserValue = {
 	name: string;
 	role: string;
 	is_active: boolean;
+	status_message?: string;
 	permissions?: {
 		workspace?: {
 			models?: boolean;
@@ -94,44 +95,28 @@ const mocks = vi.hoisted(() => {
 	};
 });
 
-vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }), { virtual: true });
+vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }));
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
-vi.mock(
-	'$lib/constants',
-	() => ({
-		WEBUI_API_BASE_URL: '/api/v1'
-	}),
-	{ virtual: true }
-);
-vi.mock('$lib/apis', () => ({ getUsage: mocks.getUsageMock }), { virtual: true });
-vi.mock(
-	'$lib/apis/auths',
-	() => ({
-		getSessionUser: mocks.getSessionUserMock,
-		userSignOut: mocks.userSignOutMock
-	}),
-	{ virtual: true }
-);
-vi.mock('$lib/apis/users', () => ({ updateUserStatus: mocks.updateUserStatusMock }), {
-	virtual: true
-});
-vi.mock(
-	'$lib/stores',
-	() => ({
-		chatId: mocks.chatIdStore,
-		showSettings: mocks.showSettingsStore,
-		mobile: mocks.mobileStore,
-		showSidebar: mocks.showSidebarStore,
-		showShortcuts: mocks.showShortcutsStore,
-		user: mocks.userStore,
-		config: mocks.configStore,
-		settings: mocks.settingsStore
-	}),
-	{ virtual: true }
-);
-vi.mock('svelte-sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }), {
-	virtual: true
-});
+vi.mock('$lib/constants', () => ({
+	WEBUI_API_BASE_URL: '/api/v1'
+}));
+vi.mock('$lib/apis', () => ({ getUsage: mocks.getUsageMock }));
+vi.mock('$lib/apis/auths', () => ({
+	getSessionUser: mocks.getSessionUserMock,
+	userSignOut: mocks.userSignOutMock
+}));
+vi.mock('$lib/apis/users', () => ({ updateUserStatus: mocks.updateUserStatusMock }));
+vi.mock('$lib/stores', () => ({
+	chatId: mocks.chatIdStore,
+	showSettings: mocks.showSettingsStore,
+	mobile: mocks.mobileStore,
+	showSidebar: mocks.showSidebarStore,
+	showShortcuts: mocks.showShortcutsStore,
+	user: mocks.userStore,
+	config: mocks.configStore,
+	settings: mocks.settingsStore
+}));
+vi.mock('svelte-sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const flushPromises = async (): Promise<void> => {
 	await Promise.resolve();
@@ -204,7 +189,9 @@ describe('UserMenu', () => {
 		document.body.innerHTML = '';
 	});
 
-	const renderMenu = (props: Partial<{ help: boolean; role: string }> = {}): void => {
+	const renderMenu = (
+		props: Partial<{ help: boolean; role: string; profile: boolean }> = {}
+	): void => {
 		target = document.createElement('div');
 		document.body.appendChild(target);
 		mounted = mount(UserMenu, {
@@ -220,6 +207,27 @@ describe('UserMenu', () => {
 			}
 		});
 	};
+
+	it('clears the visible profile status and refreshes the user', async () => {
+		mocks.userStore.set({
+			id: 'user-1',
+			name: 'Yan',
+			role: 'admin',
+			is_active: true,
+			status_message: 'Active fixture'
+		});
+		renderMenu({ profile: true });
+		await flushPromises();
+		const clear = document.body.querySelector('.user-menu-status button button');
+		expect(clear).toBeTruthy();
+		clear?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await flushPromises();
+		expect(mocks.updateUserStatusMock).toHaveBeenCalledWith('test-token', {
+			status_emoji: '',
+			status_message: ''
+		});
+		expect(mocks.getSessionUserMock).toHaveBeenCalledWith('test-token');
+	});
 
 	it('opens settings when the settings item is selected', async () => {
 		renderMenu();

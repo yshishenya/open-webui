@@ -1,0 +1,198 @@
+{
+  "spec_id": "airis-ui-action-guards-2026-10-12-087",
+  "title": "AIRIS UI action guards",
+  "generated": "2026-10-12T00:16:20.742600Z",
+  "last_updated": "2026-10-12T00:43:19.986271Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__bugfix__ui-action-guards.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T00:16:21.026925Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T00:43:19.985984Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS UI action guards",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Reproduce changing folder and missing UI data",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T00:25:27.543784Z",
+        "journaled_at": "2026-10-12T00:25:27.545843Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce changing folder and missing UI data",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T00:25:27.543601Z",
+        "needs_journaling": false,
+        "status_note": "Reproduced 14 failures among 16 targeted cases on original source; traced callers",
+        "journaled_at": "2026-10-12T00:25:27.544631Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Guard existing UI actions and preserve their contracts",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T00:25:27.794731Z",
+        "journaled_at": "2026-10-12T00:25:27.797356Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Guard existing UI actions and preserve their contracts",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T00:25:27.794534Z",
+        "needs_journaling": false,
+        "status_note": "Minimal guards in five existing components;27 targeted checks passed after extending both await boundaries",
+        "journaled_at": "2026-10-12T00:25:27.795606Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "Verify actions and preserve application state",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-3-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T00:43:19.519473Z",
+        "journaled_at": "2026-10-12T00:43:19.521842Z"
+      }
+    },
+    "task-3-1": {
+      "type": "task",
+      "title": "Verify actions and preserve application state",
+      "status": "completed",
+      "parent": "phase-3",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T00:43:19.519311Z",
+        "needs_journaling": false,
+        "status_note": "27 targeted/2554 full pass;10 compilations/CSS;31 types/24 warnings and178 ESLint,zero new diagnostics;7 scoped/371 PR targets clean;production preserved",
+        "journaled_at": "2026-10-12T00:43:19.520349Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T00:25:27.544625Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce changing folder and missing UI data",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Reproduced 14 failures among 16 targeted cases on original source; traced callers",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T00:25:27.545837Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Reproduce changing folder and missing UI data",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T00:25:27.795601Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Guard existing UI actions and preserve their contracts",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Minimal guards in five existing components;27 targeted checks passed after extending both await boundaries",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T00:25:27.797349Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Guard existing UI actions and preserve their contracts",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    },
+    {
+      "timestamp": "2026-10-12T00:43:19.520344Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify actions and preserve application state",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: 27 targeted/2554 full pass;10 compilations/CSS;31 types/24 warnings and178 ESLint,zero new diagnostics;7 scoped/371 PR targets clean;production preserved",
+      "metadata": {},
+      "task_id": "task-3-1"
+    },
+    {
+      "timestamp": "2026-10-12T00:43:19.521836Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify actions and preserve application state",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-3 have been completed.",
+      "metadata": {},
+      "task_id": "phase-3"
+    }
+  ]
+}

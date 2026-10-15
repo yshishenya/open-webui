@@ -1,62 +1,98 @@
 <script lang="ts">
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount } from 'svelte';
-	const i18n = getContext('i18n');
+	import { getContext, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
+	const i18n = getContext<Readable<{ t: (key: string) => string }>>('i18n');
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import { extractFrontmatter, nameToId } from '$lib/utils';
 
+	type ImportedSource = {
+		id: string;
+		name: string;
+		content: string;
+		meta: Record<string, unknown>;
+	};
 	export let show = false;
-
-	export let onImport = (e) => {};
-	export let onClose = () => {};
-
-	export let loadUrlHandler: Function = () => {};
-	export let successMessage: string = '';
+	export let onImport: (source: ImportedSource) => void | Promise<void> = () => {};
+	export let onClose: () => void = () => {};
+	export let loadUrlHandler: (url: string, signal?: AbortSignal) => Promise<unknown> = async () =>
+		null;
+	export let successMessage = '';
 
 	let loading = false;
 	let url = '';
+	let controller: AbortController | null = null;
+	let alive = true;
+	let wasOpen = show;
+	const cancelImport = (): void => {
+		controller?.abort();
+		controller = null;
+		loading = false;
+	};
+	$: if (show !== wasOpen) {
+		wasOpen = show;
+		if (!show) {
+			cancelImport();
+			onClose();
+		}
+	}
+	onDestroy(() => {
+		alive = false;
+		cancelImport();
+	});
 
-	const submitHandler = async () => {
-		loading = true;
-
-		if (!url) {
+	const submitHandler = async (): Promise<void> => {
+		if (loading || !show || !alive) return;
+		if (!url.trim()) {
 			toast.error($i18n.t('Please enter a valid URL'));
-			loading = false;
 			return;
 		}
-
-		const res = await loadUrlHandler(url).catch((err) => {
-			toast.error(`${err}`);
-			loading = false;
-			return null;
-		});
-
-		if (res) {
-			if (!successMessage) {
-				successMessage = $i18n.t('Function imported successfully');
+		loading = true;
+		const request = new AbortController();
+		controller = request;
+		const current = (): boolean =>
+			alive && show && controller === request && !request.signal.aborted;
+		try {
+			const res = await loadUrlHandler(url.trim(), request.signal);
+			if (!current()) return;
+			if (!res || typeof res !== 'object' || Array.isArray(res))
+				throw new Error($i18n.t('Invalid source response'));
+			const source = res as Record<string, unknown>;
+			if (
+				typeof source.name !== 'string' ||
+				!source.name.trim() ||
+				typeof source.content !== 'string' ||
+				(source.id !== undefined && typeof source.id !== 'string') ||
+				(source.meta != null && (typeof source.meta !== 'object' || Array.isArray(source.meta)))
+			) {
+				throw new Error($i18n.t('Invalid source response'));
 			}
-
-			toast.success(successMessage);
-
-			let func = res;
-			func.id = func.id || nameToId(func.name);
-
-			const frontmatter = extractFrontmatter(res.content); // Ensure frontmatter is extracted
-
-			if (frontmatter?.title) {
-				func.name = frontmatter.title;
-			}
-
-			func.meta = {
-				...(func.meta ?? {}),
-				description: frontmatter?.description ?? func.name
-			};
-
-			onImport(func);
+			const frontmatter = extractFrontmatter(source.content);
+			const name = frontmatter.title || source.name;
+			await onImport({
+				...source,
+				id: (source.id as string | undefined) || nameToId(source.name),
+				name,
+				content: source.content,
+				meta: {
+					...(source.meta as Record<string, unknown> | null | undefined),
+					description: frontmatter.description ?? name
+				}
+			});
+			if (!current()) return;
+			toast.success(successMessage || $i18n.t('Source loaded for review in the editor'));
 			show = false;
+		} catch (error) {
+			if (current()) toast.error(getErrorMessage(error));
+		} finally {
+			if (controller === request) {
+				controller = null;
+				loading = false;
+			}
 		}
 	};
 </script>
@@ -92,6 +128,8 @@
 								<input
 									class="w-full text-sm bg-transparent disabled:text-gray-500 dark:disabled:text-gray-500 outline-hidden"
 									type="url"
+									aria-label={$i18n.t('URL')}
+									disabled={loading}
 									bind:value={url}
 									placeholder={$i18n.t('Enter the URL to import')}
 									required

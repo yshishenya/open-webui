@@ -10,22 +10,38 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export async function requestUserValves(
 	url: string,
 	token: string,
-	values?: object
+	values?: object,
+	signal?: AbortSignal
 ): Promise<ValveValues | null> {
-	const response = await fetch(url, {
-		method: values === undefined ? 'GET' : 'POST',
-		headers: {
-			Accept: 'application/json',
-			'Content-Type': 'application/json',
-			authorization: `Bearer ${token}`
-		},
-		signal: AbortSignal.timeout(25000),
-		...(values === undefined ? {} : { body: JSON.stringify(values) })
-	});
-	if (!response.ok) throw new Error(`Settings request failed (${response.status})`);
-	const result: unknown = await response.json();
-	if (result !== null && !isRecord(result)) throw new Error('Invalid settings response');
-	return result;
+	signal?.throwIfAborted();
+	const controller = new AbortController();
+	const abort = (): void => controller.abort(signal?.reason);
+	signal?.addEventListener('abort', abort, { once: true });
+	const timeout = setTimeout(
+		() => controller.abort(new DOMException('Settings request timed out', 'TimeoutError')),
+		25000
+	);
+	try {
+		const response = await fetch(url, {
+			method: values === undefined ? 'GET' : 'POST',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				authorization: `Bearer ${token}`
+			},
+			signal: controller.signal,
+			...(values === undefined ? {} : { body: JSON.stringify(values) })
+		});
+		controller.signal.throwIfAborted();
+		if (!response.ok) throw new Error(`Settings request failed (${response.status})`);
+		const result: unknown = await response.json();
+		controller.signal.throwIfAborted();
+		if (result !== null && !isRecord(result)) throw new Error('Invalid settings response');
+		return result;
+	} finally {
+		clearTimeout(timeout);
+		signal?.removeEventListener('abort', abort);
+	}
 }
 
 export function readValveSpec(value: ValveValues | null): ValveSpec | null {

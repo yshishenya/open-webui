@@ -6,7 +6,6 @@ from decimal import Decimal
 from typing import Literal
 
 from fastapi import HTTPException, status
-
 from open_webui.models.billing import UsageMetric
 from open_webui.utils.billing_integration import (
     IMAGE_HOLD_REFERENCE,

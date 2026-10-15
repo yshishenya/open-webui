@@ -1,4 +1,8 @@
 <script lang="ts">
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
+	import type { AdminConfig, OAuthConfig } from '$lib/apis/auths';
+	import type { GroupDetails } from '$lib/utils/airis/group-types';
 	import { getBackendConfig } from '$lib/apis';
 	import {
 		getAdminConfig,
@@ -23,10 +27,10 @@
 	import AdminSettingSection from './AdminSettingSection.svelte';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 
-	const i18n: any = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
 
-	let adminConfig: any = null;
-	let groups: any[] = [];
+	let adminConfig: AdminConfig | null = null;
+	let groups: GroupDetails[] | null = [];
 
 	let ENABLE_LDAP = false;
 	let LDAP_SERVER = {
@@ -48,7 +52,7 @@
 		attribute_for_groups: 'memberOf'
 	};
 
-	let oauthConfig: any = null;
+	let oauthConfig: OAuthConfig | null = null;
 	const inputClass =
 		'w-full h-7 rounded-lg border border-gray-100/50 bg-gray-50/40 px-2 text-xs text-gray-700 outline-hidden transition-colors placeholder:text-gray-300 focus:border-blue-400 dark:border-white/[0.04] dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder:text-gray-700 dark:focus:border-blue-500';
 	const textareaClass =
@@ -230,7 +234,7 @@
 
 					{#if adminConfig.JWT_EXPIRES_IN === '-1'}
 						<a
-								href="/documents"
+							href="/documents"
 							target="_blank"
 							class="mt-1 block rounded-lg bg-yellow-500/10 px-2 py-1.5 text-[0.6875rem] text-yellow-700 underline dark:text-yellow-200"
 						>

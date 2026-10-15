@@ -3,7 +3,6 @@ import copy
 import logging
 import sys
 
-from aiocache import cached
 from fastapi import Request
 from open_webui.config import (
     BYPASS_ADMIN_ACCESS_CONTROL,

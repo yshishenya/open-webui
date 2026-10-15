@@ -1,0 +1,142 @@
+{
+  "spec_id": "airis-backend-mechanical-2026-10-12-105",
+  "title": "AIRIS 21 mechanical backend corrections",
+  "generated": "2026-10-12T17:58:53.411782Z",
+  "last_updated": "2026-10-12T18:06:35.350641Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 1,
+    "security_sensitive": false,
+    "default_category": "refactoring",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-12__refactor__backend-mechanical-gate.md",
+    "status": "completed",
+    "activated_date": "2026-10-12T17:59:54.938822Z",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-12T18:06:35.350413Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS 21 mechanical backend corrections",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Verify equivalence and apply reviewed mechanical edits",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T18:05:36.250585Z",
+        "journaled_at": "2026-10-12T18:05:36.252521Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Run full backend, lint checks and preservation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-12T18:06:34.908991Z",
+        "journaled_at": "2026-10-12T18:06:34.910853Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Verify equivalence and apply reviewed mechanical edits",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T18:05:36.250424Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T18:05:36.251439Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Run full backend, lint checks and preservation",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-12T18:06:34.908847Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-12T18:06:34.909790Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-12T18:05:36.251432Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify equivalence and apply reviewed mechanical edits",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:05:36.252516Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify equivalence and apply reviewed mechanical edits",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:06:34.909785Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Run full backend, lint checks and preservation",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-12T18:06:34.910849Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Run full backend, lint checks and preservation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}
