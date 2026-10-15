@@ -1,121 +1,114 @@
 {
-  "spec_id": "airis-release-candidate-2026-10-15-124",
-  "title": "AIRIS release candidate 2026-10-15-124",
-  "generated": "2026-10-15T10:09:24.069814Z",
-  "last_updated": "2026-10-15T10:53:08.502941Z",
-  "metadata": {
-    "template": "simple",
-    "complexity": "low",
-    "risk_level": "low",
-    "estimated_hours": 8,
-    "security_sensitive": false,
-    "default_category": "investigation",
-    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__ops__release-candidate.md",
-    "status": "active",
-    "activated_date": "2026-10-15T10:10:34.845028Z",
-    "progress_percentage": 50
-  },
-  "hierarchy": {
-    "spec-root": {
-      "type": "spec",
-      "title": "AIRIS release candidate 2026-10-15-124",
-      "status": "in_progress",
-      "parent": null,
-      "children": [
-        "phase-1",
-        "phase-2"
-      ],
-      "total_tasks": 2,
-      "completed_tasks": 1,
-      "metadata": {}
-    },
-    "phase-1": {
-      "type": "phase",
-      "title": "Build and verify immutable candidate",
-      "status": "completed",
-      "parent": "spec-root",
-      "children": [
-        "task-1-1"
-      ],
-      "total_tasks": 1,
-      "completed_tasks": 1,
-      "metadata": {
-        "needs_journaling": false,
-        "completed_at": "2026-10-15T10:53:08.290177Z",
-        "journaled_at": "2026-10-15T10:53:08.292532Z"
-      }
-    },
-    "phase-2": {
-      "type": "phase",
-      "title": "Accept backend browsers and migration rehearsal",
-      "status": "in_progress",
-      "parent": "spec-root",
-      "children": [
-        "task-2-1"
-      ],
-      "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
-    },
-    "task-1-1": {
-      "type": "task",
-      "title": "Build and verify immutable candidate",
-      "status": "completed",
-      "parent": "phase-1",
-      "children": [],
-      "dependencies": {
-        "blocks": [],
-        "blocked_by": [],
-        "depends": []
-      },
-      "total_tasks": 1,
-      "completed_tasks": 1,
-      "metadata": {
-        "started_at": "2026-10-15T10:32:00.356646Z",
-        "status_note": "Clean image build and existing acceptance checks running on frozen application source 362b04fbed302f16f9a67dd8b0a5ffe2a6a3c1b6.",
-        "completed_at": "2026-10-15T10:53:08.290029Z",
-        "needs_journaling": false,
-        "actual_hours": 0.352,
-        "journaled_at": "2026-10-15T10:53:08.291555Z"
-      }
-    },
-    "task-2-1": {
-      "type": "task",
-      "title": "Accept backend browsers and migration rehearsal",
-      "status": "in_progress",
-      "parent": "phase-2",
-      "children": [],
-      "dependencies": {
-        "blocks": [],
-        "blocked_by": [],
-        "depends": []
-      },
-      "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {
-        "started_at": "2026-10-15T10:53:08.502745Z",
-        "status_note": "Backend 1296/0 skips, migration financial parity and independent build parity accepted. Full browser suite still running. GitHub Actions dispatch disabled."
-      }
-    }
-  },
-  "journal": [
-    {
-      "timestamp": "2026-10-15T10:53:08.291550Z",
-      "entry_type": "status_change",
-      "title": "Task Completed: Build and verify immutable candidate",
-      "author": "claude-code",
-      "content": "Task task-1-1 marked as completed.",
-      "metadata": {},
-      "task_id": "task-1-1"
-    },
-    {
-      "timestamp": "2026-10-15T10:53:08.292527Z",
-      "entry_type": "status_change",
-      "title": "Phase Completed: Build and verify immutable candidate",
-      "author": "claude-code",
-      "content": "All child tasks in phase phase-1 have been completed.",
-      "metadata": {},
-      "task_id": "phase-1"
-    }
-  ]
+	"spec_id": "airis-release-candidate-2026-10-15-124",
+	"title": "AIRIS release candidate 2026-10-15-124",
+	"generated": "2026-10-15T10:09:24.069814Z",
+	"last_updated": "2026-10-15T13:05:30.895974Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "low",
+		"estimated_hours": 8,
+		"security_sensitive": false,
+		"default_category": "investigation",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__ops__release-candidate.md",
+		"status": "active",
+		"activated_date": "2026-10-15T10:10:34.845028Z",
+		"progress_percentage": 50
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "AIRIS release candidate 2026-10-15-124",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 2,
+			"completed_tasks": 1,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Build and verify immutable candidate",
+			"status": "completed",
+			"parent": "spec-root",
+			"children": ["task-1-1"],
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"needs_journaling": false,
+				"completed_at": "2026-10-15T10:53:08.290177Z",
+				"journaled_at": "2026-10-15T10:53:08.292532Z"
+			}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Accept backend browsers and migration rehearsal",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-2-1"],
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1-1": {
+			"type": "task",
+			"title": "Build and verify immutable candidate",
+			"status": "completed",
+			"parent": "phase-1",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 1,
+			"metadata": {
+				"started_at": "2026-10-15T10:32:00.356646Z",
+				"status_note": "Clean image build and existing acceptance checks running on frozen application source 362b04fbed302f16f9a67dd8b0a5ffe2a6a3c1b6.",
+				"completed_at": "2026-10-15T10:53:08.290029Z",
+				"needs_journaling": false,
+				"actual_hours": 0.352,
+				"journaled_at": "2026-10-15T10:53:08.291555Z"
+			}
+		},
+		"task-2-1": {
+			"type": "task",
+			"title": "Accept backend browsers and migration rehearsal",
+			"status": "in_progress",
+			"parent": "phase-2",
+			"children": [],
+			"dependencies": {
+				"blocks": [],
+				"blocked_by": [],
+				"depends": []
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0,
+			"metadata": {
+				"started_at": "2026-10-15T10:53:08.502745Z",
+				"status_note": "Source2d65: frontend2603; verified backend1296 and migration parity reused; browser147/mandatory86 passed. Independent dev-p4 build/native checks passed; all4915 compiled files/Python/OS/backend/static/models match tested125. Rebuild parity accepted, P4 SIGILL cause unresolved. Exact-head CI/security unavailable; production unchanged; release remains open."
+			}
+		}
+	},
+	"journal": [
+		{
+			"timestamp": "2026-10-15T10:53:08.291550Z",
+			"entry_type": "status_change",
+			"title": "Task Completed: Build and verify immutable candidate",
+			"author": "claude-code",
+			"content": "Task task-1-1 marked as completed.",
+			"metadata": {},
+			"task_id": "task-1-1"
+		},
+		{
+			"timestamp": "2026-10-15T10:53:08.292527Z",
+			"entry_type": "status_change",
+			"title": "Phase Completed: Build and verify immutable candidate",
+			"author": "claude-code",
+			"content": "All child tasks in phase phase-1 have been completed.",
+			"metadata": {},
+			"task_id": "phase-1"
+		}
+	]
 }
