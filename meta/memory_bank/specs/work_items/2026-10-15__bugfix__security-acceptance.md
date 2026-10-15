@@ -1,10 +1,10 @@
 # AIRIS — замечания CodeQL перед выпуском
 
 - Type: bugfix / code_review
-- Status: active
+- Status: completed
 - Owner: Codex
 - Branch: codex/bugfix/chat-dispatch-replay
-- SDD Spec: meta/sdd/specs/active/airis-security-acceptance-2026-10-15-126.json
+- SDD Spec: meta/sdd/specs/completed/airis-security-acceptance-2026-10-15-126.json
 - Created: 2026-10-15
 
 После включения Actions на SHA8ad36f5bed7fc1e9a0635a8bb7bfdced72520598 CodeQL сообщил23 замечания (4critical,19high). CI диагностика получена через CodeReview, check116609374194. Наличие замечания не доказывает новый дефект: большой diff включает форматирование. Каждое замечание требует проверки пути вызова и происхождения.
@@ -13,7 +13,7 @@
 - [x] Воспроизвести и исправить проверку домена YouTube и медленные регулярные выражения переменных без зависимостей.
 - [x] Проверить разбор script в тестах и счётчики billing bootstrap; не менять поведение ради подавления сканера.
 - [x] Подтвердить права на выполнение плагинов и обращения к настроенным администраторами серверам; оформить обоснованную классификацию.
-- [ ] Проверки изменённого кода и CodeQL на новом точном SHA. Старый образ125 не содержит последующих правок и не выпускается как исправленный.
+- [x] Проверки изменённого кода и CodeQL на новом точном SHA. Старый образ125 не содержит последующих правок и не выпускается как исправленный.
 
 Новых служб, библиотек, миграций и настроек нет. Не отключать правила CodeQL и не исключать файлы из сканирования. Реальные проблемы исправлять в общем месте. Ложные срабатывания подтверждать исходниками и проверкой границы прав.
 
@@ -39,3 +39,5 @@ Verification: Docker Compose backend pytest и frontend preflight; контро�
 Регрессия backend: до исправления дочерний процесс с незакрытыми токенами остановлен через3секунды, pytest failed; после — passed0.55s. Дочерний процесс защищает сам тест от зависания при возврате ошибки. Frontend добавляет один случай с четырьмя верными хостами, их поддельными продолжениями, userinfo, http и неправильным URL. Доказательства: `/Users/yshishenya/.codex/private-artifacts/airis-security-126-20261015`.
 
 Локальная приёмка исправления: Docker Compose frontend preflight 2604 passed, types0/0, ESLint0, build0; backend1297 passed,0failures/skips,25 прежних предупреждений, четыре отдельные PostgreSQL БД. Black двух изменённых Python файлов прошёл. Focused Ruff: одно прежнее C901 в validate_chat_variables, воспроизводится на HEAD до правки; новых замечаний0. Новое сканирование CodeQL требуется после commit/push.
+
+CI принят на source `1efbbaadab212f73552e594316dd80a1a34c6841`: branch policy, migration, frontend/backend lint, backend-pytest, billing-confidence, SDD, gitleaks, обе CodeQL engines и findings gate прошли. Семь исходных actionable instances получили fixed без dismiss. Dependency review пропущен из-за fork; CodeRabbit review отключён для базы и не заявляется выполненным. SDD126 завершён2/2. Первый чистый образ126 сверил556 backend файлов,351 пакет,62 static,153 модели/27ссылок и native operations; повторная сборка/браузеры/выпуск ещё открыты.

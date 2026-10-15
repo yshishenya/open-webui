@@ -2,7 +2,7 @@
   "spec_id": "airis-security-acceptance-2026-10-15-126",
   "title": "AIRIS CodeQL acceptance 2026-10-15-126",
   "generated": "2026-10-15T18:56:32.275676Z",
-  "last_updated": "2026-10-15T19:15:26.823719Z",
+  "last_updated": "2026-10-15T19:27:01.825732Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -11,22 +11,24 @@
     "security_sensitive": true,
     "default_category": "implementation",
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__bugfix__security-acceptance.md",
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-15T18:57:18.619318Z",
-    "progress_percentage": 50
+    "progress_percentage": 100,
+    "completed_date": "2026-10-15T19:27:01.825379Z",
+    "actual_hours": 0.495
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "AIRIS CodeQL acceptance 2026-10-15-126",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {}
     },
     "phase-1": {
@@ -48,14 +50,18 @@
     "phase-2": {
       "type": "phase",
       "title": "Verify CI and document intended privileged features",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T19:27:01.326269Z",
+        "journaled_at": "2026-10-15T19:27:01.330161Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -83,11 +89,11 @@
     "task-2-1": {
       "type": "task",
       "title": "Verify CI and document intended privileged features",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "dependencies": {
         "blocks": [],
         "blocked_by": [],
@@ -95,7 +101,12 @@
       },
       "metadata": {
         "task_category": "investigation",
-        "started_at": "2026-10-15T19:15:26.823522Z"
+        "started_at": "2026-10-15T19:15:26.823522Z",
+        "completed_at": "2026-10-15T19:27:01.326078Z",
+        "needs_journaling": false,
+        "status_note": "All mandatory CI succeeded on 1efbbaadab212f73552e594316dd80a1a34c6841; CodeQL reports no PR alerts, seven actionable instances fixed by code, sixteen reviewed false positives individually classified without rule exclusions.",
+        "actual_hours": 0.193,
+        "journaled_at": "2026-10-15T19:27:01.328695Z"
       }
     }
   },
@@ -117,6 +128,24 @@
       "content": "All child tasks in phase phase-1 have been completed.",
       "metadata": {},
       "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-15T19:27:01.328689Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify CI and document intended privileged features",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: All mandatory CI succeeded on 1efbbaadab212f73552e594316dd80a1a34c6841; CodeQL reports no PR alerts, seven actionable instances fixed by code, sixteen reviewed false positives individually classified without rule exclusions.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-15T19:27:01.330156Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Verify CI and document intended privileged features",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
     }
   ]
 }
