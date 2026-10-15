@@ -32,3 +32,10 @@
   - Done: 2026-10-15
   - Summary: Одна npm command объединяет существующие frontend test/check/lint/build, без новых зависимостей; backend и E2E отдельно.
   - Tests: Docker Compose preflight — 2600 passed/unhandled0/types0/0/ESLint0/Vite build0; исправлены только fixture четырёх тестов.
+
+- [ ] **[OPS]** Единый кандидат выпуска
+  - Spec: meta/memory_bank/specs/work_items/2026-10-15__ops__release-candidate.md
+  - Owner: Codex
+  - Started: 2026-10-15
+  - Summary: Чистая сборка и существующие проверки на одном образе; без переработки приложения.
+  - Tests: В процессе; CI PR368 пока не показывает запусков.

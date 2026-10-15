@@ -1,0 +1,86 @@
+{
+  "spec_id": "airis-release-candidate-2026-1-2026-10-15-1309",
+  "title": "AIRIS release candidate 2026-10-15-124",
+  "generated": "2026-10-15T10:09:24.069814Z",
+  "last_updated": "2026-10-15T10:10:34.845235Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__ops__release-candidate.md",
+    "status": "active",
+    "activated_date": "2026-10-15T10:10:34.845028Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS release candidate 2026-10-15-124",
+      "status": "pending",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Build and verify immutable candidate",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Accept backend browsers and migration rehearsal",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Build and verify immutable candidate",
+      "status": "pending",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Accept backend browsers and migration rehearsal",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  }
+}
