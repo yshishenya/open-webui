@@ -1,0 +1,117 @@
+{
+  "spec_id": "airis-composer-lifecycle-2026-10-15-125",
+  "title": "AIRIS composer lifecycle",
+  "generated": "2026-10-15T11:02:40.640151Z",
+  "last_updated": "2026-10-15T11:05:44.539945Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "implementation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-15__bugfix__composer-lifecycle.md",
+    "status": "active",
+    "activated_date": "2026-10-15T11:03:41.132808Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS composer lifecycle",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Fix current query and accepted draft lifecycle",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-15T11:05:44.296537Z",
+        "journaled_at": "2026-10-15T11:05:44.298401Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Verify frontend and native browser regressions",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Reproduce both causes and apply minimal fixes",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-15T11:05:44.296387Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-15T11:05:44.297339Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Accept frontend checks and browser regressions on a clean image",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-15T11:05:44.539648Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-15T11:05:44.297335Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Reproduce both causes and apply minimal fixes",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-15T11:05:44.298397Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Fix current query and accepted draft lifecycle",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

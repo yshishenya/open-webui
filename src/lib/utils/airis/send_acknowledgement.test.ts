@@ -178,6 +178,7 @@ function setup() {
 		tick: vi.fn().mockResolvedValue(undefined),
 		uuidv4: () => `00000000-0000-4000-8000-${String(++counter).padStart(12, '0')}`,
 		structuredClone,
+		URL,
 		equal: same,
 		$i18n: { t: (s: string) => s },
 		toast: { error: vi.fn(), warning: vi.fn() },
@@ -364,6 +365,20 @@ it.each([false, true])('composer clears only after accepted=%s', async (accepted
 	await request;
 	expect(c.prompt).toBe(accepted ? '' : 'draft');
 	expect(c.files).toHaveLength(accepted ? 0 : 1);
+});
+
+it.each([false, true])('accepted composer remount preserves newer draft=%s', async (changed) => {
+	const c = setup(),
+		pending = deferred<boolean>();
+	c.submitPrompt.mockReturnValueOnce(pending.promise);
+	const sending = handler<(text: string) => Promise<void>>('Chat', 'submitHandler', c)('draft');
+	await Promise.resolve();
+	c.messageInput = { setText: vi.fn().mockResolvedValue(true) };
+	if (changed) c.prompt = 'new draft';
+	pending.resolve(true);
+	await sending;
+	expect(c.prompt).toBe(changed ? 'new draft' : '');
+	expect(c.messageInput.setText).toHaveBeenCalledTimes(changed ? 0 : 1);
 });
 
 it('composer storage refusal prevents creation and dispatch', async () => {
@@ -1062,7 +1077,7 @@ it.each(['getItem', 'corrupt', 'no-locks'])(
 	}
 );
 
-it.each(['original', 'new-settings'])(
+it.each(['original', 'new-settings', 'remount'])(
 	'note selection recovery consumes raw snapshot and preserves %s',
 	async (change) => {
 		const { c, send } = socketSetup();
@@ -1100,16 +1115,23 @@ it.each(['original', 'new-settings'])(
 			state: 'accepted',
 			receipt: { status: true, chat_id: 'chat1', task_ids: ['old-task'] }
 		});
-		c.getChatById.mockResolvedValue({
-			id: 'chat1',
-			chat: { title: 'Saved', history: structuredClone(c.history) }
-		});
+		if (change === 'remount') {
+			c.getChatById.mockImplementationOnce(async () => {
+				c.messageInput = { setText: vi.fn().mockResolvedValue(true) };
+				return { id: 'chat1', chat: { title: 'Saved', history: structuredClone(c.history) } };
+			});
+		} else {
+			c.getChatById.mockResolvedValue({
+				id: 'chat1',
+				chat: { title: 'Saved', history: structuredClone(c.history) }
+			});
+		}
 		expect(await handler<() => Promise<boolean>>('Chat', 'recoverPendingDispatch', c)()).toBe(true);
 		expect(c.generateOpenAIChatCompletion).toHaveBeenCalledTimes(1);
 		expect(readPendingDispatch(c.localStorage, c.$user.id, 'chat1')).toBe(null);
-		expect(c.prompt).toBe(change === 'original' ? '' : 'raw draft');
+		expect(c.prompt).toBe(change === 'new-settings' ? 'raw draft' : '');
 		expect(readComposerDraft(c.sessionStorage, c.$user.id, 'chat1')).toEqual(
-			change === 'original' ? null : { ...draft, selectedToolIds: ['new-tool'] }
+			change === 'new-settings' ? { ...draft, selectedToolIds: ['new-tool'] } : null
 		);
 		expect(operation.composer?.draft.prompt).toBe('raw draft');
 	}
@@ -1178,7 +1200,7 @@ it('an explicit free guide model takes precedence over a saved paid composer sel
 		setTextWithRetries: vi.fn().mockResolvedValue(true),
 		setTimeout: vi.fn()
 	});
-	Object.assign(c.window, { location: { pathname: '/' } });
+	Object.assign(c.window, { location: c.$page.url });
 	Object.assign(c, {
 		chatId: {
 			set: vi.fn(async (id: string) => {
@@ -1207,6 +1229,14 @@ it('an explicit free guide model takes precedence over a saved paid composer sel
 	expect(c.selectedModels).toEqual(['']);
 	expect(c.atSelectedModel).toBeUndefined();
 	expect(c.submitPrompt).not.toHaveBeenCalled();
+	// Native creation removes the query while the Svelte page store still has the old link.
+	c.sessionStorage.clear();
+	c.prompt = '';
+	Object.assign(c.window, { location: new URL('https://chat.airis.you/c/created') });
+	c.setTextWithRetries.mockClear();
+	await handler<() => Promise<void>>('Chat', 'initNewChat', c)();
+	expect(c.setTextWithRetries).not.toHaveBeenCalled();
+	expect(c.prompt).toBe('');
 });
 
 it('guide query fills the composer after its loading view has mounted', async () => {
@@ -1230,7 +1260,7 @@ it('guide query fills the composer after its loading view has mounted', async ()
 		consumeWelcomePresetPrompt: vi.fn().mockReturnValue(null),
 		setTimeout: vi.fn()
 	});
-	Object.assign(c.window, { location: { pathname: '/' } });
+	Object.assign(c.window, { location: c.$page.url });
 	Object.assign(c, {
 		messageInput: undefined,
 		chatId: {

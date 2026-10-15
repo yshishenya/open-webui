@@ -536,7 +536,6 @@
 			scope = dispatchScope(),
 			storage = dispatchStorage();
 		const sourceHistory = history;
-		const sourceInput = messageInput;
 		const isCurrent = (): boolean =>
 			$user?.id === actor &&
 			localStorage.token === token &&
@@ -600,10 +599,9 @@
 			if (pending.composer) consumeComposerDraft(sessionStorage, pending.composer);
 			const original = pending.history.messages[pending.parentId];
 			if (
-				messageInput === sourceInput &&
-				(pending.composer
+				pending.composer
 					? equal(composerDraft(), pending.composer.draft)
-					: original && prompt === original.content && equal(files, original.files ?? []))
+					: original && prompt === original.content && equal(files, original.files ?? [])
 			) {
 				messageInput?.setText('');
 				prompt = '';
@@ -1962,6 +1960,8 @@
 		loading = true;
 		console.log('initNewChat');
 		resetWebSearchConfirmation();
+		// Native chat creation updates the address without updating the page store.
+		const searchParams = new URL(window.location.href).searchParams;
 
 		// Mark the outgoing chat as read before resetting; in-place created chats
 		// keep chatIdProp undefined, so navigateHandler never marks them read.
@@ -1992,13 +1992,11 @@
 
 		const defaultModels = $config?.default_models ? $config?.default_models.split(',') : [];
 
-		const requestedModels = resolveRequestedModels($page.url.searchParams, availableModels);
+		const requestedModels = resolveRequestedModels(searchParams, availableModels);
 		if (requestedModels) {
 			selectedModels = requestedModels;
 			const urlModels =
-				($page.url.searchParams.get('models') || $page.url.searchParams.get('model') || '')?.split(
-					','
-				) ?? [];
+				(searchParams.get('models') || searchParams.get('model') || '')?.split(',') ?? [];
 
 			if (urlModels.length === 1) {
 				if (!availableModels.includes(urlModels[0])) {
@@ -2103,43 +2101,43 @@
 			atSelectedModel = undefined;
 		}
 
-		if ($page.url.searchParams.get('youtube')) {
-			await uploadWeb(`https://www.youtube.com/watch?v=${$page.url.searchParams.get('youtube')}`);
+		if (searchParams.get('youtube')) {
+			await uploadWeb(`https://www.youtube.com/watch?v=${searchParams.get('youtube')}`);
 		}
 
-		if ($page.url.searchParams.get('load-url')) {
-			await uploadWeb($page.url.searchParams.get('load-url') ?? '');
+		if (searchParams.get('load-url')) {
+			await uploadWeb(searchParams.get('load-url') ?? '');
 		}
 
-		if ($page.url.searchParams.get('web-search') === 'true') {
+		if (searchParams.get('web-search') === 'true') {
 			webSearchEnabled = true;
 		}
 
-		if ($page.url.searchParams.get('image-generation') === 'true') {
+		if (searchParams.get('image-generation') === 'true') {
 			imageGenerationEnabled = true;
 		}
 
-		if ($page.url.searchParams.get('code-interpreter') === 'true') {
+		if (searchParams.get('code-interpreter') === 'true') {
 			codeInterpreterEnabled = true;
 		}
 
-		if ($page.url.searchParams.get('tools')) {
+		if (searchParams.get('tools')) {
 			selectedToolIds =
-				$page.url.searchParams
+				searchParams
 					.get('tools')
 					?.split(',')
 					.map((id) => id.trim())
 					.filter((id) => id) ?? [];
-		} else if ($page.url.searchParams.get('tool-ids')) {
+		} else if (searchParams.get('tool-ids')) {
 			selectedToolIds =
-				$page.url.searchParams
+				searchParams
 					.get('tool-ids')
 					?.split(',')
 					.map((id) => id.trim())
 					.filter((id) => id) ?? [];
 		}
 
-		if ($page.url.searchParams.get('call') === 'true') {
+		if (searchParams.get('call') === 'true') {
 			showCallOverlay.set(true);
 			showControls.set(true);
 		}
@@ -2185,11 +2183,11 @@
 					}
 				}
 			}
-		} else if ($page.url.searchParams.get('q')) {
-			const q = $page.url.searchParams.get('q') ?? '';
+		} else if (searchParams.get('q')) {
+			const q = searchParams.get('q') ?? '';
 			const ready = await setTextWithRetries(() => messageInput, tick, q);
 
-			if (ready && q && ($page.url.searchParams.get('submit') ?? 'true') === 'true') {
+			if (ready && q && (searchParams.get('submit') ?? 'true') === 'true') {
 				await tick();
 				submitHandler(prompt);
 			}
@@ -3116,7 +3114,6 @@
 		}
 
 		const sourceHistory = history;
-		const sourceInput = messageInput;
 		const submittedPrompt = prompt;
 		const submittedFiles = structuredClone(files);
 		const sourceActor = $user?.id;
@@ -3134,7 +3131,6 @@
 				$user?.id === sourceActor &&
 				localStorage.token === sourceToken &&
 				history === sourceHistory &&
-				messageInput === sourceInput &&
 				prompt === submittedPrompt &&
 				equal(files, submittedFiles) &&
 				equal(composerDraft(), composer.draft)
