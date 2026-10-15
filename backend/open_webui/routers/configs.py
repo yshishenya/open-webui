@@ -539,6 +539,77 @@ async def refresh_terminal_server_terminals(
         raise HTTPException(status_code=400, detail='Failed to refresh terminals')
 
 
+async def _get_tool_verification_headers(
+    request: Request, form_data: ToolServerConnection, user: UserModel
+) -> dict[str, str] | None:
+    headers = None
+
+    token = None
+    if form_data.auth_type == 'bearer':
+        token = form_data.key
+    elif form_data.auth_type == 'session':
+        token = request.state.token.credentials
+    elif form_data.auth_type == 'system_oauth':
+        oauth_token = None
+        try:
+            if request.cookies.get('oauth_session_id', None):
+                oauth_token = await request.app.state.oauth_manager.get_oauth_token(
+                    user.id,
+                    request.cookies.get('oauth_session_id', None),
+                )
+
+                if oauth_token:
+                    token = oauth_token.get('access_token', '')
+        except Exception:
+            log.debug('Failed to obtain OAuth token for tool server verification')
+    if token:
+        headers = {'Authorization': f'Bearer {token}'}
+
+    if form_data.headers and isinstance(form_data.headers, dict):
+        if headers is None:
+            headers = {}
+        custom_headers = await get_custom_headers(form_data.headers, user)
+        headers.update(custom_headers)
+
+    return headers
+
+
+async def _verify_tool_oauth_metadata(form_data: ToolServerConnection) -> dict[str, object]:
+    oauth_server_url = (
+        form_data.info.get('oauth_server_url')
+        if form_data.info and form_data.info.get('oauth_server_url')
+        else form_data.url
+    )
+    discovery_urls = await get_discovery_urls(oauth_server_url)
+    for discovery_url in discovery_urls:
+        log.debug(f'Trying to fetch OAuth 2.1 discovery document from {discovery_url}')
+        async with aiohttp.ClientSession(
+            trust_env=True,
+            timeout=aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT),
+        ) as session:
+            async with session.get(discovery_url, ssl=AIOHTTP_CLIENT_SESSION_SSL) as oauth_server_metadata_response:
+                if oauth_server_metadata_response.status == 200:
+                    try:
+                        oauth_server_metadata = OAuthMetadata.model_validate(
+                            await oauth_server_metadata_response.json()
+                        )
+                        return {
+                            'status': True,
+                            'oauth_server_metadata': oauth_server_metadata.model_dump(mode='json'),
+                        }
+                    except Exception as e:
+                        log.info(f'Failed to parse OAuth 2.1 discovery document: {e}')
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f'Failed to parse OAuth 2.1 discovery document from {discovery_url}',
+                        )
+
+    raise HTTPException(
+        status_code=400,
+        detail=f'Failed to fetch OAuth 2.1 discovery document from {discovery_urls}',
+    )
+
+
 @router.post('/tool_servers/verify', response_model=None)
 async def verify_tool_servers_config(
     request: Request, form_data: ToolServerConnection, user: UserModel = Depends(get_admin_user)
@@ -549,72 +620,11 @@ async def verify_tool_servers_config(
     try:
         if form_data.type == 'mcp':
             if form_data.auth_type in ('oauth_2.1', 'oauth_2.1_static'):
-                oauth_server_url = (
-                    form_data.info.get('oauth_server_url')
-                    if form_data.info and form_data.info.get('oauth_server_url')
-                    else form_data.url
-                )
-                discovery_urls = await get_discovery_urls(oauth_server_url)
-                for discovery_url in discovery_urls:
-                    log.debug(f'Trying to fetch OAuth 2.1 discovery document from {discovery_url}')
-                    async with aiohttp.ClientSession(
-                        trust_env=True,
-                        timeout=aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT),
-                    ) as session:
-                        async with session.get(
-                            discovery_url, ssl=AIOHTTP_CLIENT_SESSION_SSL
-                        ) as oauth_server_metadata_response:
-                            if oauth_server_metadata_response.status == 200:
-                                try:
-                                    oauth_server_metadata = OAuthMetadata.model_validate(
-                                        await oauth_server_metadata_response.json()
-                                    )
-                                    return {
-                                        'status': True,
-                                        'oauth_server_metadata': oauth_server_metadata.model_dump(mode='json'),
-                                    }
-                                except Exception as e:
-                                    log.info(f'Failed to parse OAuth 2.1 discovery document: {e}')
-                                    raise HTTPException(
-                                        status_code=400,
-                                        detail=f'Failed to parse OAuth 2.1 discovery document from {discovery_url}',
-                                    )
-
-                raise HTTPException(
-                    status_code=400,
-                    detail=f'Failed to fetch OAuth 2.1 discovery document from {discovery_urls}',
-                )
+                return await _verify_tool_oauth_metadata(form_data)
             else:
                 try:
                     client = MCPClient()
-                    headers = None
-
-                    token = None
-                    if form_data.auth_type == 'bearer':
-                        token = form_data.key
-                    elif form_data.auth_type == 'session':
-                        token = request.state.token.credentials
-                    elif form_data.auth_type == 'system_oauth':
-                        oauth_token = None
-                        try:
-                            if request.cookies.get('oauth_session_id', None):
-                                oauth_token = await request.app.state.oauth_manager.get_oauth_token(
-                                    user.id,
-                                    request.cookies.get('oauth_session_id', None),
-                                )
-
-                                if oauth_token:
-                                    token = oauth_token.get('access_token', '')
-                        except Exception:
-                            pass
-                    if token:
-                        headers = {'Authorization': f'Bearer {token}'}
-
-                    if form_data.headers and isinstance(form_data.headers, dict):
-                        if headers is None:
-                            headers = {}
-                        custom_headers = await get_custom_headers(form_data.headers, user)
-                        headers.update(custom_headers)
+                    headers = await _get_tool_verification_headers(request, form_data, user)
 
                     await client.connect(form_data.url, headers=headers)
                     specs = await client.list_tool_specs()
@@ -632,34 +642,7 @@ async def verify_tool_servers_config(
                     if client:
                         await client.disconnect()
         else:  # openapi
-            token = None
-            headers = None
-            if form_data.auth_type == 'bearer':
-                token = form_data.key
-            elif form_data.auth_type == 'session':
-                token = request.state.token.credentials
-            elif form_data.auth_type == 'system_oauth':
-                try:
-                    if request.cookies.get('oauth_session_id', None):
-                        oauth_token = await request.app.state.oauth_manager.get_oauth_token(
-                            user.id,
-                            request.cookies.get('oauth_session_id', None),
-                        )
-
-                        if oauth_token:
-                            token = oauth_token.get('access_token', '')
-
-                except Exception:
-                    pass
-
-            if token:
-                headers = {'Authorization': f'Bearer {token}'}
-
-            if form_data.headers and isinstance(form_data.headers, dict):
-                if headers is None:
-                    headers = {}
-                custom_headers = await get_custom_headers(form_data.headers, user)
-                headers.update(custom_headers)
+            headers = await _get_tool_verification_headers(request, form_data, user)
 
             url = get_tool_server_url(form_data.url, form_data.path)
             return await get_tool_server_data(url, headers=headers)

@@ -10,3 +10,9 @@
   - Owner: Codex
   - Done: 2026-10-13
   - Summary:28native сценариев до/после и механический AST совпали. Backend1102/0ошибок/пропусков/25прежнихwarnings;Black0diff;Ruff481→480/new0;branchnew6→5. Production/14соседей/21чужойфайл/262тома/33сети сохранены;своиfixtures удалены. Новых dependencies/config/I/O нет;план198/244,цельactive,выпуска нет.
+
+- [x] Проверка серверов инструментов без повторной авторизации
+  - Spec: meta/memory_bank/specs/work_items/2026-10-13__refactor__tool-verification.md
+  - Owner: Codex
+  - Done: 2026-10-15
+  - Summary: Два частных async этапа вместо повторной авторизации;кодкорочена17строк,36native HTTP сценариевдо/после. Backend1138/0ошибок/пропусков,Black0diff,Ruff480→479/new0,branchnew5→4. Сохранностьproduction/чужихданныхпроверена;своиfixturesудалены. План198/244,цельactive,выпусканет.
