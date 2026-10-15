@@ -2,7 +2,7 @@
 import { createInstance } from 'i18next';
 import { mount, tick, unmount } from 'svelte';
 import { get, writable } from 'svelte/store';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import UserList from '$lib/components/admin/Users/UserList.svelte';
 import Banner from '$lib/components/common/Banner.svelte';
 import { getUsers } from '$lib/apis/users';
@@ -21,6 +21,19 @@ vi.mock('$lib/apis/users', () => ({
 	getUserPreview: vi.fn(),
 	searchUsers: vi.fn()
 }));
+beforeEach(() => {
+	if (!Element.prototype.animate)
+		Object.defineProperty(Element.prototype, 'animate', {
+			configurable: true,
+			value: () => ({
+				cancel() {},
+				finished: Promise.resolve(),
+				finish() {},
+				pause() {},
+				play() {}
+			})
+		});
+});
 afterEach(() => {
 	vi.clearAllMocks();
 });

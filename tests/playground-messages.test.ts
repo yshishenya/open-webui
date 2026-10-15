@@ -20,6 +20,7 @@ it('keeps actual playground roles, literal editing and deletion', async () => {
 		props: { messages }
 	});
 	try {
+		await tick();
 		expect(target.querySelectorAll('textarea')).toHaveLength(2);
 		expect(target.textContent).toContain('user');
 		expect(target.textContent).toContain('assistant');

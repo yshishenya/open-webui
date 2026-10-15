@@ -58,3 +58,14 @@ Note: these files are **local machine config** and are listed in `.claude/.gitig
 For day-to-day SDD commands in this repo, always use the wrapper:
 
 - `meta/tools/sdd ...`
+
+## Проверка перед PR
+
+`npm run preflight` последовательно запускает существующие frontend test, check,
+ESLint и build:vite. Используйте Docker Compose и отдельную временную копию для
+результатов сборки. Команда прекращается при первой ошибке; зависимостей не
+устанавливает. build:vite использует уже подготовленную статику. Для production
+проверьте её SHA256 по clean_production_image.md. Backend tests/Black/Ruff,
+обязательные PostgreSQL случаи, миграции и E2E выполняются отдельно; frontend
+preflight их не заменяет. Прежние замечания Ruff сохраняйте полным отчётом,
+а новые проверяйте существующим scripts/ci/check_backend_lint_delta.py.

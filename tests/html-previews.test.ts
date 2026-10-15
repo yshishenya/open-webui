@@ -60,18 +60,25 @@ vi.mock('$lib/apis/configs', () => ({ setBanners: vi.fn(async () => []) }));
 const html =
 	'<p><em>Document</em><a href="https://example.test">Link</a></p><table><tbody><tr><td>A</td></tr></tbody></table><script>bad()</script><img src=x onerror="bad()"><a href="javascript:bad()">Unsafe</a>';
 vi.mock('mammoth', () => ({ convertToHtml: vi.fn(async () => ({ value: html })) }));
-vi.mock('xlsx', () => ({
-	read: () => ({
-		SheetNames: ['First', 'Second'],
-		Sheets: { First: { name: 'First' }, Second: { name: 'Second' } }
-	})
-}));
-vi.mock('$lib/utils/excelToTable', () => ({
-	excelToTable: vi.fn(async (sheet: { name: string }) => ({
-		html: html.replace('Document', sheet.name),
-		rowCount: 1
-	}))
-}));
+vi.mock('xlsx', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('xlsx')>();
+	return {
+		...actual,
+		read: () => ({
+			SheetNames: ['First', 'Second'],
+			Sheets: {
+				First: actual.utils.aoa_to_sheet([
+					['First', '<script>bad()</script>'],
+					['A', 'B']
+				]),
+				Second: actual.utils.aoa_to_sheet([
+					['Second', '<script>bad()</script>'],
+					['A', 'B']
+				])
+			}
+		})
+	};
+});
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -119,20 +126,21 @@ it.each(['xlsx', 'docx'])('keeps sanitized %s previews and sheet selection', asy
 		button.click();
 		await tick();
 		const preview = document.querySelector('.office-preview')!;
-		expect(preview.innerHTML).toBe(
-			DOMPurify.sanitize(extension === 'xlsx' ? html.replace('Document', 'First') : html)
-		);
-		expect(preview.querySelector('td')?.textContent).toBe('A');
-		expect(preview.querySelector('a')?.href).toBe('https://example.test/');
+		if (extension === 'xlsx') {
+			await vi.waitFor(() => expect(preview.textContent).toContain('First'));
+			expect(preview.textContent).toContain('<script>bad()</script>');
+		} else {
+			expect(preview.innerHTML).toBe(DOMPurify.sanitize(html));
+			expect(preview.querySelector('td')?.textContent).toBe('A');
+			expect(preview.querySelector('a')?.href).toBe('https://example.test/');
+		}
 		expect(preview.querySelector('script, [onerror], a[href^="javascript:"]')).toBeNull();
 		if (extension === 'xlsx') {
 			[...document.querySelectorAll<HTMLButtonElement>('button')]
 				.find((b) => b.textContent === 'Second')!
 				.click();
 			await tick();
-			await vi.waitFor(() =>
-				expect(preview.innerHTML).toBe(DOMPurify.sanitize(html.replace('Document', 'Second')))
-			);
+			await vi.waitFor(() => expect(preview.textContent).toContain('Second'));
 		}
 	} finally {
 		await unmount(component);

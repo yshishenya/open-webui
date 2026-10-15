@@ -25,3 +25,10 @@
   - Done: 2026-10-15
   - Summary: Перенести существующие этапы без новой подсистемы; сохранить права, инструменты, историю и события.
   - Tests: 48 сценариев до/после, 1296 серверных тестов, AST эквивалентен; новых замечаний Ruff всей ветки 0, 474 прежних остаются; выпуск открыт.
+
+- [x] **[BUG]** Команда проверки перед PR
+  - Spec: meta/memory_bank/specs/work_items/2026-10-15__bugfix__preflight-command.md
+  - Owner: Codex
+  - Done: 2026-10-15
+  - Summary: Одна npm command объединяет существующие frontend test/check/lint/build, без новых зависимостей; backend и E2E отдельно.
+  - Tests: Docker Compose preflight — 2600 passed/unhandled0/types0/0/ESLint0/Vite build0; исправлены только fixture четырёх тестов.

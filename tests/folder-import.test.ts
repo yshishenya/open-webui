@@ -192,6 +192,17 @@ class Reader {
 	}
 }
 beforeEach(() => {
+	if (!Element.prototype.animate)
+		Object.defineProperty(Element.prototype, 'animate', {
+			configurable: true,
+			value: () => ({
+				cancel() {},
+				finished: Promise.resolve(),
+				finish() {},
+				pause() {},
+				play() {}
+			})
+		});
 	readers = [];
 	vi.clearAllMocks();
 	vi.stubGlobal('FileReader', Reader);
