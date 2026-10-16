@@ -5,5 +5,13 @@
   - Done: 2026-10-02
   - Summary: Expose and display profile names in payment reporting with ID fallback for unavailable names.
   - Tests: Reporting pytest 7/7; frontend Vitest 198/198; affected ESLint/ruff passed; typecheck diagnostics identical to base.
-  - Rollout: Pending; patch prepared for review.
+  - Rollout: PR181 merged; deployed and verified on production on 2026-10-02.
   - Risks: Low, read-only reporting; no migration.
+
+- [x] **[OPS][PROD]** Deploy payment Customer names
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-02__ops__billing-customer-names-production.md`
+  - Owner: Codex
+  - Done: 2026-10-02
+  - Summary: Deployed immutable image with validated backups and runtime preservation; verified live names in 8 payments, public availability, and image/file identity.
+  - Verification: Healthy, zero restarts, all 14 neighboring IDs retained; selector persisted and previous image retained for rollback.
+  - Limitation: Production admin browser session unavailable; name display/fallback/navigation verified by frontend tests.
