@@ -15,3 +15,9 @@
   - Done: 2026-10-16
   - Summary: 6/6 diagnostic template emails delivered once into support Inbox; Mail.app reply received; one real free response with exact 4616/78 usage and 0 ₽; 197 mail tests passed, zero failures/errors/skips. Product email flags remain off; production preserved.
   - Evidence: /Users/yshishenya/.codex/private-artifacts/airis-technical-mail-smoke-20261016/RESULT.md
+
+- [x] Проверка нового обычного аккаунта и внешней доставки AIRIS
+  - Spec: meta/memory_bank/specs/work_items/2026-10-16__ops__new-account-acceptance.md
+  - Owner: Codex
+  - Done: 2026-10-16
+  - Summary: регистрация/подтверждение, три бесплатных ответа и точный учёт, одно настоящее welcome в Яндекс Почте, Reply-To и отписка проверены. После проверки согласие восстановлено через настройки, тестовая группа закрыта, постоянная очередь выключена. Переходы темы/плана работают после обновления старой вкладки.
