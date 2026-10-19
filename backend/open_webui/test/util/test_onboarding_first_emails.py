@@ -163,7 +163,9 @@ async def test_vk_id_ignores_browser_claims_and_creates_auth_without_verifying_e
     )
     monkeypatch.setattr(vk, 'create_token', lambda **kwargs: 'test-only-session')
     monkeypatch.setattr(email.email_service, 'is_configured', lambda: False)
-    payload: dict[str, object] = {'user': {'user_id': '900', 'email': 'provider@airis.you', 'first_name': 'Name'}}
+    payload: dict[str, object] = {
+        'user': {'user_id': '900', 'email': 'provider@airis.you', 'first_name': 'Name', 'avatar': None}
+    }
 
     @asynccontextmanager
     async def response() -> AsyncIterator[SimpleNamespace]:
@@ -185,10 +187,30 @@ async def test_vk_id_ignores_browser_claims_and_creates_auth_without_verifying_e
         repeated = await vk.vkid_callback(request, Response(), claims, db=session)
         assert repeated.user['id'] == user.id
         assert await session.scalar(select(func.count()).select_from(User)) == 3
-        for bad in [
+        for partial in [
             {'user_id': '900'},
+            {'user_id': 900, 'email': None, 'first_name': None, 'last_name': None, 'avatar': None},
+            {'user_id': '900', 'email': 'invalid-address', 'avatar': 123},
+        ]:
+            payload['user'] = partial
+            cookie_response = Response()
+            repeated = await vk.vkid_callback(request, cookie_response, claims, db=session)
+            assert repeated.user['id'] == user.id and repeated.user['email'] == 'provider@airis.you'
+            assert 'token=' in cookie_response.headers['set-cookie']
+        await session.execute(update(Auth).where(Auth.id == user.id).values(active=False))
+        await session.commit()
+        with pytest.raises(HTTPException) as blocked:
+            await vk.vkid_callback(request, Response(), claims, db=session)
+        assert blocked.value.status_code == 403
+        await session.execute(update(Auth).where(Auth.id == user.id).values(active=True))
+        await session.commit()
+        for bad in [
+            {'user_id': '902'},
+            {'user_id': '902', 'email': 'invalid-address'},
             {'email': 'provider@airis.you'},
             {'user_id': 'None', 'email': 'provider@airis.you'},
+            {'user_id': True, 'email': 'provider@airis.you'},
+            {'user_id': '0', 'email': 'provider@airis.you'},
         ]:
             payload['user'] = bad
             with pytest.raises(HTTPException) as error:
