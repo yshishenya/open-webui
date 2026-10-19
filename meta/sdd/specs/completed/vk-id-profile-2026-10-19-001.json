@@ -2,29 +2,30 @@
   "spec_id": "vk-id-profile-2026-10-19-001",
   "title": "VK ID optional profile login recovery",
   "generated": "2026-10-19T07:21:14.991159Z",
-  "last_updated": "2026-10-19T07:32:39.309803Z",
+  "last_updated": "2026-10-19T08:10:02.871519Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
     "risk_level": "medium",
     "estimated_hours": 8,
     "security_sensitive": true,
-    "status": "active",
+    "status": "completed",
     "activated_date": "2026-10-19T07:22:30.423760Z",
-    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-19__bugfix__vk-login-recovery.md"
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-19__bugfix__vk-login-recovery.md",
+    "completed_date": "2026-10-19T08:10:02.871081Z"
   },
   "hierarchy": {
     "spec-root": {
       "type": "spec",
       "title": "VK ID optional profile login recovery",
-      "status": "in_progress",
+      "status": "completed",
       "parent": null,
       "children": [
         "phase-1",
         "phase-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 1,
+      "completed_tasks": 2,
       "metadata": {}
     },
     "phase-1": {
@@ -45,14 +46,17 @@
     "phase-2": {
       "type": "phase",
       "title": "Review, package and deploy",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "spec-root",
       "children": [
         "task-2-1"
       ],
       "total_tasks": 1,
-      "completed_tasks": 0,
-      "metadata": {}
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": true,
+        "completed_at": "2026-10-19T08:10:02.335419Z"
+      }
     },
     "task-1-1": {
       "type": "task",
@@ -78,7 +82,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Review, clean build and guarded production verification",
-      "status": "in_progress",
+      "status": "completed",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -87,11 +91,13 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "started_at": "2026-10-19T07:32:39.309443Z",
-        "status_note": "Focused Black and current Ruff passed; preparing exact-source clean build and guarded rollout.",
-        "file_path": "meta/memory_bank/specs/work_items/2026-10-19__bugfix__vk-login-recovery.md"
+        "status_note": "Exact-source CI passed. Two clean native builds matched application/dependencies; 1287 candidate backend checks, 205 PostgreSQL and 2604 frontend checks passed. Production image sha256:6d09783110a4d6d36359f9cc209e17a1f1156aab7d1e148d1a19b596608e4fde deployed, backed up and pinned. Docker+HTTP healthy, money/configuration/mounts/14 neighbors preserved; native and offline model checks passed. Real user VK retry remains separate external acceptance.",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-19__bugfix__vk-login-recovery.md",
+        "completed_at": "2026-10-19T08:10:02.335222Z",
+        "needs_journaling": true
       }
     }
   }
