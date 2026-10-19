@@ -25,7 +25,6 @@ from open_webui.config import (
     VK_OAUTH_SCOPE,
     VK_REDIRECT_URI,
 )
-from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
     SRC_LOG_LEVELS,
     WEBUI_AUTH_COOKIE_SAME_SITE,
@@ -37,7 +36,7 @@ from open_webui.models.users import UserModel, Users
 from open_webui.utils.airis.legal_acceptance import record_legal_acceptances
 from open_webui.utils.airis.social_account import (
     VKIdentity,
-    create_vk_account,
+    get_or_create_vk_account,
     require_active_social_account,
     verify_social_address,
 )
@@ -45,7 +44,7 @@ from open_webui.utils.auth import create_token
 from open_webui.utils.email import email_service
 from open_webui.utils.misc import parse_duration
 from open_webui.utils.redis import get_redis_client
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -145,16 +144,7 @@ async def vkid_callback(
 
         vk_user_id, email_lower, name, profile_image_url = await _read_vk_identity(auth_data)
 
-        # Find or create user
-        user = await Users.get_user_by_oauth_sub('vk', vk_user_id, db=db)
-
-        if not user and await Users.get_user_by_email(email_lower, db=db):
-            raise HTTPException(400, detail=ERROR_MESSAGES.EMAIL_TAKEN)
-
-        if not user:
-            user = await create_vk_account(name, email_lower, profile_image_url, str(vk_user_id), db)
-
-            log.info('Created new user %s via VK ID', user.id)
+        user = await get_or_create_vk_account(name, email_lower, profile_image_url, vk_user_id, db)
 
         await require_active_social_account(user, db, repair_legacy_vk=True)
         await verify_social_address(user, db)
@@ -264,16 +254,7 @@ async def vk_oauth_callback(
 
         vk_user_id, email_lower, name, profile_image_url = await _read_vk_profile(code)
 
-        # Find or create user
-        user = await Users.get_user_by_oauth_sub('vk', str(vk_user_id), db=db)
-
-        if not user and await Users.get_user_by_email(email_lower, db=db):
-            raise HTTPException(400, detail=ERROR_MESSAGES.EMAIL_TAKEN)
-
-        if not user:
-            user = await create_vk_account(name, email_lower, profile_image_url, str(vk_user_id), db)
-
-            log.info('Created new user %s via VK OAuth', user.id)
+        user = await get_or_create_vk_account(name, email_lower, profile_image_url, vk_user_id, db)
 
         await require_active_social_account(user, db, repair_legacy_vk=True)
         await verify_social_address(user, db)
@@ -624,12 +605,7 @@ async def _read_vk_profile(code: str) -> tuple[str, str, str, str]:
         if not access_token or not vk_user_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid token response from VK')
 
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Email required. Please grant email permission in VK settings',
-            )
-        email_lower = email.lower()
+        email_lower = email.lower() if isinstance(email, str) else ''
 
         # Fetch user profile from VK API
         user_info_url = (
@@ -727,8 +703,9 @@ async def _read_vk_identity(auth_data: VKIDAuthRequest) -> tuple[str, str, str, 
         # Browser email/user_id never establish identity or address proof.
         try:
             identity = VKIdentity.model_validate(user_info.get('user', {}))
-        except ValueError:
-            raise HTTPException(400, detail='VK ID must provide identity and email') from None
+        except ValidationError:
+            log.warning('VK ID profile rejected: invalid_provider_identity')
+            raise HTTPException(400, detail='VK ID не подтвердил пользователя. Повторите вход через VK.') from None
         vk_user_id = identity.user_id
         email_lower = str(identity.email).lower()
         name = f'{identity.first_name} {identity.last_name}'.strip() or 'VK User'

@@ -5,6 +5,7 @@ import secrets
 import time
 
 from fastapi import HTTPException
+from open_webui.constants import ERROR_MESSAGES
 from open_webui.internal.db import get_async_db_context
 from open_webui.models.auths import Auth, Auths
 from open_webui.models.config import Config
@@ -12,7 +13,7 @@ from open_webui.models.email_preferences import valid_product_address
 from open_webui.models.email_verification import EmailVerificationTokens
 from open_webui.models.users import User, UserModel, Users
 from open_webui.utils.auth import get_password_hash
-from pydantic import BaseModel, EmailStr, StrictStr, field_validator
+from pydantic import BaseModel, EmailStr, StrictStr, TypeAdapter, ValidationError, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,10 +24,15 @@ class VKIdentity(BaseModel):
     """Only construct from the authenticated server user_info response."""
 
     user_id: StrictStr
-    email: EmailStr
+    email: str = ''
     first_name: str = ''
     last_name: str = ''
     avatar: str = ''
+
+    @field_validator('email', 'first_name', 'last_name', 'avatar', mode='before')
+    @classmethod
+    def optional_profile_text(cls, value: object) -> str:
+        return value if isinstance(value, str) else ''
 
     @field_validator('user_id', mode='before')
     @classmethod
@@ -92,8 +98,22 @@ async def verify_social_address(user: UserModel, db: AsyncSession | None) -> Non
         log.error('Social verification user=%s error_type=%s', user.id, type(error).__name__)
 
 
-async def create_vk_account(name: str, email: str, image: str, subject: str, db: AsyncSession) -> UserModel:
-    """VK signup shares the email/shared-OAuth credential lifecycle."""
+async def get_or_create_vk_account(name: str, email: str, image: str, subject: str, db: AsyncSession) -> UserModel:
+    """Resolve the authenticated VK binding before requiring a signup address."""
+    user = await Users.get_user_by_oauth_sub('vk', subject, db=db)
+    if user:
+        return user
+    try:
+        email = str(TypeAdapter(EmailStr).validate_python(email)).lower()
+    except ValidationError:
+        log.warning('VK signup rejected: missing_or_invalid_provider_email')
+        raise HTTPException(
+            400,
+            detail='VK ID не передал корректную электронную почту. Добавьте почту в настройках VK ID '
+            'и разрешите её передачу AIRIS, затем повторите вход. Или войдите в AIRIS по почте.',
+        ) from None
+    if await Users.get_user_by_email(email, db=db):
+        raise HTTPException(400, detail=ERROR_MESSAGES.EMAIL_TAKEN)
     user = await Auths.insert_new_auth(
         email=email,
         password=await get_password_hash(secrets.token_urlsafe(32)),
@@ -105,6 +125,7 @@ async def create_vk_account(name: str, email: str, image: str, subject: str, db:
     )
     if not user:
         raise HTTPException(500, detail='Failed to create user')
+    log.info('Created new user %s via VK', user.id)
     if await Users.get_num_users(db=db) == 1:
         await Users.update_user_role_by_id(user.id, 'admin', db=db)
         user = await Users.get_user_by_id(user.id, db=db)
