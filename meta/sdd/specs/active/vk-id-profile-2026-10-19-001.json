@@ -1,5 +1,5 @@
 {
-  "spec_id": "vk-id-optional-profile-login-r-2026-10-19-1021",
+  "spec_id": "vk-id-profile-2026-10-19-001",
   "title": "VK ID optional profile login recovery",
   "generated": "2026-10-19T07:21:14.991159Z",
   "last_updated": "2026-10-19T07:32:39.309803Z",
@@ -71,7 +71,8 @@
         "started_at": "2026-10-19T07:26:21.769447Z",
         "completed_at": "2026-10-19T07:32:38.923755Z",
         "needs_journaling": true,
-        "status_note": "Regression reproduced on accepted old code; fixed code: 21 focused and 1287 full backend tests passed, 10 skipped. Strict provider identity, collision and disabled-Auth checks retained."
+        "status_note": "Regression reproduced on accepted old code; fixed code: 21 focused and 1287 full backend tests passed, 10 skipped. Strict provider identity, collision and disabled-Auth checks retained.",
+        "file_path": "backend/open_webui/utils/airis/social_account.py"
       }
     },
     "task-2-1": {
@@ -89,7 +90,8 @@
       "completed_tasks": 0,
       "metadata": {
         "started_at": "2026-10-19T07:32:39.309443Z",
-        "status_note": "Focused Black and current Ruff passed; preparing exact-source clean build and guarded rollout."
+        "status_note": "Focused Black and current Ruff passed; preparing exact-source clean build and guarded rollout.",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-19__bugfix__vk-login-recovery.md"
       }
     }
   }

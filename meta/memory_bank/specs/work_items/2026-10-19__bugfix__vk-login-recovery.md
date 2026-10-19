@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/vk-login-recovery
-- SDD Spec: meta/sdd/specs/active/vk-id-optional-profile-login-r-2026-10-19-1021.json
+- SDD Spec: meta/sdd/specs/active/vk-id-profile-2026-10-19-001.json
 - Created: 2026-10-19
 - Updated: 2026-10-19
 
@@ -45,3 +45,6 @@ Docker Compose-first backend tests with an isolated SQLite database and producti
 - Security review: only server-authenticated provider id resolves the binding; invalid positive-id input fails; signup requires valid provider email, collisions still fail; active-Auth gate still applies. Browser claims, stored email, consent, balances and verification status are not overwritten.
 - Exact optional field missing in the live VK response was not logged by the old version; do not identify email alone as the confirmed cause.
 - Real user VK retry remains a separate acceptance step after deployment.
+
+- Frontend `npm run preflight`: 2604 tests passed; Svelte 0 errors/warnings, ESLint and production build passed.
+- Corrected the SDD generator's four-digit suffix and added required task file paths after CI caught tracking-policy violations; runtime code is unchanged.
