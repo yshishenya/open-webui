@@ -60,14 +60,19 @@ const loadVkIdSdk = async (): Promise<void> => {
 	return vkidLoadPromise;
 };
 
-const initVkIdConfig = (sdk: typeof window.VKIDSDK, appId: string, redirectUrl: string): void => {
+const initVkIdConfig = (
+	sdk: typeof window.VKIDSDK,
+	appId: string,
+	redirectUrl: string,
+	requestEmailConsent: boolean
+): void => {
 	const parsedAppId = Number.parseInt(appId, 10);
 	if (!Number.isFinite(parsedAppId)) {
 		throw new Error('VK ID is not configured');
 	}
 
 	const resolvedRedirectUrl = redirectUrl || window.location.origin;
-	const nextKey = `${parsedAppId}|${resolvedRedirectUrl}`;
+	const nextKey = `${parsedAppId}|${resolvedRedirectUrl}|${requestEmailConsent}`;
 	if (vkidConfigKey === nextKey) return;
 
 	sdk.Config.init({
@@ -76,7 +81,8 @@ const initVkIdConfig = (sdk: typeof window.VKIDSDK, appId: string, redirectUrl: 
 		mode: sdk.ConfigAuthMode.InNewWindow,
 		responseMode: sdk.ConfigResponseMode.Callback,
 		source: sdk.ConfigSource.LOWCODE,
-		scope: 'email'
+		scope: 'email',
+		prompt: requestEmailConsent ? ['consent'] : []
 	});
 
 	vkidConfigKey = nextKey;
@@ -85,7 +91,8 @@ const initVkIdConfig = (sdk: typeof window.VKIDSDK, appId: string, redirectUrl: 
 export const vkIdLogin = async (
 	provider: VkIdProvider,
 	appId: string,
-	redirectUrl: string
+	redirectUrl: string,
+	requestEmailConsent = false
 ): Promise<{ authResponse: VKIDSDK.AuthResponse; authData: VKIDSDK.AuthData | null }> => {
 	await loadVkIdSdk();
 
@@ -94,7 +101,7 @@ export const vkIdLogin = async (
 	}
 
 	const sdk = window.VKIDSDK;
-	initVkIdConfig(sdk, appId, redirectUrl);
+	initVkIdConfig(sdk, appId, redirectUrl, requestEmailConsent);
 
 	const authResponseRaw = await sdk.Auth.login({
 		provider: getOAuthName(sdk, provider),

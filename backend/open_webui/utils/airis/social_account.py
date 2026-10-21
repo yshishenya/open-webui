@@ -106,11 +106,13 @@ async def get_or_create_vk_account(name: str, email: str, image: str, subject: s
     try:
         email = str(TypeAdapter(EmailStr).validate_python(email)).lower()
     except ValidationError:
-        log.warning('VK signup rejected: missing_or_invalid_provider_email')
+        reason = 'missing_provider_email' if not email.strip() else 'invalid_provider_email'
+        log.warning('VK signup rejected: %s', reason)
         raise HTTPException(
             400,
             detail='VK ID не передал корректную электронную почту. Добавьте почту в настройках VK ID '
             'и разрешите её передачу AIRIS, затем повторите вход. Или войдите в AIRIS по почте.',
+            headers={'X-Airis-Auth-Error': 'provider_email_required'},
         ) from None
     if await Users.get_user_by_email(email, db=db):
         raise HTTPException(400, detail=ERROR_MESSAGES.EMAIL_TAKEN)

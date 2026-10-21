@@ -1,0 +1,8 @@
+- [ ] **[BUG][AUTH]** Recover missing VK ID signup email without access revocation
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__vkid-email-consent.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/vkid-email-consent`
+  - Started: 2026-10-21
+  - Summary: Add explicit consent retry for the same provider after an email rejection; distinguish missing versus invalid provider email without personal data in logs.
+  - Tests: Backend 1287 passed / 10 skipped; frontend 2605 passed; check/lint and official SDK URL assertions passed. Full preflight passed. Production installation pending.
+  - Risks: Provider may still omit email; real user login remains unproved.
