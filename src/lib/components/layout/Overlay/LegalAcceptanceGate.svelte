@@ -77,7 +77,7 @@
 									id={`legal-${doc.key}`}
 									type="checkbox"
 									checked={Boolean(checks[doc.key])}
-									class="mt-1 size-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+									class="mt-1 size-4 shrink-0 self-start rounded border-gray-300 text-gray-900 focus:ring-gray-900"
 									on:change={(event) => {
 										const target = event.currentTarget as HTMLInputElement;
 										checks = { ...checks, [doc.key]: target.checked };
