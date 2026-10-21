@@ -2,7 +2,7 @@
   "spec_id": "vk-id-email-consent-recovery-2026-10-21-001",
   "title": "VK ID email consent recovery",
   "generated": "2026-10-21T12:12:50.386641Z",
-  "last_updated": "2026-10-21T12:21:58.148916Z",
+  "last_updated": "2026-10-21T12:55:01.792096Z",
   "metadata": {
     "template": "simple",
     "complexity": "low",
@@ -47,7 +47,7 @@
     "phase-2": {
       "type": "phase",
       "title": "Validate and release recovery path",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "task-2-1"
@@ -79,7 +79,7 @@
     "task-2-1": {
       "type": "task",
       "title": "Validate and release recovery path",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-2",
       "children": [],
       "dependencies": {
@@ -89,7 +89,10 @@
       },
       "total_tasks": 1,
       "completed_tasks": 0,
-      "metadata": {}
+      "metadata": {
+        "started_at": "2026-10-21T12:55:01.791929Z",
+        "status_note": "Installed source b037eb00925b75f406d3fa83d28ba721cd645ec9, digest be164128d6e0a0105dd3f4d2219ee61ae41343c22b483d8f0e428db243ab0218. Runtime/public asset/financial preservation passed. Real Mail.ru user login remains pending; access revocation is excluded."
+      }
     }
   },
   "journal": [
