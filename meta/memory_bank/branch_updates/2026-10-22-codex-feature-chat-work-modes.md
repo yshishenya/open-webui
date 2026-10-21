@@ -5,3 +5,5 @@
   - Started: 2026-10-22
   - Summary: Reuse the existing terminal selector and production environment; prefer configuration for naming and model defaults.
   - Progress: production naming/default configuration applied and verified; explicit selector implemented; 2615 frontend tests pass; release acceptance pending.
+
+  - Follow-up: initial production/browser acceptance passed at c63de6eb38; now adding the requested ChatGPT-like selector and short explanations. No execution/configuration changes.

@@ -1,4 +1,7 @@
 {
+	"Choose mode": "Выбрать режим",
+	"Answers, ideas and discussion": "Ответы, идеи и обсуждение",
+	"Complete tasks and create files": "Выполнение задач и создание файлов",
 	"Invalid source response": "По ссылке получены некорректные данные. Проверьте ссылку и попробуйте снова.",
 	"Source loaded for review in the editor": "Исходный код загружен для проверки в редакторе",
 	"Could not load settings. Try again.": "Не удалось загрузить настройки. Попробуйте ещё раз.",
