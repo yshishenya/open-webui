@@ -26,3 +26,8 @@
   - Branch: `codex/bugfix/email-verification-login`
   - Evidence: actual request HTTP200, unused two-hour token metadata, local SMTP accepted, explicit deferred4.4.1 TCP25 timeouts. Two Proton IPv4 later reachable; one scoped retry of the same queue ID requested. No duplicate, credentials/consent/configuration change.
   - Pending: actual recipient acceptance/owner receipt and normal recovery; no claim of stable delivery.
+
+- [x] Owner-requested comparison: one recovery email to `yan@shishenya.ru`, accepted by Yandex in2.8s (250/statussent); Inbox unconfirmed, password unchanged. Proton remains deferred. No application/configuration change.
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/email-verification-login`

@@ -99,3 +99,7 @@ Evidence: private artifact directory above, including `RESULT.md`, `runtime-tran
 - Recipient-server acceptance and owner's mailbox confirmation remain pending until a new observed result. Earlier verification delivery after an automatic retry does not prove stability for this reset.
 
 Private delivery evidence: `/Users/yshishenya/.codex/private-artifacts/airis-password-reset-delivery-20261022/`.
+
+### Recovery comparison requested by owner
+
+One normal reset request for existing active/confirmed `yan@shishenya.ru`: HTTP200 at `2026-10-21T23:01:21.974506Z`. Mailu queue `C18A7C1BC8` accepted by `mx.yandex.ru[77.88.21.249]:25` at `23:01:24Z`, `dsn=2.0.0/status=sent/250`, transport delay2.8s. No retry, duplicate or password change. Mailbox receipt/folder remains owner acceptance. At comparison, original Proton queue remains deferred; a working Yandex path rules out a total SMTP outage but does not locate the Proton path failure. Evidence: same private delivery directory, `shishenya-reset-request.json`, `shishenya-delivery-initial.log`, `shishenya-acceptance.json`.
