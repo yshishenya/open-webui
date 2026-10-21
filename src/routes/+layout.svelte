@@ -214,7 +214,10 @@
 			disconnectReason = null;
 			hasConnectedOnce = true;
 
-			const res = await getVersion(localStorage.token);
+			const res = await getVersion(localStorage.token).catch((error) => {
+				console.warn('Failed to fetch server version:', error);
+				return null;
+			});
 
 			const deploymentId = res?.deployment_id ?? null;
 			const version = res?.version ?? null;

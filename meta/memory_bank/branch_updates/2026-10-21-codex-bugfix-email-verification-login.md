@@ -6,3 +6,7 @@
   - Summary: Receipt confirmed by owner; current callback only verifies and asks for password. Implement one-use session exchange; investigate observed password failures without changing user credentials.
   - Tests: full backend 1297 passed/10 skipped; focused 46 passed/1 skipped; PostgreSQL 24 passed; focused browser-script/API 4 passed; no new Ruff diagnostics. Full frontend/build/browser release pending.
   - Risks: Authentication token consumption, concurrency and current-address checks; real personal password remains unverified.
+
+- Follow-up: compiled Firefox acceptance exposed a cancelled background getVersion request in the shared root socket callback. Add the existing null-fallback pattern; forced interruption regression fails on the original compiled code in both browsers. Preserve independently merged legal geometry and email-signin-first work.
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
+  - Remaining: complete changed frontend checks/build, compiled regression, exact-head CI and guarded production release; personal password recovery remains open.
