@@ -1,4 +1,7 @@
 {
+	"Choose mode": "Choose mode",
+	"Answers, ideas and discussion": "Answers, ideas and discussion",
+	"Complete tasks and create files": "Complete tasks and create files",
 	"Invalid source response": "The URL returned an invalid source. Check the URL and try again.",
 	"Source loaded for review in the editor": "Source loaded for review in the editor",
 	"Could not load settings. Try again.": "Could not load settings. Try again.",
