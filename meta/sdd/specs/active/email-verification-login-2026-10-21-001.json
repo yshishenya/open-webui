@@ -1,5 +1,5 @@
 {
-  "spec_id": "email-verification-signs-in-on-2026-10-21-2351",
+  "spec_id": "email-verification-login-2026-10-21-001",
   "title": "Email verification signs in once",
   "generated": "2026-10-21T20:51:02.520814Z",
   "last_updated": "2026-10-21T21:07:33.728606Z",
@@ -74,7 +74,8 @@
         "completed_at": "2026-10-21T21:07:32.967436Z",
         "needs_journaling": false,
         "actual_hours": 0.235,
-        "journaled_at": "2026-10-21T21:07:32.972691Z"
+        "journaled_at": "2026-10-21T21:07:32.972691Z",
+        "file_path": "backend/open_webui/models/email_verification.py"
       }
     },
     "task-2-1": {
@@ -91,7 +92,8 @@
       "total_tasks": 1,
       "completed_tasks": 0,
       "metadata": {
-        "started_at": "2026-10-21T21:07:33.727872Z"
+        "started_at": "2026-10-21T21:07:33.727872Z",
+        "file_path": "e2e/onboarding-paths.spec.ts"
       }
     }
   },

@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/email-verification-login
-- SDD Spec: meta/sdd/specs/active/email-verification-signs-in-on-2026-10-21-2351.json
+- SDD Spec: meta/sdd/specs/active/email-verification-login-2026-10-21-001.json
 - Workflow: bug_fix
 - Created: 2026-10-21
 
