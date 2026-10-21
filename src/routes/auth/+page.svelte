@@ -65,6 +65,7 @@
 			let submitting = false;
 			let telegramLoading = false;
 			let vkidLoadingProvider: VkIdProvider | null = null;
+			let vkidConsentProvider: VkIdProvider | null = null;
 
 			type SocialProvider = 'yandex' | 'vk' | 'github';
 			let oauthRedirectingTo: SocialProvider | null = null;
@@ -237,7 +238,13 @@
 			vkidLoadingProvider = provider;
 			trackSignupStart('vkid');
 			try {
-				const { authResponse, authData } = await vkIdLogin(provider, appId, redirectUrl);
+				const requestEmailConsent = vkidConsentProvider === provider;
+				const { authResponse, authData } = await vkIdLogin(
+					provider,
+					appId,
+					redirectUrl,
+					requestEmailConsent
+				);
 				const callbackResponse = await fetch(`${WEBUI_BASE_URL}/api/v1/oauth/vkid/callback`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -252,6 +259,17 @@
 
 				const callbackData = (await callbackResponse.json()) as Record<string, unknown>;
 				if (!callbackResponse.ok) {
+					if (
+						callbackResponse.status === 400 &&
+						callbackResponse.headers.get('X-Airis-Auth-Error') === 'provider_email_required'
+					) {
+						vkidConsentProvider = provider;
+						if (!requestEmailConsent) {
+							throw new Error(
+								'Почта не получена. Нажмите ту же кнопку входа ещё раз, чтобы запросить разрешение на её передачу.'
+							);
+						}
+					}
 					throw new Error(
 						String(callbackData.detail || callbackData.message || 'VK ID authentication failed')
 					);

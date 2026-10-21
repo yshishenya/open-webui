@@ -13,6 +13,7 @@ declare global {
 		source: ConfigSource;
 		mode?: ConfigAuthMode;
 		scope?: string;
+		prompt?: 'consent'[];
 	}
 
 	enum ConfigAuthMode {

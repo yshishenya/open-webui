@@ -154,7 +154,7 @@ async def test_new_social_address_requests_proof_once_and_does_not_verify_or_opt
 
 @pytest.mark.asyncio
 async def test_vk_id_ignores_browser_claims_and_creates_auth_without_verifying_email(
-    database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
+    database: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setattr(vk, 'ENABLE_OAUTH_SIGNUP', True)
     monkeypatch.setattr(vk, 'VK_CLIENT_ID', 'test-client')
@@ -216,6 +216,12 @@ async def test_vk_id_ignores_browser_claims_and_creates_auth_without_verifying_e
             with pytest.raises(HTTPException) as error:
                 await vk.vkid_callback(request, Response(), claims, db=session)
             assert error.value.status_code == 400
+            if bad.get('user_id') == '902':
+                assert error.value.headers == {'X-Airis-Auth-Error': 'provider_email_required'}
+                reason = 'invalid_provider_email' if bad.get('email') else 'missing_provider_email'
+                assert reason in caplog.messages[-1]
+        assert 'provider@airis.you' not in caplog.text and 'invalid-address' not in caplog.text
+        assert 'test-provider-access' not in caplog.text and 'person1@airis.you' not in caplog.text
         payload['user'] = {'user_id': '901', 'email': 'person1@airis.you'}
         with pytest.raises(HTTPException):
             await vk.vkid_callback(request, Response(), claims, db=session)

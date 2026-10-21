@@ -1,0 +1,115 @@
+{
+  "spec_id": "vk-id-email-consent-recovery-2026-10-21-001",
+  "title": "VK ID email consent recovery",
+  "generated": "2026-10-21T12:12:50.386641Z",
+  "last_updated": "2026-10-21T12:21:58.148916Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-21__bugfix__vkid-email-consent.md",
+    "status": "active",
+    "activated_date": "2026-10-21T12:13:30.352764Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "VK ID email consent recovery",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Implement explicit email consent retry and private diagnostics",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-21T12:21:58.146408Z",
+        "journaled_at": "2026-10-21T12:21:58.148892Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Validate and release recovery path",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Implement explicit email consent retry and private diagnostics",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-21T12:21:58.146188Z",
+        "needs_journaling": false,
+        "status_note": "Implemented explicit same-provider consent retry and reason-only diagnostics; focused checks passed.",
+        "journaled_at": "2026-10-21T12:21:58.147623Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Validate and release recovery path",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-21T12:21:58.147614Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Implement explicit email consent retry and private diagnostics",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Implemented explicit same-provider consent retry and reason-only diagnostics; focused checks passed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-21T12:21:58.148886Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Implement explicit email consent retry and private diagnostics",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}
