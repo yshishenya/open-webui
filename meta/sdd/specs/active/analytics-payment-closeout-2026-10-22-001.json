@@ -1,0 +1,163 @@
+{
+  "spec_id": "analytics-payment-closeout-2026-10-22-001",
+  "title": "analytics-payment-closeout-2026",
+  "generated": "2026-10-21T22:50:06.541318Z",
+  "last_updated": "2026-10-21T23:09:53.680399Z",
+  "metadata": {
+    "template": "medium",
+    "complexity": "medium",
+    "risk_level": "medium",
+    "estimated_hours": 2,
+    "security_sensitive": false,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-22__bugfix__analytics-payment-closeout.md",
+    "status": "active",
+    "activated_date": "2026-10-21T22:51:15.814231Z",
+    "progress_percentage": 66,
+    "current_phase": "phase-2"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "analytics-payment-closeout-2026",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2",
+        "phase-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "\u041f\u043e\u0448\u0442\u0443\u0447\u043d\u0430\u044f \u0441\u0432\u0435\u0440\u043a\u0430 PostHog \u0438 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0445 \u0438\u0441\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0439",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-21T23:09:27.761165Z",
+        "journaled_at": "2026-10-21T23:09:27.764811Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "\u0418\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043e\u0431\u0449\u0435\u0433\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430 \u0438 \u0440\u0435\u0433\u0440\u0435\u0441\u0441\u0438\u043e\u043d\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-21T23:09:53.676847Z",
+        "journaled_at": "2026-10-21T23:09:53.680363Z"
+      }
+    },
+    "phase-3": {
+      "type": "phase",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u0438 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432",
+      "status": "pending",
+      "parent": "spec-root",
+      "children": [
+        "task-3"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1": {
+      "type": "task",
+      "title": "\u041f\u043e\u0448\u0442\u0443\u0447\u043d\u0430\u044f \u0441\u0432\u0435\u0440\u043a\u0430 PostHog \u0438 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0445 \u0438\u0441\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0439",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "metadata": {
+        "category": "documentation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-22__bugfix__analytics-payment-closeout.md",
+        "completed_at": "2026-10-21T23:09:27.760987Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-21T23:09:27.762737Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-2": {
+      "type": "task",
+      "title": "\u0418\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043e\u0431\u0449\u0435\u0433\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430 \u0438 \u0440\u0435\u0433\u0440\u0435\u0441\u0441\u0438\u043e\u043d\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "metadata": {
+        "category": "implementation",
+        "file_path": "backend/open_webui/utils/airis/billing_reporting.py",
+        "started_at": "2026-10-21T23:03:20.090738Z",
+        "completed_at": "2026-10-21T23:09:53.676679Z",
+        "needs_journaling": false,
+        "actual_hours": 0.109,
+        "journaled_at": "2026-10-21T23:09:53.678710Z"
+      },
+      "completed_tasks": 1,
+      "total_tasks": 1
+    },
+    "task-3": {
+      "type": "task",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u0438 \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432",
+      "status": "pending",
+      "parent": "phase-3",
+      "children": [],
+      "metadata": {
+        "category": "documentation",
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-22__bugfix__analytics-payment-closeout.md"
+      },
+      "completed_tasks": 0,
+      "total_tasks": 1
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-21T23:09:27.762724Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u041f\u043e\u0448\u0442\u0443\u0447\u043d\u0430\u044f \u0441\u0432\u0435\u0440\u043a\u0430 PostHog \u0438 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0445 \u0438\u0441\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0439",
+      "author": "claude-code",
+      "content": "Task task-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1"
+    },
+    {
+      "timestamp": "2026-10-21T23:09:27.764775Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u041f\u043e\u0448\u0442\u0443\u0447\u043d\u0430\u044f \u0441\u0432\u0435\u0440\u043a\u0430 PostHog \u0438 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0445 \u0438\u0441\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0439",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-21T23:09:53.678704Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u0418\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043e\u0431\u0449\u0435\u0433\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430 \u0438 \u0440\u0435\u0433\u0440\u0435\u0441\u0441\u0438\u043e\u043d\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438",
+      "author": "claude-code",
+      "content": "Task task-2 marked as completed.",
+      "metadata": {},
+      "task_id": "task-2"
+    },
+    {
+      "timestamp": "2026-10-21T23:09:53.680351Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u0418\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043e\u0431\u0449\u0435\u0433\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430 \u0438 \u0440\u0435\u0433\u0440\u0435\u0441\u0441\u0438\u043e\u043d\u043d\u044b\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

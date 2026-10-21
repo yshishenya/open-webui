@@ -65,6 +65,10 @@ export const formatReportMoney = (kopeks: number, currency = 'RUB', locale = 'ru
 	new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 2 }).format(
 		kopeks / 100
 	);
+export const reportRefundKopeks = (value: unknown): number | null => {
+	const amount = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
+	return typeof amount === 'number' && Number.isSafeInteger(amount) && amount >= 0 ? amount : null;
+};
 export const formatReportTime = (value: number | null | undefined, locale = 'ru-RU'): string =>
 	value ? new Date(value * 1000).toLocaleString(locale, { timeZone: 'UTC' }) : '—';
 export const paymentLabel = (status: string): string =>

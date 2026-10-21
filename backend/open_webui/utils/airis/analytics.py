@@ -372,15 +372,18 @@ async def deliver_one(delivery_id: str, client: httpx.AsyncClient) -> None:
                         'api_key': os.environ['AIRIS_POSTHOG_KEY'],
                         'uuid': event_uuid,
                         'event': event.event_name,
-                        'distinct_id': (
-                            event.properties.get('anonymous_analytics_id', identity.id)
-                            if event.event_name == '$create_alias'
-                            else identity.id
-                        ),
+                        'distinct_id': identity.id,
                         'timestamp': dt.datetime.fromtimestamp(event.occurred_at, dt.UTC).isoformat(),
                         'properties': {
                             **event.properties,
-                            '$process_person_profile': bool(identity.user_id),
+                            # Personless events cannot be joined to the account's
+                            # earlier history by this PostHog installation.
+                            '$process_person_profile': True,
+                            **(
+                                {'alias': event.properties['anonymous_analytics_id']}
+                                if event.event_name == '$create_alias'
+                                else {}
+                            ),
                             **{
                                 f'first_{k}': v
                                 for k, v in retained_touch(
