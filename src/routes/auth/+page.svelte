@@ -89,10 +89,10 @@
 	$: choiceEmailPrimaryMode =
 		($config?.onboarding ?? false)
 			? 'signup'
-			: signupEnabled
-				? 'signup'
-				: emailSignInEnabled
-					? 'signin'
+			: emailSignInEnabled
+				? 'signin'
+				: signupEnabled
+					? 'signup'
 					: ldapSignInEnabled
 						? 'ldap'
 						: 'signin';
@@ -101,7 +101,7 @@
 		choiceEmailPrimaryMode === 'ldap' ? 'Continue with LDAP' : 'Continue with Email';
 
 	$: choiceEmailSecondaryMode =
-		signupEnabled && (emailSignInEnabled || ldapSignInEnabled)
+		choiceEmailPrimaryMode === 'signup' && (emailSignInEnabled || ldapSignInEnabled)
 			? emailSignInEnabled
 				? 'signin'
 				: 'ldap'
@@ -1080,7 +1080,7 @@
 														}
 													}}
 												>
-													{mode === 'signin' ? $i18n.t('Sign up') : $i18n.t('Sign in')}
+													{mode === 'signin' ? $i18n.t('Create Account') : $i18n.t('Sign in')}
 												</button>
 											</div>
 										{/if}
