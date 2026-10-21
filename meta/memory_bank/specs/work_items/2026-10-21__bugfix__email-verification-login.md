@@ -22,7 +22,7 @@ The owner confirms receipt of the Proton verification email. Its public page con
 - [x] Existing signup/password signin and consent/welcome boundaries remain intact; original password works in isolated real-route regression, including Unicode.
 - [x] No password, credential hash or verification secret is published. User account credentials are not reset silently.
 - [x] Docker Compose backend/frontend checks, PostgreSQL concurrency and relevant browser acceptance pass.
-- [ ] Exact-source CI, clean image, guarded deploy and current runtime acceptance; preserve VK changes, production settings, observation scope, money and neighboring services.
+- [x] Exact-source CI, clean image, guarded deploy and current runtime acceptance; preserve VK changes, production settings, observation scope, money and neighboring services.
 - [x] Owner's existing consumed link is not revived; password recovery remains the normal user-controlled flow. No credentials are replaced silently.
 - [ ] Individual password failure is explained or the owner completes normal password recovery.
 
@@ -76,3 +76,16 @@ The compiled combined candidate exposed an unhandled rejection in the root layou
 The existing settings callers already catch getVersion failures. Add the same null fallback to the root callback (three added lines), retaining heartbeat and user-join processing. Do not change the API helper's public error contract or suppress browser errors in tests. The existing confirmation browser test now deliberately aborts /api/version and requires at least one interruption. On the unchanged compiled candidate it fails in both Chromium and Firefox, proving the reproduction.
 
 Upstream impact delta: src/routes/+layout.svelte receives only the missing error handler around its existing version lookup. Integration also contains the independently merged email-signin-first correction; preserve it together with legal-checkbox geometry in the final source. No backend, dependency, schema, consent or provider change in this follow-up.
+
+## Production acceptance — 2026-10-22 Europe/Istanbul
+
+- Final application source: `49ed6bf79b9c825a8b24fae7b616b71ba2fed04b`; PR379 merged as `c63de6eb38afaac786fad5bf6df7338d15b074b3`. Applicable exact-head checks passed; unchanged dependency review skipped. Preserves concurrent legal geometry, VK and email-signin-first changes.
+- Final frontend: 2614 tests passed; svelte-check 0 errors/0 warnings; ESLint, formatting and production build passed. Forced version-request interruption fails in both browsers before the fix and passes afterward. Compiled final browser acceptance: 4/4 in Chromium and narrow Firefox, covering captured email, automatic session, reload, replay rejection, original Unicode password and guide/free-task path.
+- Final clean image: `yshishenya/yshishenya:verify-login-49ed6bf79b-20261022`, image ID/registry digest `sha256:3a35a515fd24156dd861ed0e6b45a2fa136f212025a28b1726efd27189d26d16`. Final repeat matches app/packages/OS/model resources, with cache; no claim of an independent uncached or byte-identical image rebuild.
+- Guarded production deployment completed with hard migration gate at `d1c020261009`; verified backup `/opt/backups/airis/20261021T221632Z-verify-login-49ed6bf79b-20261022`. Rollback image retained. At `2026-10-21T22:22:50.864999+00:00`, exact-source runtime healthy, zero restarts, 557 backend and 4915 compiled files matched. Single documented startup copy of `site.webmanifest` checked against the frozen frontend copy.
+- Public HTML/version/root asset match the final image. Confirmation page HTTP200; invalid exchange HTTP400 without authentication cookie. No real email sent during final public acceptance.
+- Mounts and all 12 core neighboring containers unchanged. Runtime environment changed only build version; persisted configuration changed only the two image selector fields. Existing effective queue/consent/provider settings preserved.
+- Wallet (144), Payment (37), LedgerEntry (6871), Transaction (0) counts and complete ORM fingerprints match immediately before/after recreation; verification DML0. Live native torch/vision/audio operations passed.
+- Individual password mismatch remains unconfirmed. Existing bcrypt metadata alone cannot explain it. Owner credentials unchanged; consumed verification link not revived and no recovery message sent. Owner-controlled recovery and personal acceptance remain unchecked, so the linked SDD task/spec stays in progress.
+
+Evidence: private artifact directory above, including `RESULT.md`, `runtime-transition-acceptance.json`, `runtime-files-acceptance.json`, `public-final-acceptance.json`, `money-native-acceptance.json`, `production-proof/` and final build/browser/CI logs.

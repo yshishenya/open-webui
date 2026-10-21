@@ -10,3 +10,12 @@
 - Follow-up: compiled Firefox acceptance exposed a cancelled background getVersion request in the shared root socket callback. Add the existing null-fallback pattern; forced interruption regression fails on the original compiled code in both browsers. Preserve independently merged legal geometry and email-signin-first work.
   - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
   - Remaining: complete changed frontend checks/build, compiled regression, exact-head CI and guarded production release; personal password recovery remains open.
+
+- [x] **[BUG][AUTH]** Confirmation signs in once; exact-source production release accepted on 2026-10-22.
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/email-verification-login`
+  - Source: `49ed6bf79b9c825a8b24fae7b616b71ba2fed04b`, PR379 merged; final runtime healthy, zero restarts.
+  - Tests: backend 1297 passed/10 skipped; PostgreSQL 24 passed; final frontend 2614 passed, type/lint/build green, final compiled Chromium/Firefox 4/4. Forced version-interruption regression reproduced before and passes after.
+  - Production: hard migration passed, verified backup/rollback retained, immutable files/public assets matched; money, mounts, settings and 12 core neighbors preserved.
+  - [ ] Personal password recovery/acceptance: owner must use normal recovery; cause unconfirmed, credentials untouched. Overall work item and linked SDD remain in progress.
