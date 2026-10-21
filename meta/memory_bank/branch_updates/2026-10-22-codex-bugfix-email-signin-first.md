@@ -1,7 +1,9 @@
-- [ ] **[BUG][AUTH]** Open sign-in from the email choice
+- [x] **[BUG][AUTH]** Open sign-in from the email choice
   - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__email-signin-first.md`
   - Owner: Codex
   - Branch: `codex/bugfix/email-signin-first`
   - Started: 2026-10-22
   - Summary: Prefer enabled email sign-in; offer account creation on the sign-in form and preserve explicit signup/setup paths.
-  - Tests: In progress.
+  - Tests: 2614 frontend tests, typecheck, ESLint, production build and GitHub checks passed; 46 candidate backend checks passed, 1 skipped.
+  - Done: 2026-10-22
+  - Release: PR #376 merged; deployed `email-signin-8e6679015b-20261022`, browser navigation verified.
