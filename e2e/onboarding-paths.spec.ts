@@ -338,6 +338,11 @@ test('email confirmation opens a persistent session without a password, once', a
 	request,
 	browser
 }) => {
+	let interruptedVersionRequests = 0;
+	await page.route('**/api/version', async (route) => {
+		interruptedVersionRequests += 1;
+		await route.abort('failed');
+	});
 	const email = `fullpaths-${randomUUID()}@airis.you`;
 	const password = 'Проверка-4829!🧩';
 	const registered = await request.post('/api/v1/auths/signup', {
@@ -379,4 +384,5 @@ test('email confirmation opens a persistent session without a password, once', a
 	const signin = await request.post('/api/v1/auths/signin', { data: { email, password } });
 	expect(signin.ok()).toBe(true);
 	expect((await signin.json()).id).toBe(account.id);
+	expect(interruptedVersionRequests).toBeGreaterThan(0);
 });
