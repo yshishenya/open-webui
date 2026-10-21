@@ -1,11 +1,14 @@
+import logging
+import secrets
 import time
 import uuid
-import secrets
-import logging
+
+from open_webui.internal.db import Base, get_async_db_context
+from open_webui.models.auths import Auth
+from open_webui.models.users import User, UserModel
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Column, String, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from open_webui.internal.db import Base, get_async_db_context
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +55,47 @@ class ResendVerificationForm(BaseModel):
 
 
 class EmailVerificationTokensTable:
+    async def verify_and_consume(self, token: str, db: AsyncSession | None = None) -> UserModel | None:
+        """Confirm the current address and consume its tokens in one transaction."""
+        async with get_async_db_context(db) as session:
+            record = await session.scalar(select(EmailVerificationToken).where(EmailVerificationToken.token == token))
+            if record is None:
+                return None
+            # Match the account/address-change lock order before consuming the bearer token.
+            user = await session.scalar(
+                select(User)
+                .where(User.id == record.user_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            credential = await session.get(Auth, record.user_id)
+            if (
+                user is None
+                or credential is None
+                or not credential.active
+                or user.email.lower() != record.email.lower()
+            ):
+                return None
+            consumed = await session.execute(
+                delete(EmailVerificationToken)
+                .where(
+                    EmailVerificationToken.id == record.id,
+                    EmailVerificationToken.expires_at > int(time.time()),
+                )
+                .execution_options(synchronize_session=False)
+            )
+            if consumed.rowcount != 1:
+                return None
+            user.email_verified = True
+            await session.execute(
+                delete(EmailVerificationToken)
+                .where(EmailVerificationToken.user_id == user.id)
+                .execution_options(synchronize_session=False)
+            )
+            result = UserModel.model_validate(user)
+            await session.commit()
+            return result
+
     def generate_token(self) -> str:
         """Generate a secure URL-safe verification token"""
         return secrets.token_urlsafe(32)

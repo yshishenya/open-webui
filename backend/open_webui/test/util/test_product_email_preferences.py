@@ -14,7 +14,7 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI, HTTPException
 from open_webui.internal.db import Base
-from open_webui.models import auths, users
+from open_webui.models import auths, email_verification, users
 from open_webui.models import email_delivery as delivery
 from open_webui.models import email_preferences as prefs
 from open_webui.models.analytics import AnalyticsDelivery, AnalyticsEvent, AnalyticsIdentity
@@ -46,6 +46,7 @@ async def accounts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
     tables = [
         User.__table__,
         Auth.__table__,
+        email_verification.EmailVerificationToken.__table__,
         TaskSuccess.__table__,
         delivery.EmailDelivery.__table__,
         delivery.EmailTransportWindow.__table__,
@@ -75,7 +76,7 @@ async def accounts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
             async with factory() as session:
                 yield session
 
-    for module in [prefs, users, auths, delivery]:
+    for module in [prefs, users, auths, delivery, email_verification]:
         monkeypatch.setattr(module, 'get_async_db_context', context)
     async with factory() as session:
         for number in ['1', '2']:
@@ -379,23 +380,14 @@ async def test_concurrent_choices_unsubscribe_and_address_change_serialize(
 async def test_verify_route_rejects_a_token_for_an_old_address(
     accounts: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from open_webui.models.email_verification import EmailVerificationTokenModel
-
-    monkeypatch.setattr(password_reset.EmailVerificationTokens, 'is_token_valid', AsyncMock(return_value=True))
-    monkeypatch.setattr(
-        password_reset.EmailVerificationTokens,
-        'get_token_by_token_string',
-        AsyncMock(
-            return_value=EmailVerificationTokenModel(
-                id='old', user_id='1', email='old@airis.you', token='opaque', created_at=1, expires_at=9999999999
-            )
-        ),
-    )
-    monkeypatch.setattr(password_reset.EmailVerificationTokens, 'delete_token_by_id', AsyncMock())
+    async with accounts() as session:
+        token = await email_verification.EmailVerificationTokens.create_verification_token(
+            '1', 'old@airis.you', db=session
+        )
     monkeypatch.setattr(password_reset.email_service, 'send_welcome_email', AsyncMock())
     await users.Users.update_user_by_id('1', {'email_verified': False})
     with pytest.raises(HTTPException) as caught:
-        await password_reset.verify_email('opaque', db=None)
+        await password_reset.verify_email(token.token, db=None)
     assert caught.value.status_code == 400
     assert not (await users.Users.get_user_by_id('1')).email_verified
     password_reset.email_service.send_welcome_email.assert_not_awaited()

@@ -62,9 +62,10 @@ export const test = base.extend<{ account: Account }>({
 				.flatMap((mail) => mail.text.match(/https?:\/\/[^\s<>]+/g) || [])
 				.find((url) => url.includes('/verify-email'));
 			expect(verification).toBeTruthy();
-			const verified = await client.get('/api/v1/auths/verify-email', {
-				params: { token: new URL(verification!).searchParams.get('token')! }
-			});
+			const url = new URL(verification!);
+			const token =
+				new URLSearchParams(url.hash.slice(1)).get('token') ?? url.searchParams.get('token');
+			const verified = await client.post('/api/v1/auths/verify-email', { data: { token } });
 			expect(verified.ok()).toBe(true);
 			await use({ ...account, ...credentials });
 		} finally {

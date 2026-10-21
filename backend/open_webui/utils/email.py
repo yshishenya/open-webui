@@ -252,7 +252,7 @@ class EmailService:
         Returns:
             True if sent successfully
         """
-        verification_url = f'{FRONTEND_URL}/verify-email?token={verification_token}'
+        verification_url = f'{FRONTEND_URL}/verify-email#token={verification_token}'
 
         html_content, text_content = self.render_template(
             'verification',
