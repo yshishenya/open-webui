@@ -1,8 +1,10 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
+import type { SessionUser } from '$lib/stores';
 
 export type VerifyEmailResponse = {
 	success: boolean;
 	message: string;
+	session: SessionUser & { token: string };
 	user?: {
 		id: string;
 		email: string;
@@ -14,8 +16,11 @@ export type VerifyEmailResponse = {
 export const verifyEmail = async (token: string): Promise<VerifyEmailResponse> => {
 	let error: string | null = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/verify-email?token=${encodeURIComponent(token)}`, {
-		method: 'GET',
+	const res = await fetch(`${WEBUI_API_BASE_URL}/auths/verify-email`, {
+		method: 'POST',
+		credentials: 'include',
+		cache: 'no-store',
+		body: JSON.stringify({ token }),
 		headers: {
 			'Content-Type': 'application/json'
 		}

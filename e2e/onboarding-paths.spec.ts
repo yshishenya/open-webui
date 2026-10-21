@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
 import {
 	test,
@@ -330,4 +331,52 @@ test('checkout → exact credit → visible history → one service email, repla
 	expect(await notices()).toEqual([first]);
 	expect((await facts(request, account)).successes).toBe(1);
 	expect((await state(request)).calls.length).toBe(providerBefore + 1);
+});
+
+test('email confirmation opens a persistent session without a password, once', async ({
+	page,
+	request,
+	browser
+}) => {
+	const email = `fullpaths-${randomUUID()}@airis.you`;
+	const password = 'Проверка-4829!🧩';
+	const registered = await request.post('/api/v1/auths/signup', {
+		data: {
+			name: 'Email link check',
+			email,
+			password,
+			terms_accepted: true,
+			privacy_accepted: true,
+			product_emails_opt_in: false
+		}
+	});
+	expect(registered.ok()).toBe(true);
+	const account = await registered.json();
+	expect(account.role).toBe('user');
+	const captured = await state(request, email);
+	const link = captured.mail
+		.flatMap((mail) => mail.text.match(/https?:\/\/[^\s<>]+/g) || [])
+		.find((url) => url.includes('/verify-email'))!;
+	expect(link).toContain('#token=');
+	const url = new URL(link);
+	const path = url.pathname + url.search + url.hash;
+	await page.goto(path);
+	await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toBeVisible();
+	await expect(page).toHaveURL(/\/$/);
+	await page.reload();
+	const current = await page.request.get('/api/v1/auths/');
+	expect(current.ok()).toBe(true);
+	expect((await current.json()).id).toBe(account.id);
+	const other = await browser.newContext({ baseURL: new URL(page.url()).origin });
+	try {
+		const replay = await other.newPage();
+		await replay.goto(path);
+		await expect(replay.getByText('Verification failed', { exact: true })).toBeVisible();
+		expect((await other.request.get('/api/v1/auths/')).status()).toBe(401);
+	} finally {
+		await other.close();
+	}
+	const signin = await request.post('/api/v1/auths/signin', { data: { email, password } });
+	expect(signin.ok()).toBe(true);
+	expect((await signin.json()).id).toBe(account.id);
 });

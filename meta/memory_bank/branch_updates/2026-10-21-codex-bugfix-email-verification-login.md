@@ -1,0 +1,8 @@
+- [ ] **[BUG][AUTH]** Confirm email and sign in in one click
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/email-verification-login`
+  - Started: 2026-10-21
+  - Summary: Receipt confirmed by owner; current callback only verifies and asks for password. Implement one-use session exchange; investigate observed password failures without changing user credentials.
+  - Tests: full backend 1297 passed/10 skipped; focused 46 passed/1 skipped; PostgreSQL 24 passed; focused browser-script/API 4 passed; no new Ruff diagnostics. Full frontend/build/browser release pending.
+  - Risks: Authentication token consumption, concurrency and current-address checks; real personal password remains unverified.

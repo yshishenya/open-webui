@@ -1,20 +1,19 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from open_webui.internal.db import get_async_session
 from open_webui.models.auths import Auths
 from open_webui.models.email_verification import EmailVerificationTokens
 from open_webui.models.password_reset import PasswordResetTokens
-from open_webui.models.users import Users
+from open_webui.models.users import UserModel, Users
 from open_webui.utils.auth import get_password_hash, validate_password
 from open_webui.utils.email import email_service
 from open_webui.utils.misc import validate_email_format
 from open_webui.utils.rate_limit import RateLimiter
 from open_webui.utils.redis import get_redis_client
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -37,39 +36,13 @@ class ResendVerificationForm(BaseModel):
     email: str
 
 
-@router.get('/verify-email')
-async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)) -> dict[str, object]:
-    """Verify email address using verification token.
-
-    This endpoint is called when user clicks the verification link in their email.
-    On success, it marks the email as verified and sends a welcome email.
-    """
-    if not await EmailVerificationTokens.is_token_valid(token, db=db):
+async def _verify_email_user(token: str, db: AsyncSession | None) -> UserModel:
+    user = await EmailVerificationTokens.verify_and_consume(token, db=db)
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Invalid or expired verification token',
         )
-
-    token_record = await EmailVerificationTokens.get_token_by_token_string(token, db=db)
-    if not token_record:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Verification token not found',
-        )
-
-    user = await Users.get_user_by_id(token_record.user_id, db=db)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found',
-        )
-
-    verified = await Users.update_user_by_id(
-        user.id, {'email_verified': True}, db=db, expected_email=token_record.email
-    )
-    if not verified:
-        raise HTTPException(status_code=400, detail='Invalid or expired verification token')
-    await EmailVerificationTokens.delete_token_by_id(token_record.id, db=db)
 
     try:
         await email_service.send_welcome_email(user.id)
@@ -78,6 +51,13 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)
 
     log.info(f'Email verified for user {user.id} ({user.email})')
 
+    return user
+
+
+@router.get('/verify-email')
+async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)) -> dict[str, object]:
+    """Legacy confirmation callback; GET never creates a login session."""
+    user = await _verify_email_user(token, db)
     return {
         'success': True,
         'message': 'Email verified successfully',
@@ -87,6 +67,28 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_async_session)
             'name': user.name,
             'email_verified': True,
         },
+    }
+
+
+@router.post('/verify-email')
+async def verify_email_and_signin(
+    form_data: VerifyEmailForm,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_async_session),
+) -> dict[str, object]:
+    """Exchange a single-use confirmation token for the normal login session."""
+    # auths includes this router, so load its existing session helper at call time.
+    from open_webui.routers.auths import create_session_response
+
+    user = await _verify_email_user(form_data.token, db)
+    response.headers['Cache-Control'] = 'no-store'
+    return {
+        'success': True,
+        'message': 'Email verified successfully',
+        'session': await create_session_response(
+            request, user, db, response, set_cookie=True, source='email_verification'
+        ),
     }
 
 

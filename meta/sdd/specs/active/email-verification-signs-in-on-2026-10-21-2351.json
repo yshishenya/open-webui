@@ -1,0 +1,118 @@
+{
+  "spec_id": "email-verification-signs-in-on-2026-10-21-2351",
+  "title": "Email verification signs in once",
+  "generated": "2026-10-21T20:51:02.520814Z",
+  "last_updated": "2026-10-21T21:07:33.728606Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "medium",
+    "risk_level": "high",
+    "estimated_hours": 3,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md",
+    "status": "active",
+    "activated_date": "2026-10-21T20:53:27.098658Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Email verification signs in once",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Atomic email verification and session completion",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-21T21:07:32.967886Z",
+        "journaled_at": "2026-10-21T21:07:32.974989Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Regression, release and real-account acceptance",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Atomic email verification and session completion",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "started_at": "2026-10-21T20:53:27.397058Z",
+        "completed_at": "2026-10-21T21:07:32.967436Z",
+        "needs_journaling": false,
+        "actual_hours": 0.235,
+        "journaled_at": "2026-10-21T21:07:32.972691Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Regression, release and real-account acceptance",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-21T21:07:33.727872Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-21T21:07:32.972674Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Atomic email verification and session completion",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-21T21:07:32.974979Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Atomic email verification and session completion",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}

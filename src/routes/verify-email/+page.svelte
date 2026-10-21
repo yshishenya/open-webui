@@ -16,7 +16,10 @@
 	let message: string | null = null;
 
 	onMount(async () => {
-		const token = $page.url.searchParams.get('token');
+		const token =
+			new URLSearchParams($page.url.hash.slice(1)).get('token') ??
+			$page.url.searchParams.get('token');
+		window.history.replaceState(window.history.state, '', $page.url.pathname);
 		if (!token) {
 			success = false;
 			message = $i18n.t('Missing verification token.');
@@ -26,6 +29,9 @@
 
 		try {
 			const res = await verifyEmail(token);
+			localStorage.token = res.session.token;
+			// Reload the app so all account-specific stores use the new session.
+			window.location.replace('/');
 			success = true;
 			message = res.message;
 			toast.success(res.message);
@@ -44,6 +50,7 @@
 </script>
 
 <svelte:head>
+	<meta name="referrer" content="no-referrer" />
 	<title>
 		{`${$WEBUI_NAME}`}
 	</title>
@@ -57,7 +64,9 @@
 		class="absolute inset-0 pointer-events-none opacity-70 bg-[radial-gradient(600px_420px_at_20%_20%,rgba(56,189,248,0.10),transparent),radial-gradient(700px_500px_at_80%_75%,rgba(99,102,241,0.08),transparent)]"
 	></div>
 
-	<div class="fixed inset-0 z-50 flex justify-center overflow-y-auto overscroll-contain px-4 py-10 sm:py-14">
+	<div
+		class="fixed inset-0 z-50 flex justify-center overflow-y-auto overscroll-contain px-4 py-10 sm:py-14"
+	>
 		<div class="w-full max-w-sm">
 			<div
 				class="relative rounded-[28px] border border-white/10 bg-black/50 backdrop-blur-xl shadow-[0_40px_120px_rgba(0,0,0,0.75)] overflow-hidden"
@@ -68,7 +77,17 @@
 					on:click={close}
 					aria-label={$i18n.t('Close')}
 				>
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5" aria-hidden="true">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						class="size-5"
+						aria-hidden="true"
+					>
 						<path d="M18 6 6 18" />
 						<path d="m6 6 12 12" />
 					</svg>
@@ -97,7 +116,9 @@
 							<Spinner className="size-5" />
 						</div>
 					{:else}
-						<div class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+						<div
+							class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70"
+						>
 							<div class="font-semibold text-white/90">
 								{#if success}
 									{$i18n.t('Email verified')}
