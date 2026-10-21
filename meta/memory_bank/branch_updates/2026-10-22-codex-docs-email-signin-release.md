@@ -1,0 +1,6 @@
+- [x] **[DOCS][AUTH]** Record email sign-in production acceptance
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__email-signin-first.md`
+  - Owner: Codex
+  - Branch: `codex/docs/email-signin-release`
+  - Summary: Record merged PR #376, immutable image identity, checks and installed browser behavior.
+  - Done: 2026-10-22
