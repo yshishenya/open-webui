@@ -1,0 +1,8 @@
+- [ ] **[BUG][AUTH]** VK ID consent recovery installed; actual Mail.ru login awaiting verification
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__vkid-email-consent.md`
+  - Owner: Codex
+  - Branch: `codex/docs/vkid-consent-release-acceptance`
+  - Started: 2026-10-21
+  - Summary: Code PR #372 merged, clean image installed and pinned; public auth asset, runtime/environment/mounts, neighbors and financial fingerprints accepted. User asked to retry without revoking access.
+  - Tests: Backend 1287 passed / 10 skipped, frontend preflight 2605 passed, candidate onboarding 21 passed, all source CI gates passed, official SDK URL assertions passed.
+  - Remaining: Real provider-account login must be observed; do not mark the incident resolved or close SDD before that acceptance.

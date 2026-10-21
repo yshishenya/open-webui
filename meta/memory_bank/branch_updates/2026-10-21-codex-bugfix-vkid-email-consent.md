@@ -4,5 +4,5 @@
   - Branch: `codex/bugfix/vkid-email-consent`
   - Started: 2026-10-21
   - Summary: Add explicit consent retry for the same provider after an email rejection; distinguish missing versus invalid provider email without personal data in logs.
-  - Tests: Backend 1287 passed / 10 skipped; frontend 2605 passed; check/lint and official SDK URL assertions passed. Full preflight passed. Production installation pending.
+  - Tests: Backend 1287 passed / 10 skipped; frontend 2605 passed; check/lint and official SDK URL assertions passed. Full preflight passed. Production installed and verified at b037eb00925b75f406d3fa83d28ba721cd645ec9; real-account login pending.
   - Risks: Provider may still omit email; real user login remains unproved.
