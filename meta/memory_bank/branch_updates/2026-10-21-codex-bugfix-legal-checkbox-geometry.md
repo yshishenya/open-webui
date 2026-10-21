@@ -1,0 +1,9 @@
+- [x] **[BUG][UI][LEGAL]** Preserve legal checkbox geometry with wrapped labels
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__legal-checkbox-geometry.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/legal-checkbox-geometry`
+  - Started: 2026-10-21
+  - Done: 2026-10-22
+  - Summary: Prevent checkbox flex shrink and override inherited center alignment in the legal gate.
+  - Tests: Browser regression fails before and passes after the fix at 320/390/1280px; 2605 Vitest tests passed; Svelte check 0 errors/warnings; full ESLint, focused Prettier, and production Vite build passed.
+  - Risks: Low; local CSS-only correction.
