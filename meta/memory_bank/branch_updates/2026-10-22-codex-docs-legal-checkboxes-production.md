@@ -1,0 +1,8 @@
+- [x] **[BUG][UI][LEGAL][OPS]** Legal checkbox correction accepted in production
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__legal-checkbox-geometry.md`
+  - Owner: Codex
+  - Branch: `codex/docs/legal-checkboxes-production`
+  - Done: 2026-10-22
+  - Summary: PR #374 merged; shared immutable image on source 8e6679015b57ed522c43f70ee4094d526a279b28 installed and independently verified on chat.airis.you. Production assets render 16 × 16px checkboxes at mobile/desktop widths.
+  - Tests: Source CI and four merge-medium billing suites passed; original frontend 2605/type-check/lint/build passed; released frontend/Python/package parity, public asset checksum, health, private backup, persistent services/configuration/mounts and financial fingerprints verified.
+  - Risks: Browser acceptance uses an isolated API fixture and never submits real legal acceptance. Other authentication tasks retain their own acceptance criteria.
