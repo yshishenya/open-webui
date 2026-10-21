@@ -8,6 +8,8 @@
 	import DropdownMenu from '$lib/components/common/DropdownMenu.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Cloud from '$lib/components/icons/Cloud.svelte';
+	import ChatBubble from '$lib/components/icons/ChatBubble.svelte';
+	import Check from '$lib/components/icons/Check.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -59,9 +61,9 @@
 		await refreshTerminalServersStore(updatedServers);
 	};
 
-	const selectSystem = async (terminal: (typeof systemTerminals)[0]): Promise<void> => {
-		if (!terminal.id) return;
-		selectedTerminalId.set($selectedTerminalId === terminal.id ? null : terminal.id);
+	const selectSystem = async (terminal: (typeof systemTerminals)[0] | null): Promise<void> => {
+		if (terminal && !terminal.id) return;
+		selectedTerminalId.set(terminal?.id ?? null);
 
 		// Disable all direct terminals when switching to a system terminal
 		if ($settings?.terminalServers?.some((s) => s.enabled)) {
@@ -92,19 +94,21 @@
 
 <div class="flex items-center translate-x-0.5">
 	<Dropdown bind:show align="start">
-		<Tooltip content={$i18n.t('Terminal')} placement="top">
+		<Tooltip content={$i18n.t($selectedTerminalId ? 'Work' : 'Chat')} placement="top">
 			<button
 				type="button"
-				class="flex items-center gap-1.5 translate-y-[1px] text-[13px] text-gray-600 hover:bg-gray-50/40 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/40 dark:hover:text-gray-200 transition rounded-lg cursor-pointer {$selectedTerminalId &&
-				selectedLabel
-					? ' p-1 '
-					: ' p-1 opacity-50'}"
+				data-testid="chat-work-mode"
+				aria-label={$i18n.t($selectedTerminalId ? 'Work' : 'Chat')}
+				class="flex items-center gap-1.5 translate-y-[1px] p-1 text-[13px] text-gray-600 hover:bg-gray-50/40 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/40 dark:hover:text-gray-200 transition rounded-lg cursor-pointer"
 			>
-				<Cloud className="size-3.5" strokeWidth="2" />
-
-				{#if $selectedTerminalId && selectedLabel}
-					<span class="truncate text-[13px] max-w-[100px] sm:max-w-[150px]">{selectedLabel}</span>
+				{#if $selectedTerminalId}
+					<Cloud className="size-3.5" strokeWidth="2" />
+				{:else}
+					<ChatBubble className="size-3.5" />
 				{/if}
+				<span class="truncate text-[13px] max-w-[100px] sm:max-w-[150px]"
+					>{$selectedTerminalId ? selectedLabel : $i18n.t('Chat')}</span
+				>
 			</button>
 		</Tooltip>
 
@@ -112,6 +116,21 @@
 			<DropdownMenu
 				className="min-w-56 max-w-56 max-h-72 overflow-y-auto overflow-x-hidden scrollbar-thin"
 			>
+				<button
+					type="button"
+					data-testid="chat-mode"
+					aria-pressed={!$selectedTerminalId}
+					class="flex w-full justify-between gap-2 items-center px-2 text-[13px] rounded-xl"
+					on:click={() => selectSystem(null)}
+				>
+					<div class="flex flex-1 gap-2 items-center">
+						<ChatBubble className="size-3.5" />
+						<span>{$i18n.t('Chat')}</span>
+					</div>
+					{#if !$selectedTerminalId}
+						<Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+					{/if}
+				</button>
 				<!-- Direct terminals (gated by permission) -->
 				{#if directTerminals.length > 0 && ($user?.role === 'admin' || ($user?.permissions?.features?.direct_tool_servers ?? true))}
 					<div class="flex items-center justify-between px-3 py-1">
@@ -181,41 +200,44 @@
 
 				<!-- System terminals -->
 				{#if systemTerminals.length > 0}
-					<div class="flex items-center justify-between px-3 py-1">
-						<span
-							class="text-[10px] font-normal text-gray-400 dark:text-gray-500 uppercase tracking-wider"
-						>
-							{$i18n.t('System')}
-						</span>
-						{#if $user?.role === 'admin'}
-							<Tooltip content={$i18n.t('Add Terminal')} placement="top">
-								<button
-									type="button"
-									aria-label={$i18n.t('Add Terminal')}
-									class="p-0.5 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
-									on:click|stopPropagation={() => {
-										show = false;
-										showSettings.set('admin:integrations');
-									}}
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-										class="size-3.5"
+					{#if systemTerminals.length > 1 || directTerminals.length > 0}
+						<div class="flex items-center justify-between px-3 py-1">
+							<span
+								class="text-[10px] font-normal text-gray-400 dark:text-gray-500 uppercase tracking-wider"
+							>
+								{$i18n.t('System')}
+							</span>
+							{#if $user?.role === 'admin'}
+								<Tooltip content={$i18n.t('Add Terminal')} placement="top">
+									<button
+										type="button"
+										aria-label={$i18n.t('Add Terminal')}
+										class="p-0.5 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
+										on:click|stopPropagation={() => {
+											show = false;
+											showSettings.set('admin:integrations');
+										}}
 									>
-										<path
-											d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
-										/>
-									</svg>
-								</button>
-							</Tooltip>
-						{/if}
-					</div>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+											class="size-3.5"
+										>
+											<path
+												d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
+											/>
+										</svg>
+									</button>
+								</Tooltip>
+							{/if}
+						</div>
+					{/if}
 
 					{#each systemTerminals as terminal}
 						<button
 							type="button"
+							aria-pressed={$selectedTerminalId === terminal.id}
 							class="flex w-full justify-between gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer rounded-xl {$selectedTerminalId ===
 							terminal.id
 								? 'bg-gray-50/40 dark:bg-gray-800/40'

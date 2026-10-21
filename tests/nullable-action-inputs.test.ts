@@ -73,7 +73,7 @@ it('ignores missing terminal ids before changing selection or settings', async (
 	expect(selectedTerminalId.set).toHaveBeenCalledWith('valid');
 	expect(refresh).toHaveBeenCalledWith([{ url: 'https://fixture.invalid', enabled: false }]);
 	await select({ id: 'existing' });
-	expect(selectedTerminalId.set).toHaveBeenLastCalledWith(null);
+	expect(selectedTerminalId.set).toHaveBeenLastCalledWith('existing');
 });
 
 it('ignores empty downloads and preserves file/directory download contracts', async () => {
