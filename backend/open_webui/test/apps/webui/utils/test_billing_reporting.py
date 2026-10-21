@@ -1,5 +1,6 @@
 import os
 import time
+from decimal import Decimal
 
 import pytest
 from fastapi import HTTPException
@@ -53,6 +54,33 @@ async def test_payment_reporting_includes_profile_name_and_retains_deleted_users
             assert len(payloads) == 2
     finally:
         await engine.dispose()
+
+
+@pytest.mark.parametrize('refunded_kopeks', [Decimal('0'), Decimal('2500'), Decimal('50000')])
+def test_payment_payload_serializes_postgresql_refund_sum_as_integer(refunded_kopeks: Decimal) -> None:
+    from fastapi.encoders import jsonable_encoder
+    from open_webui.utils.airis.billing_reporting_facts import PaymentFact
+
+    fact = PaymentFact(
+        **dict(
+            id='payment',
+            user_id='user',
+            kind='topup',
+            status='succeeded',
+            amount_kopeks=50000,
+            currency='RUB',
+            provider='yookassa',
+            provider_payment_id='provider-payment',
+            processed_at=100,
+            source='billing_payment',
+            wallet_id=None,
+            subscription_id=None,
+            refunded_kopeks=refunded_kopeks,
+        )
+    )
+    payload = BillingReportingService._payment_payload(fact)
+    assert type(payload['refunded_kopeks']) is int
+    assert jsonable_encoder(payload)['refunded_kopeks'] == int(refunded_kopeks)
 
 
 def test_amount_to_kopeks_uses_decimal_conversion() -> None:
@@ -275,6 +303,8 @@ async def test_financial_totals_use_ledger_dates_and_full_selection(
                 page_size=100,
             )
             assert credited_total == 2
+            assert all(type(row['refunded_kopeks']) is int for row in credited)
+            assert {row['refunded_kopeks'] for row in credited} == {0, 250}
             assert sum(row['amount_kopeks'] for row in credited) == totals['successful_payments_kopeks']
 
             overview = await service.overview(from_ts=100, to_ts=200, currency='RUB')

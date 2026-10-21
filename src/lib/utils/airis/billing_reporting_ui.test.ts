@@ -7,7 +7,8 @@ import {
 	reportingBack,
 	priceToKopeks,
 	paymentLabel,
-	ledgerLabel
+	ledgerLabel,
+	reportRefundKopeks
 } from './billing_reporting_ui';
 describe('financial report semantics', () => {
 	it('normalizes fractional pages and rejects invalid pagination values', () => {
@@ -74,4 +75,25 @@ it('accepts shared analytics dates while money-specific dates take priority', ()
 
 it('distinguishes a wallet ledger refund from a provider payment refund', () => {
 	expect(ledgerLabel('refund')).toBe('Wallet credit adjustment');
+});
+
+it('distinguishes absent, zero and positive confirmed refund amounts', () => {
+	for (const value of [0, '0']) expect(reportRefundKopeks(value)).toBe(0);
+	for (const value of [2500, '2500', 50000, '50000'])
+		expect(reportRefundKopeks(value)).toBe(Number(value));
+	for (const value of [
+		null,
+		undefined,
+		'',
+		' ',
+		'invalid',
+		true,
+		-1,
+		'1.5',
+		1.5,
+		NaN,
+		Infinity,
+		9007199254740992
+	])
+		expect(reportRefundKopeks(value)).toBeNull();
 });

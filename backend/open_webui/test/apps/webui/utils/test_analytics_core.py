@@ -1,6 +1,7 @@
 """Isolated checks for consent, lifetime deduplication, identity joins and retries."""
 
 import asyncio
+import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -137,6 +138,68 @@ def test_delivery_retry_and_consent_guard(run_case, monkeypatch):
         async with httpx.AsyncClient(transport=httpx.MockTransport(fail)) as client:
             await core.deliver_one(delivery_id, client)
         assert len(calls) == 1
+
+    run_case(case)
+
+
+def test_posthog_keeps_anonymous_visits_joinable_across_devices(
+    run_case: RunCase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv('AIRIS_POSTHOG_KEY', 'test-key')
+    monkeypatch.setenv('AIRIS_POSTHOG_HOST', 'https://eu.i.posthog.com')
+
+    async def case(factory: async_sessionmaker[AsyncSession]) -> None:
+        user = SimpleNamespace(id='existing-account', created_at=1)
+        account = await router.set_context(router.ContextForm(consent='granted', anonymous_id=uuid.uuid4()), user)
+        bodies: list[dict[str, object]] = []
+
+        def capture(request: httpx.Request) -> httpx.Response:
+            bodies.append(json.loads(request.content))
+            return httpx.Response(200)
+
+        async def deliver_pending(client: httpx.AsyncClient) -> None:
+            async with factory() as db:
+                jobs = list(
+                    (
+                        await db.scalars(
+                            select(AnalyticsDelivery.id).where(
+                                AnalyticsDelivery.destination == 'posthog', AnalyticsDelivery.state == 'pending'
+                            )
+                        )
+                    ).all()
+                )
+            for job in jobs:
+                await core.deliver_one(job, client)
+
+        anonymous_ids: list[str] = []
+        async with httpx.AsyncClient(transport=httpx.MockTransport(capture)) as client:
+            for _ in range(2):
+                browser = uuid.uuid4()
+                context = router.ContextForm(consent='granted', anonymous_id=browser)
+                visitor = await router.set_context(context, None)
+                assert visitor.analytics_user_id is not None
+                anonymous_ids.append(visitor.analytics_user_id)
+                await router.ingest_event(
+                    router.EventForm(anonymous_id=browser, event_id=uuid.uuid4(), event_name='product_first_visit'),
+                    None,
+                )
+                await deliver_pending(client)
+                await router.set_context(context, user)
+                await deliver_pending(client)
+        visits = [body for body in bodies if body['event'] == 'product_first_visit']
+        aliases = [body for body in bodies if body['event'] == '$create_alias']
+        assert len(visits) == len(aliases) == 2
+        assert {body['distinct_id'] for body in visits} == set(anonymous_ids)
+        for body, anonymous_id in zip(aliases, anonymous_ids):
+            properties = body['properties']
+            assert isinstance(properties, dict)
+            assert body['distinct_id'] == account.analytics_user_id
+            assert properties['alias'] == anonymous_id
+        for body in bodies:
+            properties = body['properties']
+            assert isinstance(properties, dict)
+            assert properties['$process_person_profile'] is True
+        assert user.id not in json.dumps(bodies)
 
     run_case(case)
 

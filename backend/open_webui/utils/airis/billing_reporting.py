@@ -696,7 +696,7 @@ class BillingReportingService:
             'created_at': fact.created_at,
             'credited_at': fact.credited_at,
             'credit_status': fact.credit_status,
-            'refunded_kopeks': fact.refunded_kopeks,
+            'refunded_kopeks': int(fact.refunded_kopeks),
             'is_test': fact.is_test,
         }
 

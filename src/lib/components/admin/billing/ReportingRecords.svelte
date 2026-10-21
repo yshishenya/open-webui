@@ -5,6 +5,7 @@
 	import {
 		formatReportMoney,
 		formatReportTime,
+		reportRefundKopeks,
 		paymentLabel,
 		ledgerLabel,
 		modalityLabel
@@ -60,7 +61,8 @@
 			></thead
 		><tbody>
 			{#if dataset === 'payments'}
-				{#each payments as row}<tr class="border-t border-gray-100 dark:border-gray-800"
+				{#each payments as row}{@const refundedKopeks = reportRefundKopeks(row.refunded_kopeks)}<tr
+						class="border-t border-gray-100 dark:border-gray-800"
 						><td data-label="{$i18n.t('Time')} · UTC" class="p-3 text-xs"
 							>{time(row.processed_at)}</td
 						><td data-label={$i18n.t('Customer')} class="p-3"
@@ -98,10 +100,13 @@
 										<dt>ID</dt>
 										<dd class="break-all">{row.id}</dd>
 									</div>
-									{#if row.refunded_kopeks}<div>
+									{#if refundedKopeks === null}<div>
+											<dt>{$i18n.t('Refunds')}</dt>
+											<dd>{$i18n.t('Status unavailable')}</dd>
+										</div>{:else if refundedKopeks > 0}<div>
 											<dt>{$i18n.t('Refunds')}</dt>
 											<dd>
-												{money(row.refunded_kopeks, row.currency)} · {$i18n.t(
+												{money(refundedKopeks, row.currency)} · {$i18n.t(
 													'Refund confirmed; wallet reflection requires verification'
 												)}
 											</dd>
