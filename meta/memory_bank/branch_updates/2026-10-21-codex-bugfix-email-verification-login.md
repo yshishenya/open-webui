@@ -31,3 +31,9 @@
   - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
   - Owner: Codex
   - Branch: `codex/bugfix/email-verification-login`
+
+- [x] Owner confirms Yandex Inbox receipt.
+- [ ] Owner-requested repeated Proton delivery: same queue deferred4.7.5/non DNSSEC destination. KVN reaches all six Proton endpoints; current Mailu DNS path fails Proton lookups. Original token unused, no duplicate/password/configuration/security change. Proton receipt remains unconfirmed.
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/email-verification-login`

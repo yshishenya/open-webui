@@ -103,3 +103,9 @@ Private delivery evidence: `/Users/yshishenya/.codex/private-artifacts/airis-pas
 ### Recovery comparison requested by owner
 
 One normal reset request for existing active/confirmed `yan@shishenya.ru`: HTTP200 at `2026-10-21T23:01:21.974506Z`. Mailu queue `C18A7C1BC8` accepted by `mx.yandex.ru[77.88.21.249]:25` at `23:01:24Z`, `dsn=2.0.0/status=sent/250`, transport delay2.8s. No retry, duplicate or password change. Mailbox receipt/folder remains owner acceptance. At comparison, original Proton queue remains deferred; a working Yandex path rules out a total SMTP outage but does not locate the Proton path failure. Evidence: same private delivery directory, `shishenya-reset-request.json`, `shishenya-delivery-initial.log`, `shishenya-acceptance.json`.
+
+### Owner receipt and repeated Proton check
+
+Owner confirms receipt at `yan@shishenya.ru`; mailbox acceptance for that comparison is now confirmed. Owner explicitly requests checking `yshishenya@proton.me` again. Original queue3363CBEA3C remains deferred; repeat delivery of that same message requested (no fresh reset/token/duplicate). Current reset metadata remains checked separately; final retry result recorded when observed.
+
+The repeated Proton attempt at `2026-10-21T23:03:53Z` deferred immediately with `4.7.5/non DNSSEC destination`. All six Proton IPv4 endpoints return SMTP220 from KVN (connection-only). SMTP uses Docker DNS forwarding the host resolver; dedicated Mailu resolver validates root but Proton MX/A time out, while direct8.8.8.8 returns authenticated Proton MX. DNS validation path and earlier TCP connectivity are unresolved; no security downgrade, DNS/configuration change or duplicate message. Original reset remains unused/unexpired. Owner receipt and stable Proton delivery stay open.
