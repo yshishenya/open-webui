@@ -89,3 +89,13 @@ Upstream impact delta: src/routes/+layout.svelte receives only the missing error
 - Individual password mismatch remains unconfirmed. Existing bcrypt metadata alone cannot explain it. Owner credentials unchanged; consumed verification link not revived and no recovery message sent. Owner-controlled recovery and personal acceptance remain unchecked, so the linked SDD task/spec stays in progress.
 
 Evidence: private artifact directory above, including `RESULT.md`, `runtime-transition-acceptance.json`, `runtime-files-acceptance.json`, `public-final-acceptance.json`, `money-native-acceptance.json`, `production-proof/` and final build/browser/CI logs.
+
+## Owner recovery delivery — 2026-10-22 Europe/Istanbul
+
+- Owner submitted recovery for the confirmed Proton account. Real API POST returned HTTP200 and Mailu accepted the message at `2026-10-21T22:49:49Z`; the generic page message does not establish recipient delivery.
+- Read-only token metadata: one unused reset token created `1792622988`, expires `1792630188` (two hours). Secret/token link not read, password unchanged.
+- Mailu queue `3363CBEA3C` was explicitly deferred with `dsn=4.4.1` after TCP25 timeouts to Proton. This is a known deferred message, not SMTP unknown. Current SMTP transport remains own Mailu; relayhost empty, DANE/DNSSEC retained.
+- Narrow connection-only checks then reached two of Proton's six IPv4 addresses from the SMTP container. Requested exactly one retry of the same existing queue ID with `postqueue -i`; accepted at `22:53:26Z`. No new recovery request, token or duplicate message created; no global flush, restart or configuration change.
+- Recipient-server acceptance and owner's mailbox confirmation remain pending until a new observed result. Earlier verification delivery after an automatic retry does not prove stability for this reset.
+
+Private delivery evidence: `/Users/yshishenya/.codex/private-artifacts/airis-password-reset-delivery-20261022/`.

@@ -19,3 +19,10 @@
   - Tests: backend 1297 passed/10 skipped; PostgreSQL 24 passed; final frontend 2614 passed, type/lint/build green, final compiled Chromium/Firefox 4/4. Forced version-interruption regression reproduced before and passes after.
   - Production: hard migration passed, verified backup/rollback retained, immutable files/public assets matched; money, mounts, settings and 12 core neighbors preserved.
   - [ ] Personal password recovery/acceptance: owner must use normal recovery; cause unconfirmed, credentials untouched. Overall work item and linked SDD remain in progress.
+
+- [ ] **[BUG][MAIL]** Owner reset email delayed by Mailu to Proton connectivity.
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-21__bugfix__email-verification-login.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/email-verification-login`
+  - Evidence: actual request HTTP200, unused two-hour token metadata, local SMTP accepted, explicit deferred4.4.1 TCP25 timeouts. Two Proton IPv4 later reachable; one scoped retry of the same queue ID requested. No duplicate, credentials/consent/configuration change.
+  - Pending: actual recipient acceptance/owner receipt and normal recovery; no claim of stable delivery.
