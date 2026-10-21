@@ -1,0 +1,8 @@
+- [ ] **[BUG][MAIL]** Restore Mailu validated DNS and Proton delivery.
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__mailu-dns-delivery.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/email-verification-login`
+  - Started: 2026-10-22
+  - Summary: Applied validated persistent Mailu DNS repair with queue/security/neighbor preservation. Nine domains pass verified STARTTLS; Proton remains blocked on TCP25 from AIris, so overall delivery task remains open.
+  - Tests: isolated Compose including recreation, production DNSSEC/bogus rejection, unchanged image/volume/neighbor checks, nine verified STARTTLS domains. Original Proton retry deferred4.4.1; KVN comparison and header-only capture isolate remaining network-path fault.
+  - Risks: queued sensitive recovery mail, resolver/SMTP availability; private backup/rollback and unchanged security required.

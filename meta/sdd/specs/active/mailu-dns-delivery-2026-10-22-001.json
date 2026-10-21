@@ -1,0 +1,122 @@
+{
+  "spec_id": "mailu-dns-delivery-2026-10-22-001",
+  "title": "Restore Mailu DNSSEC resolution and delivery",
+  "generated": "2026-10-21T23:08:47.897845Z",
+  "last_updated": "2026-10-21T23:33:21.372760Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "high",
+    "estimated_hours": 2,
+    "security_sensitive": true,
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-22__bugfix__mailu-dns-delivery.md",
+    "status": "active",
+    "activated_date": "2026-10-21T23:10:01.658649Z",
+    "progress_percentage": 50
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Restore Mailu DNSSEC resolution and delivery",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 1,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Validate minimal DNS repair without production mutation",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-21T23:17:08.152666Z",
+        "journaled_at": "2026-10-21T23:17:08.158519Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Apply bounded repair and verify preserved queue and delivery",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Validate minimal DNS repair without production mutation",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-22__bugfix__mailu-dns-delivery.md",
+        "started_at": "2026-10-21T23:10:02.034513Z",
+        "completed_at": "2026-10-21T23:17:08.152351Z",
+        "needs_journaling": false,
+        "status_note": "Isolated Compose DNS/security acceptance passed for ten domains before and after recreation; learned root keys verified against IANA.",
+        "actual_hours": 0.118,
+        "journaled_at": "2026-10-21T23:17:08.155979Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Apply bounded repair and verify preserved queue and delivery",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-22__bugfix__mailu-dns-delivery.md",
+        "started_at": "2026-10-21T23:33:21.372348Z",
+        "status_note": "Production DNS repair accepted with queue/security preserved; nine domains pass verified STARTTLS. Original Proton queue retry remains deferred4.4.1 due TCP25 timeout; six endpoint host/container/KVN comparison and outgoing SYN capture saved. External path restoration and actual Proton acceptance remain open."
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-21T23:17:08.155963Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Validate minimal DNS repair without production mutation",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Isolated Compose DNS/security acceptance passed for ten domains before and after recreation; learned root keys verified against IANA.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-21T23:17:08.158500Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Validate minimal DNS repair without production mutation",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    }
+  ]
+}
