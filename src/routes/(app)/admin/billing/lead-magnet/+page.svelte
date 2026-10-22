@@ -6,6 +6,7 @@
 	import { WEBUI_NAME, user } from '$lib/stores';
 	import { getLeadMagnetConfig, updateLeadMagnetConfig } from '$lib/apis/admin/billing';
 	import type { LeadMagnetConfig } from '$lib/apis/admin/billing';
+	import { freeAccessModelLabel } from '$lib/utils/airis/billing_ui';
 	import { getModels } from '$lib/apis';
 	let freeModels: Array<{ id: string; name?: string }> = [];
 	let modelsError = false;
@@ -27,7 +28,7 @@
 		}
 	};
 	const minutesToSeconds = (value: string | number | undefined): number | null => {
- const normalized=String(value ?? '').trim();
+		const normalized = String(value ?? '').trim();
 		const minutes = Number(normalized.replace(',', '.'));
 		const seconds = minutes * 60;
 		return normalized &&
@@ -56,6 +57,21 @@
 	let ttsSeconds: string | number | undefined = '0';
 	let sttSeconds: string | number | undefined = '0';
 	let configVersion: number | null = null;
+	let configConflict = false;
+	let savedConfig: LeadMagnetConfig | null = null;
+	let comparing = false;
+
+	const compareSavedConfig = async (): Promise<void> => {
+		if (comparing) return;
+		comparing = true;
+		try {
+			savedConfig = await getLeadMagnetConfig(localStorage.token);
+		} catch {
+			toast.error($i18n.t('Failed to load lead magnet configuration'));
+		} finally {
+			comparing = false;
+		}
+	};
 
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
@@ -83,7 +99,7 @@
 		}
 	};
 
-	const applyConfig = (config: LeadMagnetConfig) => {
+	const applyConfig = (config: LeadMagnetConfig): void => {
 		enabled = config.enabled;
 		cycleDays = String(config.cycle_days ?? 30);
 		originalCycle = cycleDays;
@@ -93,10 +109,12 @@
 		ttsSeconds = String((config.quotas?.tts_seconds ?? 0) / 60);
 		sttSeconds = String((config.quotas?.stt_seconds ?? 0) / 60);
 		configVersion = config.config_version ?? null;
+		configConflict = false;
+		savedConfig = null;
 	};
 
 	const parsePositiveInt = (value: string | number | undefined, label: string): number | null => {
- const normalized=String(value ?? '').trim();
+		const normalized = String(value ?? '').trim();
 		const parsed = /^\d+$/.test(normalized) ? Number(normalized) : NaN;
 		if (!Number.isSafeInteger(parsed) || parsed < 0) {
 			toast.error($i18n.t('{label} must be a non-negative integer', { label }));
@@ -106,7 +124,7 @@
 	};
 
 	const handleSave = async (): Promise<void> => {
-		if (saving) return;
+		if (saving || configVersion === null || configConflict) return;
 		saving = true;
 
 		const parsedCycleDays = parsePositiveInt(cycleDays, $i18n.t('Cycle days'));
@@ -135,7 +153,8 @@
 		}
 
 		try {
-			const updated = await updateLeadMagnetConfig(localStorage.token, {
+			const payload = {
+				expected_config_version: configVersion,
 				enabled,
 				cycle_days: parsedCycleDays,
 				quotas: {
@@ -145,7 +164,8 @@
 					tts_seconds: parsedTtsSeconds,
 					stt_seconds: parsedSttSeconds
 				}
-			});
+			};
+			const updated = await updateLeadMagnetConfig(localStorage.token, payload);
 			if (!updated) {
 				toast.error($i18n.t('Failed to update lead magnet configuration'));
 				saving = false;
@@ -154,6 +174,16 @@
 			applyConfig(updated);
 			toast.success($i18n.t('Lead magnet configuration saved'));
 		} catch (error) {
+			if (
+				typeof error === 'object' &&
+				error !== null &&
+				'status' in error &&
+				error.status === 409
+			) {
+				configConflict = true;
+				savedConfig = null;
+				return;
+			}
 			console.error('Failed to update lead magnet config:', error);
 			toast.error($i18n.t('Failed to update lead magnet configuration'));
 		} finally {
@@ -205,6 +235,8 @@
 				<div class="text-sm font-medium">{$i18n.t('Status')}</div>
 				<Switch
 					state={enabled}
+					disabled={saving}
+					ariaLabel={$i18n.t('Enable free access')}
 					on:change={(e) => {
 						enabled = e.detail;
 					}}
@@ -218,6 +250,7 @@
 						type="number"
 						min="1"
 						bind:value={cycleDays}
+						disabled={saving}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
 				</label>
@@ -227,6 +260,7 @@
 						type="number"
 						min="0"
 						bind:value={tokensInput}
+						disabled={saving}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
 				</label>
@@ -236,6 +270,7 @@
 						type="number"
 						min="0"
 						bind:value={tokensOutput}
+						disabled={saving}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
 				</label>
@@ -245,6 +280,7 @@
 						type="number"
 						min="0"
 						bind:value={images}
+						disabled={saving}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
 				</label>
@@ -255,6 +291,7 @@
 						min="0"
 						step="any"
 						bind:value={ttsSeconds}
+						disabled={saving}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
 				</label>
@@ -265,6 +302,7 @@
 						min="0"
 						step="any"
 						bind:value={sttSeconds}
+						disabled={saving}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent"
 					/>
 				</label>
@@ -281,7 +319,7 @@
 								<a
 									class="underline"
 									href={`/admin/billing/models?free=1&query=${encodeURIComponent(model.id)}`}
-									>{model.name || model.id}</a
+									>{freeAccessModelLabel(model, freeModels)}</a
 								>
 							</li>{:else}<li>{$i18n.t('No models marked for free access')}</li>{/each}
 					</ul>{/if}<a class="mt-2 inline-block underline" href="/admin/billing/models?free=1"
@@ -301,6 +339,52 @@
 						'Changing the cycle recalculates existing end dates from their original start. A completed cycle may reset.'
 					)}
 				</p>{/if}
+			{#if configConflict}
+				<section
+					class="mt-4 rounded-xl border border-amber-500 p-3 text-sm"
+					aria-label={$i18n.t('Configuration conflict')}
+				>
+					<p role="alert">
+						{$i18n.t(
+							'Settings changed by another administrator. Your draft has been preserved. Compare the saved settings before saving again.'
+						)}
+					</p>
+					<button
+						type="button"
+						class="mt-2 min-h-11 underline"
+						disabled={comparing}
+						on:click={compareSavedConfig}
+					>
+						{$i18n.t('Compare saved settings')}
+					</button>
+					{#if savedConfig}
+						<div class="mt-2 break-words" data-testid="saved-config-comparison">
+							<p>{$i18n.t('Config version')}: {savedConfig.config_version}</p>
+							<p>
+								{$i18n.t('Status')}: {savedConfig.enabled
+									? $i18n.t('Enabled')
+									: $i18n.t('Disabled')}
+							</p>
+							<p>{$i18n.t('Cycle days')}: {savedConfig.cycle_days}</p>
+							<p>{$i18n.t('Input tokens')}: {savedConfig.quotas.tokens_input}</p>
+							<p>{$i18n.t('Output tokens')}: {savedConfig.quotas.tokens_output}</p>
+							<p>{$i18n.t('Images')}: {savedConfig.quotas.images}</p>
+							<p>{$i18n.t('Speech synthesis minutes')}: {savedConfig.quotas.tts_seconds / 60}</p>
+							<p>{$i18n.t('Speech recognition minutes')}: {savedConfig.quotas.stt_seconds / 60}</p>
+							<button
+								type="button"
+								class="mt-2 min-h-11 underline"
+								on:click={() => {
+									if (!savedConfig) return;
+									configVersion = savedConfig.config_version;
+									configConflict = false;
+									savedConfig = null;
+								}}>{$i18n.t('Keep draft and use the reviewed version')}</button
+							>
+						</div>
+					{/if}
+				</section>
+			{/if}
 			<div class="flex items-center justify-between mt-4">
 				<div class="text-xs text-gray-500">
 					{$i18n.t('Config version')}: {configVersion ?? 0}
@@ -308,7 +392,7 @@
 				<button
 					type="button"
 					on:click={handleSave}
-					disabled={saving}
+					disabled={saving || configConflict || configVersion === null}
 					class="px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium disabled:opacity-60"
 				>
 					{#if saving}

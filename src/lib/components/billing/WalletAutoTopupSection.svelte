@@ -15,8 +15,11 @@
 	export let autoTopupFailCount: number | null = null;
 	export let autoTopupLastFailedAt: number | null = null;
 	export let errorMessage = '';
+	export let thresholdError = '';
+	export let amountError = '';
 	export let successMessage = '';
 	export let onSave: () => void;
+	export let onRetry: (() => void) | undefined = undefined;
 	const money = (value: number): string =>
 		new Intl.NumberFormat(getI18nLocale($i18n), { style: 'currency', currency }).format(
 			value / 100
@@ -56,8 +59,10 @@
 				inputmode="decimal"
 				autocomplete="off"
 				bind:value={autoTopupThreshold}
+				on:input={() => (thresholdError = '')}
 				disabled={!autoTopupEnabled}
-				aria-invalid={Boolean(errorMessage)}
+				aria-invalid={Boolean(thresholdError)}
+				aria-describedby={thresholdError ? 'auto-threshold-error' : undefined}
 				class="mt-2 min-h-11 w-full rounded-xl border border-gray-300 bg-transparent px-3 dark:border-gray-700 disabled:opacity-50"
 			/></label
 		>
@@ -65,7 +70,10 @@
 			><span>{$i18n.t('Top-up amount')}</span><select
 				name="auto_topup_amount"
 				bind:value={autoTopupAmount}
+				on:change={() => (amountError = '')}
 				disabled={!autoTopupEnabled}
+				aria-invalid={Boolean(amountError)}
+				aria-describedby={amountError ? 'auto-amount-error' : undefined}
 				class="mt-2 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 dark:border-gray-700 dark:bg-gray-900 disabled:opacity-50"
 				><option value="">{$i18n.t('Choose an amount')}</option>{#each packages as pack}<option
 						value={(pack / 100).toFixed(2)}>{money(pack)}</option
@@ -73,6 +81,20 @@
 			></label
 		>
 	</div>
+	{#if thresholdError}<p
+			id="auto-threshold-error"
+			role="alert"
+			class="mt-2 text-sm text-red-700 dark:text-red-300"
+		>
+			{thresholdError}
+		</p>{/if}
+	{#if amountError}<p
+			id="auto-amount-error"
+			role="alert"
+			class="mt-2 text-sm text-red-700 dark:text-red-300"
+		>
+			{amountError}
+		</p>{/if}
 	{#if autoTopupEnabled && threshold !== null && amount !== null}<p class="mt-3 text-sm">
 			{$i18n.t(
 				'Before a paid request, top up {{amount}} when the available balance is at most {{threshold}} or is insufficient.',
@@ -84,6 +106,9 @@
 		</p>{/if}
 	{#if errorMessage}<p class="mt-3 text-sm text-red-700 dark:text-red-300" role="alert">
 			{errorMessage}
+			{#if onRetry}<button type="button" class="ml-2 min-h-11 underline" on:click={onRetry}
+					>{$i18n.t('Retry')}</button
+				>{/if}
 		</p>{/if}
 	{#if autoTopupLastFailedAt}<p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
 			{$i18n.t('Last failed')}: {new Date(autoTopupLastFailedAt * 1000).toLocaleString(

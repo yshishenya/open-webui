@@ -385,7 +385,7 @@ test('money cards open the matching credited payments and refunds for the same d
 	await expect(moneyChart.locator('..')).toContainText('1');
 	await expect(moneyChart.locator('..')).toContainText('₽');
 	await expect(moneyChart.locator('..')).not.toContainText('%');
-	await page.getByRole('link').filter({ hasText: 'Зачисленные пополнения' }).click();
+	await page.getByRole('link', { name: /^Зачисленные пополнения\s+\d/ }).click();
 	await expect.poll(() => queries.length).toBeGreaterThan(0);
 	const url = queries.at(-1)!;
 	for (const [key, value] of Object.entries({
@@ -399,7 +399,7 @@ test('money cards open the matching credited payments and refunds for the same d
 		expect(url.searchParams.get(key)).toBe(value);
 	await expect(page.getByText('За этот период операций нет', { exact: true })).toBeVisible();
 	await page.goto(`/admin/billing${dates}`);
-	await page.getByRole('link').filter({ hasText: 'Возвращено пользователям' }).click();
+	await page.getByRole('link', { name: /^Возвращено пользователям\s+\d/ }).click();
 	await expect(page).toHaveURL(/tab=refunds/);
 	await expect(page.locator('input[type=date]').first()).toHaveValue('2026-09-01');
 });
@@ -433,8 +433,7 @@ for (const width of [360, 390, 768, 1280])
 					.toBe(true);
 				if (path === '/admin/billing') {
 					const ratio = await page
-						.getByRole('link')
-						.filter({ hasText: 'Зачисленные пополнения' })
+						.getByRole('link', { name: /^Зачисленные пополнения\s+\d/ })
 						.locator('div')
 						.first()
 						.evaluate((element) => {

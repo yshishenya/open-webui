@@ -1,5 +1,5 @@
 	<script lang="ts">
-		import { onMount, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 		import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { priceToKopeks } from '$lib/utils/airis/billing_reporting_ui';
@@ -157,6 +157,25 @@
 	let importPreview: RateCardXlsxImportPreviewResponse | null = null;
 	let importPreviewLoading = false;
 	let importPreviewError: string | null = null;
+	let importRevision = 0;
+	let importPreviewRequest: Parameters<typeof previewRateCardsXlsxImport>[1] | null = null;
+
+	const invalidateImportPreview = (): void => {
+		importRevision += 1;
+		importPreview = null;
+		importPreviewRequest = null;
+		importPreviewLoading = false;
+		importPreviewError = null;
+	};
+
+	// Object identity also invalidates a change away and back to the same inputs.
+	$: importContext = {
+		file: importFile,
+		mode: importMode,
+		scope_model_ids: Array.from(selectedModelIds)
+	};
+	$: if (importContext) invalidateImportPreview();
+	onDestroy(invalidateImportPreview);
 
 	let selectAllVisibleCheckbox: HTMLInputElement | null = null;
 
@@ -662,8 +681,8 @@
 		}
 	};
 
-	const handlePreviewImport = async () => {
-		if (importPreviewLoading) return;
+	const handlePreviewImport = async (): Promise<void> => {
+		if (importPreviewLoading || importing) return;
 		const modelIds = Array.from(selectedModelIds);
 		if (modelIds.length === 0) {
 			toast.error($i18n.t('Select at least one model'));
@@ -674,25 +693,27 @@
 			return;
 		}
 
+		invalidateImportPreview();
+		const revision = importRevision;
+		const context = importContext;
+		const request = { file: importFile, mode: importMode, scope_model_ids: modelIds };
 		importPreviewLoading = true;
-		importPreviewError = null;
-		importPreview = null;
 		try {
-			importPreview = await previewRateCardsXlsxImport(localStorage.token, {
-				file: importFile,
-				mode: importMode,
-				scope_model_ids: modelIds
-			});
+			const preview = await previewRateCardsXlsxImport(localStorage.token, request);
+			if (revision !== importRevision || context !== importContext) return;
+			importPreview = preview;
+			importPreviewRequest = request;
 		} catch (error) {
+			if (revision !== importRevision || context !== importContext) return;
 			console.error('Failed to preview rate card XLSX import:', error);
 			importPreviewError = $i18n.t('Failed to preview import');
 		} finally {
-			importPreviewLoading = false;
+			if (revision === importRevision && context === importContext) importPreviewLoading = false;
 		}
 	};
 
-	const handleApplyImport = async () => {
-		if (importing) return;
+	const handleApplyImport = async (): Promise<void> => {
+		if (importing || importPreviewLoading) return;
 		const modelIds = Array.from(selectedModelIds);
 		if (modelIds.length === 0) {
 			toast.error($i18n.t('Select at least one model'));
@@ -702,7 +723,7 @@
 			toast.error($i18n.t('Choose a file'));
 			return;
 		}
-		if (!importPreview) {
+		if (!importPreview || !importPreviewRequest) {
 			toast.error($i18n.t('Preview import first'));
 			return;
 		}
@@ -711,13 +732,15 @@
 			return;
 		}
 
+		const revision = importRevision;
+		const context = importContext;
+		const request = importPreviewRequest;
+		importPreviewRequest = null;
 		importing = true;
 		try {
-			const result = await applyRateCardsXlsxImport(localStorage.token, {
-				file: importFile,
-				mode: importMode,
-				scope_model_ids: modelIds
-			});
+			const result = await applyRateCardsXlsxImport(localStorage.token, request);
+			await loadData();
+			if (revision !== importRevision || context !== importContext) return;
 
 			toast.success(
 				$i18n.t(
@@ -732,9 +755,12 @@
 
 			showImportModal = false;
 			importFile = null;
-			importPreview = null;
-			await loadData();
+			invalidateImportPreview();
 		} catch (error) {
+			if (revision !== importRevision || context !== importContext) {
+			await loadData();
+				return;
+			}
 			// If backend returns 400 with a structured body, surface it in UI.
 			const maybePayload =
 				error && typeof error === 'object' ? (error as { data?: unknown }).data : null;
@@ -757,6 +783,7 @@
 			console.error('Failed to apply rate card XLSX import:', error);
 			importPreview = null;
 			await loadData();
+			if (revision !== importRevision || context !== importContext) return;
 			importPreviewError = $i18n.t(
 				'Import status could not be confirmed. Prices have been reloaded; run preview again before applying.'
 			);
@@ -959,12 +986,13 @@
 		saveResult = '';
 		completedChanges = 0;
 			const activeModel = selectedModel;
- const requestedLeadMagnet=leadMagnetEnabled;
+		const requestedLeadMagnet = leadMagnetEnabled;
 
 		const updateRequests: Array<{ id: string; data: RateCardUpdateRequest }> = [];
 		const createRequests: RateCardCreateRequest[] = [];
 		const deactivatedKeys = new Set<string>();
-			const leadMagnetChanged = Boolean(activeModel.meta?.lead_magnet) !== Boolean(requestedLeadMagnet);
+		const leadMagnetChanged =
+			Boolean(activeModel.meta?.lead_magnet) !== Boolean(requestedLeadMagnet);
 			let hasValidationError = false;
 
 		(Object.keys(modalState) as ModalityKey[]).forEach((modality) => {
@@ -1083,7 +1111,7 @@
 				completedChanges += 1;
 			}
 			toast.success($i18n.t(formMode === 'add' ? 'Rate card created' : 'Rate card updated'));
-			if(selectedModel?.id===activeModel.id)closeModal();
+			if (selectedModel?.id === activeModel.id) closeModal();
 			await loadData();
 		} catch (error) {
 			saveResult = $i18n.t(
@@ -1091,7 +1119,7 @@
 				{ count: completedChanges }
 			);
 			await loadData();
-			if (selectedModel?.id===activeModel.id) initializeModalState(activeModel.id);
+			if (selectedModel?.id === activeModel.id) initializeModalState(activeModel.id);
 			const message = error instanceof Error ? error.message : String(error);
 			if (message.includes('already exists')) {
 				toast.error($i18n.t('Rate card already exists. Refreshing list.'));
@@ -1137,7 +1165,10 @@
 
 	$: previewCounts = calculatePreviewCounts();
 	$: applyDisabled =
+		importing ||
+		importPreviewLoading ||
 		!importFile ||
+		!importPreviewRequest ||
 		!importPreview ||
 		Boolean(importPreview?.errors?.length) ||
 		(importPreview?.summary?.rows_invalid ?? 0) > 0;
@@ -1223,15 +1254,16 @@
 			</div>
 		</ConfirmDialog>
 
-			<ConfirmDialog
-				bind:show={showImportModal}
-				title={$i18n.t('Import rate cards from XLSX')}
-				message={$i18n.t('Upload an XLSX file, preview changes, then apply.')}
-				confirmLabel={importing ? $i18n.t('Applying...') : $i18n.t('Apply import')}
-				confirmDisabled={applyDisabled}
-				cancelLabel={$i18n.t('Close')}
-				on:confirm={handleApplyImport}
-			>
+		<ConfirmDialog
+			bind:show={showImportModal}
+			title={$i18n.t('Import rate cards from XLSX')}
+			message={$i18n.t('Upload an XLSX file, preview changes, then apply.')}
+			confirmLabel={importing ? $i18n.t('Applying...') : $i18n.t('Apply import')}
+			confirmDisabled={applyDisabled}
+			cancelLabel={$i18n.t('Close')}
+			on:cancel={invalidateImportPreview}
+			on:confirm={handleApplyImport}
+		>
 			<div class="flex flex-col gap-3">
 				<div class="flex flex-col gap-2">
 					<label for="rate-card-import-mode" class="text-sm font-medium"
@@ -1240,6 +1272,7 @@
 					<select
 						id="rate-card-import-mode"
 						bind:value={importMode}
+						disabled={importing}
 						class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-sm"
 					>
 						<option value="patch">{$i18n.t('Change only rows from the file')}</option>
@@ -1257,11 +1290,11 @@
 						id="rate-card-import-file"
 						type="file"
 						accept=".xlsx"
+						disabled={importing}
 						on:change={(event) => {
 							const files = event.currentTarget.files;
 							importFile = files && files.length > 0 ? files[0] : null;
-							importPreview = null;
-							importPreviewError = null;
+							invalidateImportPreview();
 						}}
 						class="text-sm"
 					/>
@@ -1278,7 +1311,7 @@
 						<button
 							type="button"
 							on:click={handlePreviewImport}
-							disabled={importPreviewLoading || !importFile}
+							disabled={importing || importPreviewLoading || !importFile}
 							class="w-full md:w-auto px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black text-sm font-medium hover:bg-gray-900 dark:hover:bg-gray-100 transition disabled:opacity-50"
 						>
 							{importPreviewLoading ? $i18n.t('Previewing...') : $i18n.t('Preview import')}
@@ -1473,11 +1506,11 @@
 					<option value="configured">{$i18n.t('Configured')}</option>
 				</select>
 
-					<div
-						class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
-						role="group"
-						aria-label={$i18n.t('Modalities')}
-					>
+				<div
+					class="inline-flex flex-wrap items-center rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+					role="group"
+					aria-label={$i18n.t('Modalities')}
+				>
 					<button
 						type="button"
 						on:click={() => setPricingFocus('text')}
@@ -1514,64 +1547,64 @@
 					>
 						{$i18n.t('Audio')}
 					</button>
+					<button
+						type="button"
+						on:click={() => setPricingFocus('all')}
+						class={`px-3 py-2 text-sm font-medium transition ${
+							pricingFocus === 'all'
+								? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+								: 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+						}`}
+						aria-pressed={pricingFocus === 'all'}
+					>
+						{$i18n.t('All')}
+					</button>
+				</div>
+
+				{#if pricingFocus !== 'all'}
+					<div class="flex flex-wrap items-center gap-2">
 						<button
 							type="button"
-							on:click={() => setPricingFocus('all')}
-							class={`px-3 py-2 text-sm font-medium transition ${
-								pricingFocus === 'all'
-									? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-									: 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+							on:click={() => togglePricingFilter('missing')}
+							class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
+								showMissingPrices
+									? 'border-red-400/40 bg-red-500/10 text-red-700 dark:text-red-200'
+									: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
 							}`}
-							aria-pressed={pricingFocus === 'all'}
+							aria-pressed={showMissingPrices}
 						>
-							{$i18n.t('All')}
+							{$i18n.t('Missing')}
+						</button>
+						<button
+							type="button"
+							on:click={() => togglePricingFilter('partial')}
+							class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
+								showPartialPrices
+									? 'border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+									: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+							}`}
+							aria-pressed={showPartialPrices}
+						>
+							{$i18n.t('Partial')}
+						</button>
+						<button
+							type="button"
+							on:click={() => togglePricingFilter('zero')}
+							class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
+								showZeroPrices
+									? 'border-sky-400/40 bg-sky-500/10 text-sky-800 dark:text-sky-200'
+									: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+							}`}
+							aria-pressed={showZeroPrices}
+						>
+							{$i18n.t('Zero price')}
 						</button>
 					</div>
+				{/if}
 
-					{#if pricingFocus !== 'all'}
-						<div class="flex flex-wrap items-center gap-2">
-							<button
-								type="button"
-								on:click={() => togglePricingFilter('missing')}
-								class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
-									showMissingPrices
-										? 'border-red-400/40 bg-red-500/10 text-red-700 dark:text-red-200'
-										: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
-								}`}
-								aria-pressed={showMissingPrices}
-							>
-								{$i18n.t('Missing')}
-							</button>
-							<button
-								type="button"
-								on:click={() => togglePricingFilter('partial')}
-								class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
-									showPartialPrices
-										? 'border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-200'
-										: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
-								}`}
-								aria-pressed={showPartialPrices}
-							>
-								{$i18n.t('Partial')}
-							</button>
-							<button
-								type="button"
-								on:click={() => togglePricingFilter('zero')}
-								class={`px-3 py-2 rounded-xl border text-sm font-medium transition ${
-									showZeroPrices
-										? 'border-sky-400/40 bg-sky-500/10 text-sky-800 dark:text-sky-200'
-										: 'border-gray-200 dark:border-gray-800 text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
-								}`}
-								aria-pressed={showZeroPrices}
-							>
-								{$i18n.t('Zero price')}
-							</button>
-						</div>
-					{/if}
-
-					{#if selectedModelIds.size > 0}
-						<div class="flex flex-wrap items-center gap-2">
-							<button
+				{#if selectedModelIds.size > 0}
+					<div class="flex flex-wrap items-center gap-2">
+						<button
 							type="button"
 							on:click={() => (showExportModal = true)}
 							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium transition"
@@ -1587,8 +1620,7 @@
 							type="button"
 							on:click={() => {
 								showImportModal = true;
-								importPreview = null;
-								importPreviewError = null;
+								invalidateImportPreview();
 							}}
 							class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium transition"
 							aria-label={$i18n.t('Import XLSX')}
@@ -1654,6 +1686,7 @@
 										bind:this={selectAllVisibleCheckbox}
 										type="checkbox"
 										class="rounded"
+										aria-label={$i18n.t('Select all visible models')}
 										checked={allVisibleSelected}
 										on:change={(event) => {
 											const checked = getInputChecked(event);
@@ -1695,15 +1728,15 @@
 											<ChevronUpDown className="size-3.5" />
 										{/if}
 									</button>
-									</th>
-									<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Modalities')}</th>
-									{#if pricingFocus !== 'all'}
-										<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Pricing')}</th>
-									{/if}
-									{#if pricingFocus === 'text'}
-										<th class="px-4 py-2 text-right font-semibold">
-											<button
-												type="button"
+								</th>
+								<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Modalities')}</th>
+								{#if pricingFocus !== 'all'}
+									<th class="px-4 py-2 text-left font-semibold">{$i18n.t('Pricing')}</th>
+								{/if}
+								{#if pricingFocus === 'text'}
+									<th class="px-4 py-2 text-right font-semibold">
+										<button
+											type="button"
 											on:click={() => toggleSort('text_in')}
 											class={`inline-flex items-center gap-1.5 transition ${
 												sortKey === 'text_in'
@@ -1713,13 +1746,13 @@
 											aria-label={`${getSortButtonLabel('text_in')} — ${getModalityShortDescription('text')}`}
 											title={`${getSortButtonLabel('text_in')} — ${getModalityShortDescription('text')}`}
 										>
-												{$i18n.t('Input')}
+											{$i18n.t('Input')}
 											<span class="text-[10px] text-gray-400 dark:text-gray-500"
 												>{rateCardCurrencySymbol}/1k tok</span
 											>
-												{#if sortKey === 'text_in'}
-													{#if sortDirection === 'asc'}
-														<ChevronUp className="size-3.5" />
+											{#if sortKey === 'text_in'}
+												{#if sortDirection === 'asc'}
+													<ChevronUp className="size-3.5" />
 												{:else}
 													<ChevronDown className="size-3.5" />
 												{/if}
@@ -1740,13 +1773,13 @@
 											aria-label={`${getSortButtonLabel('text_out')} — ${getModalityShortDescription('text')}`}
 											title={`${getSortButtonLabel('text_out')} — ${getModalityShortDescription('text')}`}
 										>
-												{$i18n.t('Output')}
+											{$i18n.t('Output')}
 											<span class="text-[10px] text-gray-400 dark:text-gray-500"
 												>{rateCardCurrencySymbol}/1k tok</span
 											>
-												{#if sortKey === 'text_out'}
-													{#if sortDirection === 'asc'}
-														<ChevronUp className="size-3.5" />
+											{#if sortKey === 'text_out'}
+												{#if sortDirection === 'asc'}
+													<ChevronUp className="size-3.5" />
 												{:else}
 													<ChevronDown className="size-3.5" />
 												{/if}
@@ -1768,13 +1801,13 @@
 											aria-label={`${getSortButtonLabel('image')} — ${getModalityShortDescription('image')}`}
 											title={`${getSortButtonLabel('image')} — ${getModalityShortDescription('image')}`}
 										>
-												{$i18n.t('Images')}
+											{$i18n.t('Images')}
 											<span class="text-[10px] text-gray-400 dark:text-gray-500"
 												>{rateCardCurrencySymbol}/img</span
 											>
-												{#if sortKey === 'image'}
-													{#if sortDirection === 'asc'}
-														<ChevronUp className="size-3.5" />
+											{#if sortKey === 'image'}
+												{#if sortDirection === 'asc'}
+													<ChevronUp className="size-3.5" />
 												{:else}
 													<ChevronDown className="size-3.5" />
 												{/if}
@@ -1796,13 +1829,13 @@
 											aria-label={`${getSortButtonLabel('tts')} — ${getModalityShortDescription('tts')}`}
 											title={`${getSortButtonLabel('tts')} — ${getModalityShortDescription('tts')}`}
 										>
-												TTS
+											TTS
 											<span class="text-[10px] text-gray-400 dark:text-gray-500"
 												>{rateCardCurrencySymbol}/1k chars</span
 											>
-												{#if sortKey === 'tts'}
-													{#if sortDirection === 'asc'}
-														<ChevronUp className="size-3.5" />
+											{#if sortKey === 'tts'}
+												{#if sortDirection === 'asc'}
+													<ChevronUp className="size-3.5" />
 												{:else}
 													<ChevronDown className="size-3.5" />
 												{/if}
@@ -1823,13 +1856,13 @@
 											aria-label={`${getSortButtonLabel('stt')} — ${getModalityShortDescription('stt')}`}
 											title={`${getSortButtonLabel('stt')} — ${getModalityShortDescription('stt')}`}
 										>
-												STT
+											STT
 											<span class="text-[10px] text-gray-400 dark:text-gray-500"
 												>{rateCardCurrencySymbol}/min</span
 											>
-												{#if sortKey === 'stt'}
-													{#if sortDirection === 'asc'}
-														<ChevronUp className="size-3.5" />
+											{#if sortKey === 'stt'}
+												{#if sortDirection === 'asc'}
+													<ChevronUp className="size-3.5" />
 												{:else}
 													<ChevronDown className="size-3.5" />
 												{/if}
@@ -1893,16 +1926,16 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-								{#each filteredModelRows as model}
-									<tr
-										class="hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
-										on:click={(event) => handleRowClick(event, model)}
-									>
+							{#each filteredModelRows as model}
+								<tr
+									class="hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+									on:click={(event) => handleRowClick(event, model)}
+								>
 									<td class="px-4 py-3">
 										<input
 											type="checkbox"
 											class="rounded"
-											aria-label={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
+											aria-label={`${$i18n.t('Select')}: ${getModelDisplayName(model)} (${model.id})`}
 											title={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
 											checked={selectedModelIds.has(model.id)}
 											on:change={(event) => {
@@ -1951,123 +1984,123 @@
 													{/each}
 												{/if}
 											</div>
-											</Tooltip>
-										</td>
-										{#key model.id}
-											{@const rates = modelRateDisplayIndex[model.id]}
-											{@const completeness = getPricingCompletenessForFocus(rates, pricingFocus)}
-											{#if pricingFocus !== 'all'}
-												<td class="px-4 py-3">
-													<span
-														class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${PRICING_COMPLETENESS_STYLES[completeness]}`}
-													>
-														{$i18n.t(PRICING_COMPLETENESS_LABELS[completeness])}
-													</span>
-												</td>
-											{/if}
-											{#if pricingFocus === 'text'}
-												<td class="px-4 py-3 text-right font-medium">
-													{#if rates?.text_in_1000_tokens !== undefined}
-														{formatMoney(rates.text_in_1000_tokens)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</td>
-												<td class="px-4 py-3 text-right font-medium">
-													{#if rates?.text_out_1000_tokens !== undefined}
-														{formatMoney(rates.text_out_1000_tokens)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</td>
-											{:else if pricingFocus === 'image'}
-												<td class="px-4 py-3 text-right font-medium">
-													{#if rates?.image_1024 !== undefined}
-														{formatMoney(rates.image_1024)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</td>
-											{:else if pricingFocus === 'audio'}
-												<td class="px-4 py-3 text-right font-medium">
-													{#if rates?.tts_1000_chars !== undefined}
-														{formatMoney(rates.tts_1000_chars)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</td>
-												<td class="px-4 py-3 text-right font-medium">
-													{#if rates?.stt_minute !== undefined}
-														{formatMoney(rates.stt_minute)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</td>
-											{:else}
-												<td class="px-4 py-3">
-													{#if !rates || model.modalities.length === 0}
-														<span class="text-[11px] text-gray-400">—</span>
-													{:else}
-														<div class="space-y-1">
-															{#each MODALITY_ORDER as modality}
-																{#if model.modalities.includes(modality)}
-																	{@const Icon = getModalityIcon(modality)}
-																	{@const label = getModalityLabel(modality)}
-																	<Tooltip
-																		content={getModalityShortDescription(modality)}
-																		placement="top-start"
-																		tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
-																	>
-																		<div class="flex items-center justify-between gap-3 text-xs">
+										</Tooltip>
+									</td>
+									{#key model.id}
+										{@const rates = modelRateDisplayIndex[model.id]}
+										{@const completeness = getPricingCompletenessForFocus(rates, pricingFocus)}
+										{#if pricingFocus !== 'all'}
+											<td class="px-4 py-3">
+												<span
+													class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${PRICING_COMPLETENESS_STYLES[completeness]}`}
+												>
+													{$i18n.t(PRICING_COMPLETENESS_LABELS[completeness])}
+												</span>
+											</td>
+										{/if}
+										{#if pricingFocus === 'text'}
+											<td class="px-4 py-3 text-right font-medium">
+												{#if rates?.text_in_1000_tokens !== undefined}
+													{formatMoney(rates.text_in_1000_tokens)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</td>
+											<td class="px-4 py-3 text-right font-medium">
+												{#if rates?.text_out_1000_tokens !== undefined}
+													{formatMoney(rates.text_out_1000_tokens)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</td>
+										{:else if pricingFocus === 'image'}
+											<td class="px-4 py-3 text-right font-medium">
+												{#if rates?.image_1024 !== undefined}
+													{formatMoney(rates.image_1024)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</td>
+										{:else if pricingFocus === 'audio'}
+											<td class="px-4 py-3 text-right font-medium">
+												{#if rates?.tts_1000_chars !== undefined}
+													{formatMoney(rates.tts_1000_chars)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</td>
+											<td class="px-4 py-3 text-right font-medium">
+												{#if rates?.stt_minute !== undefined}
+													{formatMoney(rates.stt_minute)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</td>
+										{:else}
+											<td class="px-4 py-3">
+												{#if !rates || model.modalities.length === 0}
+													<span class="text-[11px] text-gray-400">—</span>
+												{:else}
+													<div class="space-y-1">
+														{#each MODALITY_ORDER as modality}
+															{#if model.modalities.includes(modality)}
+																{@const Icon = getModalityIcon(modality)}
+																{@const label = getModalityLabel(modality)}
+																<Tooltip
+																	content={getModalityShortDescription(modality)}
+																	placement="top-start"
+																	tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
+																>
+																	<div class="flex items-center justify-between gap-3 text-xs">
 																		<div
 																			class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400"
 																		>
-																				<span
-																					class={`inline-flex items-center justify-center rounded-full px-2 py-1 font-medium ${getModalityTone(
-																						modality
-																					)}`}
-																				>
-																					<Icon className="size-3" />
-																				</span>
-																				<span class="font-medium">{label}</span>
-																			</div>
+																			<span
+																				class={`inline-flex items-center justify-center rounded-full px-2 py-1 font-medium ${getModalityTone(
+																					modality
+																				)}`}
+																			>
+																				<Icon className="size-3" />
+																			</span>
+																			<span class="font-medium">{label}</span>
+																		</div>
 																		<div
 																			class="min-w-0 text-right font-medium text-gray-700 dark:text-gray-200"
 																		>
-																				{#if modality === 'text'}
-																					{@const textIn = rates.text_in_1000_tokens ?? null}
-																					{@const textOut = rates.text_out_1000_tokens ?? null}
-																					{#if textIn === null || textOut === null}
-																						<span class="text-[11px] text-gray-400">—</span>
-																					{:else}
-																						<span class="whitespace-nowrap">
-																							{$i18n.t('Input')}: {formatMoney(textIn)}
-																						</span>
-																						<span class="text-gray-400 mx-1">·</span>
-																						<span class="whitespace-nowrap">
-																							{$i18n.t('Output')}: {formatMoney(textOut)}
-																						</span>
-																					{/if}
-																				{:else if modality === 'image'}
-																					{formatMoney(rates.image_1024 ?? null)}
-																				{:else if modality === 'tts'}
-																					{formatMoney(rates.tts_1000_chars ?? null)}
-																				{:else if modality === 'stt'}
-																					{formatMoney(rates.stt_minute ?? null)}
+																			{#if modality === 'text'}
+																				{@const textIn = rates.text_in_1000_tokens ?? null}
+																				{@const textOut = rates.text_out_1000_tokens ?? null}
+																				{#if textIn === null || textOut === null}
+																					<span class="text-[11px] text-gray-400">—</span>
+																				{:else}
+																					<span class="whitespace-nowrap">
+																						{$i18n.t('Input')}: {formatMoney(textIn)}
+																					</span>
+																					<span class="text-gray-400 mx-1">·</span>
+																					<span class="whitespace-nowrap">
+																						{$i18n.t('Output')}: {formatMoney(textOut)}
+																					</span>
 																				{/if}
-																			</div>
+																			{:else if modality === 'image'}
+																				{formatMoney(rates.image_1024 ?? null)}
+																			{:else if modality === 'tts'}
+																				{formatMoney(rates.tts_1000_chars ?? null)}
+																			{:else if modality === 'stt'}
+																				{formatMoney(rates.stt_minute ?? null)}
+																			{/if}
 																		</div>
-																	</Tooltip>
-																{/if}
-															{/each}
-														</div>
-													{/if}
-												</td>
-											{/if}
-										{/key}
-										<td class="px-4 py-3">
-											<span
-												class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}
+																	</div>
+																</Tooltip>
+															{/if}
+														{/each}
+													</div>
+												{/if}
+											</td>
+										{/if}
+									{/key}
+									<td class="px-4 py-3">
+										<span
+											class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}
 										>
 											{$i18n.t(STATUS_LABELS[model.status])}
 										</span>
@@ -2087,6 +2120,7 @@
 										<Tooltip content={$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}>
 											<button
 												on:click={() => openModal(model)}
+												aria-label={`${$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}: ${$i18n.t('Model prices')} — ${getModelDisplayName(model)} (${model.id})`}
 												class="inline-flex items-center justify-center rounded-xl p-2 text-gray-700 hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10 transition"
 											>
 												{#if model.status === 'configured'}
@@ -2102,28 +2136,28 @@
 						</tbody>
 					</table>
 				</div>
-					<div class="grid gap-3 md:hidden px-3 py-3">
-						{#each filteredModelRows as model}
-							<div class="rounded-2xl border border-gray-100/60 dark:border-gray-800/70 p-4">
-								<label class="flex items-center gap-2 text-xs text-gray-500 mb-3">
-									<input
-										type="checkbox"
-										class="rounded"
-										aria-label={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
-										title={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
-										checked={selectedModelIds.has(model.id)}
-										on:change={(event) => {
-											const checked = getInputChecked(event);
-											if (checked) {
-												selectedModelIds.add(model.id);
-											} else {
-												selectedModelIds.delete(model.id);
-											}
-											selectedModelIds = new Set(selectedModelIds);
-										}}
-									/>
-									{$i18n.t('Select')}
-								</label>
+				<div class="grid gap-3 md:hidden px-3 py-3">
+					{#each filteredModelRows as model}
+						<div class="rounded-2xl border border-gray-100/60 dark:border-gray-800/70 p-4">
+							<label class="flex items-center gap-2 text-xs text-gray-500 mb-3">
+								<input
+									type="checkbox"
+									class="rounded"
+									aria-label={`${$i18n.t('Select')}: ${getModelDisplayName(model)} (${model.id})`}
+									title={`${$i18n.t('Select')}: ${getModelDisplayName(model)}`}
+									checked={selectedModelIds.has(model.id)}
+									on:change={(event) => {
+										const checked = getInputChecked(event);
+										if (checked) {
+											selectedModelIds.add(model.id);
+										} else {
+											selectedModelIds.delete(model.id);
+										}
+										selectedModelIds = new Set(selectedModelIds);
+									}}
+								/>
+								{$i18n.t('Select')}
+							</label>
 							<div class="flex items-start justify-between gap-3">
 								<div class="min-w-0">
 									<div class="text-sm font-medium line-clamp-1">
@@ -2134,6 +2168,7 @@
 								<Tooltip content={$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}>
 									<button
 										on:click={() => openModal(model)}
+										aria-label={`${$i18n.t(model.status === 'configured' ? 'Edit' : 'Add')}: ${$i18n.t('Model prices')} — ${getModelDisplayName(model)} (${model.id})`}
 										class="inline-flex items-center justify-center rounded-xl p-2 text-gray-700 hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10 transition"
 									>
 										{#if model.status === 'configured'}
@@ -2170,125 +2205,130 @@
 											{/each}
 										{/if}
 									</div>
-									</Tooltip>
-								</div>
-								<div class="mt-3 space-y-1">
-									{#key model.id}
-										{@const rates = modelRateDisplayIndex[model.id]}
-										{#if pricingFocus !== 'all'}
-											{@const completeness = getPricingCompletenessForFocus(rates, pricingFocus)}
-											<div class="flex justify-end">
-												<span
-													class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${PRICING_COMPLETENESS_STYLES[completeness]}`}
-												>
-													{$i18n.t(PRICING_COMPLETENESS_LABELS[completeness])}
-												</span>
-											</div>
-										{/if}
-										{#if pricingFocus === 'text'}
-											<div class="flex items-center justify-between gap-2 text-xs">
-												<span class="text-[11px] text-gray-500 dark:text-gray-400">
-													{$i18n.t('Input')}
-												</span>
-												<span class="font-medium text-gray-800 dark:text-gray-200">
-													{#if rates?.text_in_1000_tokens !== undefined}
-														{formatMoney(rates.text_in_1000_tokens)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</span>
-											</div>
-											<div class="flex items-center justify-between gap-2 text-xs">
-												<span class="text-[11px] text-gray-500 dark:text-gray-400">
-													{$i18n.t('Output')}
-												</span>
-												<span class="font-medium text-gray-800 dark:text-gray-200">
-													{#if rates?.text_out_1000_tokens !== undefined}
-														{formatMoney(rates.text_out_1000_tokens)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</span>
-											</div>
-										{:else if pricingFocus === 'image'}
-											<div class="flex items-center justify-between gap-2 text-xs">
-												<span class="text-[11px] text-gray-500 dark:text-gray-400">
-													{$i18n.t('Images')}
-												</span>
-												<span class="font-medium text-gray-800 dark:text-gray-200">
-													{#if rates?.image_1024 !== undefined}
-														{formatMoney(rates.image_1024)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</span>
-											</div>
-										{:else if pricingFocus === 'audio'}
-											<div class="flex items-center justify-between gap-2 text-xs">
-												<span class="text-[11px] text-gray-500 dark:text-gray-400">TTS</span>
-												<span class="font-medium text-gray-800 dark:text-gray-200">
-													{#if rates?.tts_1000_chars !== undefined}
-														{formatMoney(rates.tts_1000_chars)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</span>
-											</div>
-											<div class="flex items-center justify-between gap-2 text-xs">
-												<span class="text-[11px] text-gray-500 dark:text-gray-400">STT</span>
-												<span class="font-medium text-gray-800 dark:text-gray-200">
-													{#if rates?.stt_minute !== undefined}
-														{formatMoney(rates.stt_minute)}
-													{:else}
-														<span class="text-[11px] text-gray-400">—</span>
-													{/if}
-												</span>
-											</div>
+								</Tooltip>
+							</div>
+							<div class="mt-3 space-y-1">
+								{#key model.id}
+									{@const rates = modelRateDisplayIndex[model.id]}
+									{#if pricingFocus !== 'all'}
+										{@const completeness = getPricingCompletenessForFocus(rates, pricingFocus)}
+										<div class="flex justify-end">
+											<span
+												class={`text-[11px] px-2 py-0.5 rounded-full font-medium ${PRICING_COMPLETENESS_STYLES[completeness]}`}
+											>
+												{$i18n.t(PRICING_COMPLETENESS_LABELS[completeness])}
+											</span>
+										</div>
+									{/if}
+									{#if pricingFocus === 'text'}
+										<div class="flex items-center justify-between gap-2 text-xs">
+											<span class="text-[11px] text-gray-500 dark:text-gray-400">
+												{getUnitLabel('text', 'token_in')}
+											</span>
+											<span class="font-medium text-gray-800 dark:text-gray-200">
+												{#if rates?.text_in_1000_tokens !== undefined}
+													{formatMoney(rates.text_in_1000_tokens)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</span>
+										</div>
+										<div class="flex items-center justify-between gap-2 text-xs">
+											<span class="text-[11px] text-gray-500 dark:text-gray-400">
+												{getUnitLabel('text', 'token_out')}
+											</span>
+											<span class="font-medium text-gray-800 dark:text-gray-200">
+												{#if rates?.text_out_1000_tokens !== undefined}
+													{formatMoney(rates.text_out_1000_tokens)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</span>
+										</div>
+									{:else if pricingFocus === 'image'}
+										<div class="flex items-center justify-between gap-2 text-xs">
+											<span class="text-[11px] text-gray-500 dark:text-gray-400">
+												{getModalityShortDescription('image')}
+											</span>
+											<span class="font-medium text-gray-800 dark:text-gray-200">
+												{#if rates?.image_1024 !== undefined}
+													{formatMoney(rates.image_1024)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</span>
+										</div>
+									{:else if pricingFocus === 'audio'}
+										<div class="flex items-center justify-between gap-2 text-xs">
+											<span class="text-[11px] text-gray-500 dark:text-gray-400"
+												>TTS · {getModalityShortDescription('tts')}</span
+											>
+											<span class="font-medium text-gray-800 dark:text-gray-200">
+												{#if rates?.tts_1000_chars !== undefined}
+													{formatMoney(rates.tts_1000_chars)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</span>
+										</div>
+										<div class="flex items-center justify-between gap-2 text-xs">
+											<span class="text-[11px] text-gray-500 dark:text-gray-400"
+												>STT · {getModalityShortDescription('stt')}</span
+											>
+											<span class="font-medium text-gray-800 dark:text-gray-200">
+												{#if rates?.stt_minute !== undefined}
+													{formatMoney(rates.stt_minute)}
+												{:else}
+													<span class="text-[11px] text-gray-400">—</span>
+												{/if}
+											</span>
+										</div>
 									{:else if rates && model.modalities.length > 0}
-												{#each MODALITY_ORDER as modality}
-													{#if model.modalities.includes(modality)}
-														{@const label = getModalityLabel(modality)}
-														<Tooltip
-															content={getModalityShortDescription(modality)}
-															placement="top-start"
-															tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
-														>
-															<div class="flex items-center justify-between gap-2 text-xs">
-																<span class="text-[11px] text-gray-500 dark:text-gray-400">
-																	{label}
-																</span>
-																<span class="font-medium text-gray-800 dark:text-gray-200">
-																	{#if modality === 'text'}
-																		{@const textIn = rates.text_in_1000_tokens ?? null}
-																		{@const textOut = rates.text_out_1000_tokens ?? null}
-																		{#if textIn === null || textOut === null}
-																			<span class="text-[11px] text-gray-400">—</span>
-																		{:else}
-																			<span class="whitespace-nowrap">
-																				{$i18n.t('Input')}: {formatMoney(textIn)}
-																			</span>
-																			<span class="text-gray-400 mx-1">·</span>
-																			<span class="whitespace-nowrap">
-																				{$i18n.t('Output')}: {formatMoney(textOut)}
-																			</span>
-																		{/if}
-																	{:else if modality === 'image'}
-																		{formatMoney(rates.image_1024 ?? null)}
-																	{:else if modality === 'tts'}
-																		{formatMoney(rates.tts_1000_chars ?? null)}
-																	{:else if modality === 'stt'}
-																		{formatMoney(rates.stt_minute ?? null)}
-																	{/if}
-																</span>
-															</div>
-														</Tooltip>
-													{/if}
-												{/each}
-											{:else}
-												<span class="text-[11px] text-gray-400">—</span>
+										{#each MODALITY_ORDER as modality}
+											{#if model.modalities.includes(modality)}
+												{@const label = getModalityLabel(modality)}
+												<Tooltip
+													content={getModalityShortDescription(modality)}
+													placement="top-start"
+													tippyOptions={{ maxWidth: 260, appendTo: () => document.body }}
+												>
+													<div class="flex items-center justify-between gap-2 text-xs">
+														<span class="text-[11px] text-gray-500 dark:text-gray-400">
+															{label}
+															<span class="block">{getModalityShortDescription(modality)}</span>
+														</span>
+														<span class="font-medium text-gray-800 dark:text-gray-200">
+															{#if modality === 'text'}
+																{@const textIn = rates.text_in_1000_tokens ?? null}
+																{@const textOut = rates.text_out_1000_tokens ?? null}
+																{#if textIn === null || textOut === null}
+																	<span class="text-[11px] text-gray-400">—</span>
+																{:else}
+																	<span class="whitespace-nowrap">
+																		{$i18n.t('Input')}: {formatMoney(textIn)}
+																	</span>
+																	<span class="text-gray-400 mx-1">·</span>
+																	<span class="whitespace-nowrap">
+																		{$i18n.t('Output')}: {formatMoney(textOut)}
+																	</span>
+																{/if}
+															{:else if modality === 'image'}
+																{formatMoney(rates.image_1024 ?? null)}
+															{:else if modality === 'tts'}
+																{formatMoney(rates.tts_1000_chars ?? null)}
+															{:else if modality === 'stt'}
+																{formatMoney(rates.stt_minute ?? null)}
+															{/if}
+														</span>
+													</div>
+												</Tooltip>
 											{/if}
-									{/key}
-								</div>
+										{/each}
+									{:else}
+										<span class="text-[11px] text-gray-400">—</span>
+									{/if}
+								{/key}
+							</div>
 							<div class="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
 								<span class={`px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[model.status]}`}>
 									{$i18n.t(STATUS_LABELS[model.status])}
@@ -2312,7 +2352,7 @@
 {/if}
 
 {#if showModal}
-	<Modal size="xl" bind:show={showModal} containerClassName="p-4">
+	<Modal size="xl" bind:show={showModal} containerClassName="p-4" ariaLabel={getModalTitle()}>
 		<div class="px-4 py-3">
 			<div class="flex items-start justify-between gap-4 mb-4">
 				<div>
@@ -2342,6 +2382,7 @@
 				</div>
 				<Switch
 					state={leadMagnetEnabled}
+					ariaLabel={`${$i18n.t('Free access')} — ${selectedModel ? getModelDisplayName(selectedModel) : ''}`}
 					on:change={(event) => {
 						leadMagnetEnabled = getSwitchDetail(event);
 					}}
@@ -2363,6 +2404,7 @@
 							</div>
 							<Switch
 								state={modalityState.enabled}
+								ariaLabel={`${$i18n.t('Enable modality')}: ${getModalityLabel(modalityKey)}`}
 								on:change={(event) => toggleModality(modalityKey, getSwitchDetail(event))}
 							/>
 						</div>

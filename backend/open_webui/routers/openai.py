@@ -44,6 +44,7 @@ from open_webui.models.users import UserModel
 from open_webui.utils.access_control import check_model_access, has_permission
 from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
 from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.airis.billing_events import emit_billing_reservation
 from open_webui.utils.billing_integration import (
     TTS_HOLD_REFERENCE,
     check_and_enforce_quota,
@@ -1474,6 +1475,7 @@ async def generate_chat_completion(  # noqa: C901
     response = None
 
     try:
+        await emit_billing_reservation(billing_context, metadata)
         session = await get_session()
 
         r = await session.request(

@@ -24,6 +24,7 @@ from open_webui.socket.main import (
     get_event_emitter,
     sio,
 )
+from open_webui.utils.airis.billing_events import emit_billing_reservation
 from open_webui.utils.airis.direct_ack import DirectAckContext, coerce_direct_ack
 from open_webui.utils.airis.safe_get import deep_get_mapping
 from open_webui.utils.billing_integration import (
@@ -340,13 +341,14 @@ async def generate_chat_completion(  # noqa: C901
                 )
 
             try:
+                await emit_billing_reservation(billing_context, metadata)
                 ollama_form_data = convert_payload_openai_to_ollama(form_data)
                 response = await generate_ollama_chat_completion(
                     request=request,
                     form_data=ollama_form_data,
                     user=user,
                 )
-                if response.status_code >= 400:
+                if getattr(response, 'status_code', 200) >= 400:
                     await release_billing_hold(billing_context)
                     return response
 

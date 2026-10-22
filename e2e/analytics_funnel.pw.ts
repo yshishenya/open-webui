@@ -145,6 +145,8 @@ for (const failure of ['all-writes', 'revoke-marker-and-offline'] as const) {
 		expect(await page.evaluate(() => localStorage.getItem('airis.analytics.consent.v1'))).toBe(
 			failure === 'all-writes' ? null : 'denied'
 		);
+		// The error can render before revoke finishes and retries persisting denial.
+		await expect(settings.getByRole('button', { name: 'Запретить', exact: true })).toBeEnabled();
 		await page.evaluate(() => window.dispatchEvent(new Event('test:restore-storage')));
 		await settings.getByRole('button', { name: 'Запретить', exact: true }).click();
 		await expect.poll(() => navigations).toBe(1);

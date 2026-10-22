@@ -13,6 +13,8 @@
 	export let savingPreferences = false;
 	export let dirty = false;
 	export let errorMessage = '';
+	export let maxReplyError = '';
+	export let dailyCapError = '';
 	export let successMessage = '';
 	export let onSave: () => void;
 	const money = (value: number): string =>
@@ -23,7 +25,10 @@
 		new Date(value * 1000).toLocaleString(getI18nLocale($i18n));
 </script>
 
-<section class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+<section
+	id="spend-controls-section"
+	class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+>
 	<h2 class="text-base font-semibold">{$i18n.t('Spend controls')}</h2>
 	<p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
 		{$i18n.t('Limits are checked before a paid request starts. Zero blocks paid use.')}
@@ -49,9 +54,18 @@
 					inputmode="decimal"
 					autocomplete="off"
 					bind:value={maxReplyCost}
-					aria-invalid={Boolean(errorMessage)}
+					on:input={() => (maxReplyError = '')}
+					aria-invalid={Boolean(maxReplyError)}
+					aria-describedby={maxReplyError ? 'max-reply-cost-error' : undefined}
 					class="min-h-11 w-full rounded-xl border border-gray-300 bg-transparent px-3 dark:border-gray-700"
 				/>{/if}
+			{#if maxReplyError}<p
+					id="max-reply-cost-error"
+					class="mt-2 text-sm text-red-700 dark:text-red-300"
+					role="alert"
+				>
+					{maxReplyError}
+				</p>{/if}
 		</div>
 		<div>
 			<label class="block text-sm" for="daily-cap">{$i18n.t('Maximum per day, ₽')}</label>
@@ -73,9 +87,18 @@
 					inputmode="decimal"
 					autocomplete="off"
 					bind:value={dailyCap}
-					aria-invalid={Boolean(errorMessage)}
+					on:input={() => (dailyCapError = '')}
+					aria-invalid={Boolean(dailyCapError)}
+					aria-describedby={dailyCapError ? 'daily-cap-error' : undefined}
 					class="min-h-11 w-full rounded-xl border border-gray-300 bg-transparent px-3 dark:border-gray-700"
 				/>{/if}
+			{#if dailyCapError}<p
+					id="daily-cap-error"
+					class="mt-2 text-sm text-red-700 dark:text-red-300"
+					role="alert"
+				>
+					{dailyCapError}
+				</p>{/if}
 		</div>
 	</div>
 	{#if dailySpent !== null}<p class="mt-3 text-sm">

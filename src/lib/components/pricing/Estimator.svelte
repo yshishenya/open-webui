@@ -23,14 +23,20 @@
 </script>
 
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { trackEvent } from '$lib/utils/analytics';
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import type { PublicRateCardResponse, PublicRateCardModel } from '$lib/apis/billing';
 	import {
 		calculateTextEstimate,
 		calculateUsageEstimate,
 		pickCheapestTextModel
 	} from '$lib/utils/airis/pricing_estimator';
+
+	const i18n = getContext<Readable<I18n>>('i18n');
+	$: locale = getI18nLocale($i18n);
 
 	export let config: PricingEstimatorConfig;
 	export let rateCard: PublicRateCardResponse | null = null;
@@ -41,7 +47,7 @@
 	} = {};
 	export let loading: boolean = false;
 	export let error: string | null = null;
-	export let primaryLabel: string = 'Начать бесплатно';
+	export let primaryLabel: string | null = null;
 	export let onPrimaryAction: (() => void) | null = null;
 	export let onScrollToCalculation: (() => void) | null = null;
 
@@ -60,12 +66,12 @@
 
 	let changeTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	const formatMoney = (kopeks: number | null): string => {
+	const formatMoney = (kopeks: number | null, locale: string): string => {
 		if (kopeks === null || kopeks === undefined) return '—';
 		const currency = rateCard?.currency ?? 'RUB';
 		const amount = kopeks / 100;
 		try {
-			return new Intl.NumberFormat('ru-RU', {
+			return new Intl.NumberFormat(locale, {
 				style: 'currency',
 				currency
 			}).format(amount);
@@ -115,9 +121,9 @@
 	$: audioRatesAvailable = audioModel ? hasAudioRates(audioModel) : false;
 
 	$: availableTabs = [
-		{ id: 'text', label: 'Текст', enabled: config.text.enabled && textRatesAvailable },
-		{ id: 'image', label: 'Изображения', enabled: config.image.enabled && imageRatesAvailable },
-		{ id: 'audio', label: 'Аудио', enabled: config.audio.enabled && audioRatesAvailable }
+		{ id: 'text', label: 'Text', enabled: config.text.enabled && textRatesAvailable },
+		{ id: 'image', label: 'Images', enabled: config.image.enabled && imageRatesAvailable },
+		{ id: 'audio', label: 'Audio', enabled: config.audio.enabled && audioRatesAvailable }
 	].filter((tab) => tab.enabled);
 
 	$: if (availableTabs.length && !availableTabs.find((tab) => tab.id === activeTab)) {
@@ -155,9 +161,9 @@
 					config.uncertainty
 				)
 			: calculateUsageEstimate(model?.rates.stt_minute ?? null, minutes, 'stt', config.uncertainty);
-	const formatRange = (range: { min: number; max: number } | null): string => {
+	const formatRange = (range: { min: number; max: number } | null, locale: string): string => {
 		if (!range) return '—';
-		return `${formatMoney(range.min)} – ${formatMoney(range.max)}`;
+		return `${formatMoney(range.min, locale)} – ${formatMoney(range.max, locale)}`;
 	};
 
 	const handleTabChange = (tab: 'text' | 'image' | 'audio'): void => {
@@ -216,8 +222,9 @@
 
 <div class="space-y-8">
 	<p class="text-xs text-gray-500">
-		Выберите модель и сценарий. Это примерная стоимость без учёта бесплатного остатка, а не
-		обещанная сумма списания.
+		{$i18n.t(
+			'Choose a model and scenario. This estimate excludes your free allowance and is not a guaranteed charge.'
+		)}
 	</p>
 
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -233,10 +240,12 @@
 
 			{#if !availableTabs.length}
 				<p class="text-sm text-gray-500">
-					Расчёт временно недоступен: для выбранных функций пока нет актуальной ставки.
+					{$i18n.t(
+						'The estimate is temporarily unavailable: there is no current rate for the selected features.'
+					)}
 				</p>
 			{:else}
-				<div role="group" aria-label="Тип задачи" class="flex flex-wrap gap-2">
+				<div role="group" aria-label={$i18n.t('Task type')} class="flex flex-wrap gap-2">
 					{#each availableTabs as tab}
 						<button
 							type="button"
@@ -250,7 +259,7 @@
 									: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
 							}`}
 						>
-							{tab.label}
+							{$i18n.t(tab.label)}
 						</button>
 					{/each}
 				</div>
@@ -264,7 +273,7 @@
 							class="space-y-4"
 						>
 							<label class="block text-sm text-gray-700"
-								>Модель
+								>{$i18n.t('Model')}
 								<select
 									value={textModel?.id ?? ''}
 									on:change={(event) => {
@@ -279,19 +288,19 @@
 								</select></label
 							>
 							<label class="block text-sm text-gray-700"
-								>Как вы общаетесь
+								>{$i18n.t('Conversation style')}
 								<select
 									bind:value={textScenario}
 									on:change={scheduleEstimatorChange}
 									class="mt-2 block min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-gray-900"
-									><option value="separate">Каждый запрос — новый чат</option><option
-										value="continuous">Все сообщения — один длинный чат</option
+									><option value="separate">{$i18n.t('Each request starts a new chat')}</option
+									><option value="continuous">{$i18n.t('All messages in one long chat')}</option
 									></select
 								></label
 							>
 							<div class="grid gap-4 md:grid-cols-[minmax(0,18rem)_1fr] md:items-end">
 								<label class="text-sm text-gray-600">
-									Сообщений в день
+									{$i18n.t('Messages per day')}
 									<input
 										type="number"
 										min="1"
@@ -302,15 +311,22 @@
 									/>
 								</label>
 								<p class="text-xs text-gray-500">
-									{textScenario === 'continuous'
-										? 'За 30 дней вся предыдущая переписка снова отправляется модели и входит в стоимость.'
-										: '30 дней, без предыдущей переписки: каждый запрос начинается с пустого чата.'}
-									Пример: {config.text.tokensInPerMessage} токенов в запросе и {config.text
-										.tokensOutPerMessage} в ответе. Токены — короткие части текста.
+									{$i18n.t(
+										textScenario === 'continuous'
+											? 'Over 30 days, the previous conversation is sent to the model again and included in the cost.'
+											: '30 days without previous messages: each request starts an empty chat.'
+									)}
+									{$i18n.t(
+										'Example: {{input}} input tokens and {{output}} reply tokens. Tokens are short pieces of text.',
+										{
+											input: new Intl.NumberFormat(locale).format(config.text.tokensInPerMessage),
+											output: new Intl.NumberFormat(locale).format(config.text.tokensOutPerMessage)
+										}
+									)}
 								</p>
 							</div>
 							<div class="text-lg font-semibold text-gray-900 tabular-nums">
-								≈ {formatRange(textEstimate)} / месяц
+								≈ {formatRange(textEstimate, locale)} / {$i18n.t('month')}
 							</div>
 						</div>
 					{:else if activeTab === 'image'}
@@ -321,7 +337,7 @@
 							class="space-y-4"
 						>
 							<label class="block text-sm text-gray-700"
-								>Модель<select
+								>{$i18n.t('Model')}<select
 									value={imageModel?.id ?? ''}
 									on:change={(event) => {
 										selectedImageModel = event.currentTarget.value;
@@ -334,7 +350,7 @@
 								></label
 							>
 							<label class="text-sm text-gray-600">
-								Количество изображений
+								{$i18n.t('Number of images')}
 								<input
 									type="number"
 									min="1"
@@ -346,7 +362,7 @@
 								/>
 							</label>
 							<div class="text-lg font-semibold text-gray-900 tabular-nums">
-								≈ {formatRange(imageEstimate)}
+								≈ {formatRange(imageEstimate, locale)}
 							</div>
 						</div>
 					{:else if activeTab === 'audio'}
@@ -357,7 +373,7 @@
 							class="space-y-4"
 						>
 							<label class="block text-sm text-gray-700"
-								>Модель<select
+								>{$i18n.t('Model')}<select
 									value={audioModel?.id ?? ''}
 									on:change={(event) => {
 										selectedAudioModel = event.currentTarget.value;
@@ -383,13 +399,13 @@
 												: 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
 										}`}
 									>
-										{mode.label}
+										{$i18n.t(mode.id === 'tts' ? 'Text to speech' : 'Speech recognition')}
 									</button>
 								{/each}
 							</div>
 							{#if audioMode === 'tts'}
 								<label class="text-sm text-gray-600">
-									Символов для озвучки
+									{$i18n.t('Characters for speech')}
 									<input
 										type="number"
 										min="1"
@@ -402,7 +418,7 @@
 								</label>
 							{:else}
 								<label class="text-sm text-gray-600">
-									Минут распознавания
+									{$i18n.t('Transcription minutes')}
 									<input
 										type="number"
 										min="0.01"
@@ -415,7 +431,7 @@
 								</label>
 							{/if}
 							<div class="text-lg font-semibold text-gray-900 tabular-nums">
-								≈ {formatRange(audioEstimate)}
+								≈ {formatRange(audioEstimate, locale)}
 							</div>
 						</div>
 					{/if}
@@ -426,13 +442,15 @@
 					class="mt-4 text-sm text-red-700"
 					role="alert"
 				>
-					{activeTab === 'text'
-						? 'Укажите целое число сообщений от 1 до 1 000.'
-						: activeTab === 'image'
-							? 'Укажите целое число изображений от 1 до 10 000.'
-							: audioMode === 'tts'
-								? 'Укажите целое число символов от 1 до 10 000 000.'
-								: 'Укажите длительность больше нуля, не более 43 200 минут. Дробные минуты допустимы.'}
+					{$i18n.t(
+						activeTab === 'text'
+							? 'Enter a whole number of messages from 1 to 1,000.'
+							: activeTab === 'image'
+								? 'Enter a whole number of images from 1 to 10,000.'
+								: audioMode === 'tts'
+									? 'Enter a whole number of characters from 1 to 10,000,000.'
+									: 'Enter a duration greater than zero and no more than 43,200 minutes. Fractional minutes are allowed.'
+					)}
 				</p>{/if}
 			<div class="mt-6 flex flex-wrap items-center gap-4">
 				<button
@@ -440,14 +458,14 @@
 					class="inline-flex min-h-11 items-center justify-center rounded-full bg-black px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
 					on:click={handlePrimaryAction}
 				>
-					{primaryLabel}
+					{primaryLabel ?? $i18n.t('Start for free')}
 				</button>
 				<button
 					type="button"
 					class="min-h-11 text-sm font-semibold text-gray-600 hover:text-gray-900"
 					on:click={scrollToCalculation}
 				>
-					Как считается стоимость
+					{$i18n.t('How the cost is calculated')}
 				</button>
 			</div>
 		{/if}

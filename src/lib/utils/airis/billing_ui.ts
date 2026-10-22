@@ -38,10 +38,26 @@ export const isTechnicalBillingEntry = (entry: LedgerEntry): boolean =>
 	['hold', 'release'].includes(entry.type) ||
 	(entry.type === 'adjustment' && entry.metadata_json?.reason === 'hold_overage');
 
-/** A free text reply needs both input and output quota; an image quota alone is insufficient. */
+/** A positive text allowance is not a guarantee that it covers the next request's reserve. */
 export const hasFreeTextQuota = (info: LeadMagnetInfo | null): boolean =>
 	Boolean(
 		info?.enabled &&
 		(info.remaining?.tokens_input ?? 0) > 0 &&
 		(info.remaining?.tokens_output ?? 0) > 0
+	);
+
+/** Keep distinct model IDs visible when their display names collide; never merge quotas/models. */
+export const freeAccessModelLabel = (
+	model: { id: string; name?: string },
+	models: { id: string; name?: string }[]
+): string => {
+	const name = model.name || model.id;
+	return models.some((other) => other.id !== model.id && (other.name || other.id) === name)
+		? `${name} (${model.id})`
+		: name;
+};
+
+export const formatFreeQuotaValue = (value: number, key: string, locale: string): string =>
+	new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(
+		key === 'tts_seconds' || key === 'stt_seconds' ? value / 60 : value
 	);

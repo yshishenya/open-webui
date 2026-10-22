@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -16,7 +18,8 @@
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
+	$: isRussian = getI18nLocale($i18n).toLowerCase().startsWith('ru');
 
 	let saving = false;
 
@@ -493,10 +496,14 @@
 								<div class="flex justify-between items-start mb-2">
 									<div>
 										<div class="font-medium">
-											{formData.name_ru || formData.name || $i18n.t('Plan Name')}
+											{(isRussian
+												? formData.name_ru || formData.name
+												: formData.name || formData.name_ru) || $i18n.t('Plan Name')}
 										</div>
 										<div class="text-xs text-gray-500">
-											{formData.description_ru || formData.description || ''}
+											{isRussian
+												? formData.description_ru || formData.description
+												: formData.description || formData.description_ru}
 										</div>
 									</div>
 									<div class="text-right">

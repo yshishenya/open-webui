@@ -696,12 +696,14 @@ class BillingReportingService:
             'created_at': fact.created_at,
             'credited_at': fact.credited_at,
             'credit_status': fact.credit_status,
+            # PostgreSQL SUM(bigint) is Decimal; JSON must retain integer kopeks.
             'refunded_kopeks': int(fact.refunded_kopeks),
             'is_test': fact.is_test,
         }
 
     @staticmethod
     def _ledger_payload(entry: LedgerEntry) -> dict[str, object]:
+        metadata = entry.metadata_json or {}
         return {
             'id': entry.id,
             'user_id': entry.user_id,
@@ -714,11 +716,17 @@ class BillingReportingService:
             'reference_id': entry.reference_id,
             'reference_type': entry.reference_type,
             'correlation_id': entry.correlation_id,
+            # Expose only the audit fields, never arbitrary payment metadata.
+            'admin_user_id': metadata.get('admin_user_id'),
+            'adjustment_reason': metadata.get('reason'),
+            'delta_topup_kopeks': metadata.get('delta_topup_kopeks'),
+            'delta_included_kopeks': metadata.get('delta_included_kopeks'),
             'created_at': int(entry.created_at),
         }
 
     @staticmethod
     def _usage_payload(event: UsageEvent) -> dict[str, object]:
+        measured = event.measured_units_json or {}
         return {
             'id': event.id,
             'user_id': event.user_id,
@@ -727,9 +735,28 @@ class BillingReportingService:
             'model_id': event.model_id,
             'modality': event.modality,
             'provider': event.provider,
+            'prompt_tokens': event.prompt_tokens,
+            'completion_tokens': event.completion_tokens,
+            'measured_unit': measured.get('unit'),
+            'measured_units': measured.get('units'),
+            'measured_count': measured.get('count'),
+            'requested_count': measured.get('requested_count'),
+            'char_count': measured.get('char_count'),
+            'tts_seconds': measured.get('tts_seconds'),
+            'stt_seconds': measured.get('stt_seconds'),
+            'cost_raw_kopeks': event.cost_raw_kopeks,
+            'cost_raw_input_kopeks': event.cost_raw_input_kopeks,
+            'cost_raw_output_kopeks': event.cost_raw_output_kopeks,
             'cost_charged_kopeks': int(event.cost_charged_kopeks or 0),
+            'cost_charged_input_kopeks': event.cost_charged_input_kopeks,
+            'cost_charged_output_kopeks': event.cost_charged_output_kopeks,
             'billing_source': event.billing_source,
             'is_estimated': bool(event.is_estimated),
+            'estimate_reason': event.estimate_reason,
+            'pricing_version': event.pricing_version,
+            'pricing_rate_card_id': event.pricing_rate_card_id,
+            'pricing_rate_card_input_id': event.pricing_rate_card_input_id,
+            'pricing_rate_card_output_id': event.pricing_rate_card_output_id,
             'created_at': int(event.created_at),
         }
 

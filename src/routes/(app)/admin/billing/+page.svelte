@@ -127,32 +127,69 @@
 	<ReportingFilters bind:filters={draft} {loading} {error} onApply={load} />
 	{#if loading}<p role="status" class="my-4 text-sm text-gray-500">
 			{$i18n.t('Updating report')}
+			{#if overview}{$i18n.t('Showing the last confirmed report while updating.')}{/if}
 		</p>{/if}
-	{#if overview && !loading && !error}
+	{#if error}<div class="my-4 text-sm">
+			{#if overview}<p role="status">
+					{$i18n.t('Could not refresh. Showing the last confirmed report.')}
+				</p>{/if}
+			<button type="button" class="min-h-11 underline" disabled={loading} on:click={load}
+				>{$i18n.t('Retry')}</button
+			>
+		</div>{/if}
+	{#if overview}
 		<p class="mb-3 text-sm text-gray-500">
 			{$i18n.t('For the applied period')}: {applied.fromDate} — {applied.toDate} · {overview.metrics
 				.payer_count}
-			{$i18n.t('paying customers')}
+			{$i18n.t('paying customers')} · {overview.currency} · {$i18n.t('Updated')}: {formatReportTime(
+				overview.as_of,
+				$i18n.language
+			)} UTC
 		</p>
 		<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-			{#each cards as card}<a
-					href={link(
-						card.tab,
-						card.kind
-							? {
-									kind: card.kind,
-									status: 'succeeded',
-									credit_status: 'credited',
-									is_test: 'false'
-								}
-							: {}
-					)}
-					class="min-w-0 rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900"
-					><div class="text-sm text-gray-500">{$i18n.t(card.label)}</div>
-					<div class="mt-2 break-words text-xl font-semibold tabular-nums">
-						{money(card.value)}
-					</div></a
-				>{/each}
+			{#each cards as card}
+				{#if card.label === 'Top-ups after refunds'}
+					<div class="min-w-0 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+						<div class="text-sm text-gray-500">{$i18n.t(card.label)}</div>
+						<div class="mt-2 break-words text-xl font-semibold tabular-nums">
+							{money(card.value)}
+						</div>
+						<p class="mt-2 text-xs tabular-nums">
+							{money(overview.metrics.successful_payments_kopeks)} − {money(
+								overview.metrics.refund_kopeks
+							)} = {money(card.value)}
+						</p>
+						<a
+							class="mt-2 block min-h-11 content-center text-sm underline"
+							href={link('payments', {
+								kind: 'topup',
+								status: 'succeeded',
+								credit_status: 'credited',
+								is_test: 'false'
+							})}>{$i18n.t('Confirmed wallet top-ups')}</a
+						>
+						<a class="block min-h-11 content-center text-sm underline" href={link('refunds')}
+							>{$i18n.t('Returned to customers')}</a
+						>
+					</div>
+				{:else}<a
+						href={link(
+							card.tab,
+							card.kind
+								? {
+										kind: card.kind,
+										status: 'succeeded',
+										credit_status: 'credited',
+										is_test: 'false'
+									}
+								: {}
+						)}
+						class="min-w-0 rounded-xl border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900"
+						><div class="text-sm text-gray-500">{$i18n.t(card.label)}</div>
+						<div class="mt-2 break-words text-xl font-semibold tabular-nums">
+							{money(card.value)}
+						</div></a
+					>{/if}{/each}
 		</div>
 		<p class="mt-3 text-xs text-gray-500">
 			{$i18n.t(

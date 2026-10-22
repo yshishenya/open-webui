@@ -35,10 +35,19 @@ class HoldNotFoundError(WalletError):
 class DailyCapExceededError(WalletError):
     """Raised when a hold would exceed the wallet daily cap."""
 
-    def __init__(self, cap_kopeks: int, spent_kopeks: int, required_kopeks: int):
+    def __init__(
+        self,
+        cap_kopeks: int,
+        spent_kopeks: int,
+        required_kopeks: int,
+        reserved_kopeks: int = 0,
+        reset_at: Optional[int] = None,
+    ) -> None:
         self.cap_kopeks = cap_kopeks
         self.spent_kopeks = spent_kopeks
         self.required_kopeks = required_kopeks
+        self.reserved_kopeks = reserved_kopeks
+        self.reset_at = reset_at
         super().__init__("Daily spending cap exceeded")
 
 
@@ -277,8 +286,10 @@ class WalletService:
             if effective_daily_cap is not None and daily_committed + amount_kopeks > effective_daily_cap:
                 raise DailyCapExceededError(
                     int(effective_daily_cap),
-                    daily_committed,
+                    int(wallet.daily_spent_kopeks),
                     amount_kopeks,
+                    reserved_kopeks=int(wallet.daily_reserved_kopeks),
+                    reset_at=wallet.daily_reset_at,
                 )
 
             hold_included, hold_topup = self._compute_hold_breakdown(wallet, amount_kopeks)

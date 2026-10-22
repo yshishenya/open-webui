@@ -132,9 +132,26 @@ vi.mock('$lib/utils/analytics', () => ({
 	trackEvent: mocks.trackEventMock,
 	trackEcommercePurchase: mocks.trackEcommercePurchaseMock
 }));
-vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock }));
+vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock, afterNavigate: vi.fn() }));
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 vi.mock('svelte-sonner', () => ({ toast: mocks.toast }));
+// jsdom has no Web Animations API. Keep the real Modal and its focus lifecycle;
+// only visual transitions are synchronous, as in EditUserModal.billing tests.
+vi.mock('svelte/transition', () => ({ fade: () => ({ duration: 0 }) }));
+vi.mock('$lib/utils/transitions', () => ({ flyAndScale: () => ({ duration: 0 }) }));
+vi.mock('focus-trap', () => ({
+	createFocusTrap: () => {
+		const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		return {
+			activate: vi.fn(),
+			deactivate: vi.fn(() => {
+				setTimeout(() => previous?.focus(), 0);
+			}),
+			pause: vi.fn(),
+			unpause: vi.fn()
+		};
+	}
+}));
 
 const flushPromises = async (): Promise<void> => {
 	await Promise.resolve();
@@ -191,6 +208,8 @@ describe('Billing balance page', () => {
 			billing_contact_email: '',
 			billing_contact_phone: ''
 		});
+		mocks.updateAutoTopupMock.mockReset().mockResolvedValue({ status: 'ok' });
+		mocks.updateBillingSettingsMock.mockReset().mockResolvedValue({ status: 'ok' });
 		mocks.toast.error.mockReset();
 		mocks.toast.success.mockReset();
 		mocks.modelsStore.set([]);
@@ -279,6 +298,19 @@ describe('Billing balance page', () => {
 
 		expect(root.textContent).not.toContain('Save limits');
 		expect(root.querySelector('[data-testid="topup-proceed"]')).toBeTruthy();
+	});
+
+	it('names the billing help dialog through the existing Modal contract', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		const root = renderPage();
+		await flushPromises();
+		[...root.querySelectorAll('button')]
+			.find((button) => button.textContent?.includes('How billing works'))
+			?.click();
+		await flushPromises();
+		expect(document.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe(
+			'How billing works'
+		);
 	});
 
 	it('preselects the smallest package for paid recovery even with free usage', async () => {
@@ -399,6 +431,7 @@ describe('Billing balance page', () => {
 		expect(returnUrl.pathname).toBe('/billing/balance');
 		expect(returnUrl.searchParams.get('topup_return')).toBe('1');
 		expect(returnUrl.searchParams.get('return_to')).toBe('/c/123?focus=topup');
+		expect(returnUrl.searchParams.get('topup_return_id')).toMatch(/^[a-zA-Z0-9_-]+$/);
 		expect(returnUrl.hash).toBe('');
 	});
 
@@ -478,6 +511,117 @@ describe('Billing balance page', () => {
 			})
 		);
 	};
+
+	it('checks a returning payment after eleven minutes rather than dropping its recovery', async () => {
+		vi.useFakeTimers();
+		storeReturningTopup();
+		vi.setSystemTime(Date.now() + 11 * 60 * 1000);
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.reconcileTopupMock.mockResolvedValue({ credited: true });
+		const root = renderPage();
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(mocks.reconcileTopupMock).toHaveBeenCalledWith('test-token', 'newpay00');
+		expect(root.textContent).toContain('Top-up successful');
+	});
+
+	it('recovers the URL payment without storage and never infers success from a larger balance', async () => {
+		vi.useFakeTimers();
+		mocks.pageStore.set({
+			url: new URL('http://localhost/billing/balance?topup_return=1&topup_payment_id=url-payment')
+		});
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 999999 }));
+		mocks.reconcileTopupMock.mockResolvedValue({ credited: false, provider_status: 'pending' });
+		const root = renderPage();
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(mocks.reconcileTopupMock).toHaveBeenCalledWith('test-token', 'url-payment');
+		expect(root.textContent).toContain('Awaiting payment confirmation');
+		expect(root.textContent).not.toContain('Top-up successful');
+	});
+
+	it('checks the first URL payment without consuming the second stored payment', async () => {
+		vi.useFakeTimers();
+		storeReturningTopup();
+		mocks.pageStore.set({
+			url: new URL('http://localhost/billing/balance?topup_return=1&topup_payment_id=first-payment')
+		});
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.reconcileTopupMock.mockResolvedValue({ credited: true });
+		const root = renderPage();
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(mocks.reconcileTopupMock).toHaveBeenCalledWith('test-token', 'first-payment');
+		expect(root.textContent).toContain('Top-up successful');
+		expect(JSON.parse(localStorage.getItem('billing_topup_flow_v1') ?? '{}').payment_id).toBe(
+			'newpay00'
+		);
+	});
+
+	it('recovers the exact stored flow when two payments return out of order after eleven minutes', async () => {
+		vi.useFakeTimers();
+		const first = { payment_id: 'first-payment', amount_kopeks: 50000, return_to: '/c/first' };
+		const second = { payment_id: 'second-payment', amount_kopeks: 100000, return_to: '/c/second' };
+		localStorage.setItem('billing_topup_flow_v1:first-flow', JSON.stringify(first));
+		localStorage.setItem('billing_topup_flow_v1:second-flow', JSON.stringify(second));
+		localStorage.setItem('billing_topup_flow_v1', JSON.stringify(second));
+		vi.setSystemTime(Date.now() + 11 * 60 * 1000);
+		mocks.pageStore.set({
+			url: new URL('http://localhost/billing/balance?topup_return=1&topup_return_id=first-flow')
+		});
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.reconcileTopupMock.mockResolvedValue({ credited: true });
+		const root = renderPage();
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(mocks.reconcileTopupMock).toHaveBeenCalledWith('test-token', 'first-payment');
+		expect(root.textContent).toContain('Top-up successful');
+		expect(localStorage.getItem('billing_topup_flow_v1:first-flow')).toBeNull();
+		expect(
+			JSON.parse(localStorage.getItem('billing_topup_flow_v1:second-flow') ?? '{}').payment_id
+		).toBe('second-payment');
+		localStorage.removeItem('billing_topup_flow_v1:second-flow');
+	});
+
+	it('does not reconcile an unrelated legacy payment if a returning flow lost its storage', async () => {
+		storeReturningTopup();
+		mocks.pageStore.set({
+			url: new URL('http://localhost/billing/balance?topup_return=1&topup_return_id=lost-flow')
+		});
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		const root = renderPage();
+		await flushPromises();
+		expect(root.textContent).toContain('Payment status could not be checked');
+		expect(mocks.reconcileTopupMock).not.toHaveBeenCalled();
+	});
+
+	it.each(['', '&topup_payment_id=../invalid'])(
+		'offers history when return identity is unavailable or invalid %s',
+		async (query) => {
+			mocks.pageStore.set({
+				url: new URL(`http://localhost/billing/balance?topup_return=1${query}`)
+			});
+			mocks.getBalanceMock.mockResolvedValue(createBalance());
+			const root = renderPage();
+			await flushPromises();
+			expect(root.textContent).toContain('Payment status could not be checked');
+			expect(root.querySelector('a[href="/billing/history"]')).toBeTruthy();
+			expect(mocks.reconcileTopupMock).not.toHaveBeenCalled();
+		}
+	);
+
+	it('keeps an ownership/reconciliation failure unknown rather than successful', async () => {
+		vi.useFakeTimers();
+		mocks.pageStore.set({
+			url: new URL(
+				'http://localhost/billing/balance?topup_return=1&topup_payment_id=foreign-payment'
+			)
+		});
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.reconcileTopupMock.mockRejectedValue(
+			new Error('Payment does not belong to the current user')
+		);
+		const root = renderPage();
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(root.textContent).toContain('Payment status could not be checked');
+		expect(root.textContent).not.toContain('Top-up successful');
+	});
 
 	it.each(['automatic', 'manual'])(
 		'refreshes recent activity after %s confirmed credit',
@@ -593,6 +737,12 @@ describe('Billing balance page', () => {
 		expect(root.querySelector('[role="alert"]')?.textContent).toContain(
 			'Enter a non-negative amount'
 		);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		expect(input.getAttribute('aria-describedby')).toBe('max-reply-cost-error');
+		expect(document.activeElement).toBe(input);
+		expect(root.querySelector('input[name="daily_cap"]')?.getAttribute('aria-invalid')).not.toBe(
+			'true'
+		);
 		input.value = '0';
 		input.dispatchEvent(new Event('input', { bubbles: true }));
 		await flushPromises();
@@ -600,6 +750,279 @@ describe('Billing balance page', () => {
 		await flushPromises();
 		expect(mocks.updateBillingSettingsMock.mock.calls.at(-1)?.[1].max_reply_cost_kopeks).toBe(0);
 	});
+	it('does not mark valid limit fields invalid after a network failure', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+		mocks.getBalanceMock.mockResolvedValue(
+			createBalance({ max_reply_cost_kopeks: 1000, daily_cap_kopeks: 2000 })
+		);
+		mocks.updateBillingSettingsMock.mockRejectedValue(new Error('network unavailable'));
+		const root = renderPage();
+		await flushPromises();
+		const input = root.querySelector('input[name="max_reply_cost"]') as HTMLInputElement;
+		input.value = '15';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await flushPromises();
+		[...root.querySelectorAll('button')]
+			.find((button) => button.textContent?.includes('Save limits'))
+			?.click();
+		await flushPromises();
+		expect(root.textContent).toContain('Failed to update billing settings');
+		for (const field of root.querySelectorAll('input[inputmode="decimal"]')) {
+			expect(field.getAttribute('aria-invalid')).toBe('false');
+			expect(field.getAttribute('aria-describedby')).toBeNull();
+		}
+	});
+
+	it.each(['limits', 'contacts', 'auto_topup', 'topup'])(
+		'never submits the loaded account form as another account: %s',
+		async (section) => {
+			mocks.pageStore.set({
+				url: new URL(
+					`http://localhost/billing/balance?focus=${section === 'contacts' ? 'limits' : section}`
+				)
+			});
+			mocks.getBalanceMock.mockResolvedValue(
+				createBalance({
+					max_reply_cost_kopeks: 1000,
+					auto_topup_threshold_kopeks: 1000,
+					auto_topup_amount_kopeks: 50000
+				})
+			);
+			const root = renderPage();
+			await flushPromises();
+			if (section === 'limits' || section === 'contacts') {
+				const field = root.querySelector<HTMLInputElement>(
+					section === 'limits' ? '[name="max_reply_cost"]' : '[name="billing_contact_email"]'
+				)!;
+				field.value = section === 'limits' ? '25' : 'account-a@example.com';
+				field.dispatchEvent(new Event('input', { bubbles: true }));
+			} else if (section === 'auto_topup')
+				root.querySelector<HTMLButtonElement>('[role="switch"]')!.click();
+			await flushPromises();
+			localStorage.token = 'other-account';
+			const button =
+				section === 'topup'
+					? root.querySelector<HTMLButtonElement>('[data-testid="topup-preset"]')
+					: [...root.querySelectorAll('button')].find((candidate) =>
+							candidate.textContent?.includes(
+								section === 'limits'
+									? 'Save limits'
+									: section === 'contacts'
+										? 'Save contacts'
+										: 'Save auto-topup'
+							)
+						);
+			expect(button).toBeTruthy();
+			expect(button?.disabled).toBe(false);
+			button?.click();
+			await flushPromises();
+			expect(mocks.updateBillingSettingsMock).not.toHaveBeenCalled();
+			expect(mocks.updateAutoTopupMock).not.toHaveBeenCalled();
+			expect(mocks.createTopupMock).not.toHaveBeenCalled();
+		}
+	);
+
+	it.each(['balance', 'quota', 'contacts'])(
+		'discards an account switch while awaiting %s without starting a mixed-account read',
+		async (stage) => {
+			let finish: () => void = () => {};
+			mocks.getBalanceMock.mockResolvedValue(createBalance());
+			if (stage === 'balance')
+				mocks.getBalanceMock.mockImplementationOnce(
+					() =>
+						new Promise<Balance>((resolve) => {
+							finish = () => resolve(createBalance());
+						})
+				);
+			if (stage === 'quota')
+				mocks.getLeadMagnetInfoMock.mockImplementationOnce(
+					() =>
+						new Promise((resolve) => {
+							finish = () => resolve(createLeadMagnetInfo());
+						})
+				);
+			if (stage === 'contacts')
+				mocks.getUserInfoMock.mockImplementationOnce(
+					() =>
+						new Promise((resolve) => {
+							finish = () => resolve({ billing_contact_email: 'old-account@example.com' });
+						})
+				);
+			const root = renderPage();
+			await flushPromises();
+			localStorage.token = 'other-account';
+			finish();
+			await flushPromises();
+			for (const mock of [
+				mocks.getBalanceMock,
+				mocks.getLeadMagnetInfoMock,
+				mocks.getUserInfoMock
+			]) {
+				expect(mock.mock.calls.every(([token]) => token === 'test-token')).toBe(true);
+			}
+			if (stage !== 'contacts') expect(mocks.getUserInfoMock).not.toHaveBeenCalled();
+			expect(root.textContent).not.toContain('old-account@example.com');
+		}
+	);
+
+	it('does not publish save feedback or auto-topup readback after an account switch', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=auto_topup') });
+		mocks.getBalanceMock.mockResolvedValue(
+			createBalance({ auto_topup_threshold_kopeks: 1000, auto_topup_amount_kopeks: 50000 })
+		);
+		let finish: () => void = () => {};
+		mocks.updateAutoTopupMock.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					finish = () => resolve({ status: 'ok' });
+				})
+		);
+		const root = renderPage();
+		await flushPromises();
+		root.querySelector<HTMLButtonElement>('[role="switch"]')!.click();
+		await flushPromises();
+		[...root.querySelectorAll('button')]
+			.find((button) => button.textContent?.includes('Save auto-topup'))
+			?.click();
+		await flushPromises();
+		expect(mocks.updateAutoTopupMock.mock.calls[0]?.[0]).toBe('test-token');
+		localStorage.token = 'other-account';
+		finish();
+		await flushPromises();
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(1);
+		expect(mocks.toast.success).not.toHaveBeenCalled();
+	});
+
+	it('does not let a pre-save refresh overwrite successfully saved limits', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+		const original = createBalance({ max_reply_cost_kopeks: 1000, daily_cap_kopeks: 2000 });
+		const confirmed = createBalance({ max_reply_cost_kopeks: 2500, daily_cap_kopeks: 2000 });
+		mocks.getBalanceMock.mockResolvedValue(original);
+		mocks.getUserInfoMock.mockRejectedValueOnce(new Error('contacts temporarily unavailable'));
+		const root = renderPage();
+		await flushPromises();
+		const input = root.querySelector<HTMLInputElement>('[name="max_reply_cost"]')!;
+		input.value = '25';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await flushPromises();
+		let finish: (balance: Balance) => void = () => {};
+		mocks.getBalanceMock
+			.mockImplementationOnce(
+				() =>
+					new Promise<Balance>((resolve) => {
+						finish = resolve;
+					})
+			)
+			.mockResolvedValue(confirmed);
+		[...root.querySelectorAll('button')].find((button) => button.textContent === 'Retry')?.click();
+		await flushPromises();
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(2);
+		[...root.querySelectorAll('button')]
+			.find((button) => button.textContent?.includes('Save limits'))
+			?.click();
+		await flushPromises();
+		expect(mocks.updateBillingSettingsMock).toHaveBeenCalledWith('test-token', {
+			max_reply_cost_kopeks: 2500,
+			daily_cap_kopeks: 2000
+		});
+		finish(original);
+		await flushPromises();
+		expect(input.value).toBe('25');
+		expect(root.textContent).toContain('Billing settings saved');
+		expect(
+			[...root.querySelectorAll('button')].find((button) =>
+				button.textContent?.includes('Save limits')
+			)?.disabled
+		).toBe(true);
+	});
+
+	it('focuses top-up only after the modal delayed return-focus timer finishes', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		const root = renderPage();
+		await flushPromises();
+		const help = [...root.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('How billing works')
+		)!;
+		help.focus();
+		help.click();
+		await flushPromises();
+		const dialog = document.querySelector('[role="dialog"]')!;
+		[...dialog.querySelectorAll('button')]
+			.find((button) => button.textContent?.trim() === 'Top up')!
+			.click();
+		await flushPromises();
+		await flushPromises();
+		expect(document.querySelector('[role="dialog"]')).toBeNull();
+		expect(document.activeElement).toBe(root.querySelector('[data-testid="topup-preset"]'));
+	});
+
+	it('moves focus to top-up controls and on client-side settings transitions', async () => {
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		const root = renderPage();
+		await flushPromises();
+		(root.querySelector('[data-testid="wallet-hero-topup"]') as HTMLButtonElement).click();
+		await flushPromises();
+		expect(document.activeElement).toBe(root.querySelector('[data-testid="topup-preset"]'));
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+		await flushPromises();
+		expect(document.activeElement).toBe(root.querySelector('#spend-controls-section input'));
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=auto_topup') });
+		await flushPromises();
+		expect(document.activeElement).toBe(root.querySelector('#auto-topup-section [role="switch"]'));
+	});
+
+	it.each(['success', 'failure'])(
+		'uses confirmed auto-topup failure state after %s and preserves later edits',
+		async (outcome) => {
+			mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=auto_topup') });
+			const failed = createBalance({
+				auto_topup_fail_count: 3,
+				auto_topup_last_failed_at: 1000,
+				auto_topup_threshold_kopeks: 1000,
+				auto_topup_amount_kopeks: 50000
+			});
+			mocks.getBalanceMock.mockResolvedValueOnce(failed).mockResolvedValue(
+				createBalance({
+					auto_topup_enabled: true,
+					auto_topup_threshold_kopeks: 1000,
+					auto_topup_amount_kopeks: 50000
+				})
+			);
+			let finish: () => void = () => {};
+			mocks.updateAutoTopupMock.mockImplementation(
+				() =>
+					new Promise((resolve, reject) => {
+						finish = () =>
+							outcome === 'success' ? resolve({ status: 'ok' }) : reject(new Error('network'));
+					})
+			);
+			const root = renderPage();
+			await flushPromises();
+			expect(root.textContent).toContain('Auto-topup disabled after failed attempts');
+			(root.querySelector('[role="switch"]') as HTMLButtonElement).click();
+			await flushPromises();
+			const save = [...root.querySelectorAll('button')].find((button) =>
+				button.textContent?.includes('Save auto-topup')
+			) as HTMLButtonElement;
+			save.click();
+			await flushPromises();
+			const threshold = root.querySelector('[name="auto_topup_threshold"]') as HTMLInputElement;
+			threshold.value = '30';
+			threshold.dispatchEvent(new Event('input', { bubbles: true }));
+			await flushPromises();
+			finish();
+			await flushPromises();
+			expect(threshold.value).toBe('30');
+			expect(save.disabled).toBe(false);
+			if (outcome === 'success') {
+				expect(root.textContent).not.toContain('Auto-topup disabled after failed attempts');
+				expect(root.textContent).not.toContain('Last failed');
+			} else {
+				expect(root.textContent).toContain('Auto-topup disabled after failed attempts');
+				expect(threshold.getAttribute('aria-invalid')).toBe('false');
+			}
+		}
+	);
 	it('disables manual refresh for the whole pending reconciliation', async () => {
 		vi.useFakeTimers();
 		storeReturningTopup();

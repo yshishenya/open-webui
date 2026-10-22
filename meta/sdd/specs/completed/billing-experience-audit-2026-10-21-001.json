@@ -1,0 +1,328 @@
+{
+  "spec_id": "billing-experience-audit-2026-10-21-001",
+  "title": "Billing experience audit 2026-10-21",
+  "generated": "2026-10-21T12:06:13.188585Z",
+  "last_updated": "2026-10-21T22:53:35.482389Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "medium",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-21__docs__billing-experience-audit.md",
+    "description": "UX/UI/CX and IA audit of user and admin billing. Static review and live visual acceptance are separate gates. No production or financial mutations.",
+    "audited_source": "1da9bcbd91eaa9f62f78947860ff43c95bff7e85",
+    "initial_public_frontend_version": "a4d2ff5ebc16688475a207757ad39e294c45b242",
+    "observed_public_frontend_version": "c63de6eb38afaac786fad5bf6df7338d15b074b3",
+    "latest_availability_checkpoint": {
+      "failure_at_utc": "2026-10-21T22:35:56Z",
+      "failure": "Second real outage: public health/version and wallet navigation returned nginx HTTP502; this temporary tab used no Fetch interception. Prior admin overview alert dimensions were not accepted as successful data-view evidence.",
+      "recovery_at_utc": "2026-10-21T22:36:45Z",
+      "recovery": "health had returned HTTP200/true; by this checkpoint version HTTP200 marker c63de6eb38afaac786fad5bf6df7338d15b074b3. Later temp-tab wallet and successful admin data views loaded. Not the precise recovery instant.",
+      "source_comparison": "New diff vs49ed6bf contains docs, chat work-mode menu/tests and Work translation key only. Checked billing/pricing source paths unchanged vs audited SHA. Not image/backend equality or a single-SHA rerun.",
+      "cause": "Unknown; version transition is not asserted to have caused 502. No server restart, config change or release by this audit."
+    },
+    "production_public_recheck": {
+      "observed_at_utc": "2026-10-21T20:58:29Z",
+      "target": "https://chat.airis.you",
+      "health": true,
+      "subscriptions_enabled": false,
+      "public_billing_endpoints_checked": 3,
+      "billing_source_diff_empty": true,
+      "ui_scenarios_executed": 0,
+      "limitation": "Historical public-only checkpoint. The claimed IAB prohibition was erroneous and is superseded by production_ui_review."
+    },
+    "production_ui_review": {
+      "observed_at_utc": "2026-10-21T21:48:00Z",
+      "browser": "Codex IAB 2/1, user-authenticated existing tab",
+      "public_frontend_version": "b037eb00925b75f406d3fa83d28ba721cd645ec9",
+      "surfaces_observed": [
+        "balance",
+        "history",
+        "cost",
+        "payment settings",
+        "admin money overview",
+        "admin transactions",
+        "admin customer details and linked wallet ledger",
+        "admin customers",
+        "admin model prices",
+        "admin free access settings",
+        "admin subscriptions disabled mode"
+      ],
+      "coverage": "Selected safe subcases of both roles; no whole scenario family declared passed; monetary and configuration mutations excluded",
+      "keyboard": "Help modal: Shift+Tab wraps to last action, Tab to first; Escape closes and restores trigger focus",
+      "keyboard_followup": "Enter on wallet settings link -> BODY, next Tab -> skip link; inner wallet topup button scrolls but keeps focus, next Tab -> balance explanation (Q-F4 strengthened, no new duplicate finding). Separate fresh direct auto_topup load after recovery: next Tab -> correctly named disabled-state auto-topup switch; not toggled. Temporary tabs closed.",
+      "responsive": "Dark: user history 360x800, balance 390x844, cost 768x900, settings 1280x900, admin transactions 360x800/model prices 390x844. Light, with explicit owner permission: user balance 360x800/history 390x844/cost 768x900/settings 1280x900, admin overview 564px/transactions 360x800/model prices 390x844/free-access 768x900. Selected views only, no document horizontal overflow observed. Viewport reset and original system preference restored; actual dark theme verified.",
+      "additional_observed_findings": 10,
+      "cost_responsive_keyboard_contrast_followup": "2026-10-21 22:29-22:33 UTC, temporary IAB 2/9. Tab-scoped metrics left main tab at 564x856 unchanged. Cost dark at 360/390/768/1280: document fits; cards below768/table at768+. At768 table840/container715, natural Tab reaches scrollable DIV and two ArrowRight move scrollLeft0->80 with focus retained; current IAB only, not all browsers/Q09. L-F7 P2: search label14px/500 color neutral OKLCH0.42 on opaque0.2 gives2.13945:1 below4.5. Source/formula independently reconciled by Cicero, not a live rerun. Ten additional findings plus20 original=30 principal points of mixed evidence. Metrics cleared, temp tab closed, main dark unchanged. Not200% acceptance.",
+      "final_safe_followup": "2026-10-21 22:34-22:39 UTC temp IAB2/10: model editor desktop/360 focus wrap/Escape/restored trigger observed, role dialog lacks label/labelledby; no save or field changes. Second real502 and source transition recorded separately. After recovery: wallet, paid-history detail, settings, successful admin overview29 daily rows and payments7rows measured at360/390/768/1280, no document overflow; selected dark data only. Admin customers four widths and model prices768 measured before failure. Paid detail opens Enter and shows tokens/reserve/saved IDs/explicit unavailable historical price; formula not proved. Other-role acceptance not rerun. No new principal finding. Metrics cleared and temp tab closed; main564x856/dark untouched. Actual200% pending.",
+      "independent_reconciliation": "Epicurus qualified Q-F1/Q-F4/L-F5; Hume traced L-A1 to truthiness and unnormalized aggregate contract. Main agent then observed actual page response through IAB CDP: HTTP 200, 7 rows all refunded_kopeks string zero, amount_kopeks numeric, as_of 1792619679. No credentials/customer fields printed or persisted. No application test run.",
+      "admin_access": "User switched account personally; admin menu and actual billing pages observed. Previous login limitation resolved.",
+      "admin_live_confirmations": [
+        "A-F5 usage explanation incomplete",
+        "A-F7 net card leads to gross topups only",
+        "Q-F2 unnamed model edit/select-all and free-access switch",
+        "Q-F5 Created/Payments/Clear",
+        "L-F2 same label has distinct model IDs"
+      ],
+      "admin_new_findings": [
+        "L-A1 P2: production string zero passes truthiness and displays confirmed refund status",
+        "L-A2 P2: mobile text price cards omit per-1000-token units",
+        "L-A3 P2: failed overview refresh hides the last successful report; explicit error and retry via Apply work"
+      ],
+      "safe_failure_check": "2026-10-21 22:08 UTC: one GET overview read failed through temporary-tab CDP Fetch interception. Explicit error, no false zeros; previous report hidden. Cleared interception with empty patterns, Apply recovered same-period report. Temporary tab closed. No money/config/data mutation or credentials persisted.",
+      "user_history_failure_check": "2026-10-21 22:11-22:13 UTC, user-facing history for current admin account's own wallet in temporary IAB tab. One summary GET failure: explicit error/retry, unknown totals shown as dashes, existing timeline retained, retry recovered. Separate refunds GET failure: partial alert present, but refunds filter simultaneously says no operations (L-F6 P2). Retry cleared alert with filter/period retained. GET interception cleared, temporary tab closed. Not role-user reauthentication, provider reconciliation or financial mutation.",
+      "final_report_reconciliation": "Cicero 01a16085-3a17-7931-9667-25d9065f59a2 independently reconciled report/SDD claims. Corrected stale A04 and Q06 evidence cells and preparation-only settings observation label. No current SDD completion/approval overclaim found. New user-history failure observations are main-agent evidence, not independent reruns.",
+      "text_scale_attempt": "CDP Emulation.setEmulatedOSTextScale scale 2 accepted but measured root/h1 sizes and h1 height unchanged. Reset and temporary tab closed; not counted as 200% acceptance.",
+      "cost_followup": "2026-10-21 22:24-22:27 UTC, temporary IAB tab, public marker 49ed6bf unchanged. One GET rate-cards failed: explicit error/retry and unavailable calculation, no zero estimate; Enter retry restored estimator/table. Long-chat scenario updated explanation/estimate, arithmetic not independently verified. Enter to history preserved non-default 2026-10-01..02 in URL, inputs and applied summary. Table fits current width (1014px), horizontal keyboard scrolling not tested. Interception cleared, tab closed, main tab/zoom not changed.",
+      "additional_checks": "Temporary network observation disabled and temporary tab closed. Cmd-plus did not change zoom metrics and was not counted as 200% acceptance. Skip link followed with next Tab, not claimed screen-reader acceptance. Owner explicitly authorized light-theme check; restored original system value and actual dark appearance. No other preference or financial mutation.",
+      "financial_mutations": false,
+      "actual_zoom_observation": "2026-10-22 01:49-01:52 Europe/Istanbul. Owner confirmed actual200% enabled; main IAB2/1 dashboard visually313x475 CSSpx,DPR4,docWidth313,dark. Date/currency/Apply reachable, Tab Apply->Last7days and credited-topup->refund card show visible focus and fit; KPI amounts/labels readable. After navigation operations loaded7records but627x951/DPR2: zoom reset; operations and other pages not counted at200%. No zoom changes by agent. Health true/version c63de6 unchanged. Independent Cicero reconciled supplied evidence, no rerun.",
+      "limitation": "Selected safe observations in both roles/themes, not full cross-product or contrast audit. Actual200% observed only on admin overview; all other pages/roles/actions at200% and remaining scenario variants remain future acceptance, not PASS. Provider reconciliation not performed. Owner excluded VoiceOver, not tested/PASS. IA, priorities, free-to-wallet and core subscription policy approved. No implementation or release."
+    },
+    "owner_decisions": {
+      "ia_and_priority": "Explicitly approved by owner: user balance/history/cost, settings separate; admin money/operations/customers, settings separate; money safety first, then explanation/accessibility, then compactness.",
+      "free_to_wallet": "Approved: automatically continue with wallet funds after free quota exhaustion, with a visible contextual notice, not an extra confirmation. Scope-specific insufficient remainder vs exhausted quota vs non-free model distinguished.",
+      "subscription_policy": "Explicitly approved by owner: preserve current paid term and consumed usage; downgrade from next term; separate extension and compensation. Requirements only, not production financial implementation or blanket approval of a new proration formula.",
+      "voiceover": "Owner explicitly requested not to test VoiceOver. Not enabled, not verified, excluded from current live acceptance rather than marked PASS. Source-based accessibility findings remain.",
+      "browser_zoom": "Owner explicitly confirmed actual200% enabled. Admin overview readability/selected keyboard actions observed at313x475/DPR4; navigation reset zoom627x951/DPR2. Other pages/roles at200% unverified. Earlier failed emulation not retroactively counted.",
+      "independent_subscription_review": "Tesla 01a16078-0a11-76f3-8f6d-a58830473c68 read assignment/payment/quota/wallet/renewal/webhook chains and tests. Full scenario table and acceptance cases added. Source-only, no tests run or production financial mutations."
+    },
+    "resolved_closure_blocker": {
+      "kind": "actual_browser_zoom_200_observed_selected_subcases",
+      "checked_at_local": "2026-10-22T01:52:04+03:00",
+      "evidence": "Owner enabled actual200%; dashboard visually inspected at313x475/DPR4 with readable amounts/reachable selected controls/visible focus. Operations navigation reset zoom; remaining200% breadth explicitly unverified. Audit selected-observation criterion satisfied, not full implementation acceptance.",
+      "not_claimed": "Full scenario PASS, all-pages200%, VoiceOver, implementation, release or financial correctness."
+    },
+    "status": "completed",
+    "activated_date": "2026-10-21T12:11:08.677698Z",
+    "progress_percentage": 100,
+    "current_phase": "phase-2",
+    "completed_date": "2026-10-21T22:53:35.480747Z",
+    "actual_hours": 0.05
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Billing experience audit 2026-10-21",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 5,
+      "completed_tasks": 5,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Source-backed independent audit and scenario inventory",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2",
+        "task-1-3"
+      ],
+      "total_tasks": 3,
+      "completed_tasks": 3,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-21T12:23:17.057764Z",
+        "journaled_at": "2026-10-21T12:23:17.060152Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Visual scenario acceptance and final audit closure",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-21T22:53:32.787509Z",
+        "journaled_at": "2026-10-21T22:53:32.805394Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Verify source, modes and route map",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "completed_at": "2026-10-21T12:23:16.317260Z",
+        "needs_journaling": false,
+        "status_note": "Verified source 1da9bcbd91eaa9f62f78947860ff43c95bff7e85 against public a4d2ff5ebc16688475a207757ad39e294c45b242; runtime diff empty; subscriptions disabled; route map documented. This is not live UI acceptance.",
+        "journaled_at": "2026-10-21T12:23:16.318556Z"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Integrate three independent audits and scenario evidence",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "completed_at": "2026-10-21T12:23:16.689436Z",
+        "needs_journaling": false,
+        "status_note": "Integrated three independent read-only audits: 20 source-backed findings, 62 scenario families with per-row evidence limits. Existing tests read, not executed. Validated 67 referenced paths and line bounds.",
+        "journaled_at": "2026-10-21T12:23:16.690660Z"
+      }
+    },
+    "task-1-3": {
+      "type": "task",
+      "title": "Specify target IA and measurable completion gates",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "research",
+        "completed_at": "2026-10-21T12:23:17.057585Z",
+        "needs_journaling": false,
+        "status_note": "Documented reuse-first target IA, monetary semantics, measurable proposed user/admin acceptance thresholds, implementation order and unresolved owner decisions. Visual acceptance and agreement remain open.",
+        "journaled_at": "2026-10-21T12:23:17.058754Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Observe both roles and critical states on an allowed surface",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "investigation",
+        "status_note": "Selected safe production observations of both roles, themes, keyboard, responsive and read failures documented. Owner-enabled actual200% observed on admin overview313x475/DPR4; navigation resets zoom, other200% coverage explicitly not PASS. VoiceOver excluded by owner. No money/config mutations.",
+        "started_at": "2026-10-21T22:50:32.820751Z",
+        "completed_at": "2026-10-21T22:53:31.072964Z",
+        "needs_journaling": false,
+        "actual_hours": 0.05,
+        "journaled_at": "2026-10-21T22:53:31.084460Z"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Resolve recommendations with owner and close audit evidence",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "task_category": "decision",
+        "status_note": "62 scenario families,30 ranked principal points of mixed evidence, owner-approved IA/free-to-wallet/subscription policy and separate implementation/release gates reconciled. Cicero independently agreed selected200% observation satisfies audit gate, not fullmatrix acceptance. Only three audit documents changed.",
+        "started_at": "2026-10-21T22:53:32.003774Z",
+        "completed_at": "2026-10-21T22:53:32.786568Z",
+        "needs_journaling": false,
+        "journaled_at": "2026-10-21T22:53:32.793565Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-21T12:23:16.318549Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Verify source, modes and route map",
+      "author": "Codex",
+      "content": "Task task-1-1 marked as completed. \nNote: Verified source 1da9bcbd91eaa9f62f78947860ff43c95bff7e85 against public a4d2ff5ebc16688475a207757ad39e294c45b242; runtime diff empty; subscriptions disabled; route map documented. This is not live UI acceptance.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-21T12:23:16.690655Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Integrate three independent audits and scenario evidence",
+      "author": "Codex",
+      "content": "Task task-1-2 marked as completed. \nNote: Integrated three independent read-only audits: 20 source-backed findings, 62 scenario families with per-row evidence limits. Existing tests read, not executed. Validated 67 referenced paths and line bounds.",
+      "metadata": {},
+      "task_id": "task-1-2"
+    },
+    {
+      "timestamp": "2026-10-21T12:23:17.058749Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Specify target IA and measurable completion gates",
+      "author": "Codex",
+      "content": "Task task-1-3 marked as completed. \nNote: Documented reuse-first target IA, monetary semantics, measurable proposed user/admin acceptance thresholds, implementation order and unresolved owner decisions. Visual acceptance and agreement remain open.",
+      "metadata": {},
+      "task_id": "task-1-3"
+    },
+    {
+      "timestamp": "2026-10-21T12:23:17.060139Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Source-backed independent audit and scenario inventory",
+      "author": "Codex",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-21T22:53:31.084436Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Observe both roles and critical states on an allowed surface",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Selected safe production observations of both roles, themes, keyboard, responsive and read failures documented. Owner-enabled actual200% observed on admin overview313x475/DPR4; navigation resets zoom, other200% coverage explicitly not PASS. VoiceOver excluded by owner. No money/config mutations.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-21T22:53:32.793530Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Resolve recommendations with owner and close audit evidence",
+      "author": "claude-code",
+      "content": "Task task-2-2 marked as completed. \nNote: 62 scenario families,30 ranked principal points of mixed evidence, owner-approved IA/free-to-wallet/subscription policy and separate implementation/release gates reconciled. Cicero independently agreed selected200% observation satisfies audit gate, not fullmatrix acceptance. Only three audit documents changed.",
+      "metadata": {},
+      "task_id": "task-2-2"
+    },
+    {
+      "timestamp": "2026-10-21T22:53:32.805034Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: Visual scenario acceptance and final audit closure",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

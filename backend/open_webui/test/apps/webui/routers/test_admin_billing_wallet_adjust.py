@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from _pytest.monkeypatch import MonkeyPatch
 
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
@@ -118,6 +119,43 @@ class TestAdminBillingWalletAdjust(AbstractPostgresTest):
 
         assert response.status_code == 400
         assert "non-zero" in response.json()["detail"]
+
+    def test_lost_response_retry_and_changed_intent(self, monkeypatch: MonkeyPatch) -> None:
+        from open_webui.models.billing import LedgerEntries, Wallets
+        from open_webui.routers import admin_billing
+        from open_webui.utils.wallet import wallet_service
+
+        monkeypatch.setattr(admin_billing, 'ENABLE_BILLING_WALLET', True)
+        original_summary = admin_billing._get_user_wallet_summary
+        wallet = wallet_service.get_or_create_wallet(self.target_user_id, 'RUB')
+        payload = {'delta_topup_kopeks': 125, 'reason': 'confirmed reason', 'idempotency_key': 'lost-response'}
+        with mock_webui_user(id='admin-1', role='admin', email='admin@example.com'):
+
+            def lose_response(_user_id: str) -> admin_billing.UserWalletSummaryResponse:
+                raise RuntimeError('response lost after ledger commit')
+
+            monkeypatch.setattr(admin_billing, '_get_user_wallet_summary', lose_response)
+            failed = self.fast_api_client.post(
+                self.create_url(f'/users/{self.target_user_id}/wallet/adjust'), json=payload
+            )
+            assert failed.status_code == 500
+            monkeypatch.setattr(admin_billing, '_get_user_wallet_summary', original_summary)
+            retry = self.fast_api_client.post(
+                self.create_url(f'/users/{self.target_user_id}/wallet/adjust'), json=payload
+            )
+            assert retry.status_code == 200
+            for change in [{'reason': 'different reason'}, {'delta_topup_kopeks': 126}]:
+                conflict = self.fast_api_client.post(
+                    self.create_url(f'/users/{self.target_user_id}/wallet/adjust'), json={**payload, **change}
+                )
+                assert conflict.status_code == 409
+        saved = Wallets.get_wallet_by_id(wallet.id)
+        assert saved.balance_topup_kopeks == 125
+        effects = [
+            e for e in LedgerEntries.get_entries_by_user(self.target_user_id) if e.idempotency_key == 'lost-response'
+        ]
+        assert len(effects) == 1
+        assert effects[0].metadata_json['reason'] == 'confirmed reason'
 
     def test_adjust_user_wallet_rejects_blank_reason(self, monkeypatch) -> None:
         from open_webui.routers import admin_billing

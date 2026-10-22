@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
+	$: isRussian = getI18nLocale($i18n).toLowerCase().startsWith('ru');
 
 	// Props
 	export let formData: {
@@ -119,16 +122,6 @@
 			style: 'currency',
 			currency: formData.currency || 'RUB'
 		}).format(price);
-	};
-
-	const getIntervalLabel = (interval: string): string => {
-		const labels: Record<string, string> = {
-			day: $i18n.t('day'),
-			week: $i18n.t('week'),
-			month: $i18n.t('month'),
-			year: $i18n.t('year')
-		};
-		return labels[interval] || interval;
 	};
 </script>
 
@@ -527,10 +520,14 @@
 					<!-- Header -->
 					<div>
 						<div class="text-2xl font-bold">
-							{formData.name_ru || formData.name || $i18n.t('Plan Name')}
+							{(isRussian
+								? formData.name_ru || formData.name
+								: formData.name || formData.name_ru) || $i18n.t('Plan Name')}
 						</div>
 						<div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-							{formData.description_ru || formData.description || $i18n.t('Plan description')}
+							{(isRussian
+								? formData.description_ru || formData.description
+								: formData.description || formData.description_ru) || $i18n.t('Plan description')}
 						</div>
 					</div>
 
@@ -540,7 +537,7 @@
 							{formatPrice(formData.price || 0, getI18nLocale($i18n))}
 						</div>
 						<div class="text-sm text-gray-600 dark:text-gray-400">
-							/{getIntervalLabel(formData.interval || 'month')}
+							/{$i18n.t(formData.interval || 'month')}
 						</div>
 					</div>
 

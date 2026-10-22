@@ -7,6 +7,20 @@ type BuildTopupReturnUrlOptions = {
 	origin: string;
 	basePath?: string;
 	returnTo?: string | null;
+	flowId?: string;
+};
+
+export const TOPUP_FLOW_STORAGE_KEY = 'billing_topup_flow_v1';
+
+export const topupReturnStorageKey = (url: URL): string | null => {
+	const id = url.searchParams.get('topup_return_id');
+	return id && /^[a-zA-Z0-9_-]{1,128}$/.test(id) ? `${TOPUP_FLOW_STORAGE_KEY}:${id}` : null;
+};
+
+/** URL identity wins over another tab's legacy storage. Ownership is checked by reconcile. */
+export const topupReturnPaymentId = (url: URL): string | null => {
+	const id = url.searchParams.get('topup_payment_id') ?? url.searchParams.get('payment_id');
+	return id && /^[a-zA-Z0-9_-]{1,128}$/.test(id) ? id : null;
 };
 
 const normalizeBasePath = (basePath: string | undefined): string => {
@@ -93,6 +107,7 @@ export const buildTopupReturnUrl = (options: BuildTopupReturnUrlOptions): string
 	const returnPath = withBasePath('/billing/balance', options.basePath);
 	const params = new URLSearchParams();
 	params.set('topup_return', '1');
+	if (options.flowId) params.set('topup_return_id', options.flowId);
 
 	const normalizedReturnTo = normalizeBillingReturnPath(options.returnTo ?? null, {
 		origin: options.origin,

@@ -22,6 +22,8 @@ Environment (or .env.deploy):
   PROD_SSH_PORT      SSH port
   PROD_SSH_KEY       SSH private key
   PROD_PATH          Remote Compose project (default: /opt/projects/open-webui)
+  PROD_COMPOSE_FILES Colon-separated Compose files, relative to PROD_PATH or absolute
+                     (default: docker-compose.yaml:docker-compose.prod.yml)
   BACKUP_ROOT        Remote backup root (default: /opt/backups/airis)
   HEALTH_URL         Remote health URL (default: http://127.0.0.1:3000/health)
   MIN_FREE_GB        Required free space on target (default: 10)
@@ -43,6 +45,7 @@ PROD_SSH_USER="${PROD_SSH_USER:-}"
 PROD_SSH_PORT="${PROD_SSH_PORT:-}"
 PROD_SSH_KEY="${PROD_SSH_KEY:-}"
 PROD_PATH="${PROD_PATH:-/opt/projects/open-webui}"
+PROD_COMPOSE_FILES="${PROD_COMPOSE_FILES-docker-compose.yaml:docker-compose.prod.yml}"
 BACKUP_ROOT="${BACKUP_ROOT:-/opt/backups/airis}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:3000/health}"
 MIN_FREE_GB="${MIN_FREE_GB:-10}"
@@ -87,6 +90,13 @@ if [[ -z "${TAG}" ]]; then
   exit 2
 fi
 
+case "${PROD_COMPOSE_FILES}" in
+  ''|:*|*:|*::*|*$'\n'*|*$'\r'*)
+    echo "PROD_COMPOSE_FILES must contain a non-empty colon-separated list of files." >&2
+    exit 2
+    ;;
+esac
+
 if [[ "${AUTO_APPROVE}" != "1" && "${DRY_RUN}" != "1" ]]; then
   read -r -p "Deploy ${IMAGE_REPO}:${TAG} to ${PROD_HOST}? [y/N] " answer
   case "${answer}" in
@@ -115,6 +125,7 @@ fi
 echo "Guarded deploy plan"
 echo "  image: ${IMAGE_REPO}:${TAG}"
 echo "  target: ${SSH_TARGET}:${PROD_PATH}"
+echo "  compose files: ${PROD_COMPOSE_FILES}"
 echo "  backup root: ${BACKUP_ROOT}"
 echo "  image pull: $([[ "${NO_PULL}" == "1" ]] && echo disabled || echo enabled)"
 
@@ -122,10 +133,13 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   exit 0
 fi
 
+# SSH joins command arguments through the remote shell; quote the list as one argument.
+printf -v compose_files_arg '%q' "${PROD_COMPOSE_FILES}"
 ssh "${SSH_ARGS[@]}" "${SSH_TARGET}" bash -s -- \
   "${TAG}" "${IMAGE_REPO}" "${PROD_PATH}" "${BACKUP_ROOT}" \
-  "${HEALTH_URL}" "${MIN_FREE_GB}" "${NO_PULL}" <<'REMOTE'
+  "${HEALTH_URL}" "${MIN_FREE_GB}" "${NO_PULL}" "${compose_files_arg}" <<'REMOTE'
 set -Eeuo pipefail
+umask 077
 
 tag="$1"
 image_repo="$2"
@@ -134,8 +148,9 @@ backup_root="$4"
 health_url="$5"
 min_free_gb="$6"
 no_pull="$7"
+compose_files="$8"
 image_ref="${image_repo}:${tag}"
-compose=(docker compose -f docker-compose.yaml -f docker-compose.prod.yml)
+compose=(docker compose)
 release_id="$(date -u +%Y%m%dT%H%M%SZ)-${tag//[^A-Za-z0-9_.-]/-}"
 backup_dir="${backup_root}/${release_id}"
 rollback_tag="rollback-${release_id}"
@@ -149,6 +164,15 @@ fail() {
   echo "ERROR: $*" >&2
   exit 1
 }
+
+case "${compose_files}" in
+  ''|:*|*:|*::*|*$'\n'*|*$'\r'*) fail "PROD_COMPOSE_FILES contains an empty or invalid entry" ;;
+esac
+IFS=: read -r -a compose_paths <<< "${compose_files}"
+for compose_file in "${compose_paths[@]}"; do
+  [[ -f "${compose_file}" ]] || fail "Compose file not found: ${compose_file}"
+  compose+=(-f "${compose_file}")
+done
 
 wait_for_health() {
   local attempts="$1"
@@ -170,7 +194,7 @@ rollback_container() {
     return 1
   fi
   WEBUI_IMAGE=airis WEBUI_DOCKER_TAG="${rollback_tag}" \
-    "${compose[@]}" up -d --no-build --force-recreate --remove-orphans airis
+    "${compose[@]}" up -d --no-deps --no-build --force-recreate airis
   if wait_for_health 30; then
     echo "Previous container image is healthy again."
   else
@@ -266,7 +290,7 @@ echo "Previous image retained as ${rollback_ref}"
 rollout_started=1
 echo "Recreating only airis with ${image_ref}"
 WEBUI_IMAGE="${image_repo}" WEBUI_DOCKER_TAG="${tag}" \
-  "${compose[@]}" up -d --no-build --force-recreate --remove-orphans airis
+  "${compose[@]}" up -d --no-deps --no-build --force-recreate airis
 
 echo "Waiting for application health"
 wait_for_health 60 || fail "health endpoint did not report status=true"

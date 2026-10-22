@@ -5,11 +5,12 @@ from types import SimpleNamespace
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from open_webui.models.billing import UsageMetric
+from open_webui.models.billing import PlanModel, UsageMetric
 from open_webui.utils.billing import BillingService
+from test.util.abstract_integration_test import AbstractPostgresTest
 
 
-class TestBillingServiceCore:
+class TestBillingServiceCore(AbstractPostgresTest):
     def test_provider_payment_description_contains_email(self) -> None:
         service = BillingService()
 
@@ -90,7 +91,12 @@ class TestBillingServiceCore:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
-        service.get_plan = lambda *_: SimpleNamespace(  # type: ignore[method-assign]
+        assert service.get_user_subscription("user_1") is None
+        service.get_plan = lambda *_: PlanModel(  # type: ignore[method-assign]
+            id='plan_1',
+            interval='month',
+            created_at=1,
+            updated_at=1,
             price=100,
             currency="RUB",
             name="Pro",
@@ -127,15 +133,14 @@ class TestBillingServiceCore:
 
         updates: list[tuple[str, dict[str, object]]] = []
 
-        def _create_transaction(transaction: object) -> object:
-            return SimpleNamespace(id=getattr(transaction, "id"))
+        original_record = service._record_subscription_provider_response
 
-        def _update_transaction(transaction_id: str, payload: dict[str, object]) -> object:
-            updates.append((transaction_id, payload))
-            return object()
+        def record(transaction_id: str, payment_id: str, status: str, test: bool | None) -> object:
+            saved = original_record(transaction_id, payment_id, status, test)
+            updates.append((transaction_id, saved.model_dump()))
+            return saved
 
-        monkeypatch.setattr(service.transactions, "create_transaction", _create_transaction)
-        monkeypatch.setattr(service.transactions, "update_transaction", _update_transaction)
+        monkeypatch.setattr(service, '_record_subscription_provider_response', record)
 
         result = await service.create_payment(
             user_id="user_1",

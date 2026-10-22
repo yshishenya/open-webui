@@ -41,10 +41,11 @@ from open_webui.utils.billing import (
 from open_webui.utils.pricing import PricingService
 from open_webui.utils.response import normalize_usage
 from open_webui.utils.lead_magnet import (
+    LeadMagnetReservation,
     finalize_lead_magnet_usage,
     estimate_tts_seconds,
     release_quota_reservation,
-    reserve_lead_magnet_usage,
+    reserve_lead_magnet_usage_decision,
 )
 from open_webui.utils.wallet import (
     DailyCapExceededError,
@@ -88,6 +89,7 @@ class BillingHoldContext:
     hold_expires_at: Optional[int]
     correlation_id: Optional[str] = None
     quota_reservation_id: Optional[str] = None
+    lead_magnet_decision: Optional[LeadMagnetReservation] = None
 
 
 @dataclass(frozen=True)
@@ -108,6 +110,7 @@ class SingleRateHoldContext:
     hold_expires_at: Optional[int]
     correlation_id: Optional[str] = None
     quota_reservation_id: Optional[str] = None
+    lead_magnet_decision: Optional[LeadMagnetReservation] = None
 
 
 # ==================== Quota Checking ====================
@@ -443,9 +446,10 @@ async def preflight_estimate_hold(  # noqa: C901
     max_output_tokens = resolved_max_output_tokens
 
     wallet = await run_in_threadpool(wallet_service.get_or_create_wallet, user_id, BILLING_DEFAULT_CURRENCY)
-    wallet = await run_in_threadpool(wallet_service.refresh_wallet, wallet.id)
 
     subscription = await run_in_threadpool(billing_service.get_user_subscription, user_id)
+    # A due, verified subscription payment may have just credited this wallet.
+    wallet = await run_in_threadpool(wallet_service.refresh_wallet, wallet.id)
     plan = None
     if subscription:
         plan = await run_in_threadpool(billing_service.get_plan, subscription.plan_id)
@@ -487,8 +491,8 @@ async def preflight_estimate_hold(  # noqa: C901
 
     lead_magnet_model_value = lead_magnet_model_id or model_id
     try:
-        lead_reservation_id = await run_in_threadpool(
-            reserve_lead_magnet_usage,
+        lead_decision = await run_in_threadpool(
+            reserve_lead_magnet_usage_decision,
             user_id,
             wallet.id,
             lead_magnet_model_value,
@@ -507,6 +511,7 @@ async def preflight_estimate_hold(  # noqa: C901
             detail={"error": "billing_temporarily_unavailable"},
         ) from e
 
+    lead_reservation_id = lead_decision.reservation_id
     if lead_reservation_id:
         return BillingHoldContext(
             request_id=request_id_value,
@@ -529,6 +534,7 @@ async def preflight_estimate_hold(  # noqa: C901
             hold_expires_at=None,
             correlation_id=correlation_id,
             quota_reservation_id=lead_reservation_id,
+            lead_magnet_decision=lead_decision,
         )
 
     available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
@@ -550,6 +556,7 @@ async def preflight_estimate_hold(  # noqa: C901
                 "error": "daily_cap_exceeded",
                 "daily_cap_kopeks": daily_cap,
                 "daily_spent_kopeks": wallet.daily_spent_kopeks,
+                "daily_reserved_kopeks": wallet.daily_reserved_kopeks,
                 "daily_reset_at": wallet.daily_reset_at,
                 "required_kopeks": max_cost,
             },
@@ -625,6 +632,8 @@ async def preflight_estimate_hold(  # noqa: C901
                     "error": "daily_cap_exceeded",
                     "daily_cap_kopeks": e.cap_kopeks,
                     "daily_spent_kopeks": e.spent_kopeks,
+                    "daily_reserved_kopeks": e.reserved_kopeks,
+                    "daily_reset_at": e.reset_at,
                     "required_kopeks": e.required_kopeks,
                 },
             ) from e
@@ -670,6 +679,7 @@ async def preflight_estimate_hold(  # noqa: C901
         hold_expires_at=hold_expires_at,
         correlation_id=correlation_id,
         quota_reservation_id=quota_reservation_id,
+        lead_magnet_decision=lead_decision,
     )
 
 
@@ -700,9 +710,10 @@ async def preflight_single_rate_hold(  # noqa: C901
     reservation_expires_at = now + max(BILLING_HOLD_TTL_SECONDS, 86400)
 
     wallet = await run_in_threadpool(wallet_service.get_or_create_wallet, user_id, BILLING_DEFAULT_CURRENCY)
-    wallet = await run_in_threadpool(wallet_service.refresh_wallet, wallet.id)
 
     subscription = await run_in_threadpool(billing_service.get_user_subscription, user_id)
+    # A due, verified subscription payment may have just credited this wallet.
+    wallet = await run_in_threadpool(wallet_service.refresh_wallet, wallet.id)
     plan = None
     if subscription:
         plan = await run_in_threadpool(billing_service.get_plan, subscription.plan_id)
@@ -728,11 +739,11 @@ async def preflight_single_rate_hold(  # noqa: C901
 
     cost = pricing_service.calculate_cost_kopeks(units, rate_card, discount_percent)
 
-    lead_reservation_id = None
+    lead_decision = LeadMagnetReservation(None, "paid_model")
     if lead_magnet_requirements:
         try:
-            lead_reservation_id = await run_in_threadpool(
-                reserve_lead_magnet_usage,
+            lead_decision = await run_in_threadpool(
+                reserve_lead_magnet_usage_decision,
                 user_id,
                 wallet.id,
                 model_id,
@@ -748,6 +759,7 @@ async def preflight_single_rate_hold(  # noqa: C901
                 detail={"error": "billing_temporarily_unavailable"},
             ) from e
 
+    lead_reservation_id = lead_decision.reservation_id
     if lead_reservation_id:
         return SingleRateHoldContext(
             request_id=request_id_value,
@@ -766,6 +778,7 @@ async def preflight_single_rate_hold(  # noqa: C901
             hold_expires_at=None,
             correlation_id=correlation_id,
             quota_reservation_id=lead_reservation_id,
+            lead_magnet_decision=lead_decision,
         )
 
     available = wallet.balance_included_kopeks + wallet.balance_topup_kopeks
@@ -787,6 +800,7 @@ async def preflight_single_rate_hold(  # noqa: C901
                 "error": "daily_cap_exceeded",
                 "daily_cap_kopeks": daily_cap,
                 "daily_spent_kopeks": wallet.daily_spent_kopeks,
+                "daily_reserved_kopeks": wallet.daily_reserved_kopeks,
                 "daily_reset_at": wallet.daily_reset_at,
                 "required_kopeks": cost,
             },
@@ -860,6 +874,8 @@ async def preflight_single_rate_hold(  # noqa: C901
                     "error": "daily_cap_exceeded",
                     "daily_cap_kopeks": e.cap_kopeks,
                     "daily_spent_kopeks": e.spent_kopeks,
+                    "daily_reserved_kopeks": e.reserved_kopeks,
+                    "daily_reset_at": e.reset_at,
                     "required_kopeks": e.required_kopeks,
                 },
             ) from e
@@ -901,6 +917,7 @@ async def preflight_single_rate_hold(  # noqa: C901
         hold_expires_at=hold_expires_at,
         correlation_id=correlation_id,
         quota_reservation_id=quota_reservation_id,
+        lead_magnet_decision=lead_decision,
     )
 
 

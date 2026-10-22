@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
 	hasFreeTextQuota,
+	freeAccessModelLabel,
+	formatFreeQuotaValue,
 	isTechnicalBillingEntry,
 	parseBillingMoney,
 	paymentReturnState
@@ -24,6 +26,21 @@ const ledger = (overrides: Partial<LedgerEntry>): LedgerEntry => ({
 	...overrides
 });
 describe('billing money and confirmed states', () => {
+	it('distinguishes matching display names by ID without merging model identities', () => {
+		const models = [
+			{ id: 'gpt-6-luna', name: 'GPT 6 Luna' },
+			{ id: 'gpt-5.6-luna', name: 'GPT 6 Luna' }
+		];
+		expect(freeAccessModelLabel(models[0], models)).toBe('GPT 6 Luna (gpt-6-luna)');
+		expect(freeAccessModelLabel(models[1], models)).toBe('GPT 6 Luna (gpt-5.6-luna)');
+		expect(freeAccessModelLabel(models[0], [models[0]])).toBe('GPT 6 Luna');
+	});
+	it('presents audio in minutes without rounding a one-second remainder to zero', () => {
+		expect(formatFreeQuotaValue(3600, 'tts_seconds', 'en-US')).toBe('60');
+		expect(formatFreeQuotaValue(1, 'stt_seconds', 'en-US')).toBe('0.02');
+		expect(formatFreeQuotaValue(1, 'stt_seconds', 'ru-RU')).toBe('0,02');
+		expect(formatFreeQuotaValue(1234567, 'tokens_input', 'en-US')).toBe('1,234,567');
+	});
 	it('parses whole money input without truncating invalid suffixes or rounding fractions', () => {
 		expect(parseBillingMoney('12,50')).toBe(1250);
 		expect(parseBillingMoney(' 0 ')).toBe(0);

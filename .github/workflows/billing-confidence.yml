@@ -13,6 +13,7 @@ on:
       - "docker-compose.yaml"
       - "docker-compose.dev.yaml"
       - ".codex/docker-compose.codex.yaml"
+      - ".codex/docker-compose.billing-ui.yaml"
       - "package.json"
   push:
     branches:
@@ -26,6 +27,7 @@ on:
       - "docker-compose.yaml"
       - "docker-compose.dev.yaml"
       - ".codex/docker-compose.codex.yaml"
+      - ".codex/docker-compose.billing-ui.yaml"
       - "package.json"
   workflow_dispatch:
     inputs:

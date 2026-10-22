@@ -106,24 +106,117 @@ for (const [provider, credited, label] of [
 		await setup(page);
 		await page.addInitScript(() =>
 			localStorage.setItem(
-				'billing_topup_flow_v1',
+				'billing_topup_flow_v1:local-flow',
 				JSON.stringify({
-					started_at_ms: Date.now(),
 					amount_kopeks: 50000,
-					previous_total_kopeks: 25000,
 					payment_id: 'local-payment',
 					return_to: '/c/local'
 				})
 			)
 		);
-		await page.route('**/api/v1/billing/topup/reconcile', (route) =>
-			route.fulfill({ json: { payment_id: 'local-payment', provider_status: provider, credited } })
-		);
-		await page.goto('/billing/balance?topup_return=1');
+		const reconciled: unknown[] = [];
+		await page.route('**/api/v1/billing/topup/reconcile', (route) => {
+			reconciled.push(route.request().postDataJSON());
+			return route.fulfill({
+				json: { payment_id: 'local-payment', provider_status: provider, credited }
+			});
+		});
+		await page.goto('/billing/balance?topup_return=1&topup_return_id=local-flow');
 		await expect(page.getByText(label, { exact: true })).toBeVisible({ timeout: 15000 });
+		expect(reconciled.length).toBeGreaterThan(0);
+		for (const body of reconciled) expect(body).toEqual({ payment_id: 'local-payment' });
 		if (!credited)
 			await expect(page.getByText('Пополнение успешно', { exact: true })).not.toBeVisible();
 	});
+
+test('late return A reconciles its own flow and preserves newer payment B', async ({ page }) => {
+	await setup(page);
+	const first = { payment_id: 'payment-a', amount_kopeks: 50000, return_to: '/c/a' };
+	const second = { payment_id: 'payment-b', amount_kopeks: 100000, return_to: '/c/b' };
+	await page.addInitScript(
+		({ first, second }) => {
+			localStorage.setItem('billing_topup_flow_v1:flow-a', JSON.stringify(first));
+			localStorage.setItem('billing_topup_flow_v1:flow-b', JSON.stringify(second));
+			localStorage.setItem('billing_topup_flow_v1', JSON.stringify(second));
+		},
+		{ first, second }
+	);
+	const reconciled: unknown[] = [];
+	await page.route('**/api/v1/billing/topup/reconcile', (route) => {
+		reconciled.push(route.request().postDataJSON());
+		return route.fulfill({
+			json: { payment_id: 'payment-a', provider_status: 'succeeded', credited: true }
+		});
+	});
+	await page.goto('/billing/balance?topup_return=1&topup_return_id=flow-a');
+	await expect(page.getByText('Пополнение успешно', { exact: true })).toBeVisible();
+	expect(reconciled).toEqual([{ payment_id: 'payment-a' }]);
+	await expect
+		.poll(() =>
+			page.evaluate(() => ({
+				first: localStorage.getItem('billing_topup_flow_v1:flow-a'),
+				second: localStorage.getItem('billing_topup_flow_v1:flow-b'),
+				latest: localStorage.getItem('billing_topup_flow_v1')
+			}))
+		)
+		.toEqual({ first: null, second: JSON.stringify(second), latest: JSON.stringify(second) });
+});
+
+test('URL payment recovers without flow storage; a higher balance is not proof of credit', async ({
+	page
+}) => {
+	await setup(page);
+	// Keep auth/settings storage available, but reproduce inaccessible payment storage.
+	await page.addInitScript(() => {
+		const getItem = Storage.prototype.getItem;
+		Storage.prototype.getItem = function (key: string): string | null {
+			if (key.startsWith('billing_topup_flow_v1')) throw new Error('Payment storage unavailable');
+			return getItem.call(this, key);
+		};
+	});
+	await page.route('**/api/v1/billing/balance', (route) =>
+		route.fulfill({ json: { ...balance, balance_topup_kopeks: 999999 } })
+	);
+	const reconciled: unknown[] = [];
+	await page.route('**/api/v1/billing/topup/reconcile', (route) => {
+		reconciled.push(route.request().postDataJSON());
+		return route.fulfill({
+			json: { payment_id: 'url-payment', provider_status: 'pending', credited: false }
+		});
+	});
+	await page.goto('/billing/balance?topup_return=1&topup_payment_id=url-payment');
+	await expect(page.getByText('Ожидаем подтверждение оплаты', { exact: true })).toBeVisible();
+	expect(reconciled.length).toBeGreaterThan(0);
+	for (const body of reconciled) expect(body).toEqual({ payment_id: 'url-payment' });
+	await expect(page.getByText('Пополнение успешно', { exact: true })).not.toBeVisible();
+});
+
+test('lost return flow never falls back to newer payment B', async ({ page }) => {
+	await setup(page);
+	const second = { payment_id: 'payment-b', amount_kopeks: 100000, return_to: '/c/b' };
+	await page.addInitScript((second) => {
+		localStorage.setItem('billing_topup_flow_v1', JSON.stringify(second));
+	}, second);
+	const reconciled: unknown[] = [];
+	await page.route('**/api/v1/billing/topup/reconcile', (route) => {
+		reconciled.push(route.request().postDataJSON());
+		return route.fulfill({
+			json: { payment_id: 'payment-b', provider_status: 'succeeded', credited: true }
+		});
+	});
+	await page.goto('/billing/balance?topup_return=1&topup_return_id=lost-flow-a');
+	await expect(
+		page.getByText('Не удалось проверить состояние оплаты', { exact: true })
+	).toBeVisible();
+	await expect(
+		page.getByRole('status').getByRole('link', { name: 'История', exact: true })
+	).toBeVisible();
+	await expect(page.getByText('Пополнение успешно', { exact: true })).not.toBeVisible();
+	expect(reconciled).toEqual([]);
+	expect(await page.evaluate(() => localStorage.getItem('billing_topup_flow_v1'))).toBe(
+		JSON.stringify(second)
+	);
+});
 
 test('operations load the complete period, deduplicate shifted pages and group in UTC', async ({
 	page

@@ -62,3 +62,9 @@ class TestAdminBillingPlanQuotas(AbstractPostgresTest):
             )
             assert unlimited.status_code == 200, unlimited.text
             assert unlimited.json()['quotas']['tokens_input'] is None
+            for quotas in [{'tokens_input': 100}, {'requests': 10}]:
+                reduced_unlimited = self.fast_api_client.put(
+                    self.create_url('/plans/quota-contract'), json={'quotas': quotas}
+                )
+                assert reduced_unlimited.status_code == 400
+                assert 'Cannot decrease quota' in reduced_unlimited.json()['detail']

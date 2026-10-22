@@ -273,6 +273,8 @@ class TestBillingIntegrity(AbstractPostgresTest):
     async def test_subscription_switches_to_purchased_plan_and_credits_once(self, monkeypatch: MonkeyPatch) -> None:
         import open_webui.utils.billing as billing_utils
         from open_webui.models.billing import (
+            LedgerEntry,
+            LedgerEntryType,
             PlanModel,
             Plans,
             SubscriptionModel,
@@ -328,6 +330,9 @@ class TestBillingIntegrity(AbstractPostgresTest):
         )
 
         class FakeYooKassaClient:
+            async def create_payment(self, **_: object) -> dict[str, object]:
+                raise AssertionError('Applying an already captured payment must not charge again')
+
             async def get_payment(self, payment_id: str) -> dict[str, object]:
                 return {
                     'id': payment_id,
@@ -347,6 +352,20 @@ class TestBillingIntegrity(AbstractPostgresTest):
             'event_type': 'payment.succeeded',
             'payment_id': 'subscription-payment',
         }
+        deferred = await service.process_payment_webhook(payload)
+        assert deferred is not None and deferred.plan_id == 'old-plan'
+        assert (deferred.current_period_start, deferred.current_period_end) == (now, now + 86400)
+        captured = Transactions.get_transaction_by_id('subscription-transaction')
+        assert captured.status == 'pending'  # entitlement issuance, not an unknown charge
+        assert captured.yookassa_status == 'succeeded'
+        assert captured.extra_metadata['subscription_payment_verified'] is True
+        assert captured.extra_metadata['subscription_application_status'] == 'deferred'
+        assert captured.extra_metadata['subscription_terms_source'] == 'first_verified_catalog'
+        assert Wallets.get_wallet_by_user('subscription-user', 'RUB') is None
+        repeated = await service.process_payment_webhook(payload)
+        assert repeated.model_dump() == deferred.model_dump()
+
+        monkeypatch.setattr(billing_utils.time, 'time', lambda: now + 86400)
         first = await service.process_payment_webhook(payload)
         second = await service.process_payment_webhook(payload)
 
@@ -355,3 +374,20 @@ class TestBillingIntegrity(AbstractPostgresTest):
         wallet = Wallets.get_wallet_by_user('subscription-user', 'RUB')
         assert wallet is not None
         assert wallet.balance_included_kopeks == 2500
+        assert first.current_period_start == now + 86400
+        assert first.current_period_end == now + 86400 + 30 * 86400
+        assert first.model_dump() == second.model_dump()
+        assert Transactions.get_transaction_by_id('subscription-transaction').status == 'succeeded'
+        from open_webui.internal.db import get_db
+
+        with get_db() as db:
+            assert (
+                db.query(LedgerEntry)
+                .filter(
+                    LedgerEntry.reference_type == 'subscription_payment',
+                    LedgerEntry.reference_id == 'subscription-transaction',
+                    LedgerEntry.type == LedgerEntryType.SUBSCRIPTION_CREDIT.value,
+                )
+                .count()
+                == 1
+            )
