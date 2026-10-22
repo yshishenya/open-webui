@@ -16,3 +16,11 @@
   - Tests: По результату главного агента полный backend root — 1394 passed/13 skipped, журнал `backend-all-final.log`. Ранее были apps/webui 567 passed/4 skipped, PostgreSQL 154 passed/1 reporting skip и отдельно reporting PostgreSQL 25 passed без пропусков. Frontend preflight пока running; итоговые браузерные/Compose confidence проверки не подтверждены.
   - History: Прежние красные результаты сохранены: frontend 2683 passed с 3 ошибками сбора suites; backend 1320 passed/10 skipped/1 failed; coverage.tracer из noexec tmpfs /tmp и внутренний сбой резервного PyTracer. Последующий успешный запуск покрытия не стирает эти инструментальные отказы; пороги не снижались.
   - Risks: Финальный SHA не проверен; коммит/PR исправлений, CI, слияние, выпуск и production-приёмка не закрыты. Изменена только документация, код остаётся заморожен.
+
+- [ ] **[BUG][BILLING][UX]** PR385 и завершение подготовительных проверок
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__billing-experience-implementation.md`
+  - Owner: Codex
+  - Started: 2026-10-22
+  - Summary: Реализация зафиксирована в4dc35fe0cb5037a08a4c36c16ed4f4d83b7b8040, PR385 вairis_b2c. Исправление формата нового SDD-ID только документальное; CI не ослаблен.
+  - Tests: Полный preflight PASS (2773/252, типы0/0, ESLint, build), дополнительные11 deploy-контрактов PASS; billing UI21/21 PASS. Schema+policy для318 SDD:0/0. Настоящие confidence tiers и CI нового SHA ещё ожидаются.
+  - Risks: Не слито и не выпущено. Перед выпуском обязательны точный SHA, место на сервере, закрытая свежая копия, восстановление/миграции и обе роли в production.
