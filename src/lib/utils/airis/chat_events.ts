@@ -23,6 +23,7 @@ type Input = Confirmation & {
 };
 type Source = Partial<ChatCodeExecution> & { type?: string; [key: string]: unknown };
 type Payloads = {
+	'billing:reservation': unknown;
 	'chat:reload': unknown;
 	'chat:list': unknown;
 	status: ChatStatus;

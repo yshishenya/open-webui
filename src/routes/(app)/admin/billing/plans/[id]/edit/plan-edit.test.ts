@@ -135,6 +135,37 @@ it('blocks quota decreases when active subscribers exist', async () => {
 	}
 });
 
+it.each([null, { requests: null }])(
+	'blocks unlimited-to-finite changes with subscribers: %s',
+	async (quotas) => {
+		const plan = { ...(await api.getPlan('', 'first')), quotas };
+		vi.mocked(api.getPlan).mockResolvedValueOnce(plan);
+		vi.mocked(api.getPlansWithStats).mockResolvedValueOnce([
+			{ plan, active_subscriptions: 1, canceled_subscriptions: 0, total_subscriptions: 1, mrr: 0 }
+		]);
+		const target = document.createElement('div');
+		document.body.append(target);
+		const component = mount(EditPlan, { target, context: context() });
+		try {
+			await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+			const unlimited = target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[2];
+			expect(unlimited.checked).toBe(true);
+			unlimited.checked = false;
+			unlimited.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			submit(target);
+			await tick();
+			expect(api.updatePlan).not.toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledWith(
+				'Cannot decrease quotas while plan has active subscriptions'
+			);
+		} finally {
+			await unmount(component);
+			target.remove();
+		}
+	}
+);
+
 it('opens unlimited legacy quotas even when active subscribers exist', async () => {
 	const plan = { ...(await api.getPlan('', 'first')), quotas: null, features: null };
 	vi.mocked(api.getPlan).mockResolvedValueOnce(plan);

@@ -16,7 +16,7 @@ import sqlalchemy as sa
 
 from fastapi.concurrency import run_in_threadpool
 
-from open_webui.models.users import Users
+from open_webui.models.users import User, Users
 from open_webui.models.billing import (
     LedgerEntry,
     LedgerEntryType,
@@ -58,6 +58,7 @@ from open_webui.env import (
 )
 from open_webui.models.billing_wallet import JsonDict
 from open_webui.utils.wallet import wallet_service
+from open_webui.utils.airis.subscription_policy import subscription_terms
 from open_webui.utils.lead_magnet import (
     calculate_remaining,
     get_lead_magnet_config,
@@ -147,8 +148,48 @@ class BillingService:
     # ==================== Subscription Management ====================
 
     def get_user_subscription(self, user_id: str) -> Optional[SubscriptionModel]:
-        """Get user's active subscription"""
+        """Read access, lazily issuing only a previously verified, due paid term."""
+        subscription = self.subscriptions.get_subscription_by_user_id(user_id)
+        if subscription:
+            return subscription
+        self._fulfill_due_subscription_payment(user_id)
         return self.subscriptions.get_subscription_by_user_id(user_id)
+
+    def _fulfill_due_subscription_payment(self, user_id: str) -> None:
+        """No provider call, scheduler or unpaid renewal: consume persisted capture facts."""
+        with get_db() as db:
+            transaction = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.status == TransactionStatus.PENDING.value,
+                    Transaction.yookassa_status == 'succeeded',
+                    Transaction.extra_metadata['subscription_payment_verified'].as_boolean().is_(True),
+                    Transaction.extra_metadata['subscription_application_status'].as_string() == 'deferred',
+                    Transaction.extra_metadata['subscription_deferred_until'].as_integer() <= int(time.time()),
+                )
+                .order_by(Transaction.created_at, Transaction.id)
+                .first()
+            )
+            if not transaction or not transaction.yookassa_payment_id:
+                return
+            captured = TransactionModel.model_validate(transaction)
+        metadata = captured.extra_metadata or {}
+        provider_test = metadata.get('provider_test')
+        try:
+            # The webhook already verified amount/currency/identity with the provider.
+            # _apply rechecks the transaction, catalog and subscription under locks.
+            self._apply_subscription_payment(
+                captured.id,
+                captured.yookassa_payment_id,
+                'succeeded',
+                Decimal(str(captured.amount)),
+                captured.currency,
+                {'user_id': captured.user_id, 'plan_id': metadata.get('plan_id')},
+                provider_test if isinstance(provider_test, bool) else None,
+            )
+        except (WebhookRetryableError, WebhookVerificationError) as exc:
+            log.warning('Deferred subscription payment %s requires review: %s', captured.id, exc)
 
     def has_active_subscription(self, user_id: str) -> bool:
         """Check if user has an active subscription"""
@@ -272,33 +313,12 @@ class BillingService:
         subscription = self.subscriptions.get_subscription_by_id(subscription_id)
         if not subscription:
             return None
-
-        plan = self.get_plan(subscription.plan_id)
-        if not plan:
+        plan = self.get_plan(getattr(subscription, 'next_plan_id', None) or subscription.plan_id)
+        if not plan or plan.interval not in {"month", "year"}:
             return None
-
-        now = int(time.time())
-
-        base_start = max(int(subscription.current_period_end), now)
-
-        # Calculate new period
-        if plan.interval == "month":
-            new_period_end = base_start + (30 * 24 * 60 * 60)
-        elif plan.interval == "year":
-            new_period_end = base_start + (365 * 24 * 60 * 60)
-        else:
-            return None
-
-        updates = {
-            "current_period_start": base_start,
-            "current_period_end": new_period_end,
-            "status": SubscriptionStatus.ACTIVE,
-            "cancel_at_period_end": False,
-        }
-
-        updated = self.subscriptions.update_subscription(subscription_id, updates)
-        log.info(f"Renewed subscription {subscription_id}")
-        return updated
+        # No scheduler/payment authority is attached to this legacy entrypoint.
+        # Only the verified payment handler may start another term.
+        raise ValueError("Subscription renewal requires a verified payment")
 
     # ==================== Usage Tracking ====================
 
@@ -543,55 +563,22 @@ class BillingService:
         if not yookassa:
             raise RuntimeError("YooKassa client not initialized")
 
+        active_subscription = await run_in_threadpool(self.get_user_subscription, user_id)
+        if active_subscription:
+            # A full-price purchase is not an approved proration or early extension.
+            raise ValueError("An active subscription must finish before a new subscription purchase")
+
         plan_price_kopeks = int(getattr(plan, "price_kopeks", 0) or 0)
         payment_amount = (
             Decimal(plan_price_kopeks) / Decimal(100) if plan_price_kopeks > 0 else Decimal(str(plan.price))
         ).quantize(Decimal("0.01"))
 
-        # Reuse a pending transaction/key when a client retries after a
-        # provider timeout.  This keeps the provider idempotency scope stable.
-        pending_transaction = await run_in_threadpool(
-            self._find_pending_subscription_transaction,
-            user_id,
-            plan_id,
-            payment_amount,
-            plan.currency,
+        created_transaction = await run_in_threadpool(
+            self._prepare_subscription_purchase, user_id, plan_id, plan, payment_amount
         )
-        if pending_transaction:
-            created_transaction = pending_transaction
-            transaction = pending_transaction
-            transaction_metadata = dict(transaction.extra_metadata or {})
-            provider_idempotency_key = transaction_metadata.get('provider_idempotency_key')
-            if not isinstance(provider_idempotency_key, str) or not provider_idempotency_key:
-                provider_idempotency_key = str(uuid.uuid4())
-                transaction_metadata['provider_idempotency_key'] = provider_idempotency_key
-                await run_in_threadpool(
-                    self.transactions.update_transaction,
-                    transaction.id,
-                    {'extra_metadata': transaction_metadata},
-                )
-        else:
-            provider_idempotency_key = str(uuid.uuid4())
-            transaction = TransactionModel(
-                id=str(uuid.uuid4()),
-                user_id=user_id,
-                amount=float(payment_amount),
-                currency=plan.currency,
-                status=TransactionStatus.PENDING,
-                description=f"Subscription: {plan.name}",
-                description_ru=f"Подписка: {plan.name_ru or plan.name}",
-                extra_metadata={
-                    "plan_id": plan_id,
-                    "provider_idempotency_key": provider_idempotency_key,
-                },
-                created_at=int(time.time()),
-                updated_at=int(time.time()),
-            )
-            created_transaction = await run_in_threadpool(
-                self.transactions.create_transaction,
-                transaction,
-            )
-            transaction_metadata = dict(transaction.extra_metadata or {})
+        transaction = created_transaction
+        transaction_metadata = dict(transaction.extra_metadata or {})
+        provider_idempotency_key = transaction_metadata['provider_idempotency_key']
         receipt = await self._build_receipt(
             user_id,
             payment_amount,
@@ -621,16 +608,11 @@ class BillingService:
 
         # Update transaction with YooKassa payment ID
         await run_in_threadpool(
-            self.transactions.update_transaction,
+            self._record_subscription_provider_response,
             created_transaction.id,
-            {
-                "yookassa_payment_id": payment["id"],
-                "yookassa_status": payment["status"],
-                "extra_metadata": {
-                    **transaction_metadata,
-                    "provider_test": self._provider_test(payment, transaction_metadata.get("provider_test")),
-                },
-            },
+            payment["id"],
+            payment["status"],
+            self._provider_test(payment, transaction_metadata.get("provider_test")),
         )
 
         log.info(f"Created payment {payment['id']} for user {user_id}, plan {plan_id}")
@@ -642,37 +624,108 @@ class BillingService:
             "status": payment["status"],
         }
 
-    def _find_pending_subscription_transaction(
-        self,
-        user_id: str,
-        plan_id: str,
-        amount: Decimal,
-        currency: str,
-    ) -> Optional[TransactionModel]:
-        """Find a recent pending subscription transaction for safe retries."""
-        cutoff = int(time.time()) - MANUAL_PAYMENT_RETRY_WINDOW_SECONDS
+    def _record_subscription_provider_response(
+        self, transaction_id: str, payment_id: str, provider_status: str, provider_test: bool | None
+    ) -> TransactionModel:
+        """Merge provider observations under lock; a late response cannot erase capture."""
         with get_db() as db:
-            candidates = (
+            transaction = db.query(Transaction).filter(Transaction.id == transaction_id).with_for_update().first()
+            if not transaction:
+                raise WebhookRetryableError(f"Transaction {transaction_id} not found")
+            if transaction.yookassa_payment_id and transaction.yookassa_payment_id != payment_id:
+                raise WebhookVerificationError("Payment ID does not match transaction")
+            metadata = dict(transaction.extra_metadata or {})
+            transaction.yookassa_payment_id = payment_id
+            if transaction.yookassa_status != 'succeeded' and transaction.status != TransactionStatus.SUCCEEDED.value:
+                transaction.yookassa_status = provider_status
+                if provider_status == 'canceled':
+                    transaction.status = TransactionStatus.CANCELED.value
+            metadata['provider_test'] = self._provider_test({'test': provider_test}, metadata.get('provider_test'))
+            transaction.extra_metadata = metadata
+            transaction.updated_at = int(time.time())
+            db.commit()
+            return TransactionModel.model_validate(transaction)
+
+    def _prepare_subscription_purchase(
+        self, user_id: str, plan_id: str, plan: PlanModel, amount: Decimal
+    ) -> TransactionModel:
+        """Reserve a purchase under the same user lock as administrative assignment."""
+        now = int(time.time())
+        with get_db() as db:
+            db.query(User).filter(User.id == user_id).with_for_update().first()
+            active = (
+                db.query(Subscription)
+                .filter(
+                    Subscription.user_id == user_id,
+                    Subscription.current_period_end > now,
+                    Subscription.status.in_([SubscriptionStatus.ACTIVE.value, SubscriptionStatus.TRIALING.value]),
+                )
+                .first()
+            )
+            if active:
+                raise ValueError("An active subscription must finish before a new subscription purchase")
+            latest = (
+                db.query(Subscription)
+                .filter(Subscription.user_id == user_id)
+                .order_by(Subscription.created_at.desc())
+                .first()
+            )
+            if latest and latest.next_plan_id and latest.next_plan_id != plan_id:
+                raise ValueError("Change or cancel the scheduled plan before purchasing a different plan")
+            pending = (
                 db.query(Transaction)
                 .filter(
                     Transaction.user_id == user_id,
-                    Transaction.status == TransactionStatus.PENDING.value,
-                    Transaction.currency == currency,
-                    Transaction.created_at >= cutoff,
+                    sa.or_(
+                        Transaction.status == TransactionStatus.PENDING.value,
+                        Transaction.extra_metadata['subscription_application_status']
+                        .as_string()
+                        .in_(['deferred', 'review_required']),
+                    ),
                 )
-                .order_by(Transaction.created_at.desc())
-                .limit(20)
                 .all()
             )
-            expected_amount = float(amount)
-            for candidate in candidates:
-                metadata = candidate.extra_metadata or {}
-                if metadata.get('plan_id') != plan_id:
-                    continue
-                if abs(float(candidate.amount) - expected_amount) > 0.0001:
-                    continue
-                return TransactionModel.model_validate(candidate)
-        return None
+            if pending:
+                if len(pending) != 1:
+                    raise ValueError("Unresolved subscription payments require review")
+                existing = pending[0]
+                metadata = existing.extra_metadata or {}
+                if metadata.get('subscription_application_status') in {'deferred', 'review_required'}:
+                    raise ValueError("An already paid subscription must be applied or reviewed before another purchase")
+                key = metadata.get('provider_idempotency_key')
+                if (
+                    metadata.get('plan_id') != plan_id
+                    or existing.currency != plan.currency
+                    or Decimal(str(existing.amount)).quantize(Decimal('0.01')) != amount
+                    or not isinstance(key, str)
+                    or not key
+                    or existing.created_at < now - MANUAL_PAYMENT_RETRY_WINDOW_SECONDS
+                    or ('subscription_terms' in metadata and metadata['subscription_terms'] != subscription_terms(plan))
+                ):
+                    raise ValueError("Unresolved subscription payment must be checked before another purchase")
+                return TransactionModel.model_validate(existing)
+            transaction = TransactionModel(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                amount=float(amount),
+                currency=plan.currency,
+                status=TransactionStatus.PENDING,
+                description=f"Subscription: {plan.name}",
+                description_ru=f"Подписка: {plan.name_ru or plan.name}",
+                extra_metadata={
+                    'plan_id': plan_id,
+                    'provider_idempotency_key': str(uuid.uuid4()),
+                    'subscription_terms': subscription_terms(plan),
+                    'subscription_terms_source': 'checkout',
+                },
+                created_at=now,
+                updated_at=now,
+            )
+            # Persist before releasing the lock or calling the provider.
+            created = self.transactions.create_transaction(transaction)
+            db.commit()
+            transaction.id = created.id
+            return transaction
 
     async def create_topup_payment(
         self,
@@ -1144,6 +1197,7 @@ class BillingService:
             transaction = db.query(Transaction).filter(Transaction.id == transaction_id).with_for_update().first()
             if not transaction:
                 raise WebhookRetryableError(f"Transaction {transaction_id} not found")
+            db.query(User).filter(User.id == transaction.user_id).with_for_update().first()
             if transaction.yookassa_payment_id and transaction.yookassa_payment_id != payment_id:
                 raise WebhookVerificationError("Payment ID does not match transaction")
 
@@ -1169,12 +1223,6 @@ class BillingService:
             if provider_user_id and provider_user_id != transaction.user_id:
                 raise WebhookVerificationError("Subscription user does not match transaction")
 
-            plan = db.query(Plan).filter(Plan.id == plan_id_value).with_for_update().first()
-            if not plan:
-                raise WebhookRetryableError(f"Plan {plan_id_value} not found")
-            if not bool(plan.is_active):
-                raise WebhookVerificationError(f"Plan {plan_id_value} is inactive")
-
             subscription = None
             if transaction.subscription_id:
                 subscription = (
@@ -1192,42 +1240,134 @@ class BillingService:
                     .first()
                 )
 
-            credit_exists = False
             entitlement_applied = bool(
                 subscription
-                and subscription.plan_id == plan.id
+                and subscription.plan_id == plan_id_value
                 and subscription.last_payment_id == payment_id
                 and subscription.status == SubscriptionStatus.ACTIVE.value
                 and subscription.current_period_end > now
             )
-            if entitlement_applied and transaction.status == TransactionStatus.SUCCEEDED.value:
-                credit_exists = (
-                    db.query(LedgerEntry.id)
-                    .filter(
-                        LedgerEntry.reference_type == "subscription_payment",
-                        LedgerEntry.reference_id == transaction.id,
-                        LedgerEntry.type == LedgerEntryType.SUBSCRIPTION_CREDIT.value,
-                    )
-                    .first()
-                    is not None
+            credit_exists = (
+                db.query(LedgerEntry.id)
+                .filter(
+                    LedgerEntry.reference_type == "subscription_payment",
+                    LedgerEntry.reference_id == transaction.id,
+                    LedgerEntry.type == LedgerEntryType.SUBSCRIPTION_CREDIT.value,
                 )
+                .first()
+                is not None
+            )
+            if (
+                subscription
+                and transaction.status == TransactionStatus.SUCCEEDED.value
+                and (not entitlement_applied or credit_exists)
+            ):
+                # Never replay an older successful payment over a later/canceled term.
+                return SubscriptionModel.model_validate(subscription)
+
+            def record_verified_application(state: str, details: dict[str, object]) -> None:
+                """Persist capture even when entitlement issuance needs manual review."""
+                transaction.yookassa_payment_id = payment_id
+                transaction.yookassa_status = provider_status
+                if subscription:
+                    transaction.subscription_id = subscription.id
+                transaction.extra_metadata = {
+                    **transaction.extra_metadata,
+                    'subscription_payment_verified': True,
+                    'subscription_application_status': state,
+                    **details,
+                }
+                transaction.updated_at = now
+                db.commit()
+
+            if local_metadata.get('subscription_application_status') == 'review_required':
+                raise WebhookRetryableError("Subscription payment requires manual review")
+            plan = db.query(Plan).filter(Plan.id == plan_id_value).with_for_update().first()
+            if not plan:
+                record_verified_application('review_required', {'subscription_review_reason': 'plan_missing'})
+                raise WebhookRetryableError(f"Plan {plan_id_value} not found")
+            if not bool(plan.is_active):
+                record_verified_application('review_required', {'subscription_review_reason': 'plan_inactive'})
+                raise WebhookVerificationError(f"Plan {plan_id_value} is inactive")
+            if entitlement_applied and transaction.status == TransactionStatus.SUCCEEDED.value:
                 if credit_exists or int(plan.included_kopeks_per_period or 0) <= 0:
                     db.commit()
                     return SubscriptionModel.model_validate(subscription)
 
+            terms = subscription_terms(PlanModel.model_validate(plan))
+            if local_metadata.get('subscription_terms', terms) != terms:
+                record_verified_application('review_required', {'subscription_review_reason': 'catalog_terms_changed'})
+                raise WebhookRetryableError("Purchased subscription terms changed; payment requires review")
+
+            if subscription and not entitlement_applied:
+                snapshot = {
+                    'id': subscription.id,
+                    'plan_id': subscription.plan_id,
+                    'current_period_start': subscription.current_period_start,
+                    'current_period_end': subscription.current_period_end,
+                    'status': subscription.status,
+                    'cancel_at_period_end': subscription.cancel_at_period_end,
+                    'last_payment_id': subscription.last_payment_id,
+                    'next_plan_id': subscription.next_plan_id,
+                }
+                saved_snapshot = local_metadata.get('subscription_deferred_snapshot')
+                if saved_snapshot is not None and saved_snapshot != snapshot:
+                    # Cancellation/reassignment since capture needs explicit review,
+                    # not silent reactivation or an extra paid period.
+                    record_verified_application(
+                        'review_required', {'subscription_review_reason': 'deferred_subscription_changed'}
+                    )
+                    raise WebhookRetryableError("Deferred subscription changed; payment requires review")
+                if subscription.current_period_end > now:
+                    if subscription.status not in {SubscriptionStatus.ACTIVE.value, SubscriptionStatus.TRIALING.value}:
+                        record_verified_application(
+                            'review_required', {'subscription_review_reason': 'subscription_inactive'}
+                        )
+                        raise WebhookRetryableError("Inactive subscription requires payment review")
+                    # Financial confirmation and entitlement issuance are separate.
+                    # Keep the operation pending until issuance so the existing HTTP
+                    # replay filter still allows a verified check of this same ID.
+                    record_verified_application(
+                        'deferred',
+                        {
+                            'subscription_deferred_until': subscription.current_period_end,
+                            'subscription_deferred_snapshot': snapshot,
+                            'subscription_terms': terms,
+                            # Old orders did not store terms: freeze the observed
+                            # baseline honestly, not as proof of historical terms.
+                            'subscription_terms_source': local_metadata.get(
+                                'subscription_terms_source', 'first_verified_catalog'
+                            ),
+                        },
+                    )
+                    return SubscriptionModel.model_validate(subscription)
+            if (
+                subscription
+                and not entitlement_applied
+                and subscription.next_plan_id
+                and subscription.next_plan_id != plan.id
+            ):
+                record_verified_application(
+                    'review_required', {'subscription_review_reason': 'scheduled_plan_mismatch'}
+                )
+                raise WebhookRetryableError("Paid plan differs from scheduled plan; subscription requires review")
+
             if plan.interval not in {"month", "year"}:
                 raise WebhookVerificationError("Subscription plan interval invalid")
             period_seconds = 365 * 86400 if plan.interval == "year" else 30 * 86400
-            period_start = now
-            period_end = now + period_seconds
+            # Recover a missing legacy credit without starting another term.
+            period_start = subscription.current_period_start if entitlement_applied else now
+            period_end = subscription.current_period_end if entitlement_applied else now + period_seconds
             if subscription:
-                subscription.plan_id = plan.id
-                subscription.status = SubscriptionStatus.ACTIVE.value
-                subscription.current_period_start = period_start
-                subscription.current_period_end = period_end
-                subscription.cancel_at_period_end = False
-                subscription.last_payment_id = payment_id
-                subscription.updated_at = now
+                if not entitlement_applied:
+                    subscription.plan_id = plan.id
+                    subscription.next_plan_id = None
+                    subscription.status = SubscriptionStatus.ACTIVE.value
+                    subscription.current_period_start = period_start
+                    subscription.current_period_end = period_end
+                    subscription.cancel_at_period_end = False
+                    subscription.last_payment_id = payment_id
+                    subscription.updated_at = now
             else:
                 subscription = Subscription(
                     id=str(uuid.uuid4()),
@@ -1302,6 +1442,11 @@ class BillingService:
             transaction.yookassa_payment_id = payment_id
             transaction.status = TransactionStatus.SUCCEEDED.value
             transaction.yookassa_status = provider_status
+            transaction.extra_metadata = {
+                **transaction.extra_metadata,
+                'subscription_payment_verified': True,
+                'subscription_application_status': 'applied',
+            }
             transaction.updated_at = now
             db.commit()
             db.refresh(subscription)
@@ -1440,36 +1585,13 @@ class BillingService:
                 self._provider_test(provider_payment),
             )
 
-        elif event_type == "payment.canceled":
+        elif event_type in {"payment.canceled", "payment.waiting_for_capture"}:
             await run_in_threadpool(
-                self.transactions.update_transaction,
+                self._record_subscription_provider_response,
                 transaction_id,
-                {
-                    "status": TransactionStatus.CANCELED,
-                    "yookassa_status": provider_status,
-                    "extra_metadata": {
-                        **(transaction.extra_metadata or {}),
-                        "provider_test": self._provider_test(
-                            provider_payment, (transaction.extra_metadata or {}).get("provider_test")
-                        ),
-                    },
-                },
-            )
-
-        elif event_type == "payment.waiting_for_capture":
-            # Payment authorized but not captured yet
-            await run_in_threadpool(
-                self.transactions.update_transaction,
-                transaction_id,
-                {
-                    "yookassa_status": provider_status,
-                    "extra_metadata": {
-                        **(transaction.extra_metadata or {}),
-                        "provider_test": self._provider_test(
-                            provider_payment, (transaction.extra_metadata or {}).get("provider_test")
-                        ),
-                    },
-                },
+                payment_id,
+                str(provider_status),
+                self._provider_test(provider_payment),
             )
 
         return None

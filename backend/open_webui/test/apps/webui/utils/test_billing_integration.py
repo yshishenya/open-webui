@@ -10,6 +10,148 @@ from test.util.abstract_integration_test import AbstractPostgresTest
 
 
 class TestBillingIntegration(AbstractPostgresTest):
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('single_rate', [False, True])
+    async def test_first_preflight_uses_credit_from_due_subscription_payment(
+        self, monkeypatch: pytest.MonkeyPatch, single_rate: bool
+    ) -> None:
+        from open_webui.internal.db import get_db
+        from open_webui.models.billing import (
+            LedgerEntry,
+            LedgerEntryType,
+            PlanModel,
+            Plans,
+            Subscriptions,
+            TransactionModel,
+            Transactions,
+            Wallets,
+        )
+        import open_webui.utils.billing_integration as integration
+        from open_webui.utils.wallet import wallet_service
+
+        monkeypatch.setattr(integration, 'ENABLE_BILLING_WALLET', True)
+        now = int(time.time())
+        plan = Plans.create_plan(
+            PlanModel(
+                id=str(uuid.uuid4()),
+                name='Deferred paid term',
+                price=100,
+                interval='month',
+                included_kopeks_per_period=100000,
+                created_at=now,
+                updated_at=now,
+            ).model_dump()
+        )
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        assert wallet.balance_included_kopeks == wallet.balance_topup_kopeks == 0
+        assert Subscriptions.get_subscription_by_user_id('1') is None
+        transaction = Transactions.create_transaction(
+            TransactionModel(
+                id=str(uuid.uuid4()),
+                user_id='1',
+                amount=100,
+                currency='RUB',
+                status='pending',
+                yookassa_payment_id=str(uuid.uuid4()),
+                yookassa_status='succeeded',
+                extra_metadata={
+                    'plan_id': plan.id,
+                    'provider_test': False,
+                    'subscription_payment_verified': True,
+                    'subscription_application_status': 'deferred',
+                    'subscription_deferred_until': now - 1,
+                },
+                created_at=now - 10,
+                updated_at=now - 10,
+            )
+        )
+
+        # No GET/subscription or service read before the first request: preflight
+        # itself must issue the captured term and see its new wallet credit.
+        if single_rate:
+            context = await integration.preflight_single_rate_hold(
+                '1', self.model_id, 'image', 'image_1024', Decimal(1)
+            )
+        else:
+            context = await integration.preflight_estimate_hold(
+                '1', self.model_id, {'messages': [{'role': 'user', 'content': 'hello'}], 'max_tokens': 10}
+            )
+        assert context is not None
+        assert context.plan_id == plan.id
+        assert context.billing_source == 'payg'
+        assert 0 < context.hold_amount_kopeks <= plan.included_kopeks_per_period
+        updated = Wallets.get_wallet_by_id(wallet.id)
+        assert updated is not None
+        assert updated.balance_included_kopeks == plan.included_kopeks_per_period - context.hold_amount_kopeks
+        assert updated.balance_topup_kopeks == 0
+        assert updated.daily_reserved_kopeks == context.hold_amount_kopeks
+        assert updated.daily_spent_kopeks == 0
+        applied = Transactions.get_transaction_by_id(transaction.id)
+        assert applied is not None
+        assert applied.status == 'succeeded'
+        assert applied.extra_metadata['subscription_application_status'] == 'applied'
+        with get_db() as db:
+            assert (
+                db.query(LedgerEntry)
+                .filter(
+                    LedgerEntry.reference_id == transaction.id,
+                    LedgerEntry.type == LedgerEntryType.SUBSCRIPTION_CREDIT.value,
+                )
+                .count()
+                == 1
+            )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('single_rate', [False, True])
+    @pytest.mark.parametrize('atomic_race', [False, True])
+    async def test_daily_cap_payload_preserves_spent_reserved_and_reset(
+        self, monkeypatch: pytest.MonkeyPatch, single_rate: bool, atomic_race: bool
+    ) -> None:
+        from fastapi import HTTPException
+        import open_webui.utils.billing_integration as integration
+        from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import DailyCapExceededError, wallet_service
+
+        monkeypatch.setattr(integration, 'ENABLE_BILLING_WALLET', True)
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        reset_at = int(time.time()) + 3600
+        Wallets.update_wallet(
+            wallet.id,
+            {
+                'balance_topup_kopeks': 10000,
+                'daily_spent_kopeks': 25,
+                'daily_cap_kopeks': 10000,
+                'daily_reset_at': reset_at,
+            },
+        )
+        wallet_service.hold_funds(wallet.id, 50, 'parallel', 'test')
+        Wallets.update_wallet(wallet.id, {'daily_cap_kopeks': 10000 if atomic_race else 75})
+        if atomic_race:
+
+            def race_hold(*args: object) -> None:
+                # Preflight saw the earlier snapshot; the atomic check sees the new cap.
+                raise DailyCapExceededError(75, 25, 30, reserved_kopeks=50, reset_at=reset_at)
+
+            monkeypatch.setattr(wallet_service, 'hold_funds', race_hold)
+
+        with pytest.raises(HTTPException) as exc:
+            if single_rate:
+                await integration.preflight_single_rate_hold('1', self.model_id, 'image', 'image_1024', Decimal(1))
+            else:
+                await integration.preflight_estimate_hold(
+                    '1', self.model_id, {'messages': [{'role': 'user', 'content': 'hello'}], 'max_tokens': 10}
+                )
+        assert exc.value.status_code == 429
+        detail = exc.value.detail
+        assert isinstance(detail, dict)
+        assert detail['daily_cap_kopeks'] == 75
+        assert detail['daily_spent_kopeks'] == 25
+        assert detail['daily_reserved_kopeks'] == 50
+        assert detail['daily_reset_at'] == reset_at
+        assert detail['required_kopeks'] > 0
+        if atomic_race:
+            assert detail['required_kopeks'] == 30
+
     def setup_method(self):
         super().setup_method()
         from open_webui.models.billing import PricingRateCardModel, RateCards

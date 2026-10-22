@@ -29,10 +29,20 @@
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 
-	const i18n = getContext('i18n'); let alive=true;let mounted=false;let loadVersion=0; onDestroy(()=>{alive=false;mounted=false;loadVersion++;});
+	const i18n = getContext('i18n');
+	let alive = true;
+	let mounted = false;
+	let loadVersion = 0;
+	onDestroy(() => {
+		alive = false;
+		mounted = false;
+		loadVersion++;
+	});
+	$: isRussian = getI18nLocale($i18n).toLowerCase().startsWith('ru');
 
 	let planId = '';
-	let loading = true; let loadError='';
+	let loading = true;
+	let loadError = '';
 	let saving = false;
 	let originalPlan: Plan | null = null;
 	let subscribers: PlanSubscriber[] = [];
@@ -115,16 +125,10 @@
 	$: quotasDecreased =
 		originalPlan &&
 		formData.quotas &&
-		originalPlan.quotas &&
-		((formData.quotas.tokens_input !== null &&
-			originalPlan.quotas.tokens_input !== null &&
-			formData.quotas.tokens_input < originalPlan.quotas.tokens_input) ||
-			(formData.quotas.tokens_output !== null &&
-				originalPlan.quotas.tokens_output !== null &&
-				formData.quotas.tokens_output < originalPlan.quotas.tokens_output) ||
-			(formData.quotas.requests !== null &&
-				originalPlan.quotas.requests !== null &&
-				formData.quotas.requests < originalPlan.quotas.requests));
+		Object.entries(formData.quotas).some(
+			([key, value]) =>
+				value != null && (originalPlan?.quotas?.[key] == null || value < originalPlan.quotas[key])
+		);
 
 	// Check if price is being changed
 	$: priceChanged =
@@ -139,12 +143,18 @@
 			return;
 		}
 
-		planId = $page.params.id || '';mounted=true;
+		planId = $page.params.id || '';
+		mounted = true;
 		await loadPlan();
 	});
 
 	const loadPlan = async (): Promise<void> => {
-		const version=++loadVersion;const selectedPlan=planId; loading = true;loadError='';activeSubscriberCount=null;subscribers=[];
+		const version = ++loadVersion;
+		const selectedPlan = planId;
+		loading = true;
+		loadError = '';
+		activeSubscriberCount = null;
+		subscribers = [];
 		try {
 			const [plan, allStats] = await Promise.all([
 				getPlan(localStorage.token, selectedPlan),
@@ -298,7 +308,9 @@
 
 <svelte:head>
 	<title>
-		{$i18n.t('Edit Plan')} • {originalPlan?.name || planId} • {$WEBUI_NAME}
+		{$i18n.t('Edit Plan')} • {(isRussian
+			? originalPlan?.name_ru || originalPlan?.name
+			: originalPlan?.name || originalPlan?.name_ru) || planId} • {$WEBUI_NAME}
 	</title>
 </svelte:head>
 
@@ -306,7 +318,13 @@
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />
 	</div>
-{:else if loadError}<div class="p-4"><p role="alert">{$i18n.t(loadError)}</p><button type="button" class="mt-2 underline" on:click={loadPlan}>{$i18n.t('Retry')}</button><a href="/admin/billing/plans" class="ml-3 underline">{$i18n.t('Back')}</a></div>
+{:else if loadError}<div class="p-4">
+		<p role="alert">{$i18n.t(loadError)}</p>
+		<button type="button" class="mt-2 underline" on:click={loadPlan}>{$i18n.t('Retry')}</button><a
+			href="/admin/billing/plans"
+			class="ml-3 underline">{$i18n.t('Back')}</a
+		>
+	</div>
 {:else}
 	<div class="flex flex-col justify-between w-full overflow-y-auto h-full">
 		<div class="mx-auto w-full md:px-0 h-full">
@@ -393,31 +411,31 @@
 									>{$i18n.t('Additional language fields')}</summary
 								>
 								<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								<div>
+									<div>
 										<label for="plan-edit-name_ru" class="block text-xs text-gray-500 mb-1"
 											>{$i18n.t('Name (English)')}</label
-									>
-									<input
-										id="plan-edit-name_ru"
-										type="text"
+										>
+										<input
+											id="plan-edit-name_ru"
+											type="text"
 											bind:value={formData.name}
-										placeholder={$i18n.t('Professional')}
-										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
-									/>
+											placeholder={$i18n.t('Professional')}
+											class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
+										/>
+									</div>
+									<div>
+										<label for="plan-edit-description_ru" class="block text-xs text-gray-500 mb-1"
+											>{$i18n.t('Description (Russian)')}</label
+										>
+										<input
+											id="plan-edit-description_ru"
+											type="text"
+											bind:value={formData.description_ru}
+											placeholder={$i18n.t('For growing teams')}
+											class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
+										/>
+									</div>
 								</div>
-								<div>
-									<label for="plan-edit-description_ru" class="block text-xs text-gray-500 mb-1"
-										>{$i18n.t('Description (Russian)')}</label
-									>
-									<input
-										id="plan-edit-description_ru"
-										type="text"
-										bind:value={formData.description_ru}
-										placeholder={$i18n.t('For growing teams')}
-										class="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 outline-hidden"
-									/>
-								</div>
-							</div>
 							</details>
 							<!-- Pricing -->
 							<div>
@@ -817,10 +835,14 @@
 									<div class="flex justify-between items-start mb-2">
 										<div>
 											<div class="font-medium">
-												{formData.name_ru || formData.name || $i18n.t('Plan Name')}
+												{(isRussian
+													? formData.name_ru || formData.name
+													: formData.name || formData.name_ru) || $i18n.t('Plan Name')}
 											</div>
 											<div class="text-xs text-gray-500">
-												{formData.description_ru || formData.description || ''}
+												{(isRussian
+													? formData.description_ru || formData.description
+													: formData.description || formData.description_ru) || ''}
 											</div>
 										</div>
 										<div class="text-right">

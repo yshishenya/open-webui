@@ -1,6 +1,7 @@
 import os
 import time
 from decimal import Decimal
+from typing import cast
 
 import pytest
 from fastapi import HTTPException
@@ -10,6 +11,114 @@ from open_webui.utils.airis.billing_reporting import (
     normalize_range,
     safe_csv_cell,
 )
+from open_webui.utils.airis.billing_reporting_facts import PaymentFact
+
+
+@pytest.mark.parametrize('value', [0, '0', Decimal('0'), 250, '250', Decimal('250')])
+def test_payment_payload_serializes_aggregated_refund_as_integer(value: object) -> None:
+    from fastapi.encoders import jsonable_encoder
+
+    fact = PaymentFact(
+        id='payment',
+        user_id='customer',
+        kind='topup',
+        status='succeeded',
+        amount_kopeks=1000,
+        currency='RUB',
+        provider='yookassa',
+        provider_payment_id='provider-payment',
+        processed_at=100,
+        source='billing_payment',
+        wallet_id='wallet',
+        subscription_id=None,
+        # SQL drivers can return Decimal despite the dataclass annotation.
+        refunded_kopeks=cast(int, value),
+    )
+    payload = jsonable_encoder(BillingReportingService._payment_payload(fact))
+    assert type(payload['refunded_kopeks']) is int
+    assert payload['refunded_kopeks'] == int(str(value))
+
+
+def test_reporting_usage_retains_saved_breakdown_and_absent_history() -> None:
+    from open_webui.models.billing_wallet import UsageEvent
+
+    event = UsageEvent(
+        id='usage',
+        user_id='customer',
+        request_id='request',
+        model_id='model',
+        modality='text',
+        created_at=100,
+        prompt_tokens=1234,
+        completion_tokens=56,
+        measured_units_json={'unit': 'tts_char', 'units': 0, 'tts_seconds': 1.5},
+        cost_raw_kopeks=500,
+        cost_raw_input_kopeks=400,
+        cost_raw_output_kopeks=100,
+        cost_charged_kopeks=250,
+        cost_charged_input_kopeks=200,
+        cost_charged_output_kopeks=50,
+        billing_source='payg',
+        is_estimated=True,
+        estimate_reason='usage_missing',
+        pricing_version='historical-version',
+        pricing_rate_card_input_id='old-input',
+        pricing_rate_card_output_id='old-output',
+    )
+    payload = BillingReportingService._usage_payload(event)
+    for key in (
+        'prompt_tokens',
+        'completion_tokens',
+        'cost_raw_kopeks',
+        'cost_raw_input_kopeks',
+        'cost_raw_output_kopeks',
+        'cost_charged_input_kopeks',
+        'cost_charged_output_kopeks',
+        'estimate_reason',
+        'pricing_version',
+        'pricing_rate_card_input_id',
+        'pricing_rate_card_output_id',
+    ):
+        assert payload[key] == getattr(event, key)
+    assert payload['measured_units'] == 0
+    assert payload['tts_seconds'] == 1.5
+    assert payload['measured_unit'] == 'tts_char'
+    assert payload['pricing_rate_card_id'] is None
+    event.cost_charged_input_kopeks = None
+    event.measured_units_json = None
+    assert BillingReportingService._usage_payload(event)['cost_charged_input_kopeks'] is None
+    assert BillingReportingService._usage_payload(event)['measured_units'] is None
+
+
+def test_reporting_adjustment_exposes_only_saved_audit_fields() -> None:
+    from open_webui.models.billing_wallet import LedgerEntry
+
+    entry = LedgerEntry(
+        id='adjustment',
+        user_id='customer',
+        currency='EUR',
+        type='adjustment',
+        created_at=100,
+        amount_kopeks=-200,
+        reference_id='admin-intent',
+        reference_type='admin_wallet_adjustment',
+        metadata_json={
+            'admin_user_id': 'admin',
+            'reason': 'Customer correction',
+            'delta_topup_kopeks': -300,
+            'delta_included_kopeks': 100,
+            'private_payload': 'not exported',
+        },
+    )
+    payload = BillingReportingService._ledger_payload(entry)
+    assert payload['admin_user_id'] == 'admin'
+    assert payload['adjustment_reason'] == 'Customer correction'
+    assert payload['delta_topup_kopeks'] == -300
+    assert payload['delta_included_kopeks'] == 100
+    assert payload['reference_id'] == 'admin-intent'
+    assert 'private_payload' not in payload and 'metadata_json' not in payload
+    entry.metadata_json = None
+    assert BillingReportingService._ledger_payload(entry)['admin_user_id'] is None
 
 
 @pytest.mark.asyncio
@@ -306,6 +415,11 @@ async def test_financial_totals_use_ledger_dates_and_full_selection(
             assert all(type(row['refunded_kopeks']) is int for row in credited)
             assert {row['refunded_kopeks'] for row in credited} == {0, 250}
             assert sum(row['amount_kopeks'] for row in credited) == totals['successful_payments_kopeks']
+            from fastapi.encoders import jsonable_encoder
+
+            encoded = jsonable_encoder(credited)
+            assert all(type(row['refunded_kopeks']) is int for row in encoded)
+            assert {row['id']: row['refunded_kopeks'] for row in encoded} == {'0': 250, '1': 0}
 
             overview = await service.overview(from_ts=100, to_ts=200, currency='RUB')
             assert overview['series'] == [
@@ -330,6 +444,8 @@ async def test_financial_totals_use_ledger_dates_and_full_selection(
             assert detail['metrics']['paid_kopeks'] == 6000
             assert detail['record_totals']['payments'] == 4
             assert detail['refunds'][0]['wallet_reflection'] == 'requires_verification'
+            assert detail['refunds'][0]['id'] == 'r'  # The persisted ID is the verified provider refund ID.
+            assert detail['refunds'][0]['payment_id'] == '0'
             original, original_total = await service.payment_page(
                 from_ts=200,
                 to_ts=300,

@@ -127,6 +127,7 @@ export interface UserSubscriptionInfo {
 		id: string;
 		user_id: string;
 		plan_id: string;
+		next_plan_id?: string | null;
 		status: string;
 		current_period_start: number;
 		current_period_end: number;
@@ -234,6 +235,13 @@ export interface UpdatePlanRequest {
 export interface ChangeUserPlanRequest {
 	plan_id: string;
 	reset_usage?: boolean;
+	reason?: string | null;
+	cancel_scheduled_change?: boolean;
+	expected_subscription_id?: string | null;
+	expected_plan_id?: string | null;
+	expected_next_plan_id?: string | null;
+	expected_period_start?: number | null;
+	expected_period_end?: number | null;
 }
 
 export interface ChangeUserPlanResponse {
@@ -245,8 +253,11 @@ export interface ChangeUserPlanResponse {
 		status: string;
 		current_period_start: number;
 		current_period_end: number;
+		next_plan_id: string | null;
 	};
-	plan: Plan;
+	plan: Plan | null;
+	scheduled_plan: Plan | null;
+	effective_at: number;
 }
 
 export interface LeadMagnetQuotas {
@@ -265,6 +276,7 @@ export interface LeadMagnetConfig {
 }
 
 export interface LeadMagnetConfigRequest {
+	expected_config_version: number;
 	enabled: boolean;
 	cycle_days: number;
 	quotas: LeadMagnetQuotas;

@@ -7,29 +7,32 @@ import logging
 import time
 import uuid
 
-from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
-
+from fastapi.concurrency import run_in_threadpool
+from open_webui.env import (
+    BILLING_DEFAULT_CURRENCY,
+    ENABLE_BILLING_WALLET,
+    SRC_LOG_LEVELS,
+)
+from open_webui.models.audit import AuditAction, AuditLogs
 from open_webui.models.billing import (
+    LedgerEntries,
+    LedgerEntryModel,
     PlanModel,
     Plans,
+    Subscription,
     Subscriptions,
     Usage,
     UsageMetric,
-    LedgerEntries,
-    LedgerEntryModel,
     WalletModel,
 )
-from sqlalchemy import func
-from open_webui.models.audit import AuditAction, AuditLogs
+from open_webui.models.users import User, UserModel, Users
+from open_webui.utils.airis.subscription_policy import requires_next_term
 from open_webui.utils.auth import get_admin_user
-from open_webui.models.users import Users
-from open_webui.env import (
-    SRC_LOG_LEVELS,
-    ENABLE_BILLING_WALLET,
-    BILLING_DEFAULT_CURRENCY,
-)
-from open_webui.utils.wallet import wallet_service, WalletError
+from open_webui.utils.wallet import WalletError, wallet_service
+from pydantic import BaseModel, Field
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get('BILLING', logging.INFO))
@@ -183,7 +186,7 @@ def validate_plan_update(plan: PlanModel, update_data: dict[str, object]) -> Non
 
             for key, new_value in new_quotas.items():
                 old_value = old_quotas.get(key)
-                if old_value is not None and isinstance(new_value, int) and new_value < old_value:
+                if isinstance(new_value, int) and (old_value is None or new_value < old_value):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Cannot decrease quota '{key}' from {old_value} to {new_value} "
@@ -674,7 +677,7 @@ async def get_user_subscription_info(user_id: str, admin_user=Depends(get_admin_
             )
 
         # Get user's subscription
-        subscription = Subscriptions.get_subscription_by_user_id(user_id)
+        subscription = Subscriptions.get_latest_subscription_by_user_id(user_id)
         if not subscription:
             return {'user_id': user_id, 'subscription': None, 'plan': None, 'usage': {}}
 
@@ -810,6 +813,16 @@ async def adjust_user_wallet(
             idempotency_key=request.idempotency_key,
             reference_id=request.reference_id,
         )
+        recorded = ledger_entry.metadata_json or {}
+        if (
+            recorded.get('delta_topup_kopeks') != delta_topup
+            or recorded.get('delta_included_kopeks') != delta_included
+            or recorded.get('reason') != reason
+            or recorded.get('admin_user_id') != admin_user.id
+        ):
+            # The locked wallet service returns the original effect on replay.
+            # Never report a different amount/reason/author as applied.
+            raise HTTPException(status_code=409, detail='Adjustment key already belongs to a different intent')
         summary = _get_user_wallet_summary(user_id)
 
         AuditLogs.create_log(
@@ -863,22 +876,145 @@ class ChangeUserPlanRequest(BaseModel):
 
     plan_id: str
     reset_usage: bool = False  # Whether to reset usage counters
+    reason: str | None = Field(default=None, max_length=500)
+    cancel_scheduled_change: bool = False
+    expected_subscription_id: str | None = None
+    expected_plan_id: str | None = None
+    expected_next_plan_id: str | None = None
+    expected_period_start: int | None = None
+    expected_period_end: int | None = None
+
+
+def _check_assignment_snapshot(request: ChangeUserPlanRequest, subscription: Subscription | None) -> None:
+    """A replay is harmless; a stale replacement/cancellation must be reconfirmed."""
+    replay = subscription and (
+        (not request.cancel_scheduled_change and request.plan_id in {subscription.plan_id, subscription.next_plan_id})
+        or (request.cancel_scheduled_change and not subscription.next_plan_id)
+    )
+    if replay:
+        return
+    expected_fields = {
+        'expected_subscription_id': subscription.id if subscription else None,
+        'expected_plan_id': subscription.plan_id if subscription else None,
+        'expected_next_plan_id': subscription.next_plan_id if subscription else None,
+        'expected_period_start': subscription.current_period_start if subscription else None,
+        'expected_period_end': subscription.current_period_end if subscription else None,
+    }
+    if any(
+        field in request.model_fields_set and getattr(request, field) != current
+        for field, current in expected_fields.items()
+    ):
+        raise HTTPException(status_code=409, detail='Subscription changed; reload and confirm the new terms')
+
+
+def _validate_access_change(
+    request: ChangeUserPlanRequest, subscription: Subscription, new_plan: PlanModel, current_time: int
+) -> PlanModel:
+    """Manual assignment can change current rights, never reactivate or extend a term."""
+    if not new_plan.is_active:
+        raise HTTPException(status_code=400, detail='Cannot assign an inactive plan')
+    if subscription.current_period_end <= current_time or subscription.status not in {'active', 'trialing'}:
+        raise HTTPException(
+            status_code=409, detail='Expired or inactive access requires a separate activation or extension'
+        )
+    if not request.reason or not request.reason.strip():
+        raise HTTPException(status_code=400, detail='Reason is required')
+    old_plan = Plans.get_plan_by_id(subscription.plan_id)
+    if not old_plan:
+        raise HTTPException(status_code=409, detail='Current plan is unavailable; review subscription first')
+    return old_plan
+
+
+def _cancel_scheduled_assignment(
+    db: Session, subscription: Subscription, request: ChangeUserPlanRequest, admin_user: UserModel, current_time: int
+) -> None:
+    """Explicitly cancel only the queued plan, preserving the current paid access."""
+    if request.plan_id != subscription.plan_id:
+        raise HTTPException(status_code=400, detail='Canceling a scheduled change must keep the current plan')
+    if not subscription.next_plan_id:
+        return
+    if not request.reason or not request.reason.strip():
+        raise HTTPException(status_code=400, detail='Reason is required')
+    canceled_plan_id = subscription.next_plan_id
+    subscription.next_plan_id = None
+    subscription.updated_at = current_time
+    db.commit()
+    db.refresh(subscription)
+    AuditLogs.create_log(
+        user_id=admin_user.id,
+        action=AuditAction.SUBSCRIPTION_PLAN_CHANGED,
+        entity_type='subscription',
+        entity_id=subscription.id,
+        description='Canceled scheduled plan change; current access unchanged',
+        audit_metadata={
+            'target_user_id': subscription.user_id,
+            'canceled_plan_id': canceled_plan_id,
+            'reason': request.reason.strip(),
+        },
+    )
+
+
+def _create_manual_subscription(
+    db: Session,
+    request: ChangeUserPlanRequest,
+    new_plan: PlanModel,
+    user_id: str,
+    admin_user: UserModel,
+    current_time: int,
+    period_duration: int,
+) -> Subscription:
+    """Create reasoned manual access, not a charge, extension or compensation."""
+    if not new_plan.is_active:
+        raise HTTPException(status_code=400, detail='Cannot assign an inactive plan')
+    if request.cancel_scheduled_change:
+        raise HTTPException(status_code=409, detail='No subscription to change')
+    if not request.reason or not request.reason.strip():
+        raise HTTPException(status_code=400, detail='Reason is required')
+    subscription = Subscription(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        plan_id=request.plan_id,
+        status='active',
+        current_period_start=current_time,
+        current_period_end=current_time + period_duration,
+        created_at=current_time,
+        updated_at=current_time,
+    )
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+    AuditLogs.create_log(
+        user_id=admin_user.id,
+        action=AuditAction.SUBSCRIPTION_CREATED,
+        entity_type='subscription',
+        entity_id=subscription.id,
+        description=f'Created manual subscription for user {user_id}: plan {request.plan_id}',
+        audit_metadata={'target_user_id': user_id, 'plan_id': request.plan_id, 'reason': request.reason.strip()},
+    )
+    return subscription
 
 
 @router.put('/users/{user_id}/subscription')
-async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest, admin_user=Depends(get_admin_user)):
-    """Change user's subscription plan (admin only)"""
+async def change_user_subscription(
+    user_id: str, request: ChangeUserPlanRequest, admin_user: UserModel = Depends(get_admin_user)
+) -> dict[str, object]:
+    """Assign access explicitly, without recording a payment or resetting a term."""
+    user = await Users.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User '{user_id}' not found")
+    return await run_in_threadpool(_assign_user_subscription, user_id, request, admin_user, user)
+
+
+def _assign_user_subscription(
+    user_id: str, request: ChangeUserPlanRequest, admin_user: UserModel, user: UserModel
+) -> dict[str, object]:
+    """Keep blocking ORM locks off the event loop and serialize with purchases."""
     try:
         from open_webui.internal.db import get_db
-        from open_webui.models.billing import Subscription, SubscriptionStatus
+        from open_webui.models.billing import Transaction, TransactionStatus
 
-        # Verify user exists
-        user = await Users.get_user_by_id(user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User '{user_id}' not found",
-            )
+        if request.reset_usage:
+            raise HTTPException(status_code=400, detail='Usage reset requires a separate compensation action')
 
         # Verify new plan exists
         new_plan = Plans.get_plan_by_id(request.plan_id)
@@ -889,8 +1025,34 @@ async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest,
             )
 
         with get_db() as db:
+            # Shared with purchase reservation: an unresolved charge blocks assignment.
+            db.query(User).filter(User.id == user_id).with_for_update().first()
+            if (
+                db.query(Transaction.id)
+                .filter(
+                    Transaction.user_id == user_id,
+                    or_(
+                        Transaction.status == TransactionStatus.PENDING.value,
+                        Transaction.extra_metadata['subscription_application_status']
+                        .as_string()
+                        .in_(['deferred', 'review_required']),
+                    ),
+                )
+                .first()
+            ):
+                raise HTTPException(
+                    status_code=409, detail='Resolve the pending subscription payment before changing access'
+                )
             # Get or create subscription
-            subscription = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+            subscription = (
+                db.query(Subscription)
+                .filter(Subscription.user_id == user_id)
+                .order_by(Subscription.created_at.desc())
+                .with_for_update()
+                .first()
+            )
+
+            _check_assignment_snapshot(request, subscription)
 
             current_time = int(time.time())
 
@@ -905,76 +1067,46 @@ async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest,
 
             if subscription:
                 old_plan_id = subscription.plan_id
-
-                # Update existing subscription
-                subscription.plan_id = request.plan_id
-                subscription.status = SubscriptionStatus.ACTIVE.value
-                subscription.current_period_start = current_time
-                subscription.current_period_end = current_time + period_duration
-                subscription.updated_at = current_time
-
-                # Reset usage if requested
-                if request.reset_usage:
-                    from open_webui.models.billing import Usage
-
-                    db.query(Usage).filter(
-                        Usage.user_id == user_id,
-                        Usage.created_at >= subscription.current_period_start,
-                    ).delete()
-
-                db.commit()
-                db.refresh(subscription)
-
-                log.info(
-                    f'Admin {admin_user.email} changed plan for user {user.email}: {old_plan_id} -> {request.plan_id}'
-                )
-
-                # Audit log
-                AuditLogs.create_log(
-                    user_id=admin_user.id,
-                    action=AuditAction.SUBSCRIPTION_PLAN_CHANGED,
-                    entity_type='subscription',
-                    entity_id=subscription.id,
-                    description=(
-                        f'Changed subscription plan for user {user.email} ' f'from {old_plan_id} to {request.plan_id}'
-                    ),
-                    audit_metadata={
-                        'target_user_id': user_id,
-                        'old_plan_id': old_plan_id,
-                        'new_plan_id': request.plan_id,
-                        'reset_usage': request.reset_usage,
-                    },
-                )
+                if request.cancel_scheduled_change:
+                    _cancel_scheduled_assignment(db, subscription, request, admin_user, current_time)
+                # A replay is a no-op, including cancellation and a queued change.
+                deferred = False
+                if (
+                    not request.cancel_scheduled_change
+                    and old_plan_id != request.plan_id
+                    and subscription.next_plan_id != request.plan_id
+                ):
+                    old_plan = _validate_access_change(request, subscription, new_plan, current_time)
+                    deferred = requires_next_term(old_plan, new_plan)
+                    replaced_plan_id = subscription.next_plan_id
+                    if deferred:
+                        subscription.next_plan_id = request.plan_id
+                    else:
+                        subscription.plan_id = request.plan_id
+                        subscription.next_plan_id = None
+                    subscription.updated_at = current_time
+                    db.commit()
+                    db.refresh(subscription)
+                    AuditLogs.create_log(
+                        user_id=admin_user.id,
+                        action=AuditAction.SUBSCRIPTION_PLAN_CHANGED,
+                        entity_type='subscription',
+                        entity_id=subscription.id,
+                        description=(
+                            'Scheduled plan change' if deferred else 'Changed access without payment or extension'
+                        ),
+                        audit_metadata={
+                            'target_user_id': user_id,
+                            'old_plan_id': old_plan_id,
+                            'new_plan_id': request.plan_id,
+                            'effective_at': subscription.current_period_end if deferred else current_time,
+                            'reason': request.reason.strip(),
+                            'replaced_next_plan_id': replaced_plan_id,
+                        },
+                    )
             else:
-                # Create new subscription
-                new_subscription = Subscription(
-                    id=str(uuid.uuid4()),
-                    user_id=user_id,
-                    plan_id=request.plan_id,
-                    status=SubscriptionStatus.ACTIVE.value,
-                    current_period_start=current_time,
-                    current_period_end=current_time + period_duration,
-                    created_at=current_time,
-                    updated_at=current_time,
-                )
-                db.add(new_subscription)
-                db.commit()
-                db.refresh(new_subscription)
-                subscription = new_subscription
-
-                log.info(f'Admin {admin_user.email} created subscription for user {user.email}: plan {request.plan_id}')
-
-                # Audit log
-                AuditLogs.create_log(
-                    user_id=admin_user.id,
-                    action=AuditAction.SUBSCRIPTION_CREATED,
-                    entity_type='subscription',
-                    entity_id=subscription.id,
-                    description=(f'Created subscription for user {user.email} ' f'with plan {request.plan_id}'),
-                    audit_metadata={
-                        'target_user_id': user_id,
-                        'plan_id': request.plan_id,
-                    },
+                subscription = _create_manual_subscription(
+                    db, request, new_plan, user_id, admin_user, current_time, period_duration
                 )
 
             return {
@@ -986,8 +1118,15 @@ async def change_user_subscription(user_id: str, request: ChangeUserPlanRequest,
                     'status': subscription.status,
                     'current_period_start': subscription.current_period_start,
                     'current_period_end': subscription.current_period_end,
+                    'next_plan_id': subscription.next_plan_id,
                 },
-                'plan': new_plan,
+                'plan': Plans.get_plan_by_id(subscription.plan_id),
+                'scheduled_plan': (
+                    Plans.get_plan_by_id(subscription.next_plan_id) if subscription.next_plan_id else None
+                ),
+                'effective_at': (
+                    subscription.current_period_end if subscription.next_plan_id == request.plan_id else current_time
+                ),
             }
 
     except HTTPException:

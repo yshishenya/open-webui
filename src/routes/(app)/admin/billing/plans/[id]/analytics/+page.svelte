@@ -7,7 +7,10 @@
 	import { WEBUI_NAME, user } from '$lib/stores';
 	import { getPlansWithStats, type PlanStats } from '$lib/apis/admin/billing';
 	import { formatReportMoney } from '$lib/utils/airis/billing_reporting_ui';
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	const i18n = getContext<Readable<I18nType>>('i18n');
+	$: locale = getI18nLocale($i18n);
+	$: isRussian = locale.toLowerCase().startsWith('ru');
 	let stats: PlanStats | null = null;
 	let loading = false;
 	let error = '';
@@ -53,7 +56,9 @@
 <div class="mx-auto w-full min-w-0 max-w-5xl px-4 py-5">
 	<a href="/admin/billing/plans" class="text-sm underline">← {$i18n.t('Subscriptions')}</a>
 	<h1 class="my-4 break-words text-xl font-semibold">
-		{stats?.plan.name_ru || stats?.plan.name || $i18n.t('Subscription overview')}
+		{(isRussian
+			? stats?.plan.name_ru || stats?.plan.name
+			: stats?.plan.name || stats?.plan.name_ru) || $i18n.t('Subscription overview')}
 	</h1>
 	{#if loading}<p role="status">{$i18n.t('Loading')}</p>{/if}{#if error}<p
 			role="alert"
@@ -65,16 +70,20 @@
 	{#if stats && !loading && !error}<dl class="grid gap-3 sm:grid-cols-3">
 			<div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
 				<dt class="text-sm text-gray-500">{$i18n.t('Active subscriptions')}</dt>
-				<dd class="mt-2 text-xl font-semibold">{stats.active_subscriptions}</dd>
+				<dd class="mt-2 text-xl font-semibold">
+					{stats.active_subscriptions.toLocaleString(locale)}
+				</dd>
 			</div>
 			<div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
 				<dt class="text-sm text-gray-500">{$i18n.t('Canceled subscriptions')}</dt>
-				<dd class="mt-2 text-xl font-semibold">{stats.canceled_subscriptions}</dd>
+				<dd class="mt-2 text-xl font-semibold">
+					{stats.canceled_subscriptions.toLocaleString(locale)}
+				</dd>
 			</div>
 			<div class="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
 				<dt class="text-sm text-gray-500">{$i18n.t('Calculated monthly income')}</dt>
 				<dd class="mt-2 break-words text-xl font-semibold">
-					{formatReportMoney(Math.round(stats.mrr * 100), stats.plan.currency, $i18n.language)}
+					{formatReportMoney(Math.round(stats.mrr * 100), stats.plan.currency, locale)}
 				</dd>
 			</div>
 		</dl>

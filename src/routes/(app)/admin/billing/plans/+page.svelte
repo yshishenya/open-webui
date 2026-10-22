@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { onMount, getContext } from 'svelte';
+	import type { Readable } from 'svelte/store';
+	import type { i18n as I18n } from 'i18next';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 
@@ -23,7 +25,8 @@
 	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<Readable<I18n>>('i18n');
+	$: isRussian = getI18nLocale($i18n).toLowerCase().startsWith('ru');
 
 	let loaded = false;
 	let plansWithStats: PlanStats[] = [];
@@ -179,10 +182,10 @@
 
 	const getIntervalLabel = (interval: string): string => {
 		const intervals: Record<string, string> = {
-			month: $i18n.t('mo'),
-			year: $i18n.t('yr'),
-			week: $i18n.t('wk'),
-			day: $i18n.t('d')
+			month: 'mo',
+			year: 'yr',
+			week: 'wk',
+			day: 'd'
 		};
 		return intervals[interval] || interval;
 	};
@@ -304,14 +307,16 @@
 													{planStat.plan.is_active ? $i18n.t('Active') : $i18n.t('Inactive')}
 												</div>
 												<div class="line-clamp-1 text-sm font-medium">
-													{planStat.plan.name_ru || planStat.plan.name}
+													{isRussian
+														? planStat.plan.name_ru || planStat.plan.name
+														: planStat.plan.name || planStat.plan.name_ru}
 												</div>
 												<div class="text-gray-500 text-xs font-medium shrink-0">
 													{formatPrice(
 														planStat.plan.price,
 														planStat.plan.currency,
 														getI18nLocale($i18n)
-													)}/{getIntervalLabel(planStat.plan.interval)}
+													)}/{$i18n.t(getIntervalLabel(planStat.plan.interval))}
 												</div>
 											</div>
 										</Tooltip>
@@ -334,7 +339,9 @@
 												<div
 													class="text-xs overflow-hidden text-ellipsis line-clamp-1 text-gray-400"
 												>
-													• {planStat.plan.description_ru || planStat.plan.description}
+													• {isRussian
+														? planStat.plan.description_ru || planStat.plan.description
+														: planStat.plan.description || planStat.plan.description_ru}
 												</div>
 											{/if}
 										</div>
@@ -343,76 +350,76 @@
 							</a>
 
 							<div class="flex flex-row gap-0.5 self-center">
-									<Tooltip content={$i18n.t('Delete')}>
-										<button
+								<Tooltip content={$i18n.t('Delete')}>
+									<button
 										aria-label={$i18n.t('Delete')}
-											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
-											type="button"
-											disabled={planStat.active_subscriptions > 0}
-											on:click={() => confirmDelete(planStat)}
-										>
-											<GarbageBin />
-										</button>
-									</Tooltip>
-									<Tooltip content={$i18n.t('Subscribers')}>
+										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
+										type="button"
+										disabled={planStat.active_subscriptions > 0}
+										on:click={() => confirmDelete(planStat)}
+									>
+										<GarbageBin />
+									</button>
+								</Tooltip>
+								<Tooltip content={$i18n.t('Subscribers')}>
 									<button
 										aria-label={$i18n.t('Subscribers')}
-											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
-											type="button"
-											on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/subscribers`)}
+										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
+										type="button"
+										on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/subscribers`)}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke-width="1.5"
+											stroke="currentColor"
+											class="size-4"
 										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke-width="1.5"
-												stroke="currentColor"
-												class="size-4"
-											>
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
-												/>
-											</svg>
-										</button>
-									</Tooltip>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+											/>
+										</svg>
+									</button>
+								</Tooltip>
 
-									<Tooltip content={$i18n.t('Analytics')}>
-										<button
+								<Tooltip content={$i18n.t('Analytics')}>
+									<button
 										aria-label={$i18n.t('Analytics')}
-											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
-											type="button"
-											on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/analytics`)}
-										>
-											<ChartBar className="size-4" />
-										</button>
-									</Tooltip>
+										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
+										type="button"
+										on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/analytics`)}
+									>
+										<ChartBar className="size-4" />
+									</button>
+								</Tooltip>
 
-									<Tooltip content={$i18n.t('Duplicate')}>
+								<Tooltip content={$i18n.t('Duplicate')}>
 									<button
 										aria-label={$i18n.t('Duplicate')}
-											class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
-											type="button"
-											disabled={actionInProgress}
-											on:click={() => handleDuplicate(planStat.plan.id)}
+										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
+										type="button"
+										disabled={actionInProgress}
+										on:click={() => handleDuplicate(planStat.plan.id)}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke-width="1.5"
+											stroke="currentColor"
+											class="size-4"
 										>
-											<svg
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke-width="1.5"
-												stroke="currentColor"
-												class="size-4"
-											>
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
-												/>
-											</svg>
-										</button>
-									</Tooltip>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+											/>
+										</svg>
+									</button>
+								</Tooltip>
 
 								<div class="self-center mx-1">
 									<Tooltip
@@ -488,7 +495,12 @@
 		on:confirm={handleDelete}
 	>
 		<div class="text-sm text-gray-500 truncate">
-			{$i18n.t('This will delete')} <span class="font-semibold">{planToDelete?.plan.name}</span>.
+			{$i18n.t('This will delete')}
+			<span class="font-semibold">
+				{isRussian
+					? planToDelete?.plan.name_ru || planToDelete?.plan.name
+					: planToDelete?.plan.name || planToDelete?.plan.name_ru}</span
+			>.
 		</div>
 	</ConfirmDialog>
 {/if}

@@ -201,7 +201,7 @@ class TestBillingServiceExtended:
         assert usage.period_start == usage.period_end
         assert usage.extra_metadata == {'source': 'test'}
 
-    def test_renew_subscription_handles_missing_entities_and_valid_flow(self, monkeypatch: MonkeyPatch) -> None:
+    def test_renew_subscription_requires_verified_payment(self, monkeypatch: MonkeyPatch) -> None:
         service = BillingService()
         now = int(time.time())
 
@@ -233,9 +233,6 @@ class TestBillingServiceExtended:
 
         monkeypatch.setattr(service.subscriptions, 'update_subscription', _update_subscription)
 
-        renewed = service.renew_subscription('sub_1')
-
-        assert renewed is not None
-        assert updates
-        assert updates[-1]['status'] == SubscriptionStatus.ACTIVE
-        assert updates[-1]['cancel_at_period_end'] is False
+        with pytest.raises(ValueError, match='requires a verified payment'):
+            service.renew_subscription('sub_1')
+        assert updates == []

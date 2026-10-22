@@ -2,7 +2,7 @@
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { browserTracksPayments } from '$lib/utils/airis/funnelAnalytics';
 	import { onDestroy, onMount, getContext, tick } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
@@ -12,7 +12,6 @@
 	import { WEBUI_NAME, models } from '$lib/stores';
 	import {
 		createTopup,
-		getBalance,
 		getLeadMagnetInfo,
 		getPublicPricingConfig,
 		reconcileTopup,
@@ -36,10 +35,19 @@
 	import { trackEcommercePurchase, trackEvent } from '$lib/utils/analytics';
 	import {
 		buildTopupReturnUrl,
+		topupReturnPaymentId,
+		topupReturnStorageKey,
+		TOPUP_FLOW_STORAGE_KEY,
 		normalizeBillingReturnPath,
 		withBasePath
 	} from '$lib/utils/airis/billing_return_url';
 	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
+	import {
+		focusWalletSection,
+		invalidateWalletBalanceReads,
+		loadWalletBalance as getBalance,
+		WALLET_BALANCE_EVENT
+	} from '$lib/utils/airis/wallet_settings';
 	import {
 		parseBillingMoney,
 		hasFreeTextQuota,
@@ -53,17 +61,14 @@
 	const LOW_BALANCE_THRESHOLD_KOPEKS = 10000;
 	let destroyed = false;
 	let balanceRequest = 0;
+	let loadedToken: string | null = null;
 	let checkingTopup = false;
 	let reconcileInFlight: Promise<boolean> | null = null;
-	const TOPUP_FLOW_STORAGE_KEY = 'billing_topup_flow_v1';
-	const TOPUP_FLOW_TTL_MS = 10 * 60 * 1000;
 	const TOPUP_RETURN_POLL_INTERVAL_MS = 3000;
 	const TOPUP_RETURN_POLL_MAX_ATTEMPTS = 6;
 
 	type TopupFlow = {
-		started_at_ms: number;
-		amount_kopeks: number;
-		previous_total_kopeks: number;
+		amount_kopeks: number | null;
 		payment_id: string;
 		return_to: string | null;
 	};
@@ -84,13 +89,19 @@
 	let highlightedPackageLabel: string | null = null;
 	let lastTopupKopeks: number | null = null;
 	let topupFlow: TopupFlow | null = null;
+	let topupFlowStorageKey = TOPUP_FLOW_STORAGE_KEY;
 	let topupReturnStatus: PaymentReturnState = 'idle';
 	let leadMagnetError = false;
 	let contactsError = false;
 	let saveResult = '';
 	let saveSource: 'limits' | 'contacts' | 'auto' | '' = '';
 	let limitsError = '';
+	let maxReplyError = '';
+	let dailyCapError = '';
 	let autoTopupError = '';
+	let autoThresholdError = '';
+	let autoAmountError = '';
+	let autoStateRefreshError = false;
 	let contactsSaveError = '';
 	let topupReturnAttempts = 0;
 	let topupReturnTimer: ReturnType<typeof setTimeout> | null = null;
@@ -121,11 +132,34 @@
 	let limitsDirty = false;
 	let contactsDirty = false;
 	let howItWorksOpen = false;
+	let appliedFocusHint: 'topup' | 'limits' | 'auto_topup' | null = null;
+	let removeBalanceListeners: () => void = () => {};
+
+	const isCurrentAccount = (token: string | null): token is string =>
+		!!token && !destroyed && token === loadedToken && token === localStorage.token;
+
+	const invalidateSavedWallet = (token: string): void => {
+		invalidateWalletBalanceReads(token);
+		balanceRequest += 1;
+		loading = false;
+		refreshing = false;
+	};
 
 	$: returnTo = sanitizeReturnTo($page.url.searchParams.get('return_to'));
 	$: settingsView =
 		$page.url.pathname === '/billing/balance' &&
 		['limits', 'auto_topup'].includes($page.url.searchParams.get('focus') ?? '');
+	$: focusHint = (() => {
+		const value = $page.url.searchParams.get('focus');
+		return value === 'topup' || value === 'limits' || value === 'auto_topup' ? value : null;
+	})();
+	$: if (!loading && balance && focusHint !== appliedFocusHint) {
+		appliedFocusHint = focusHint;
+		if (focusHint)
+			void tick().then(() => {
+				if (!destroyed) applyFocusHint();
+			});
+	}
 	$: normalizedReturnTo = normalizeBillingReturnPath(returnTo, {
 		origin: $page.url.origin,
 		basePath: base
@@ -149,26 +183,38 @@
 		lastTopupKopeks = readLastTopupKopeks();
 		void loadTopupConfig();
 
-		const rawFocus = $page.url.searchParams.get('focus');
-		if (rawFocus === 'topup' || rawFocus === 'limits' || rawFocus === 'auto_topup') {
-			focusHint = rawFocus;
-		}
+		const receiveBalance = (event: Event): void => {
+			if (!isCurrentAccount(loadedToken) || !(event instanceof CustomEvent)) return;
+			const current = (event as CustomEvent<Balance | null>).detail;
+			if (current) balance = current;
+		};
+		window.addEventListener(WALLET_BALANCE_EVENT, receiveBalance);
+		removeBalanceListeners = () => {
+			window.removeEventListener(WALLET_BALANCE_EVENT, receiveBalance);
+		};
 
 		await loadBalance();
-		if (destroyed) return;
+		if (!isCurrentAccount(loadedToken)) return;
 		await tick();
-		if (destroyed) return;
-		applyFocusHint();
+		if (!isCurrentAccount(loadedToken)) return;
 		await startTopupReturnCheck();
 	});
 
 	onDestroy(() => {
 		destroyed = true;
+		removeBalanceListeners();
 		balanceRequest++;
 		if (topupReturnTimer) {
 			clearTimeout(topupReturnTimer);
 			topupReturnTimer = null;
 		}
+	});
+
+	afterNavigate(() => {
+		if (!loading)
+			void tick().then(() => {
+				if (!destroyed) applyFocusHint();
+			});
 	});
 
 	const loadTopupConfig = async (): Promise<void> => {
@@ -215,23 +261,17 @@
 		}
 	}
 
-	const readTopupFlowFromStorage = (): TopupFlow | null => {
+	const readTopupFlowFromStorage = (key = TOPUP_FLOW_STORAGE_KEY): TopupFlow | null => {
 		try {
-			const raw = localStorage.getItem(TOPUP_FLOW_STORAGE_KEY);
+			const raw = localStorage.getItem(key);
 			if (!raw) return null;
 			const parsed = JSON.parse(raw) as Record<string, unknown>;
-			const startedAt = typeof parsed.started_at_ms === 'number' ? parsed.started_at_ms : null;
 			const amount = typeof parsed.amount_kopeks === 'number' ? parsed.amount_kopeks : null;
-			const previousTotal =
-				typeof parsed.previous_total_kopeks === 'number' ? parsed.previous_total_kopeks : null;
 			const paymentId = typeof parsed.payment_id === 'string' ? parsed.payment_id : null;
 			const returnToParam = typeof parsed.return_to === 'string' ? parsed.return_to : null;
-			if (!startedAt || !amount || previousTotal === null || !paymentId) return null;
-			if (Date.now() - startedAt > TOPUP_FLOW_TTL_MS) return null;
+			if (!paymentId) return null;
 			return {
-				started_at_ms: startedAt,
 				amount_kopeks: amount,
-				previous_total_kopeks: previousTotal,
 				payment_id: paymentId,
 				return_to: sanitizeReturnTo(returnToParam)
 			};
@@ -242,7 +282,10 @@
 
 	const clearTopupFlow = (): void => {
 		try {
-			localStorage.removeItem(TOPUP_FLOW_STORAGE_KEY);
+			if (readTopupFlowFromStorage(topupFlowStorageKey)?.payment_id === topupFlow?.payment_id)
+				localStorage.removeItem(topupFlowStorageKey);
+			if (readTopupFlowFromStorage()?.payment_id === topupFlow?.payment_id)
+				localStorage.removeItem(TOPUP_FLOW_STORAGE_KEY);
 		} catch {
 			// ignore
 		}
@@ -253,13 +296,15 @@
 	};
 
 	const reconcileStoredTopup = async (): Promise<boolean> => {
+		const token = loadedToken;
+		if (!isCurrentAccount(token)) return false;
 		if (reconcileInFlight) return reconcileInFlight;
 		const paymentId = topupFlow?.payment_id;
 		if (!paymentId) return false;
 		reconcileInFlight = (async () => {
 			try {
-				const result = await reconcileTopup(localStorage.token, paymentId);
-				if (destroyed || paymentId !== topupFlow?.payment_id) return false;
+				const result = await reconcileTopup(token, paymentId);
+				if (!isCurrentAccount(token) || paymentId !== topupFlow?.payment_id) return false;
 				topupReturnStatus = paymentReturnState(result);
 				const credited = topupReturnStatus === 'success';
 				if (credited) recentActivityRevision += 1;
@@ -272,23 +317,25 @@
 	};
 
 	const trackTopupCompleted = (): void => {
-		if (destroyed || !topupFlow) return;
+		if (destroyed || !topupFlow || topupFlow.amount_kopeks === null) return;
 		const completed = { ...topupFlow };
+		const amount = topupFlow.amount_kopeks;
 		const currency = balance?.currency ?? 'RUB';
 		// Resolve the authoritative transport before emitting; analytics never delays wallet UI.
 		void browserTracksPayments().then((browserEnabled) => {
 			if (!browserEnabled) return;
-			trackEvent('billing_topup_completed', { amount_kopeks: completed.amount_kopeks });
+			trackEvent('billing_topup_completed', { amount_kopeks: amount });
 			trackEcommercePurchase({
 				id: completed.payment_id,
-				revenue: completed.amount_kopeks / 100,
+				revenue: amount / 100,
 				currency
 			});
 		});
 	};
 
 	const handleTopupReturnRefresh = async (): Promise<void> => {
-		if (checkingTopup || refreshing || destroyed) return;
+		const token = loadedToken;
+		if (checkingTopup || refreshing || !isCurrentAccount(token)) return;
 		checkingTopup = true;
 		try {
 			let credited = false;
@@ -296,12 +343,14 @@
 				try {
 					credited = await reconcileStoredTopup();
 				} catch (error) {
+					if (!isCurrentAccount(token)) return;
 					console.warn('Failed to reconcile topup on manual refresh:', error);
 					topupReturnStatus = 'unknown';
 				}
 			}
+			if (!isCurrentAccount(token)) return;
 			await loadBalance({ showLoader: false });
-			if (topupFlow && credited) {
+			if (isCurrentAccount(token) && topupFlow && credited) {
 				trackTopupCompleted();
 				topupReturnStatus = 'success';
 				clearTopupFlow();
@@ -324,7 +373,8 @@
 	};
 
 	const scheduleTopupReturnCheck = (): void => {
-		if (destroyed) return;
+		const token = loadedToken;
+		if (!isCurrentAccount(token)) return;
 		if (!topupFlow || topupReturnDismissed) return;
 		if (topupReturnStatus === 'canceled' || topupReturnAttempts >= TOPUP_RETURN_POLL_MAX_ATTEMPTS)
 			return;
@@ -333,7 +383,7 @@
 			topupReturnTimer = null;
 		}
 		topupReturnTimer = setTimeout(async () => {
-			if (destroyed) return;
+			if (!isCurrentAccount(token)) return;
 			if (checkingTopup) {
 				scheduleTopupReturnCheck();
 				return;
@@ -344,12 +394,14 @@
 				try {
 					credited = await reconcileStoredTopup();
 				} catch (error) {
+					if (!isCurrentAccount(token)) return;
 					console.warn('Failed to reconcile topup during polling:', error);
 					topupReturnStatus = 'unknown';
 				}
 			}
+			if (!isCurrentAccount(token)) return;
 			await loadBalance({ showLoader: false });
-			if (destroyed || !topupFlow) return;
+			if (!isCurrentAccount(token) || !topupFlow) return;
 			if (credited) {
 				trackTopupCompleted();
 				topupReturnStatus = 'success';
@@ -366,9 +418,31 @@
 
 	const startTopupReturnCheck = async (): Promise<void> => {
 		if (destroyed || topupReturnDismissed) return;
-		const flow = readTopupFlowFromStorage();
-		if (!flow) return;
+		const flowKey = topupReturnStorageKey($page.url);
+		const stored = readTopupFlowFromStorage(flowKey ?? TOPUP_FLOW_STORAGE_KEY);
+		const paymentId = topupReturnPaymentId($page.url);
+		const hasReturnIdentity = ['topup_payment_id', 'payment_id', 'topup_return_id'].some((key) =>
+			$page.url.searchParams.has(key)
+		);
+		let flow: TopupFlow | null = stored;
+		if (paymentId) {
+			flow =
+				stored?.payment_id === paymentId
+					? stored
+					: { payment_id: paymentId, amount_kopeks: null, return_to: returnTo };
+		} else if (
+			!flowKey &&
+			(hasReturnIdentity || $page.url.searchParams.get('topup_return') === '1')
+		) {
+			// An old/unidentified return must not claim the latest payment from another tab.
+			flow = null;
+		}
+		if (!flow) {
+			if ($page.url.searchParams.get('topup_return') === '1') topupReturnStatus = 'unknown';
+			return;
+		}
 		topupFlow = flow;
+		topupFlowStorageKey = flowKey ?? TOPUP_FLOW_STORAGE_KEY;
 		topupReturnStatus = 'checking';
 		topupReturnAttempts = 0;
 		scheduleTopupReturnCheck();
@@ -376,6 +450,20 @@
 
 	const loadBalance = async (options: { showLoader?: boolean } = {}): Promise<void> => {
 		const version = ++balanceRequest;
+		const token = localStorage.token;
+		const isCurrentLoad = (): boolean =>
+			!destroyed && version === balanceRequest && localStorage.token === token;
+		if (loadedToken !== token) {
+			loadedToken = null;
+			balance = null;
+			leadMagnetInfo = null;
+			maxReplyCost = dailyCap = contactEmail = contactPhone = '';
+			autoTopupEnabled = false;
+			autoTopupThreshold = autoTopupAmount = '';
+			limitsBaseline = { maxReplyCost: '', dailyCap: '' };
+			contactsBaseline = { email: '', phone: '' };
+			autoTopupBaseline = { enabled: false, threshold: '', amount: '' };
+		}
 		const showLoader = options.showLoader ?? balance === null;
 		if (showLoader) {
 			loading = true;
@@ -386,9 +474,13 @@
 		}
 
 		try {
-			const balanceResult = await getBalance(localStorage.token);
-			if (destroyed || version !== balanceRequest) return;
+			const balanceResult = await getBalance(token);
+			if (!isCurrentLoad()) return;
 			balance = balanceResult;
+			if (balanceResult && autoStateRefreshError) {
+				autoTopupError = '';
+				autoStateRefreshError = false;
+			}
 			if (!autoTopupDirty) {
 				autoTopupEnabled = balance?.auto_topup_enabled ?? false;
 				autoTopupThreshold = formatMoneyInput(balance?.auto_topup_threshold_kopeks ?? null);
@@ -406,12 +498,12 @@
 			}
 
 			try {
-				const leadMagnetResult = await getLeadMagnetInfo(localStorage.token);
-				if (destroyed || version !== balanceRequest) return;
+				const leadMagnetResult = await getLeadMagnetInfo(token);
+				if (!isCurrentLoad()) return;
 				leadMagnetInfo = leadMagnetResult;
 				leadMagnetError = !leadMagnetResult;
 			} catch (error) {
-				if (destroyed || version !== balanceRequest) return;
+				if (!isCurrentLoad()) return;
 				console.error('Failed to load lead magnet info:', error);
 				leadMagnetError = true;
 				if (showLoader) {
@@ -420,8 +512,8 @@
 			}
 
 			try {
-				const infoResult = await getUserInfo(localStorage.token);
-				if (destroyed || version !== balanceRequest) return;
+				const infoResult = await getUserInfo(token);
+				if (!isCurrentLoad()) return;
 				contactsError = !infoResult;
 				if (!contactsDirty) {
 					contactEmail = infoResult?.billing_contact_email ?? '';
@@ -429,7 +521,7 @@
 					contactsBaseline = { email: contactEmail, phone: contactPhone };
 				}
 			} catch (error) {
-				if (destroyed || version !== balanceRequest) return;
+				if (!isCurrentLoad()) return;
 				console.error('Failed to load billing contacts:', error);
 				contactsError = true;
 				if (showLoader) {
@@ -438,12 +530,13 @@
 				}
 			}
 
+			loadedToken = balanceResult ? token : null;
 			if (lastTrackedStatus !== 'success') {
 				trackEvent('billing_wallet_view', { status: 'success' });
 				lastTrackedStatus = 'success';
 			}
 		} catch (error) {
-			if (destroyed || version !== balanceRequest) return;
+			if (!isCurrentLoad()) return;
 			console.error('Failed to load balance:', error);
 			if (showLoader) {
 				errorMessage = $i18n.t('Failed to load balance');
@@ -468,7 +561,8 @@
 		amountKopeks: number,
 		source: 'package' | 'custom' = 'package'
 	): Promise<void> => {
-		if (creatingTopupAmount !== null) return;
+		const token = loadedToken;
+		if (creatingTopupAmount !== null || !isCurrentAccount(token)) return;
 		creatingTopupAmount = amountKopeks;
 
 		try {
@@ -477,12 +571,15 @@
 			} else {
 				trackEvent('billing_wallet_topup_custom_submit', { amount_kopeks: amountKopeks });
 			}
+			const flowId = crypto.randomUUID();
 			const returnUrl = buildTopupReturnUrl({
 				origin: window.location.origin,
 				basePath: base,
-				returnTo
+				returnTo,
+				flowId
 			});
-			const result = await createTopup(localStorage.token, amountKopeks, returnUrl);
+			const result = await createTopup(token, amountKopeks, returnUrl);
+			if (!isCurrentAccount(token)) return;
 			if (result?.confirmation_url) {
 				void browserTracksPayments().then((browserEnabled) => {
 					if (browserEnabled)
@@ -496,14 +593,13 @@
 				}
 				if (result.payment_id) {
 					const flow: TopupFlow = {
-						started_at_ms: Date.now(),
 						amount_kopeks: amountKopeks,
-						previous_total_kopeks: getTotalBalanceKopeks(balance),
 						payment_id: result.payment_id,
 						return_to: returnTo
 					};
 					try {
 						localStorage.setItem(TOPUP_FLOW_STORAGE_KEY, JSON.stringify(flow));
+						localStorage.setItem(`${TOPUP_FLOW_STORAGE_KEY}:${flowId}`, JSON.stringify(flow));
 					} catch {
 						// ignore
 					}
@@ -513,6 +609,7 @@
 			}
 			toast.error($i18n.t('Failed to create topup'));
 		} catch (error) {
+			if (!isCurrentAccount(token)) return;
 			console.error('Failed to create topup:', error);
 			const errorDetail = extractApiErrorDetail(error);
 			toast.error($i18n.t(errorDetail ?? 'Failed to create topup'));
@@ -522,7 +619,8 @@
 	};
 
 	const handleSaveAutoTopup = async (): Promise<void> => {
-		if (!balance || savingAutoTopup || destroyed) return;
+		const token = loadedToken;
+		if (!balance || savingAutoTopup || !isCurrentAccount(token)) return;
 		const snapshot = {
 			enabled: autoTopupEnabled,
 			threshold: autoTopupThreshold,
@@ -530,6 +628,9 @@
 		};
 		savingAutoTopup = true;
 		autoTopupError = '';
+		autoThresholdError = '';
+		autoAmountError = '';
+		autoStateRefreshError = false;
 		saveResult = '';
 		try {
 			const threshold = parseMoneyInput(snapshot.threshold);
@@ -539,18 +640,27 @@
 				snapshot.enabled &&
 				(threshold === null || amount === null || !topupPackages.includes(amount))
 			) {
-				autoTopupError = $i18n.t('Enter a valid threshold and choose a top-up amount');
-				toast.error(autoTopupError);
+				if (threshold === null)
+					autoThresholdError = $i18n.t('Enter a non-negative amount with up to two decimal places');
+				if (amount === null || !topupPackages.includes(amount))
+					autoAmountError = $i18n.t('Choose an amount');
+				await tick();
+				document
+					.querySelector<HTMLElement>(
+						autoThresholdError ? '[name="auto_topup_threshold"]' : '[name="auto_topup_amount"]'
+					)
+					?.focus();
 				return;
 			}
 
-			await updateAutoTopup(localStorage.token, {
+			await updateAutoTopup(token, {
 				enabled: snapshot.enabled,
 				threshold_kopeks: snapshot.enabled ? (threshold ?? undefined) : undefined,
 				amount_kopeks: snapshot.enabled ? (amount ?? undefined) : undefined
 			});
 
-			if (destroyed) return;
+			if (!isCurrentAccount(token)) return;
+			invalidateSavedWallet(token);
 			trackEvent('billing_wallet_auto_topup_save', {
 				enabled: snapshot.enabled,
 				...(snapshot.enabled && threshold !== null ? { threshold_kopeks: threshold } : {}),
@@ -564,20 +674,34 @@
 				threshold: snapshot.threshold,
 				amount: snapshot.amount
 			};
-			// Avoid wiping other unsaved inputs (contacts/limits) by reloading the whole page state.
-			// Balance is updated optimistically; a full refresh will still reconcile with backend state.
-			balance = {
-				...balance,
-				auto_topup_enabled: snapshot.enabled,
-				auto_topup_threshold_kopeks: snapshot.enabled
-					? (threshold ?? balance.auto_topup_threshold_kopeks)
-					: balance.auto_topup_threshold_kopeks,
-				auto_topup_amount_kopeks: snapshot.enabled
-					? (amount ?? balance.auto_topup_amount_kopeks)
-					: balance.auto_topup_amount_kopeks
-			};
+			try {
+				const confirmed = await getBalance(token, true);
+				if (!confirmed) throw new Error('No confirmed wallet state');
+				if (!isCurrentAccount(token)) return;
+				balance = confirmed;
+				const unchanged =
+					autoTopupEnabled === snapshot.enabled &&
+					autoTopupThreshold === snapshot.threshold &&
+					autoTopupAmount === snapshot.amount;
+				autoTopupBaseline = {
+					enabled: confirmed.auto_topup_enabled ?? false,
+					threshold: formatMoneyInput(confirmed.auto_topup_threshold_kopeks ?? null),
+					amount: formatMoneyInput(confirmed.auto_topup_amount_kopeks ?? null)
+				};
+				if (unchanged) {
+					autoTopupEnabled = autoTopupBaseline.enabled;
+					autoTopupThreshold = autoTopupBaseline.threshold;
+					autoTopupAmount = autoTopupBaseline.amount;
+				}
+			} catch (error) {
+				console.warn('Auto-topup saved, but balance refresh failed:', error);
+				if (isCurrentAccount(token)) {
+					autoStateRefreshError = true;
+					autoTopupError = $i18n.t('Settings saved, but current state could not be refreshed.');
+				}
+			}
 		} catch (error) {
-			if (destroyed) return;
+			if (!isCurrentAccount(token)) return;
 			console.error('Failed to update auto-topup:', error);
 			autoTopupError = $i18n.t('Failed to update auto-topup');
 			toast.error(autoTopupError);
@@ -587,11 +711,14 @@
 	};
 
 	const handleSavePreferences = async (source: 'limits' | 'contacts'): Promise<void> => {
-		if (!balance || savingPreferences || destroyed) return;
+		const token = loadedToken;
+		if (!balance || savingPreferences || !isCurrentAccount(token)) return;
 		const savedLimits = { maxReplyCost, dailyCap };
 		const savedContacts = { email: contactEmail, phone: contactPhone };
 		savingPreferences = true;
 		limitsError = '';
+		maxReplyError = '';
+		dailyCapError = '';
 		contactsSaveError = '';
 		saveResult = '';
 		try {
@@ -607,13 +734,15 @@
 				const daily = parseMoneyInput(dailyCap);
 
 				if (maxReplyCost && maxReply === null) {
-					limitsError = $i18n.t('Enter a non-negative amount with up to two decimal places');
-					toast.error(limitsError);
+					maxReplyError = $i18n.t('Enter a non-negative amount with up to two decimal places');
+					await tick();
+					document.getElementById('max-reply-cost')?.focus();
 					return;
 				}
 				if (dailyCap && daily === null) {
-					limitsError = $i18n.t('Enter a non-negative amount with up to two decimal places');
-					toast.error(limitsError);
+					dailyCapError = $i18n.t('Enter a non-negative amount with up to two decimal places');
+					await tick();
+					document.getElementById('daily-cap')?.focus();
 					return;
 				}
 
@@ -646,8 +775,9 @@
 				});
 			}
 
-			await updateBillingSettings(localStorage.token, payload);
-			if (destroyed) return;
+			await updateBillingSettings(token, payload);
+			if (!isCurrentAccount(token)) return;
+			invalidateSavedWallet(token);
 			saveSource = source;
 			saveResult = $i18n.t('Billing settings saved');
 			toast.success(saveResult);
@@ -669,7 +799,7 @@
 				contactsBaseline = savedContacts;
 			}
 		} catch (error) {
-			if (destroyed) return;
+			if (!isCurrentAccount(token)) return;
 			console.error('Failed to update billing settings:', error);
 			if (source === 'limits') limitsError = $i18n.t('Failed to update billing settings');
 			else contactsSaveError = $i18n.t('Failed to update billing settings');
@@ -723,37 +853,19 @@
 		return null;
 	};
 
-	const scrollToTopup = () => {
-		const target = document.getElementById('topup-section');
-		target?.scrollIntoView?.({
-			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-			block: 'start'
-		});
+	const scrollToTopup = async (): Promise<void> => {
+		await tick();
+		if (settingsView) {
+			const target = new URL(buildBillingPath('/billing/balance'), $page.url.origin);
+			target.searchParams.set('focus', 'topup');
+			await goto(`${target.pathname}${target.search}`);
+			await tick();
+		}
+		if (!destroyed) focusWalletSection('topup-section');
 	};
-
-	const scrollToFreeLimit = () => {
-		const target = document.getElementById('free-limit-section');
-		target?.scrollIntoView?.({
-			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-			block: 'start'
-		});
-	};
-
-	const scrollToAdvanced = () => {
-		const target = document.getElementById('advanced-settings-section');
-		target?.scrollIntoView?.({
-			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-			block: 'start'
-		});
-	};
-
-	const scrollToAutoTopup = () => {
-		const target = document.getElementById('auto-topup-section');
-		target?.scrollIntoView?.({
-			behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-			block: 'start'
-		});
-	};
+	const scrollToFreeLimit = (): void => focusWalletSection('free-limit-section');
+	const scrollToAdvanced = (): void => focusWalletSection('spend-controls-section');
+	const scrollToAutoTopup = (): void => focusWalletSection('auto-topup-section');
 
 	const applyFocusHint = (): void => {
 		if (focusHint === 'topup') {
@@ -878,7 +990,7 @@
 				onLimits={handleHowItWorksLimits}
 			/>
 
-			{#if topupReturnStatus !== 'idle' && !topupReturnDismissed && topupFlow}
+			{#if topupReturnStatus !== 'idle' && !topupReturnDismissed}
 				<div
 					role="status"
 					aria-live="polite"
@@ -920,11 +1032,12 @@
 									{/if}
 								</div>
 								<div class="text-xs text-gray-500 mt-1">
-									{$i18n.t('Top-up')}: {formatMoney(
-										topupFlow.amount_kopeks,
-										balance.currency,
-										getI18nLocale($i18n)
-									)}
+									{#if topupFlow?.amount_kopeks !== null && topupFlow?.amount_kopeks !== undefined}
+										{$i18n.t('Top-up')}: {formatMoney(
+											topupFlow.amount_kopeks,
+											balance.currency,
+											getI18nLocale($i18n)
+										)}{/if}
 									{#if ['checking', 'pending', 'uncredited'].includes(topupReturnStatus)}
 										<span class="mx-1">•</span>
 										{$i18n.t('This may take a minute')}
@@ -942,7 +1055,12 @@
 						</button>
 					</div>
 					<div class="mt-3 flex flex-wrap gap-2">
-						{#if topupReturnStatus !== 'success'}
+						<a
+							href={buildBillingPath('/billing/history')}
+							class="inline-flex min-h-11 items-center px-3 py-1.5 underline"
+							>{$i18n.t('View history')}</a
+						>
+						{#if topupReturnStatus !== 'success' && topupFlow}
 							<button
 								type="button"
 								on:click={handleTopupReturnRefresh}
@@ -1175,6 +1293,11 @@
 								currency={balance.currency}
 								successMessage={saveSource === 'auto' && !autoTopupDirty ? saveResult : ''}
 								errorMessage={autoTopupError}
+								onRetry={autoStateRefreshError
+									? () => loadBalance({ showLoader: false })
+									: undefined}
+								bind:thresholdError={autoThresholdError}
+								bind:amountError={autoAmountError}
 								bind:autoTopupEnabled
 								bind:autoTopupThreshold
 								bind:autoTopupAmount
@@ -1189,6 +1312,8 @@
 						<WalletSpendControls
 							successMessage={saveSource === 'limits' && !limitsDirty ? saveResult : ''}
 							errorMessage={limitsError}
+							bind:maxReplyError
+							bind:dailyCapError
 							bind:maxReplyCost
 							bind:dailyCap
 							currentMaxReply={balance.max_reply_cost_kopeks ?? null}

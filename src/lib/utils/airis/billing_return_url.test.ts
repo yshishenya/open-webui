@@ -1,6 +1,32 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildTopupReturnUrl, normalizeBillingReturnPath, withBasePath } from './billing_return_url';
+import {
+	buildTopupReturnUrl,
+	normalizeBillingReturnPath,
+	topupReturnPaymentId,
+	topupReturnStorageKey,
+	withBasePath
+} from './billing_return_url';
+
+describe('topupReturnPaymentId', () => {
+	it('prefers payment-specific recovery identity over an unrelated provider query', () => {
+		expect(
+			topupReturnPaymentId(
+				new URL(
+					'https://airis.example/billing/balance?topup_payment_id=owned-payment&payment_id=another-payment'
+				)
+			)
+		).toBe('owned-payment');
+	});
+	it.each(['', 'https://evil.example', '../payment', 'a'.repeat(129)])(
+		'rejects malformed identity %s',
+		(id) => {
+			const url = new URL('https://airis.example/billing/balance');
+			url.searchParams.set('topup_payment_id', id);
+			expect(topupReturnPaymentId(url)).toBeNull();
+		}
+	);
+});
 
 describe('withBasePath', () => {
 	it('prefixes non-root base path once', () => {
@@ -32,6 +58,17 @@ describe('normalizeBillingReturnPath', () => {
 });
 
 describe('buildTopupReturnUrl', () => {
+	it('preserves distinct payment return identities without exposing storage contents', () => {
+		const first = new URL(
+			buildTopupReturnUrl({ origin: 'https://airis.example', flowId: 'first-flow' })
+		);
+		const second = new URL(
+			buildTopupReturnUrl({ origin: 'https://airis.example', flowId: 'second-flow' })
+		);
+		expect(topupReturnStorageKey(first)).toBe('billing_topup_flow_v1:first-flow');
+		expect(topupReturnStorageKey(second)).toBe('billing_topup_flow_v1:second-flow');
+		expect(first.searchParams.get('topup_return')).toBe('1');
+	});
 	it('builds deterministic base-aware return URL', () => {
 		const returnUrl = buildTopupReturnUrl({
 			origin: 'https://airis.example',

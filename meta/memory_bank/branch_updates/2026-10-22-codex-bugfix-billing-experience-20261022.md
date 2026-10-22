@@ -1,0 +1,18 @@
+- [ ] **[BUG][BILLING][UX]** Исправления по полному аудиту биллинга и безопасный выпуск
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__billing-experience-implementation.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-experience-20261022`
+  - Started: 2026-10-22
+  - Summary: Владелец разрешил исправления и выпуск. Основа c63de6eb38afaac786fad5bf6df7338d15b074b3; исходный аудит30 пунктов/62 семейства, данные и коммерческие условия защищены. Реализация начата, завершение не заявлено.
+  - Tests: Промежуточные проверки: svelte-check 0 ошибок/0 предупреждений; 37 адресных frontend-тестов прошли (ReportingRecords, EditUserModal, уведомления об источнике оплаты). Backend reporting PostgreSQL 22 passed. Полный backend: 1320 passed/10 skipped/1 failed — сценарий ранее начатой оплаты подписки ещё исправляется. Итоговый повтор всех проверок обязателен.
+  - Risks: Денежные пути/подписки/импорт/production; изолированные проверки, независимый обзор и защищённый выпуск обязательны. Реальные денежные операции не являются тестами.
+
+- [ ] **[BUG][BILLING][UX]** Состояние после заморозки кода, 2026-10-22
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__billing-experience-implementation.md`
+  - Owner: Codex
+  - Branch: `codex/bugfix/billing-experience-20261022`
+  - Started: 2026-10-22
+  - Summary: Реализация и независимый обзор завершены для task-1-1…task-1-6 и task-2-1 (7/10 completed). Общая проверка task-2-2 остаётся in_progress; релизные task-3-1/task-3-2 pending. Рабочая ветка fast-forward до b924d097b (docs PR #384), не релиз исправлений биллинга.
+  - Tests: По результату главного агента полный backend root — 1394 passed/13 skipped, журнал `backend-all-final.log`. Ранее были apps/webui 567 passed/4 skipped, PostgreSQL 154 passed/1 reporting skip и отдельно reporting PostgreSQL 25 passed без пропусков. Frontend preflight пока running; итоговые браузерные/Compose confidence проверки не подтверждены.
+  - History: Прежние красные результаты сохранены: frontend 2683 passed с 3 ошибками сбора suites; backend 1320 passed/10 skipped/1 failed; coverage.tracer из noexec tmpfs /tmp и внутренний сбой резервного PyTracer. Последующий успешный запуск покрытия не стирает эти инструментальные отказы; пороги не снижались.
+  - Risks: Финальный SHA не проверен; коммит/PR исправлений, CI, слияние, выпуск и production-приёмка не закрыты. Изменена только документация, код остаётся заморожен.

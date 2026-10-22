@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy, tick } from 'svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 
 	const i18n = getContext('i18n');
@@ -7,10 +7,23 @@
 	export let open = false;
 	export let onTopup: () => void = () => {};
 	export let onLimits: () => void = () => {};
+	let destroyed = false;
+	onDestroy(() => {
+		destroyed = true;
+	});
+
+	const closeAndNavigate = async (navigate: () => void): Promise<void> => {
+		open = false;
+		await tick();
+		// Modal deactivation returns focus in a timer after Svelte's cleanup.
+		await new Promise<void>((resolve) => setTimeout(resolve, 0));
+		if (!destroyed) navigate();
+	};
 </script>
 
 <Modal
 	bind:show={open}
+	ariaLabel={$i18n.t('How billing works')}
 	size="sm"
 	containerClassName="p-3"
 	className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-4xl"
@@ -49,20 +62,14 @@
 			<button
 				type="button"
 				class="min-h-11 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-				on:click={() => {
-					open = false;
-					onLimits();
-				}}
+				on:click={() => closeAndNavigate(onLimits)}
 			>
 				{$i18n.t('Manage limits & auto-topup')}
 			</button>
 			<button
 				type="button"
 				class="min-h-11 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-				on:click={() => {
-					open = false;
-					onTopup();
-				}}
+				on:click={() => closeAndNavigate(onTopup)}
 			>
 				{$i18n.t('Top up')}
 			</button>

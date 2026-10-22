@@ -1,0 +1,21 @@
+# Run after the ordinary wallet suite: a fresh tmpfs database is required because
+# analytics_billing_ui creates its administrator before its ordinary test account.
+services:
+  airis-e2e:
+    volumes: !reset []
+    tmpfs:
+      - /app/backend/data
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 40
+  e2e:
+    # Loopback is a secure browser context even over HTTP (crypto.randomUUID).
+    network_mode: service:airis-e2e
+    depends_on:
+      airis-e2e:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_BASE_URL: http://localhost:8080
+      ANALYTICS_TEST_API_URL: http://localhost:8080

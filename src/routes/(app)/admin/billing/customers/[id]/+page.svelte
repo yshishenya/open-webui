@@ -2,6 +2,7 @@
 	import { onMount, onDestroy, getContext } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18nType } from 'i18next';
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { page as route } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { WEBUI_NAME, user } from '$lib/stores';
@@ -34,12 +35,22 @@
 		mounted = false;
 	});
 	type Tab = 'payments' | 'refunds' | 'usage' | 'ledger';
+	type LoadRequest = {
+		filters: ReturnType<typeof moneyFilters>;
+		page: number;
+		tab: Tab;
+		customerId: string;
+		paymentId: string;
+		referenceId: string;
+	};
+	let failedRequest: LoadRequest | null = null;
 	let customerId = String($route.params.id || '');
 	let mounted = false;
 	let back = reportingBack($route.url.searchParams.get('back'));
 	$: back = reportingBack($route.url.searchParams.get('back'));
 	let draft = moneyFilters($route.url);
 	let applied = { ...draft };
+	let detailFilters = { ...applied };
 	let detail: BillingReportingCustomerDetail | null = null;
 	let loading = false;
 	let error = '';
@@ -59,10 +70,20 @@
 	let payments: BillingReportingPayment[] = [];
 	let refunds: BillingReportingRefund[] = [];
 	let rows: BillingReportingRow[] = [];
-	const money = (value: number): string =>
-		formatReportMoney(value, applied.currency, $i18n.language);
-	const load = async (apply = false): Promise<void> => {
-		const next = apply ? { ...draft } : { ...applied };
+	$: locale = getI18nLocale($i18n);
+	const money = (value: number, locale: string): string =>
+		formatReportMoney(value, detail?.wallet.currency || detailFilters.currency, locale);
+	const load = async (apply = false, retry: LoadRequest | null = null): Promise<void> => {
+		const snapshot: LoadRequest = retry ?? {
+			filters: { ...(apply ? draft : applied) },
+			page: apply ? 1 : page,
+			tab,
+			customerId,
+			paymentId,
+			referenceId
+		};
+		const next = snapshot.filters;
+		failedRequest = null;
 		let range: ReturnType<typeof moneyRange>;
 		try {
 			range = moneyRange(next);
@@ -73,9 +94,9 @@
 			return;
 		}
 		const id = ++request;
-		const nextPage = apply ? 1 : page;
-		const selected = tab;
-		const selectedCustomer = customerId;
+		const nextPage = snapshot.page;
+		const selected = snapshot.tab;
+		const selectedCustomer = snapshot.customerId;
 		loading = true;
 		error = '';
 		payments = [];
@@ -88,7 +109,7 @@
 			selected === 'payments'
 				? getBillingReportingPayments(localStorage.token, {
 						...filters,
-						payment_id: paymentId || undefined
+						payment_id: snapshot.paymentId || undefined
 					})
 				: selected === 'refunds'
 					? getBillingReportingRefunds(localStorage.token, filters)
@@ -96,15 +117,15 @@
 						? getBillingReportingUsage(localStorage.token, filters)
 						: getBillingReportingLedger(localStorage.token, {
 								...filters,
-								reference_id: referenceId || undefined
+								reference_id: snapshot.referenceId || undefined
 							})
 		]);
 		if (id !== request || selectedCustomer !== String($route.params.id || '')) return;
 		if (profile.status === 'fulfilled') {
 			detail = profile.value;
+			detailFilters = next;
 			applied = next;
 		} else {
-			detail = null;
 			detailError = 'Failed to load customer financial profile';
 		}
 		if (history.status === 'fulfilled') {
@@ -122,6 +143,7 @@
 			rows = [];
 			error = 'Failed to load customer history';
 		}
+		if (profile.status === 'rejected' || history.status === 'rejected') failedRequest = snapshot;
 		loading = false;
 		await goto(
 			`?${moneyQuery(applied, { back, tab, page, payment_id: paymentId, reference_id: referenceId })}`,
@@ -166,6 +188,7 @@
 	const syncRoute = (url: URL, id: string): void => {
 		if (!routeContextChanged(url, id)) return;
 		customerId = id;
+		failedRequest = null;
 		detail = null;
 		detailError = '';
 		payments = [];
@@ -175,6 +198,7 @@
 		totalPages = 1;
 		draft = moneyFilters(url);
 		applied = { ...draft };
+		detailFilters = { ...applied };
 		page = moneyPage(url.searchParams.get('page'));
 		paymentId = url.searchParams.get('payment_id') || '';
 		referenceId = url.searchParams.get('reference_id') || '';
@@ -208,12 +232,16 @@
 		</p>{/if}
 	{#if detailError}<p role="alert" class="mb-4 text-sm text-red-700 dark:text-red-300">
 			{$i18n.t(detailError)}
-			<button type="button" class="min-h-11 underline" on:click={() => load()}
-				>{$i18n.t('Retry')}</button
-			>
+			{#if detail}{$i18n.t('Could not refresh. Showing the last confirmed report.')}{/if}
 		</p>{/if}
-	{#if detail && !loading}<p class="mb-3 text-sm text-gray-500">
-			{$i18n.t('For the applied period')}: {applied.fromDate} — {applied.toDate}
+	{#if failedRequest}<button
+			type="button"
+			class="mb-4 min-h-11 underline"
+			on:click={() => load(false, failedRequest)}>{$i18n.t('Retry')}</button
+		>{/if}
+	{#if detail}<p class="mb-3 text-sm text-gray-500">
+			{$i18n.t('For the applied period')}: {detailFilters.fromDate} — {detailFilters.toDate} · {detail
+				.wallet.currency} · {$i18n.t('Updated')}: {formatReportTime(detail.as_of, locale)} UTC
 		</p>
 		<dl class="grid gap-3 sm:grid-cols-3">
 			{#each [['Top-ups in period', detail.metrics.period_paid_kopeks], ['Refunds in period', detail.metrics.period_refund_kopeks], ['Usage in period', detail.metrics.period_spent_kopeks]] as metric}<div
@@ -221,13 +249,14 @@
 				>
 					<dt class="text-sm text-gray-500">{$i18n.t(String(metric[0]))}</dt>
 					<dd class="mt-2 break-words text-xl font-semibold tabular-nums">
-						{money(Number(metric[1]))}
+						{money(Number(metric[1]), locale)}
 					</dd>
 				</div>{/each}
 		</dl>
 		{#if detail.metrics.period_other_payments_kopeks}<p class="mt-3 text-sm">
 				{$i18n.t('Other subscription payments')}: {money(
-					detail.metrics.period_other_payments_kopeks
+					detail.metrics.period_other_payments_kopeks,
+					locale
 				)} · {$i18n.t('For the applied period')}
 			</p>{/if}
 		<section class="mt-5 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
@@ -236,18 +265,18 @@
 				<div>
 					<dt class="text-sm text-gray-500">{$i18n.t('Paid funds remaining')}</dt>
 					<dd class="mt-1 text-xl font-semibold tabular-nums">
-						{money(detail.wallet.balance_topup_kopeks)}
+						{money(detail.wallet.balance_topup_kopeks, locale)}
 					</dd>
 				</div>
 				<div>
 					<dt class="text-sm text-gray-500">{$i18n.t('Bonus funds remaining')}</dt>
 					<dd class="mt-1 text-xl font-semibold tabular-nums">
-						{money(detail.wallet.balance_included_kopeks)}
+						{money(detail.wallet.balance_included_kopeks, locale)}
 					</dd>
 				</div>
 			</dl>
 			<p class="mt-3 text-xs text-gray-500">
-				{$i18n.t('Current balances as of')}: {formatReportTime(detail.as_of, $i18n.language)} UTC. {$i18n.t(
+				{$i18n.t('Current balances as of')}: {formatReportTime(detail.as_of, locale)} UTC. {$i18n.t(
 					'Refunds require a separate wallet reconciliation'
 				)}
 			</p>
@@ -258,26 +287,26 @@
 			<dl class="mt-3 grid gap-3 sm:grid-cols-3">
 				<div>
 					<dt>{$i18n.t('Top-ups all time')}</dt>
-					<dd class="tabular-nums">{money(detail.metrics.paid_kopeks)}</dd>
+					<dd class="tabular-nums">{money(detail.metrics.paid_kopeks, locale)}</dd>
 				</div>
 				<div>
 					<dt>{$i18n.t('Refunds all time')}</dt>
-					<dd class="tabular-nums">{money(detail.metrics.refund_kopeks)}</dd>
+					<dd class="tabular-nums">{money(detail.metrics.refund_kopeks, locale)}</dd>
 				</div>
 				<div>
 					<dt>{$i18n.t('Usage all time')}</dt>
-					<dd class="tabular-nums">{money(detail.metrics.spent_kopeks)}</dd>
+					<dd class="tabular-nums">{money(detail.metrics.spent_kopeks, locale)}</dd>
 				</div>
 				{#if detail.metrics.other_payments_kopeks}<div>
 						<dt>{$i18n.t('Other subscription payments')}</dt>
-						<dd class="tabular-nums">{money(detail.metrics.other_payments_kopeks)}</dd>
+						<dd class="tabular-nums">{money(detail.metrics.other_payments_kopeks, locale)}</dd>
 					</div>{/if}
 				<div>
 					<dt>{$i18n.t('Daily spending limit')}</dt>
 					<dd>
 						{detail.wallet.daily_cap_kopeks === null
 							? $i18n.t('Not set')
-							: money(detail.wallet.daily_cap_kopeks)}
+							: money(detail.wallet.daily_cap_kopeks, locale)}
 					</dd>
 				</div>
 			</dl>

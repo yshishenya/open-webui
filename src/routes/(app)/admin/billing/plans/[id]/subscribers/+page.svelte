@@ -12,6 +12,7 @@
 		type PlanSubscriber
 	} from '$lib/apis/admin/billing';
 	import ReportingPagination from '$lib/components/admin/billing/ReportingPagination.svelte';
+	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import {
 		formatReportTime,
 		moneyPage,
@@ -19,6 +20,8 @@
 		customerHref
 	} from '$lib/utils/airis/billing_reporting_ui';
 	const i18n = getContext<Readable<I18nType>>('i18n');
+	$: locale = getI18nLocale($i18n);
+	$: isRussian = locale.toLowerCase().startsWith('ru');
 	let plan: Plan | null = null;
 	let rows: PlanSubscriber[] = [];
 	let page = moneyPage($route.url.searchParams.get('page'));
@@ -67,8 +70,13 @@
 				incomplete_expired: 'Expired'
 			}) as Record<string, string>
 		)[value] || value;
-	const quota = (used: number, limit: number | null | undefined): string =>
-		`${used.toLocaleString($i18n.language)} / ${limit === null || limit === undefined ? $i18n.t('Unlimited') : limit.toLocaleString($i18n.language)}`;
+	const quota = (
+		used: number,
+		limit: number | null | undefined,
+		locale: string,
+		unlimited: string
+	): string =>
+		`${used.toLocaleString(locale)} / ${limit === null || limit === undefined ? unlimited : limit.toLocaleString(locale)}`;
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
 			await goto('/');
@@ -89,9 +97,13 @@
 <div class="mx-auto w-full min-w-0 max-w-6xl px-4 py-5">
 	<a href="/admin/billing/plans" class="text-sm underline">← {$i18n.t('Subscriptions')}</a>
 	<h1 class="mt-4 break-words text-xl font-semibold">
-		{plan?.name_ru || plan?.name || $i18n.t('Subscription customers')}
+		{(isRussian ? plan?.name_ru || plan?.name : plan?.name || plan?.name_ru) ||
+			$i18n.t('Subscription customers')}
 	</h1>
-	<p class="my-3 text-sm text-gray-500">{total} {$i18n.t('subscriptions across all statuses')}</p>
+	<p class="my-3 text-sm text-gray-500">
+		{total.toLocaleString(locale)}
+		{$i18n.t('subscriptions across all statuses')}
+	</p>
 	{#if error}<p role="alert" class="mb-4 text-red-700">
 			{$i18n.t(error)}
 			<button type="button" on:click={load} class="underline">{$i18n.t('Retry')}</button>
@@ -116,27 +128,44 @@
 					<div>
 						<dt class="text-gray-500">{$i18n.t('Current subscription period')}</dt>
 						<dd>
-							{formatReportTime(row.current_period_start, $i18n.language)} — {formatReportTime(
+							{formatReportTime(row.current_period_start, locale)} — {formatReportTime(
 								row.current_period_end,
-								$i18n.language
+								locale
 							)} UTC
 						</dd>
 					</div>
 					<div>
 						<dt class="text-gray-500">{$i18n.t('Subscribed')}</dt>
-						<dd>{formatReportTime(row.subscribed_at, $i18n.language)} UTC</dd>
+						<dd>{formatReportTime(row.subscribed_at, locale)} UTC</dd>
 					</div>
 				</dl>
 				<details class="mt-3 text-sm">
 					<summary class="cursor-pointer">{$i18n.t('Usage Quotas')}</summary>
 					<dl class="mt-2 space-y-2">
 						<div>
-							{$i18n.t('Input Tokens')}: {quota(row.tokens_input_used, row.tokens_input_limit)}
+							{$i18n.t('Input Tokens')}: {quota(
+								row.tokens_input_used,
+								row.tokens_input_limit,
+								locale,
+								$i18n.t('Unlimited')
+							)}
 						</div>
 						<div>
-							{$i18n.t('Output Tokens')}: {quota(row.tokens_output_used, row.tokens_output_limit)}
+							{$i18n.t('Output Tokens')}: {quota(
+								row.tokens_output_used,
+								row.tokens_output_limit,
+								locale,
+								$i18n.t('Unlimited')
+							)}
 						</div>
-						<div>{$i18n.t('Requests')}: {quota(row.requests_used, row.requests_limit)}</div>
+						<div>
+							{$i18n.t('Requests')}: {quota(
+								row.requests_used,
+								row.requests_limit,
+								locale,
+								$i18n.t('Unlimited')
+							)}
+						</div>
 					</dl>
 				</details>
 			</article>{:else}{#if !loading && !error}<p>{$i18n.t('No subscribers')}</p>{/if}{/each}

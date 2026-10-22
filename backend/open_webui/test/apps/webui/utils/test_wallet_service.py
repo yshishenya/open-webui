@@ -5,6 +5,46 @@ from test.util.abstract_integration_test import AbstractPostgresTest
 
 
 class TestWalletService(AbstractPostgresTest):
+    def test_zero_daily_cap_reports_zero_without_conflating_existing_holds(self) -> None:
+        from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import DailyCapExceededError, wallet_service
+
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        Wallets.update_wallet(wallet.id, {'balance_topup_kopeks': 10000, 'daily_cap_kopeks': 0})
+        with pytest.raises(DailyCapExceededError) as exc:
+            wallet_service.hold_funds(wallet.id, 1, 'zero-cap', 'test')
+        assert exc.value.cap_kopeks == exc.value.spent_kopeks == exc.value.reserved_kopeks == 0
+        assert exc.value.required_kopeks == 1
+        assert exc.value.reset_at is not None
+
+    def test_daily_cap_error_separates_spending_and_existing_holds(self) -> None:
+        from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import DailyCapExceededError, wallet_service
+
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        reset_at = int(time.time()) + 3600
+        Wallets.update_wallet(
+            wallet.id,
+            {
+                'balance_topup_kopeks': 10000,
+                'daily_spent_kopeks': 25,
+                'daily_cap_kopeks': 100,
+                'daily_reset_at': reset_at,
+            },
+        )
+        wallet_service.hold_funds(wallet.id, 50, 'existing', 'test')
+        with pytest.raises(DailyCapExceededError) as exc:
+            wallet_service.hold_funds(wallet.id, 30, 'new', 'test')
+        assert exc.value.cap_kopeks == 100
+        assert exc.value.spent_kopeks == 25
+        assert exc.value.reserved_kopeks == 50
+        assert exc.value.required_kopeks == 30
+        assert exc.value.reset_at == reset_at
+        current = Wallets.get_wallet_by_id(wallet.id)
+        assert current is not None
+        assert current.daily_spent_kopeks == 25
+        assert current.daily_reserved_kopeks == 50
+
     def test_hold_settle_release_included_and_topup(self) -> None:
         from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import LedgerEntry, Wallets
@@ -106,8 +146,8 @@ class TestWalletService(AbstractPostgresTest):
         assert updated_wallet.balance_topup_kopeks == 100
 
     def test_release_hold_after_charge_noop(self) -> None:
-        from open_webui.utils.wallet import wallet_service
         from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import wallet_service
 
         wallet = wallet_service.get_or_create_wallet('1', 'RUB')
         Wallets.update_wallet(wallet.id, {'balance_topup_kopeks': 500})
@@ -130,11 +170,12 @@ class TestWalletService(AbstractPostgresTest):
         now = int(time.time())
         Wallets.update_wallet(
             wallet.id,
-            {'daily_spent_kopeks': 100, 'daily_reset_at': now - 10},
+            {'daily_spent_kopeks': 100, 'daily_reserved_kopeks': 50, 'daily_reset_at': now - 10},
         )
 
         refreshed = wallet_service.refresh_wallet(wallet.id)
         assert refreshed.daily_spent_kopeks == 0
+        assert refreshed.daily_reserved_kopeks == 0
         assert refreshed.daily_reset_at > now
 
     def test_release_hold_restores_balance(self) -> None:

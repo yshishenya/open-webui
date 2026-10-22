@@ -4,6 +4,7 @@ import asyncio
 import json
 import time
 import uuid
+from unittest.mock import AsyncMock
 from typing import Protocol
 
 import pytest
@@ -34,6 +35,76 @@ class _RequestWithApp(Protocol):
 
 class TestOpenAIChatBillingLeadMagnet(AbstractPostgresTest):
     BASE_PATH = "/openai"
+
+    @pytest.mark.parametrize('streaming', [False, True])
+    @pytest.mark.parametrize(
+        ('quota', 'reason'), [(10000, 'free_quota'), (1, 'free_quota_insufficient'), (0, 'free_quota_exhausted')]
+    )
+    def test_reservation_event_once_before_settlement(
+        self, monkeypatch: MonkeyPatch, streaming: bool, quota: int, reason: str
+    ) -> None:
+        import open_webui.socket.main as socket_main
+        from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import wallet_service
+
+        self._configure_lead_magnet(monkeypatch, True, {'tokens_input': quota, 'tokens_output': quota})
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        Wallets.update_wallet(wallet.id, {'balance_topup_kopeks': 10000})
+
+        no_usage_at_notification: list[bool] = []
+
+        async def before_settlement(event: dict[str, object]) -> None:
+            no_usage_at_notification.append(get_usage_event_by_correlation(self.request_id) is None)
+
+        emitter = AsyncMock(side_effect=before_settlement)
+        factory = AsyncMock(return_value=emitter)
+        monkeypatch.setattr(socket_main, 'get_event_emitter', factory)
+        if streaming:
+            provider = FakeAiohttpResponse(
+                status=200,
+                headers={'Content-Type': 'text/event-stream'},
+                content=FakeAiohttpStream(
+                    [
+                        b'data: {"choices":[{"delta":{"content":"hello"}}]}\n\n',
+                        b'data: {"choices":[],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}\n\n',
+                        b'data: [DONE]\n\n',
+                    ]
+                ),
+            )
+        else:
+            provider = FakeAiohttpResponse(
+                status=200,
+                headers={'Content-Type': 'application/json'},
+                json_payload={
+                    'choices': [{'message': {'role': 'assistant', 'content': 'hello'}}],
+                    'usage': {'prompt_tokens': 2, 'completion_tokens': 1, 'total_tokens': 3},
+                },
+            )
+        self._mock_models_and_provider(monkeypatch, provider)
+        with mock_webui_user(id='1'):
+            response = self.fast_api_client.post(
+                self.create_url('/chat/completions'),
+                json={
+                    'model': self.model_id,
+                    'messages': [{'role': 'user', 'content': 'hello'}],
+                    'max_tokens': 10,
+                    'stream': streaming,
+                    'metadata': {'chat_id': 'local:reservation', 'message_id': 'reply', 'request_id': self.request_id},
+                },
+            )
+        assert response.status_code == 200
+        factory.assert_awaited_once_with(
+            {'user_id': '1', 'chat_id': 'local:reservation', 'message_id': 'reply'}, update_db=False
+        )
+        emitter.assert_awaited_once()
+        assert no_usage_at_notification == [True]
+        event = emitter.call_args.args[0]
+        assert event['type'] == 'billing:reservation'
+        assert event['data']['reason'] == reason
+        assert event['data']['billing_source'] == ('lead_magnet' if reason == 'free_quota' else 'payg')
+        assert event['data']['model_id'] == self.model_id
+        assert event['data']['request_id']
+        assert 'charged_kopeks' not in event['data']
 
     def setup_method(self) -> None:
         super().setup_method()

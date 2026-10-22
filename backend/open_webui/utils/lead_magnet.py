@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Literal, Optional
 import math
 
 import sqlalchemy as sa
@@ -37,6 +37,13 @@ class LeadMagnetDecision:
     allowed: bool
     state: Optional[LeadMagnetStateModel]
     remaining: Dict[str, int]
+
+
+@dataclass(frozen=True)
+class LeadMagnetReservation:
+    reservation_id: Optional[str]
+    reason: Literal["free_quota", "free_quota_insufficient", "free_quota_exhausted", "paid_model"]
+    cycle_end_at: Optional[int] = None
 
 
 def get_lead_magnet_config() -> LeadMagnetConfig:
@@ -90,10 +97,25 @@ def reserve_lead_magnet_usage(
     expires_at: int,
     now: Optional[int] = None,
 ) -> Optional[str]:
+    """Compatibility boundary for callers that only need the reservation ID."""
+    return reserve_lead_magnet_usage_decision(
+        user_id, wallet_id, model_id, operation_id, requirements, expires_at, now
+    ).reservation_id
+
+
+def reserve_lead_magnet_usage_decision(
+    user_id: str,
+    wallet_id: str,
+    model_id: str,
+    operation_id: str,
+    requirements: Dict[str, int],
+    expires_at: int,
+    now: Optional[int] = None,
+) -> LeadMagnetReservation:
     """Atomically reserve lead-magnet quota for one billing operation."""
     config = get_lead_magnet_config()
     if not config.enabled or not is_lead_magnet_model(model_id):
-        return None
+        return LeadMagnetReservation(None, "paid_model")
 
     now_value = now if now is not None else int(time.time())
     normalized = {key: amount for key, amount in _normalize_quotas(requirements).items() if amount > 0}
@@ -113,17 +135,21 @@ def reserve_lead_magnet_usage(
             ):
                 raise ValueError("Billing operation reused with different lead-magnet quota data")
             db.commit()
-            return str(existing.id)
+            return LeadMagnetReservation(str(existing.id), "free_quota")
 
         _release_expired_lead_reservations_locked(db, user_id, now_value)
         state = _get_or_create_state_row_locked(db, user_id, config, now_value)
         state_model = LeadMagnetStateModel.model_validate(state)
-        if not _can_consume(
-            calculate_remaining(state_model, config.quotas),
-            normalized,
-        ):
+        remaining = calculate_remaining(state_model, config.quotas)
+        if not _can_consume(remaining, normalized):
+            # Capture the cause under the same wallet/state lock as the quota decision.
+            reason: Literal["free_quota_exhausted", "free_quota_insufficient"] = (
+                "free_quota_exhausted"
+                if any(remaining.get(key, 0) <= 0 for key in normalized)
+                else "free_quota_insufficient"
+            )
             db.commit()
-            return None
+            return LeadMagnetReservation(None, reason, state_model.cycle_end)
 
         _apply_state_delta(state, normalized, 1)
         state.updated_at = now_value
@@ -139,7 +165,7 @@ def reserve_lead_magnet_usage(
         )
         db.add(reservation)
         db.commit()
-        return str(reservation.id)
+        return LeadMagnetReservation(str(reservation.id), "free_quota", state_model.cycle_end)
 
 
 def finalize_lead_magnet_usage(

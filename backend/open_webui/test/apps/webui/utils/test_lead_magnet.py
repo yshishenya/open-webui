@@ -7,6 +7,122 @@ from test.util.abstract_integration_test import AbstractPostgresTest
 
 
 class TestLeadMagnetBilling(AbstractPostgresTest):
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ('remaining', 'reason'),
+        [(10, 'free_quota'), (9, 'free_quota_insufficient'), (0, 'free_quota_exhausted')],
+    )
+    async def test_atomic_reservation_reason(
+        self, monkeypatch: pytest.MonkeyPatch, remaining: int, reason: str
+    ) -> None:
+        await self._insert_lead_magnet_model()
+        from open_webui.models.billing import LeadMagnetStates
+        from open_webui.utils.lead_magnet import reserve_lead_magnet_usage_decision
+        from open_webui.utils.wallet import wallet_service
+
+        self._configure_lead_magnet(monkeypatch, {'tokens_input': 100, 'tokens_output': remaining})
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        now = int(time.time())
+        decision = reserve_lead_magnet_usage_decision(
+            '1',
+            wallet.id,
+            self.model_id,
+            'decision',
+            {'tokens_input': 10, 'tokens_output': 10},
+            now + 3600,
+            now,
+        )
+        assert decision.reason == reason
+        assert decision.cycle_end_at == now + 30 * 86400
+        state = LeadMagnetStates.get_state_by_user('1')
+        assert state is not None
+        if reason == 'free_quota':
+            assert decision.reservation_id
+            replay = reserve_lead_magnet_usage_decision(
+                '1',
+                wallet.id,
+                self.model_id,
+                'decision',
+                {'tokens_input': 10, 'tokens_output': 10},
+                now + 3600,
+                now,
+            )
+            assert replay.reservation_id == decision.reservation_id
+            assert replay.reason == 'free_quota'
+            assert state.tokens_output_used == 10
+            assert LeadMagnetStates.get_state_by_user('1').tokens_output_used == 10
+        else:
+            assert decision.reservation_id is None
+            assert state.tokens_input_used == state.tokens_output_used == 0
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('eligible', [False, True])
+    async def test_noneligible_or_disabled_is_paid_not_exhausted(
+        self, monkeypatch: pytest.MonkeyPatch, eligible: bool
+    ) -> None:
+        import open_webui.utils.lead_magnet as lead_magnet
+        from open_webui.utils.wallet import wallet_service
+
+        self._configure_lead_magnet(monkeypatch, {'tokens_output': 0})
+        if eligible:
+            await self._insert_lead_magnet_model()
+            monkeypatch.setattr(
+                lead_magnet, 'get_lead_magnet_config', lambda: lead_magnet.LeadMagnetConfig(False, 30, {}, 1)
+            )
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        decision = lead_magnet.reserve_lead_magnet_usage_decision(
+            '1',
+            wallet.id,
+            self.model_id,
+            'paid',
+            {'tokens_output': 10},
+            int(time.time()) + 3600,
+        )
+        assert decision.reason == 'paid_model'
+        assert decision.reservation_id is None
+        assert decision.cycle_end_at is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('single_rate', [False, True])
+    @pytest.mark.parametrize(
+        ('quota', 'reason'), [(10000, 'free_quota'), (1, 'free_quota_insufficient'), (0, 'free_quota_exhausted')]
+    )
+    async def test_preflight_carries_atomic_reason(
+        self, monkeypatch: pytest.MonkeyPatch, single_rate: bool, quota: int, reason: str
+    ) -> None:
+        import open_webui.utils.billing_integration as integration
+        from open_webui.models.billing import Wallets
+        from open_webui.utils.wallet import wallet_service
+
+        await self._insert_lead_magnet_model()
+        self._configure_lead_magnet(monkeypatch, {'tokens_input': quota, 'tokens_output': quota, 'tts_seconds': quota})
+        monkeypatch.setattr(integration, 'ENABLE_BILLING_WALLET', True)
+        wallet = wallet_service.get_or_create_wallet('1', 'RUB')
+        Wallets.update_wallet(wallet.id, {'balance_topup_kopeks': 10000})
+        if single_rate:
+            context = await integration.preflight_single_rate_hold(
+                '1',
+                self.model_id,
+                'tts',
+                'tts_char',
+                Decimal(20),
+                request_id='single-decision',
+                lead_magnet_requirements={'tts_seconds': 10},
+            )
+        else:
+            context = await integration.preflight_estimate_hold(
+                '1',
+                self.model_id,
+                {'messages': [{'role': 'user', 'content': 'hello'}], 'max_tokens': 10},
+                request_id='text-decision',
+            )
+        assert context is not None
+        assert context.lead_magnet_decision is not None
+        assert context.lead_magnet_decision.reason == reason
+        assert context.billing_source == ('lead_magnet' if reason == 'free_quota' else 'payg')
+        if reason != 'free_quota':
+            assert context.hold_amount_kopeks > 0
+
     def setup_method(self) -> None:
         super().setup_method()
         from open_webui.models.billing import PricingRateCardModel, RateCards
@@ -95,15 +211,14 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
     async def test_lead_magnet_text_skips_wallet_hold(self, monkeypatch: pytest.MonkeyPatch) -> None:
         await self._insert_lead_magnet_model()
 
+        import open_webui.utils.billing_integration as billing_integration
         from open_webui.internal.db import ScopedSession as Session
-        from open_webui.models.billing import BillingSource, LeadMagnetStates, UsageEvent
-        from open_webui.models.billing import LedgerEntry, Wallets
+        from open_webui.models.billing import BillingSource, LeadMagnetStates, LedgerEntry, UsageEvent, Wallets
         from open_webui.utils.billing_integration import (
             preflight_estimate_hold,
             settle_billing_usage,
         )
         from open_webui.utils.wallet import wallet_service
-        import open_webui.utils.billing_integration as billing_integration
 
         monkeypatch.setattr(billing_integration, 'ENABLE_BILLING_WALLET', True)
         self._configure_lead_magnet(
@@ -173,11 +288,11 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
     async def test_lead_magnet_falls_back_to_payg(self, monkeypatch: pytest.MonkeyPatch) -> None:
         await self._insert_lead_magnet_model()
 
+        import open_webui.utils.billing_integration as billing_integration
         from open_webui.internal.db import ScopedSession as Session
         from open_webui.models.billing import BillingSource, LedgerEntry, Wallets
         from open_webui.utils.billing_integration import preflight_estimate_hold
         from open_webui.utils.wallet import wallet_service
-        import open_webui.utils.billing_integration as billing_integration
 
         monkeypatch.setattr(billing_integration, 'ENABLE_BILLING_WALLET', True)
         self._configure_lead_magnet(
@@ -224,13 +339,13 @@ class TestLeadMagnetBilling(AbstractPostgresTest):
     async def test_lead_magnet_tts_consumes_quota(self, monkeypatch: pytest.MonkeyPatch) -> None:
         await self._insert_lead_magnet_model()
 
+        import open_webui.utils.billing_integration as billing_integration
         from open_webui.models.billing import BillingSource, LeadMagnetStates, Wallets
         from open_webui.utils.billing_integration import (
             preflight_single_rate_hold,
             settle_single_rate_usage,
         )
         from open_webui.utils.wallet import wallet_service
-        import open_webui.utils.billing_integration as billing_integration
 
         monkeypatch.setattr(billing_integration, 'ENABLE_BILLING_WALLET', True)
         self._configure_lead_magnet(

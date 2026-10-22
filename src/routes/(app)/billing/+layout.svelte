@@ -68,7 +68,7 @@
 			? 'md:max-w-[calc(100%-260px)]'
 			: ''} max-w-full"
 	>
-		<nav class="px-2.5 pt-1.5 backdrop-blur-xl drag-region">
+		<nav aria-label={$i18n.t('Billing')} class="px-2.5 pt-1.5 backdrop-blur-xl drag-region">
 			<div class="flex flex-wrap items-center gap-2">
 				{#if $mobile}
 					<div class="{$showSidebar ? 'md:hidden' : ''} self-center flex flex-none items-center">
@@ -91,12 +91,13 @@
 					</div>
 				{/if}
 
-				<div class="">
+				<div class="order-last min-w-0 basis-full lg:order-none lg:basis-auto">
 					<div
-						class="flex flex-wrap gap-1 w-full text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
+						class="flex gap-1 w-full overflow-x-auto text-center text-sm font-medium bg-transparent touch-auto pointer-events-auto no-drag-region"
 					>
 						<a
-							class="min-w-fit px-2 py-3 {($page.url.pathname === '/billing/balance' &&
+							class="min-w-fit min-h-11 px-2 py-2 focus-visible:ring-2 focus-visible:ring-inset {($page
+								.url.pathname === '/billing/balance' &&
 								!settingsView) ||
 							$page.url.pathname === '/billing/dashboard' ||
 							$page.url.pathname === '/billing/settings'
@@ -111,7 +112,8 @@
 						</a>
 
 						<a
-							class="min-w-fit px-2 py-3 {$page.url.pathname === '/billing/history'
+							class="min-w-fit min-h-11 px-2 py-2 focus-visible:ring-2 focus-visible:ring-inset {$page
+								.url.pathname === '/billing/history'
 								? ''
 								: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
 							href={buildBillingHref('/billing/history')}
@@ -121,7 +123,17 @@
 						</a>
 
 						<a
-							class="min-w-fit px-2 py-3 {settingsView
+							class="min-w-fit min-h-11 px-2 py-2 focus-visible:ring-2 focus-visible:ring-inset {$page
+								.url.pathname === '/billing/cost'
+								? ''
+								: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
+							href={buildBillingHref('/billing/cost')}
+							aria-current={$page.url.pathname === '/billing/cost' ? 'page' : undefined}
+							>{$i18n.t('Pricing')}</a
+						>
+
+						<a
+							class="min-w-fit min-h-11 px-2 py-2 focus-visible:ring-2 focus-visible:ring-inset {settingsView
 								? ''
 								: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
 							href={buildBillingHref('/billing/balance', 'limits')}
@@ -132,7 +144,8 @@
 
 						{#if subscriptionsEnabled && isAdmin}
 							<a
-								class="min-w-fit px-2 py-3 {$page.url.pathname === '/billing/plans'
+								class="min-w-fit min-h-11 px-2 py-2 focus-visible:ring-2 focus-visible:ring-inset {$page
+									.url.pathname === '/billing/plans'
 									? ''
 									: 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'} transition"
 								href={buildBillingHref('/billing/plans')}
@@ -143,18 +156,18 @@
 					</div>
 				</div>
 
-				<div class="ml-auto flex items-center gap-2">
+				<div class="ml-auto flex flex-wrap items-center justify-end gap-2 no-drag-region">
 					<HeaderBillingAccess />
 
 					{#if returnTo}
 						<a
 							href={returnTo}
 							on:click={handleReturnToClick}
-							class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+							aria-label={$i18n.t('Back to chat')}
+							class="flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 transition text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:ring-2"
 						>
 							<ChatBubbles className="size-4" />
 							<span class="hidden sm:inline">{$i18n.t('Back to chat')}</span>
-							<span class="sm:hidden">{$i18n.t('Back')}</span>
 						</a>
 					{/if}
 				</div>

@@ -23,6 +23,7 @@ export type BillingBlockedDailyCapExceeded = BillingBlockedBase & {
 	error: 'daily_cap_exceeded';
 	daily_cap_kopeks: number | null;
 	daily_spent_kopeks: number | null;
+	daily_reserved_kopeks?: number | null;
 	daily_reset_at: number | null;
 	required_kopeks: number | null;
 };
@@ -66,6 +67,7 @@ export const parseBillingBlockedDetail = (value: unknown): BillingBlockedDetail 
 			error,
 			daily_cap_kopeks: parseNumber(value.daily_cap_kopeks),
 			daily_spent_kopeks: parseNumber(value.daily_spent_kopeks),
+			daily_reserved_kopeks: parseNumber(value.daily_reserved_kopeks),
 			daily_reset_at: parseNumber(value.daily_reset_at),
 			required_kopeks: parseNumber(value.required_kopeks)
 		};
@@ -105,4 +107,3 @@ export const buildBillingBalanceHref = (options: {
 	const query = params.toString();
 	return query ? `/billing/balance?${query}` : '/billing/balance';
 };
-

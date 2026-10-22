@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { onMount, onDestroy, getContext } from 'svelte';
+	import { onMount, onDestroy, getContext, tick } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -30,6 +30,7 @@
 		title: string;
 		subtitle: string;
 		metrics: string[];
+		technicalDetails?: string[];
 		amountKopeks: number | null;
 		currency: string;
 		isEstimated: boolean;
@@ -72,6 +73,9 @@
 	let activeFilter: FilterKey = 'all';
 	let lastSyncedUrlFilter: FilterKey = 'all';
 	let pendingUrlFilter: FilterKey | null = null;
+	let timelineElement: HTMLDivElement;
+	let loadStatus: HTMLParagraphElement;
+	let loadAnnouncement: { added: number; total: number; complete: boolean } | null = null;
 	let urlUpdateVersion = 0;
 	const filterKeys: FilterKey[] = ['all', 'paid', 'free', 'topups', 'refunds'];
 	const urlFilter = derived(page, ($page): FilterKey => {
@@ -168,6 +172,7 @@
 	};
 	const loadInitial = async (): Promise<void> => {
 		loading = true;
+		loadAnnouncement = null;
 		refundEntries = [];
 		refundSkip = 0;
 		refundHasMore = true;
@@ -197,17 +202,40 @@
 		await loadInitial();
 	});
 
-	const handleLoadMore = async (): Promise<void> => {
+	const handleLoadMore = async (event: MouseEvent): Promise<void> => {
 		if (loadingMore) return;
+		const trigger = event.currentTarget;
+		const hadFocus = document.activeElement === trigger;
+		const previousKeys = new Set(visibleItems.map((item) => `${item.kind}:${item.id}`));
 		loadingMore = true;
+		loadAnnouncement = null;
 		displayCount += pageSize;
 		await Promise.all([fetchLedger(), fetchUsage(), fetchRefunds()]);
 		loadingMore = false;
+		await tick();
+		if (destroyed) return;
+		const added = visibleItems.filter((item) => !previousKeys.has(`${item.kind}:${item.id}`));
+		loadAnnouncement = {
+			added: added.length,
+			total: visibleItems.length,
+			complete: !canLoadMore && !ledgerError && !usageError && !refundError
+		};
+		if (
+			hadFocus &&
+			(document.activeElement === trigger || document.activeElement === document.body)
+		) {
+			const newKey = added[0] ? `${added[0].kind}:${added[0].id}` : null;
+			const nextItem = [
+				...(timelineElement?.querySelectorAll<HTMLElement>('[data-timeline-key]') ?? [])
+			].find((element) => element.dataset.timelineKey === newKey);
+			(nextItem ?? loadStatus)?.focus();
+		}
 	};
 
 	const handleFilterChange = async (filter: FilterKey): Promise<void> => {
 		if (activeFilter === filter) return;
 		activeFilter = filter;
+		loadAnnouncement = null;
 		onFilterChange(filter);
 		await updateUrlFilter(filter);
 	};
@@ -294,14 +322,14 @@
 		const subtitle = `${modelName} · ${modality}`;
 		const metrics = getUsageMetrics(entry);
 		// Saved references identify the price used; today's catalog cannot prove an old rate.
-		metrics.push($i18n.t('Historical rate is unavailable in these details'));
+		const technicalDetails = [$i18n.t('Historical rate is unavailable in these details')];
 		for (const [label, value] of [
 			['Saved pricing version', entry.pricing_version],
 			['Saved rate reference', entry.pricing_rate_card_id],
 			['Saved input rate reference', entry.pricing_rate_card_input_id],
 			['Saved output rate reference', entry.pricing_rate_card_output_id]
 		] as const) {
-			if (value) metrics.push(`${$i18n.t(label)}: ${value}`);
+			if (value) technicalDetails.push(`${$i18n.t(label)}: ${value}`);
 		}
 		if (!isFree) {
 			const holds = ledger.filter(
@@ -332,6 +360,7 @@
 			title: isFree ? $i18n.t('Free usage') : $i18n.t('Charge'),
 			subtitle,
 			metrics,
+			technicalDetails,
 			amountKopeks: isFree ? 0 : charged,
 			currency: currencyCode,
 			isEstimated,
@@ -494,6 +523,16 @@
 	$: canLoadMore =
 		showLoadMore &&
 		(filteredItems.length > visibleItems.length || ledgerHasMore || usageHasMore || refundHasMore);
+	$: filterError =
+		activeFilter === 'refunds'
+			? refundError
+			: activeFilter === 'free'
+				? usageError
+				: activeFilter === 'topups'
+					? ledgerError
+					: activeFilter === 'paid'
+						? ledgerError || usageError
+						: ledgerError || usageError || refundError;
 </script>
 
 {#if showFilters}
@@ -567,44 +606,36 @@
 	<div class="w-full flex justify-center items-center py-8">
 		<Spinner className="size-5" />
 	</div>
-{:else if !visibleItems.length && (ledgerError || usageError)}
-	<div class="flex flex-col items-center justify-center py-8 text-center">
-		<div class="text-gray-500 dark:text-gray-400 text-sm">
-			{ledgerError || usageError || refundError}
-		</div>
-		<button
-			type="button"
-			on:click={loadInitial}
-			class="mt-3 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium"
-		>
-			{$i18n.t('Retry')}
-		</button>
-	</div>
 {:else if !visibleItems.length}
-	<div class="flex flex-col items-center justify-center py-8 text-center">
-		<div class="text-sm text-gray-500 dark:text-gray-400">
-			{ledgerHasMore || usageHasMore
-				? showLoadMore
-					? $i18n.t(
-							'No matching operations in the loaded portion. Load older operations to continue.'
-						)
-					: $i18n.t(
-							'No matching operations in the latest activity. Open the full history to see older operations.'
-						)
-				: $i18n.t('No operations for these filters')}
+	{#if !filterError}
+		<div class="flex flex-col items-center justify-center py-8 text-center">
+			<div class="text-sm text-gray-500 dark:text-gray-400">
+				{ledgerHasMore || usageHasMore || refundHasMore
+					? showLoadMore
+						? $i18n.t(
+								'No matching operations in the loaded portion. Load older operations to continue.'
+							)
+						: $i18n.t(
+								'No matching operations in the latest activity. Open the full history to see older operations.'
+							)
+					: $i18n.t('No operations for these filters')}
+			</div>
+			{#if emptyActionLabel}
+				<button
+					type="button"
+					on:click={onEmptyAction}
+					class="mt-3 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+				>
+					{emptyActionLabel}
+				</button>
+			{/if}
 		</div>
-		{#if emptyActionLabel}
-			<button
-				type="button"
-				on:click={onEmptyAction}
-				class="mt-3 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-			>
-				{emptyActionLabel}
-			</button>
-		{/if}
-	</div>
+	{/if}
 {:else}
-	<div class="rounded-2xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden">
+	<div
+		bind:this={timelineElement}
+		class="rounded-2xl border border-gray-100/30 dark:border-gray-850/30 overflow-hidden"
+	>
 		{#each groupedItems as group}
 			<section aria-labelledby={`timeline-${group.key}`}>
 				<h2
@@ -619,9 +650,11 @@
 							item.kind === 'usage' ? -Math.abs(item.amountKopeks ?? 0) : (item.amountKopeks ?? 0)}
 						<div
 							data-testid="timeline-item"
+							data-timeline-key={`${item.kind}:${item.id}`}
+							tabindex="-1"
 							role="article"
 							aria-label={`${item.title}${item.subtitle ? `, ${item.subtitle}` : ''}, ${formatDateTime(item.createdAt)}`}
-							class="flex items-start justify-between gap-4 px-4 py-3.5 min-h-[68px]"
+							class="flex items-start justify-between gap-4 px-4 py-3.5 min-h-[68px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
 						>
 							<div class="min-w-0">
 								<div class="text-sm font-medium break-words">{item.title}</div>
@@ -635,6 +668,16 @@
 										>{$i18n.t('Details')}</summary
 									>
 									<div class="space-y-2 pb-3">
+										{#if item.kind === 'free' || item.kind === 'usage'}
+											<p>
+												{$i18n.t(
+													item.kind === 'free'
+														? 'Free allowance. Charged: {{amount}}'
+														: 'Charged: {{amount}}',
+													{ amount: formatMoney(item.amountKopeks ?? 0, item.currency) }
+												)}
+											</p>
+										{/if}
 										{#if item.isEstimated}<p>
 												{item.kind === 'free'
 													? $i18n.t('Free usage volume was estimated')
@@ -649,9 +692,18 @@
 												>{$i18n.t('Open chat')}</a
 											>{/if}
 										{#if item.reason}<p>{$i18n.t('Adjustment reason')}: {item.reason}</p>{/if}
-										<p class="break-all text-xs text-gray-500">
-											{$i18n.t('Operation reference')}: {item.requestId ?? item.id}
-										</p>
+										<details>
+											<summary
+												class="min-h-11 cursor-pointer py-3 text-gray-600 dark:text-gray-300 focus-visible:outline focus-visible:outline-2"
+												>{$i18n.t('Technical details')}</summary
+											>
+											{#each item.technicalDetails ?? [] as detail}<p class="break-words">
+													{detail}
+												</p>{/each}
+											<p class="break-all text-xs text-gray-500">
+												{$i18n.t('Operation reference')}: {item.requestId ?? item.id}
+											</p>
+										</details>
 									</div>
 								</details>
 							</div>
@@ -671,6 +723,23 @@
 		{/each}
 	</div>
 {/if}
+
+<p
+	bind:this={loadStatus}
+	role="status"
+	aria-live="polite"
+	aria-atomic="true"
+	tabindex="-1"
+	class="mt-3 text-sm text-gray-600 dark:text-gray-300 focus-visible:outline focus-visible:outline-2"
+>
+	{#if loadAnnouncement}
+		{$i18n.t('Added {{added}} operations. {{total}} shown.', {
+			added: loadAnnouncement.added,
+			total: loadAnnouncement.total
+		})}
+		{#if loadAnnouncement.complete}{$i18n.t('No more operations.')}{/if}
+	{/if}
+</p>
 
 {#if canLoadMore}
 	<div class="flex justify-center mt-4">

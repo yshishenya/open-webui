@@ -503,6 +503,58 @@ describe('UnifiedTimeline', () => {
 		);
 		expect(root.textContent).not.toContain('Reserve for this reply could not be confirmed');
 	});
+	it.each(['lead_magnet', 'payg'])(
+		'puts %s volume and charged amount before collapsed support references',
+		async (source) => {
+			const selected = createInstance();
+			await selected.init({ lng: 'en-US', fallbackLng: 'en-US', resources: {} });
+			mocks.i18nStore.set(selected);
+			mocks.getUsageEventsMock.mockResolvedValue([
+				{
+					id: 'simple-details',
+					request_id: 'request-details',
+					model_id: 'model',
+					modality: 'text',
+					billing_source: source,
+					cost_charged_kopeks: source === 'payg' ? 300 : 0,
+					created_at: 200,
+					prompt_tokens: 1200,
+					completion_tokens: 40,
+					pricing_version: 'historical-version',
+					pricing_rate_card_input_id: 'historical-input',
+					pricing_rate_card_output_id: 'historical-output'
+				}
+			]);
+			const root = renderTimeline({ currency: 'RUB' });
+			await flushPromises();
+			const details = root.querySelector<HTMLDetailsElement>(
+				'[data-testid="timeline-item"] details'
+			);
+			expect(details).toBeTruthy();
+			details!.open = true;
+			const paragraphs = [...details!.querySelectorAll(':scope > div > p')]
+				.map((node) => node.textContent)
+				.join(' ');
+			const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'RUB' }).format(
+				source === 'payg' ? 3 : 0
+			);
+			expect(paragraphs).toContain(
+				source === 'payg' ? `Charged: ${amount}` : `Free allowance. Charged: ${amount}`
+			);
+			expect(paragraphs).toContain('Input tokens: 1200');
+			expect(paragraphs).toContain('Output tokens: 40');
+			expect(paragraphs).not.toContain('historical-version');
+			expect(paragraphs).not.toContain('Operation reference');
+			const technical = details!.querySelector<HTMLDetailsElement>('details');
+			expect(technical?.open).toBe(false);
+			expect(technical?.querySelector('summary')?.textContent).toBe('Technical details');
+			expect(technical?.textContent).toContain('Historical rate is unavailable in these details');
+			expect(technical?.textContent).toContain('Saved pricing version: historical-version');
+			expect(technical?.textContent).toContain('Saved input rate reference: historical-input');
+			expect(technical?.textContent).toContain('Saved output rate reference: historical-output');
+			expect(technical?.textContent).toContain('Operation reference: request-details');
+		}
+	);
 	it.each([
 		'missing',
 		'wrong-owner',
@@ -568,6 +620,101 @@ describe('UnifiedTimeline', () => {
 			'Some operations could not be loaded'
 		);
 		expect(root.textContent).toContain('Payment refund');
+	});
+	it.each(['all', 'refunds'])(
+		'does not call failed refunds empty under the %s filter and retries once',
+		async (filter) => {
+			mocks.pageStore.set({ url: new URL(`http://localhost/billing/history?filter=${filter}`) });
+			mocks.getBillingRefundsMock.mockRejectedValueOnce(new Error('offline'));
+			const root = renderTimeline();
+			await flushPromises();
+			expect(root.querySelector('[role="alert"]')?.textContent).toContain(
+				'Payment refunds could not be loaded'
+			);
+			expect(root.textContent).not.toContain('No operations for these filters');
+			const retry = [...root.querySelectorAll('button')].filter(
+				(button) => button.textContent?.trim() === 'Retry'
+			);
+			expect(retry).toHaveLength(1);
+			retry[0].click();
+			await flushPromises();
+			expect(mocks.getBillingRefundsMock).toHaveBeenCalledTimes(2);
+			expect(root.querySelector('[role="alert"]')).toBeNull();
+			expect(root.textContent).toContain('No operations for these filters');
+		}
+	);
+	it('can report successfully empty refunds even if the unrelated ledger failed', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/history?filter=refunds') });
+		mocks.getLedgerMock.mockRejectedValueOnce(new Error('offline'));
+		const root = renderTimeline();
+		await flushPromises();
+		expect(root.querySelector('[role="alert"]')?.textContent).toContain('Failed to load ledger');
+		expect(root.textContent).toContain('No operations for these filters');
+		expect(
+			[...root.querySelectorAll('button')].filter(
+				(button) => button.textContent?.trim() === 'Retry'
+			)
+		).toHaveLength(1);
+	});
+	it('focuses the first newly displayed operation after the final bounded load and announces unique counts', async () => {
+		const selected = createInstance();
+		await selected.init({ lng: 'en-US', fallbackLng: 'en-US', resources: {} });
+		mocks.i18nStore.set(selected);
+		const entries: LedgerEntry[] = Array.from({ length: 25 }, (_, index) => ({
+			id: `entry-${index}`,
+			type: 'topup',
+			created_at: 400 - index,
+			user_id: 'u',
+			wallet_id: 'w',
+			currency: 'RUB',
+			amount_kopeks: 1000,
+			balance_included_after: 0,
+			balance_topup_after: 1000
+		}));
+		mocks.getLedgerMock
+			.mockResolvedValueOnce(entries.slice(0, 20))
+			.mockResolvedValueOnce(entries.slice(20));
+		const root = renderTimeline({ periodFrom: 100, periodTo: 500 });
+		await flushPromises();
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(20);
+		const more = [...root.querySelectorAll('button')].find(
+			(button) => button.textContent?.trim() === 'Load more'
+		);
+		expect(more).toBeTruthy();
+		more!.focus();
+		more!.click();
+		await flushPromises();
+		const items = [...root.querySelectorAll<HTMLElement>('[data-testid="timeline-item"]')];
+		expect(items).toHaveLength(25);
+		expect(new Set(items.map((item) => item.dataset.timelineKey)).size).toBe(25);
+		expect(document.activeElement).toBe(items[20]);
+		expect(items[20].tabIndex).toBe(-1);
+		expect(items[20].querySelector('summary')?.textContent).toBe('Details');
+		expect(more!.isConnected).toBe(false);
+		expect(root.querySelector('[role="status"]')?.textContent).toContain(
+			'Added 5 operations. 25 shown.'
+		);
+		expect(root.querySelector('[role="status"]')?.textContent).toContain('No more operations.');
+		// Bounded history was already fetched: this reveals records, not another network page.
+		expect(mocks.getLedgerMock).toHaveBeenCalledTimes(2);
+	});
+	it('keeps a stable status focus target when the final page adds no operations', async () => {
+		mocks.getLedgerMock.mockResolvedValueOnce([
+			{ id: 'a', type: 'topup', amount_kopeks: 1000, currency: 'RUB', created_at: 200 },
+			{ id: 'b', type: 'topup', amount_kopeks: 1000, currency: 'RUB', created_at: 199 }
+		]);
+		const root = renderTimeline({ pageSize: 2 });
+		await flushPromises();
+		const more = [...root.querySelectorAll('button')].find(
+			(button) => button.textContent?.trim() === 'Load more'
+		);
+		expect(more).toBeTruthy();
+		more!.focus();
+		more!.click();
+		await flushPromises();
+		expect(root.querySelectorAll('[data-testid="timeline-item"]')).toHaveLength(2);
+		expect(more!.isConnected).toBe(false);
+		expect(document.activeElement).toBe(root.querySelector('[role="status"]'));
 	});
 	it('deduplicates a shifted offset page while retaining the raw offset', async () => {
 		const entry = (id: string, created_at: number) => ({

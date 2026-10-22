@@ -4,6 +4,7 @@ import { mount, unmount } from 'svelte';
 import { createInstance } from 'i18next';
 
 import HeaderBillingAccess from './HeaderBillingAccess.svelte';
+import { publishWalletBalance } from '$lib/utils/airis/wallet_settings';
 
 type Balance = {
 	balance_topup_kopeks: number;
@@ -51,6 +52,8 @@ const mocks = vi.hoisted(() => {
 	return {
 		getBalanceMock: vi.fn(),
 		getLeadMagnetInfoMock: vi.fn().mockResolvedValue(null),
+		socketOnMock: vi.fn(),
+		socketOffMock: vi.fn(),
 		modelsStore: createStore<{ id: string; info?: { meta?: { lead_magnet?: boolean } } }[]>([]),
 		chatIdStore: createStore(''),
 		pageStore: createStore({ url: new URL('http://localhost/c/123') }),
@@ -65,7 +68,18 @@ vi.mock('$lib/apis/billing', () => ({
 	getBalance: mocks.getBalanceMock,
 	getLeadMagnetInfo: mocks.getLeadMagnetInfoMock
 }));
-vi.mock('$lib/stores', () => ({ models: mocks.modelsStore, chatId: mocks.chatIdStore }));
+vi.mock('$lib/stores', () => ({
+	models: mocks.modelsStore,
+	chatId: mocks.chatIdStore,
+	socket: {
+		subscribe: (
+			run: (client: { on: typeof mocks.socketOnMock; off: typeof mocks.socketOffMock }) => void
+		): (() => void) => {
+			run({ on: mocks.socketOnMock, off: mocks.socketOffMock });
+			return () => {};
+		}
+	}
+}));
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 
 const flushPromises = async (): Promise<void> => {
@@ -98,6 +112,8 @@ describe('HeaderBillingAccess', () => {
 		mocks.getBalanceMock.mockReset().mockResolvedValue(createBalance());
 		mocks.modelsStore.set([]);
 		mocks.chatIdStore.set('');
+		mocks.socketOnMock.mockReset();
+		mocks.socketOffMock.mockReset();
 		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue(null);
 		consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 	});
@@ -113,6 +129,7 @@ describe('HeaderBillingAccess', () => {
 		target = null;
 		consoleErrorSpy?.mockRestore();
 		consoleErrorSpy = null;
+		vi.restoreAllMocks();
 	});
 
 	const renderComponent = (): HTMLDivElement => {
@@ -124,6 +141,87 @@ describe('HeaderBillingAccess', () => {
 		});
 		return target;
 	};
+
+	it('uses a confirmed wallet refresh immediately and marks a failed refresh stale', async () => {
+		const root = renderComponent();
+		await flushPromises();
+		publishWalletBalance(createBalance({ balance_topup_kopeks: 87500 }));
+		await flushPromises();
+		expect(root.querySelector('[data-testid="header-billing-amount"]')?.textContent).toContain(
+			'875'
+		);
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(1);
+		publishWalletBalance(null);
+		await flushPromises();
+		expect(
+			root.querySelector('[data-testid="header-billing-access"]')?.getAttribute('data-state')
+		).toBe('error');
+		expect(
+			root.querySelector('[data-testid="header-billing-balance"]')?.getAttribute('aria-label')
+		).toContain('Balance could not be refreshed');
+	});
+
+	it('refreshes after a chat settles without waiting for the 45-second focus throttle', async () => {
+		const root = renderComponent();
+		await flushPromises();
+		const receive = mocks.socketOnMock.mock.calls.find(
+			([name]) => name === 'events'
+		)?.[1] as (event: { data: { type: string; data: { active: boolean } } }) => void;
+		mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 24000 }));
+		receive({ data: { type: 'chat:active', data: { active: false } } });
+		await flushPromises();
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(2);
+		expect(root.querySelector('[data-testid="header-billing-amount"]')?.textContent).toContain(
+			'240'
+		);
+		await unmount(mounted!);
+		mounted = null;
+		expect(mocks.socketOffMock).toHaveBeenCalledWith('events', receive);
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(2);
+	});
+
+	it.each(['focus', 'visibilitychange'])(
+		'forces a fresh read on %s within the 45-second interval',
+		async (eventName) => {
+			const root = renderComponent();
+			await flushPromises();
+			expect(mocks.getBalanceMock).toHaveBeenCalledTimes(1);
+			mocks.getBalanceMock.mockResolvedValue(createBalance({ balance_topup_kopeks: 87500 }));
+			if (eventName === 'focus') window.dispatchEvent(new Event('focus'));
+			else {
+				vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+				document.dispatchEvent(new Event('visibilitychange'));
+			}
+			await flushPromises();
+			expect(mocks.getBalanceMock).toHaveBeenCalledTimes(2);
+			expect(root.querySelector('[data-testid="header-billing-amount"]')?.textContent).toContain(
+				'875'
+			);
+		}
+	);
+
+	it('queues a fresh focus read behind an unfinished earlier request', async () => {
+		let finish: (balance: Balance) => void = () => {};
+		mocks.getBalanceMock
+			.mockImplementationOnce(
+				() =>
+					new Promise<Balance>((resolve) => {
+						finish = resolve;
+					})
+			)
+			.mockResolvedValue(createBalance({ balance_topup_kopeks: 87500 }));
+		const root = renderComponent();
+		await flushPromises();
+		window.dispatchEvent(new Event('focus'));
+		await flushPromises();
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(1);
+		finish(createBalance());
+		await flushPromises();
+		expect(mocks.getBalanceMock).toHaveBeenCalledTimes(2);
+		expect(root.querySelector('[data-testid="header-billing-amount"]')?.textContent).toContain(
+			'875'
+		);
+	});
 
 	it('renders total balance and chat-safe wallet links', async () => {
 		mocks.getBalanceMock.mockResolvedValue(

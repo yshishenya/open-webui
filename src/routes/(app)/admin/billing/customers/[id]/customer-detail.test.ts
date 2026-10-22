@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { it, expect, vi } from 'vitest';
+import { beforeEach, it, expect, vi } from 'vitest';
 import { mount, tick, unmount } from 'svelte';
 import { writable, type Writable } from 'svelte/store';
 import CustomerDetail from './+page.svelte';
@@ -12,6 +12,59 @@ vi.mock('$app/stores', async () => {
 			params: { id: 'first' }
 		})
 	};
+});
+
+beforeEach(async () => {
+	const { page } = await import('$app/stores');
+	(page as unknown as Writable<{ url: URL; params: { id: string } }>).set({
+		url: new URL('https://example/admin/billing/customers/first'),
+		params: { id: 'first' }
+	});
+});
+
+it('retains the last confirmed customer totals with their own currency and period after a profile failure', async () => {
+	const { page } = await import('$app/stores');
+	(page as unknown as Writable<{ url: URL; params: { id: string } }>).set({
+		url: new URL(
+			'https://example/admin/billing/customers/customer?from_date=2026-10-01&to_date=2026-10-02'
+		),
+		params: { id: 'customer' }
+	});
+	const api = await import('$lib/apis/admin/billing_reporting');
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(CustomerDetail, {
+		target,
+		context: new Map([['i18n', writable({ language: 'en', t: (key: string): string => key })]])
+	});
+	try {
+		await vi.waitFor(() => expect(target.textContent).toContain('customer@example.test'));
+		const caption = Array.from(target.querySelectorAll('p')).find((p) =>
+			p.textContent?.includes('For the applied period')
+		)!.textContent;
+		const total = target.querySelector('dl dd')!.textContent;
+		vi.mocked(api.getBillingReportingCustomer).mockRejectedValueOnce(new Error('offline'));
+		const date = target.querySelector<HTMLInputElement>('input[type="date"]')!;
+		date.value = '2026-09-01';
+		date.dispatchEvent(new Event('input', { bubbles: true }));
+		const currency = target.querySelector('select')!;
+		currency.value = 'USD';
+		currency.dispatchEvent(new Event('change', { bubbles: true }));
+		await tick();
+		target
+			.querySelector('form')!
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await vi.waitFor(() =>
+			expect(target.textContent).toContain('Could not refresh. Showing the last confirmed report.')
+		);
+		expect(target.textContent).toContain(caption);
+		expect(target.querySelector('dl dd')!.textContent).toBe(total);
+		expect(target.textContent).toContain('customer@example.test');
+		expect(target.querySelector('dl dd')!.textContent).not.toContain('$');
+	} finally {
+		await unmount(component);
+		target.remove();
+	}
 });
 vi.mock('$lib/stores', async () => {
 	const { writable } = await import('svelte/store');
@@ -105,5 +158,117 @@ it('reloads customer identity and operations when the same route component is re
 	} finally {
 		await unmount(component);
 		target.remove();
+	}
+});
+
+it.each(['profile', 'history', 'both'] as const)(
+	'retries the failed %s request snapshot while preserving newer filter drafts',
+	async (failure) => {
+		const { page } = await import('$app/stores');
+		(page as unknown as Writable<{ url: URL; params: { id: string } }>).set({
+			url: new URL(
+				'https://example/admin/billing/customers/first?from_date=2026-10-01&to_date=2026-10-02'
+			),
+			params: { id: 'first' }
+		});
+		const api = await import('$lib/apis/admin/billing_reporting');
+		const target = document.createElement('div');
+		document.body.append(target);
+		const component = mount(CustomerDetail, {
+			target,
+			context: new Map([['i18n', writable({ language: 'en-US', t: (key: string): string => key })]])
+		});
+		try {
+			await vi.waitFor(() => expect(target.textContent).toContain('first@example.test'));
+			let rejectProfile: ((reason: Error) => void) | undefined;
+			let rejectHistory: ((reason: Error) => void) | undefined;
+			if (failure !== 'history') {
+				vi.mocked(api.getBillingReportingCustomer).mockImplementationOnce(
+					() =>
+						new Promise((_resolve, reject) => {
+							rejectProfile = reject;
+						})
+				);
+			}
+			if (failure !== 'profile') {
+				vi.mocked(api.getBillingReportingPayments).mockImplementationOnce(
+					() =>
+						new Promise((_resolve, reject) => {
+							rejectHistory = reject;
+						})
+				);
+			}
+			const date = target.querySelector<HTMLInputElement>('input[type="date"]')!;
+			const currency = target.querySelector('select')!;
+			date.value = '2026-09-01';
+			date.dispatchEvent(new Event('input', { bubbles: true }));
+			currency.value = 'USD';
+			currency.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			target
+				.querySelector('form')!
+				.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+			await tick();
+			const profileArgs = vi.mocked(api.getBillingReportingCustomer).mock.calls.at(-1)!;
+			const historyArgs = vi.mocked(api.getBillingReportingPayments).mock.calls.at(-1)!;
+			expect(profileArgs[2]).toMatchObject({
+				currency: 'USD',
+				from: Date.parse('2026-09-01T00:00:00Z') / 1000
+			});
+			expect(historyArgs[1]).toMatchObject({ currency: 'USD', page: 1, user_id: 'first' });
+			// Editing during the in-flight request must not change the retry snapshot.
+			date.value = '2026-08-01';
+			date.dispatchEvent(new Event('input', { bubbles: true }));
+			currency.value = 'EUR';
+			currency.dispatchEvent(new Event('change', { bubbles: true }));
+			await tick();
+			rejectProfile?.(new Error('offline'));
+			rejectHistory?.(new Error('offline'));
+			await vi.waitFor(() => expect(target.textContent).toContain('Retry'));
+			const retry = Array.from(target.querySelectorAll('button')).filter(
+				(button) => button.textContent?.trim() === 'Retry'
+			);
+			expect(retry).toHaveLength(1);
+			retry[0].click();
+			await vi.waitFor(() => expect(target.textContent).not.toContain('Retry'));
+			expect(api.getBillingReportingCustomer).toHaveBeenLastCalledWith(...profileArgs);
+			expect(api.getBillingReportingPayments).toHaveBeenLastCalledWith(...historyArgs);
+			await vi.waitFor(() => expect(target.textContent).not.toContain('Updating report'));
+			expect(date.value).toBe('2026-08-01');
+			expect(currency.value).toBe('EUR');
+			expect(target.textContent).toContain('2026-09-01 — 2026-10-02');
+			expect(target.textContent).not.toContain('Failed to load customer');
+		} finally {
+			await unmount(component);
+			target.remove();
+		}
+	}
+);
+
+it('updates confirmed customer money and UTC dates when only the locale changes', async () => {
+	const language = writable({
+		language: 'ru-RU',
+		resolvedLanguage: 'ru-RU',
+		t: (key: string): string => key
+	});
+	const target = document.createElement('div');
+	const component = mount(CustomerDetail, { target, context: new Map([['i18n', language]]) });
+	const { formatReportMoney, formatReportTime } =
+		await import('$lib/utils/airis/billing_reporting_ui');
+	try {
+		await vi.waitFor(() => expect(target.textContent).toContain('first@example.test'));
+		const api = await import('$lib/apis/admin/billing_reporting');
+		const calls = vi.mocked(api.getBillingReportingCustomer).mock.calls.length;
+		for (const locale of ['ru-RU', 'en-US', 'ru-RU']) {
+			language.update((value) => ({ ...value, language: locale, resolvedLanguage: locale }));
+			await tick();
+			expect(target.querySelector('dl dd')?.textContent?.trim()).toBe(
+				formatReportMoney(100, 'RUB', locale)
+			);
+			expect(target.textContent).toContain(`${formatReportTime(1, locale)} UTC`);
+		}
+		expect(api.getBillingReportingCustomer).toHaveBeenCalledTimes(calls);
+	} finally {
+		await unmount(component);
 	}
 });

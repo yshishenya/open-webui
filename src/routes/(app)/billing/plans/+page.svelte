@@ -17,6 +17,7 @@
 	import { trackEvent } from '$lib/utils/analytics';
 
 	const i18n = getContext('i18n');
+	$: isRussian = getI18nLocale($i18n).toLowerCase().startsWith('ru');
 
 	let loading = true;
 	let plans: Plan[] = [];
@@ -91,7 +92,7 @@
 	};
 
 	const handleSubscribe = async (planId: string) => {
-		if (creatingPayment) return;
+		if (creatingPayment || subscription) return;
 
 		creatingPayment = true;
 		selectedPlanId = planId;
@@ -145,7 +146,11 @@
 		return Boolean(subscription?.plan_id === planId && subscription?.cancel_at_period_end);
 	};
 
-	const formatPrice = (price: number, currency: string, locale: string = getI18nLocale($i18n)): string => {
+	const formatPrice = (
+		price: number,
+		currency: string,
+		locale: string = getI18nLocale($i18n)
+	): string => {
 		return new Intl.NumberFormat(locale, {
 			style: 'currency',
 			currency: currency
@@ -223,11 +228,13 @@
 					<!-- Plan Header -->
 					<div class="mb-3">
 						<h3 class="text-lg font-semibold">
-							{plan.name_ru || plan.name}
+							{isRussian ? plan.name_ru || plan.name : plan.name || plan.name_ru}
 						</h3>
 						{#if plan.description || plan.description_ru}
 							<p class="text-sm text-gray-500 mt-1">
-								{plan.description_ru || plan.description}
+								{isRussian
+									? plan.description_ru || plan.description
+									: plan.description || plan.description_ru}
 							</p>
 						{/if}
 					</div>
@@ -312,7 +319,7 @@
 							<button
 								type="button"
 								on:click={() => handleSubscribe(plan.id)}
-								disabled={creatingPayment}
+								disabled={creatingPayment || subscription !== null}
 								class="w-full py-2 px-4 rounded-xl bg-black hover:bg-gray-900 disabled:bg-gray-400 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 font-medium transition disabled:cursor-not-allowed"
 							>
 								{#if creatingPayment && selectedPlanId === plan.id}
@@ -321,7 +328,9 @@
 										<span>{$i18n.t('Processing')}...</span>
 									</div>
 								{:else}
-									{$i18n.t('Subscribe')}
+									{subscription
+										? $i18n.t('Available after current term ends')
+										: $i18n.t('Subscribe')}
 								{/if}
 							</button>
 						{/if}

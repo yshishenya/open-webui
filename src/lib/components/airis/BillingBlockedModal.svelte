@@ -8,12 +8,49 @@
 		BillingBlockedInsufficientFunds
 	} from '$lib/utils/airis/billing_block';
 	import { buildBillingBalanceHref } from '$lib/utils/airis/billing_block';
+	import { reconcileTopup } from '$lib/apis/billing';
+	import { paymentReturnState, type PaymentReturnState } from '$lib/utils/airis/billing_ui';
 
 	const i18n = getContext('i18n');
 
 	export let open = false;
 	export let detail: BillingBlockedDetail | null = null;
 	export let returnTo: string | null = null;
+	let checkingPayment = false;
+	let checkedPaymentState: PaymentReturnState = 'idle';
+	$: if (!open || detail) checkedPaymentState = 'idle';
+	$: paymentProcessing =
+		detail?.error === 'insufficient_funds' &&
+		(Boolean(detail.auto_topup_payment_id) ||
+			['created', 'pending', 'succeeded', 'unknown', 'failed'].includes(
+				detail.auto_topup_status ?? ''
+			));
+	$: dialogTitle = $i18n.t(
+		detail?.error === 'daily_cap_exceeded'
+			? 'Daily cap reached'
+			: detail?.error === 'max_reply_cost_exceeded'
+				? 'Max reply cost limit reached'
+				: 'Insufficient funds'
+	);
+
+	const checkExistingPayment = async (): Promise<void> => {
+		if (checkingPayment || detail?.error !== 'insufficient_funds') return;
+		const paymentId = detail.auto_topup_payment_id;
+		if (!paymentId) {
+			await handleNavigate('/billing/history?filter=topups');
+			return;
+		}
+		checkingPayment = true;
+		const checkedDetail = detail;
+		try {
+			const result = await reconcileTopup(localStorage.token, paymentId);
+			if (open && detail === checkedDetail) checkedPaymentState = paymentReturnState(result);
+		} catch {
+			if (open && detail === checkedDetail) checkedPaymentState = 'unknown';
+		} finally {
+			checkingPayment = false;
+		}
+	};
 
 	const formatMoney = (
 		kopeks: number | null,
@@ -84,6 +121,7 @@
 
 <Modal
 	bind:show={open}
+	ariaLabel={dialogTitle}
 	size="sm"
 	containerClassName="p-3"
 	className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-4xl"
@@ -95,7 +133,7 @@
 					{#if detail.error === 'insufficient_funds'}
 						<h2 class="text-lg font-semibold">{$i18n.t('Insufficient funds')}</h2>
 						<div class="text-sm text-gray-500 mt-1">
-							{$i18n.t('Top up to continue this reply')}
+							{$i18n.t('After payment, return to the chat and send your request again')}
 						</div>
 					{:else if detail.error === 'daily_cap_exceeded'}
 						<h2 class="text-lg font-semibold">{$i18n.t('Daily cap reached')}</h2>
@@ -175,6 +213,21 @@
 							{$i18n.t("We don't store card details")}.
 						</div>
 					{/if}
+					{#if checkedPaymentState !== 'idle'}
+						<p role="status" class="mt-3 text-sm" data-testid="existing-payment-result">
+							{$i18n.t(
+								checkedPaymentState === 'success'
+									? 'Balance credited. Return to the chat and send your request again.'
+									: checkedPaymentState === 'pending'
+										? 'Payment is processing. Check this payment again shortly.'
+										: checkedPaymentState === 'uncredited'
+											? 'Payment confirmed; balance credit is still being checked.'
+											: checkedPaymentState === 'canceled'
+												? 'Payment canceled. No balance credit was confirmed.'
+												: 'Could not check the payment result. Check the same payment again.'
+							)}
+						</p>
+					{/if}
 				{:else if detail.error === 'daily_cap_exceeded'}
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Daily cap')}</span>
@@ -182,6 +235,23 @@
 							{formatMoney(detail.daily_cap_kopeks ?? null, 'RUB', getI18nLocale($i18n))}
 						</span>
 					</div>
+					<div class="flex items-center justify-between gap-3">
+						<span class="text-gray-500">{$i18n.t('Reserved by other requests')}</span>
+						<span class="font-medium" data-testid="daily-reserved">
+							{formatMoney(detail.daily_reserved_kopeks ?? null, 'RUB', getI18nLocale($i18n))}
+						</span>
+					</div>
+					<div class="flex items-center justify-between gap-3">
+						<span class="text-gray-500">{$i18n.t('Reserve needed for this request')}</span>
+						<span class="font-medium">
+							{formatMoney(detail.required_kopeks, 'RUB', getI18nLocale($i18n))}
+						</span>
+					</div>
+					<p class="text-xs text-gray-600 dark:text-gray-300">
+						{$i18n.t(
+							'The daily cap includes spending, active reserves and this new reserve. Adding money does not raise the daily cap.'
+						)}
+					</p>
 					<div class="flex items-center justify-between gap-3">
 						<span class="text-gray-500">{$i18n.t('Spent today')}</span>
 						<span class="font-medium">
@@ -213,6 +283,15 @@
 			</div>
 
 			<div class="mt-5 flex flex-wrap gap-2 justify-end">
+				{#if paymentProcessing}
+					<button
+						type="button"
+						class="min-h-11 px-3 py-1.5 rounded-xl border border-gray-300 dark:border-gray-700 text-sm focus-visible:ring-2"
+						on:click={() => handleNavigate(topupHref)}
+					>
+						{$i18n.t('Make an additional top-up')}
+					</button>
+				{/if}
 				{#if showAutoTopupCTA}
 					<button
 						type="button"
@@ -225,9 +304,12 @@
 				<button
 					type="button"
 					class="min-h-11 px-3 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
-					on:click={() => handleNavigate(topupHref)}
+					disabled={checkingPayment}
+					on:click={() => (paymentProcessing ? checkExistingPayment() : handleNavigate(topupHref))}
 				>
-					{#if detail.error === 'insufficient_funds'}
+					{#if paymentProcessing}
+						{checkingPayment ? $i18n.t('Checking payment') : $i18n.t('Check payment')}
+					{:else if detail.error === 'insufficient_funds'}
 						{$i18n.t('Top up balance')}
 					{:else}
 						{$i18n.t('Manage limits & auto-topup')}

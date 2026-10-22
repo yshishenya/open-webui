@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
 	import { getContext } from 'svelte';
-	import {
-		formatCompactNumber,
-		getUsagePercentage,
-		getUsageColor,
-		getQuotaLabel
-	} from '$lib/utils/billing-formatters';
+	import { getUsagePercentage, getUsageColor, getQuotaLabel } from '$lib/utils/billing-formatters';
 	import type { LeadMagnetInfo } from '$lib/apis/billing';
+	import {
+		formatFreeQuotaValue,
+		freeAccessModelLabel,
+		hasFreeTextQuota
+	} from '$lib/utils/airis/billing_ui';
 
 	const i18n = getContext('i18n');
 
@@ -87,8 +87,8 @@
 	const getGroupMetricLabel = (group: LeadMagnetGroupId, key: string): string => {
 		if (group === 'text' && key === 'tokens_input') return $i18n.t('Input');
 		if (group === 'text' && key === 'tokens_output') return $i18n.t('Output');
-		if (group === 'voice' && key === 'tts_seconds') return $i18n.t('Text to speech, seconds');
-		if (group === 'voice' && key === 'stt_seconds') return $i18n.t('Speech recognition, seconds');
+		if (group === 'voice' && key === 'tts_seconds') return $i18n.t('Speech synthesis minutes');
+		if (group === 'voice' && key === 'stt_seconds') return $i18n.t('Speech recognition minutes');
 		return getLocalizedQuotaLabel(key);
 	};
 
@@ -163,9 +163,36 @@
 		<span
 			class="px-1.5 py-0.5 text-xs font-medium rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
 		>
-			{$i18n.t('Free')}
+			{$i18n.t('Free access eligible')}
 		</span>
 	</div>
+	<div
+		class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-700 dark:text-gray-200"
+		data-testid="free-quota-summary"
+	>
+		<span class="font-medium">{$i18n.t('Free allowance remaining')}:</span>
+		{#each leadMagnetMetrics as metric (metric.key)}
+			<span>
+				{getGroupMetricLabel(KEY_TO_GROUP[metric.key] ?? 'other', metric.key)}:
+				{formatFreeQuotaValue(metric.remaining, metric.key, getI18nLocale($i18n))}
+			</span>
+		{/each}
+	</div>
+	{#if modelsReady && models.length > 0}
+		<p class="mt-2 text-xs text-gray-600 dark:text-gray-300">
+			{$i18n.t('Models included')}: {models
+				.slice(0, 3)
+				.map((model) => freeAccessModelLabel(model, models))
+				.join(', ')}{models.length > 3 ? '…' : ''}
+		</p>
+	{/if}
+	<p class="mt-2 text-xs text-gray-600 dark:text-gray-300" role="status">
+		{$i18n.t(
+			hasFreeTextQuota(leadMagnetInfo)
+				? 'Free access is subject to remaining quota. Otherwise this request uses your wallet.'
+				: 'Free text allowance is exhausted. Further text requests use your wallet at the selected model rates.'
+		)}
+	</p>
 
 	<div class="mt-2 text-xs text-gray-500">
 		{$i18n.t('Next reset')}: {formatDateTime(leadMagnetInfo.cycle_end, getI18nLocale($i18n))}
@@ -200,13 +227,17 @@
 												{getGroupMetricLabel(group.id, metric.key)}
 											</span>
 											<span class="text-xs tabular-nums text-gray-500">
-												{formatCompactNumber(metric.used)} / {formatCompactNumber(metric.limit)}
+												{formatFreeQuotaValue(metric.used, metric.key, getI18nLocale($i18n))} / {formatFreeQuotaValue(
+													metric.limit,
+													metric.key,
+													getI18nLocale($i18n)
+												)}
 											</span>
 										</div>
 										<div
 											class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700"
 											role="progressbar"
-											aria-label={getGroupMetricLabel(group.id, metric.key)}
+											aria-label={getLocalizedQuotaLabel(metric.key)}
 											aria-valuemin="0"
 											aria-valuemax={metric.limit}
 											aria-valuenow={Math.min(metric.limit, Math.max(0, metric.used))}
@@ -221,6 +252,20 @@
 										<div class="mt-1 text-[11px] text-gray-500">
 											{metric.percentage}% {$i18n.t('used')}
 										</div>
+										{#if group.id === 'voice'}
+											<p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
+												{$i18n.t('Exact values')}: {new Intl.NumberFormat(
+													getI18nLocale($i18n)
+												).format(metric.used)} / {new Intl.NumberFormat(
+													getI18nLocale($i18n)
+												).format(metric.limit)}
+												{$i18n.t('seconds')};
+												{$i18n.t('Remaining')}: {new Intl.NumberFormat(getI18nLocale($i18n)).format(
+													metric.remaining
+												)}
+												{$i18n.t('seconds')}
+											</p>
+										{/if}
 									</div>
 								{/each}
 							</div>
@@ -261,7 +306,7 @@
 										<span
 											class="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
 										>
-											{model.name}
+											{freeAccessModelLabel(model, models)}
 										</span>
 									{/each}
 								</div>

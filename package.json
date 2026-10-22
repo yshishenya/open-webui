@@ -39,6 +39,9 @@
 		"i18n:parse": "i18next --config i18next-parser.config.ts && prettier --write \"src/lib/i18n/**/*.{js,json}\"",
 		"cy:open": "cypress open",
 		"test:e2e": "playwright test",
+		"test:e2e:analytics": "playwright test --config=e2e/analytics.config.ts",
+		"test:e2e:billing-ui": "playwright test --config=e2e/billing_ui.config.ts",
+		"test:e2e:billing-experience": "npm run test:e2e:analytics && npm run test:e2e:billing-ui",
 		"test:e2e:ui": "playwright test --ui",
 		"test:frontend": "CI=1 vitest --passWithNoTests",
 		"pyodide:fetch": "node scripts/prepare-pyodide.js"

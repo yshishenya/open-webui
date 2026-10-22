@@ -9,7 +9,10 @@ describe('ModelItem free-quota badge contract', () => {
 	it('keeps the badge gated by lead_magnet metadata and accessible', () => {
 		expect(source).toContain('{#if item.model?.info?.meta?.lead_magnet}');
 		expect(source).toContain('data-testid="model-free-badge"');
-		expect(source).toContain("$i18n.t('Free usage')");
-		expect(source).toContain("$i18n.t('Free limit applies to select models')");
+		expect(source).toContain("$i18n.t('Free access eligible')");
+		expect(source).not.toContain("$i18n.t('Free')");
+		expect(source).toContain(
+			'Free access is subject to remaining quota. Otherwise this request uses your wallet.'
+		);
 	});
 });

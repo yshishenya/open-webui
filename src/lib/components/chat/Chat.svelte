@@ -6,6 +6,11 @@
 	} from '$lib/utils/airis/frontend-contracts';
 
 	import type { ChatCompletionEvent, ChatSocketEvent } from '$lib/utils/airis/chat_events';
+	import BillingReservationNotice from '$lib/components/airis/BillingReservationNotice.svelte';
+	import {
+		addBillingReservation,
+		type BillingReservationNotice as ReservationNotice
+	} from '$lib/utils/airis/billing_reservation';
 	import type { GoogleDriveFile } from '$lib/utils/google-drive-picker';
 	import { v4 as uuidv4 } from 'uuid';
 	import { toast } from 'svelte-sonner';
@@ -207,6 +212,7 @@
 	let eventCallback: (value: unknown) => void | Promise<void> = () => {};
 
 	let billingBlockedOpen = false;
+	let billingReservations: Record<string, ReservationNotice> = {};
 	let billingBlockedDetail: BillingBlockedDetail | null = null;
 	$: if (!billingBlockedOpen && billingBlockedDetail) {
 		billingBlockedDetail = null;
@@ -1254,7 +1260,11 @@
 			let message = history.messages[event.message_id];
 
 			if (message) {
-				if (type === 'status') {
+				if (type === 'billing:reservation') {
+					billingReservations = addBillingReservation(
+						billingReservations, event.chat_id, event.message_id, data
+					);
+				} else if (type === 'status') {
 					if (message?.statusHistory) {
 						message.statusHistory.push(data);
 					} else {
@@ -4578,6 +4588,7 @@
 									id={embedded ? messageInputDropzoneId : undefined}
 									class=" pb-2 {dragged ? 'z-0' : 'z-10'}"
 								>
+									<BillingReservationNotice notices={billingReservations} chatId={$chatId} {history} />
 									<MessageInput
 										bind:this={messageInput}
 										{history}
