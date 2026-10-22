@@ -32,3 +32,12 @@
   - Summary: CI2b прошёл backend/frontend/wallet/billing UI, но analytics39/43. Найдены отсутствующий тестовый счётчик и гонка восстановления storage в тесте; исправлены только Compose и ожидание E2E, приложение не менялось.
   - Tests: Compose config подтверждает фиктивный счётчик99999999 и пустой GA; diff-check PASS. Новый CI и реальные три confidence tier обязательны. Образ2b проверен по source/static/packages/native, PostgreSQL restore/migration PASS. Старый незавершённый прогон сохраняется отдельно.
   - Risks: Выпуск остаётся закрыт до зелёных проверок нового SHA. Production не обновлялся; очищен только один восстанавливаемый неиспользуемый образ, контент/конфигурация сохранены.
+
+- [ ] **[BUG][BILLING][CI]** Изоляция БД теста создания оплаты
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__billing-experience-implementation.md`
+  - Owner: Codex
+  - Started: 2026-10-22
+  - Summary: CI1076 прошёл полностью, но независимый merge-medium обнаружил зависимость service-core от подписки user_1, оставленной quota. Класс подключён к существующему сбросу БД AbstractPostgresTest; приложение и денежные защиты не меняются.
+  - Tests: Красный результат198 passed/3 skipped/1 failed сохранён. Адресное воспроизведение и полный повтор на новом SHA обязательны; успех CI1076 не подменяет их.
+  - Verification: Старый1076 воспроизвёл1 passed/1 failed; исправленный quota→core17/17, полный coverage279 passed/3 skipped. Пороги router89,39/77,67% и service88,60/81,18% прошли без снижения; Black/Ruff/diff-check и независимый обзор PASS. Новый commit/CI/tiers остаются обязательными.
+  - Risks: Слияние и выпуск остаются закрыты до нового CI и трёх уровней confidence.

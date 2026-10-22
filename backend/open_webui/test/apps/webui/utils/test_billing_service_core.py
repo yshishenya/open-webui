@@ -7,9 +7,10 @@ from _pytest.monkeypatch import MonkeyPatch
 
 from open_webui.models.billing import PlanModel, UsageMetric
 from open_webui.utils.billing import BillingService
+from test.util.abstract_integration_test import AbstractPostgresTest
 
 
-class TestBillingServiceCore:
+class TestBillingServiceCore(AbstractPostgresTest):
     def test_provider_payment_description_contains_email(self) -> None:
         service = BillingService()
 
@@ -90,6 +91,7 @@ class TestBillingServiceCore:
         import open_webui.utils.billing as billing_utils
 
         service = BillingService()
+        assert service.get_user_subscription("user_1") is None
         service.get_plan = lambda *_: PlanModel(  # type: ignore[method-assign]
             id='plan_1',
             interval='month',
