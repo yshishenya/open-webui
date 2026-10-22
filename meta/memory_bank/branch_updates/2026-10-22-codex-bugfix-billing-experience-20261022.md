@@ -24,3 +24,11 @@
   - Summary: Реализация зафиксирована в4dc35fe0cb5037a08a4c36c16ed4f4d83b7b8040, PR385 вairis_b2c. Исправление формата нового SDD-ID только документальное; CI не ослаблен.
   - Tests: Полный preflight PASS (2773/252, типы0/0, ESLint, build), дополнительные11 deploy-контрактов PASS; billing UI21/21 PASS. Schema+policy для318 SDD:0/0. Настоящие confidence tiers и CI нового SHA ещё ожидаются.
   - Risks: Не слито и не выпущено. Перед выпуском обязательны точный SHA, место на сервере, закрытая свежая копия, восстановление/миграции и обе роли в production.
+
+- [ ] **[BUG][BILLING][CI]** Исправление тестового окружения analytics
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-22__bugfix__billing-experience-implementation.md`
+  - Owner: Codex
+  - Started: 2026-10-22
+  - Summary: CI2b прошёл backend/frontend/wallet/billing UI, но analytics39/43. Найдены отсутствующий тестовый счётчик и гонка восстановления storage в тесте; исправлены только Compose и ожидание E2E, приложение не менялось.
+  - Tests: Compose config подтверждает фиктивный счётчик99999999 и пустой GA; diff-check PASS. Новый CI и реальные три confidence tier обязательны. Образ2b проверен по source/static/packages/native, PostgreSQL restore/migration PASS. Старый незавершённый прогон сохраняется отдельно.
+  - Risks: Выпуск остаётся закрыт до зелёных проверок нового SHA. Production не обновлялся; очищен только один восстанавливаемый неиспользуемый образ, контент/конфигурация сохранены.

@@ -2,6 +2,11 @@
 # analytics_billing_ui creates its administrator before its ordinary test account.
 services:
   airis-e2e:
+    build:
+      args:
+        # Analytics tests intercept every provider request; never use a real counter.
+        PUBLIC_YANDEX_METRICA_ID: "99999999"
+        PUBLIC_GA_MEASUREMENT_ID: ""
     volumes: !reset []
     tmpfs:
       - /app/backend/data
