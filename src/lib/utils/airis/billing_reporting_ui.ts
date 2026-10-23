@@ -90,6 +90,7 @@ export const ledgerLabel = (type: string): string =>
 			charge: 'Usage settled',
 			adjustment: 'Balance adjustment',
 			refund: 'Wallet credit adjustment',
+			subscription_credit: 'Subscription credit',
 			expire: 'Balance expired'
 		}) as Record<string, string>
 	)[type] || type;

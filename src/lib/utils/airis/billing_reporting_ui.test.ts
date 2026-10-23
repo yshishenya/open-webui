@@ -75,6 +75,7 @@ it('accepts shared analytics dates while money-specific dates take priority', ()
 
 it('distinguishes a wallet ledger refund from a provider payment refund', () => {
 	expect(ledgerLabel('refund')).toBe('Wallet credit adjustment');
+	expect(ledgerLabel('subscription_credit')).toBe('Subscription credit');
 });
 
 it('distinguishes absent, zero and positive confirmed refund amounts', () => {

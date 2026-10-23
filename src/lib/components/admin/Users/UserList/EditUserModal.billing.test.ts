@@ -234,28 +234,35 @@ it.each(['en-US', 'ru-RU'])(
 
 it('localizes recent ledger types and formats their unchanged signed amounts in the entry currency', async () => {
 	const summary = await api.getUserWalletAdmin('', 'fixture');
-	summary.ledger_preview = ['charge', 'release', 'hold'].map((type, index) => ({
-		id: type,
-		user_id: 'fixture',
-		wallet_id: 'wallet',
-		currency: 'USD',
-		type,
-		amount_kopeks: index === 1 ? 125 : -125,
-		balance_included_after: 0,
-		balance_topup_after: 100,
-		reference_id: type,
-		reference_type: 'usage',
-		idempotency_key: null,
-		metadata_json: null,
-		created_at: 1
-	}));
+	summary.ledger_preview = ['charge', 'release', 'hold', 'subscription_credit'].map(
+		(type, index) => ({
+			id: type,
+			user_id: 'fixture',
+			wallet_id: 'wallet',
+			currency: 'USD',
+			type,
+			amount_kopeks: index === 1 ? 125 : -125,
+			balance_included_after: 0,
+			balance_topup_after: 100,
+			reference_id: type,
+			reference_type: 'usage',
+			idempotency_key: null,
+			metadata_json: null,
+			created_at: 1
+		})
+	);
 	const original = structuredClone(summary);
 	const component = await open({}, 'ru-RU');
 	try {
-		for (const label of ['Usage settled', 'Reservation released', 'Funds reserved']) {
+		for (const label of [
+			'Usage settled',
+			'Reservation released',
+			'Funds reserved',
+			'Subscription credit'
+		]) {
 			expect(document.body.textContent).toContain(ru[label as keyof typeof ru]);
 		}
-		expect(document.body.textContent).not.toMatch(/\b(charge|release|hold)\b/);
+		expect(document.body.textContent).not.toMatch(/\b(charge|release|hold|subscription_credit)\b/);
 		const amount = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'USD' }).format(
 			-1.25
 		);
