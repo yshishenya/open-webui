@@ -243,6 +243,7 @@
 							{$i18n.t('Безлимит')}
 						</button>
 						<button
+							aria-label={$i18n.t('New Plan')}
 							class="px-2 py-1.5 rounded-xl bg-black text-white dark:bg-white dark:text-black transition font-medium text-sm flex items-center"
 							on:click={() => goto('/admin/billing/plans/new')}
 						>
@@ -264,6 +265,7 @@
 						<Search className="size-3.5" />
 					</div>
 					<input
+						aria-label={$i18n.t('Search Plans')}
 						class="w-full text-sm pr-4 py-1 rounded-r-xl outline-hidden bg-transparent"
 						bind:value={query}
 						placeholder={$i18n.t('Search Plans')}
@@ -271,6 +273,7 @@
 					{#if query}
 						<div class="self-center pl-1.5 translate-y-[0.5px] rounded-l-xl bg-transparent">
 							<button
+								aria-label={$i18n.t('Clear search')}
 								class="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition"
 								on:click={() => {
 									query = '';
@@ -287,31 +290,37 @@
 			{#if filteredPlans.length !== 0}
 				<div class="px-3 my-2 gap-1 lg:gap-2 grid lg:grid-cols-2">
 					{#each filteredPlans as planStat (planStat.plan.id)}
+						{@const planName =
+							(isRussian
+								? planStat.plan.name_ru || planStat.plan.name
+								: planStat.plan.name || planStat.plan.name_ru) || planStat.plan.id}
+						{@const planLabel = `${planName} (${planStat.plan.id})`}
 						<div
-							class="flex space-x-4 cursor-pointer w-full px-2 py-2 dark:hover:bg-white/5 hover:bg-black/5 rounded-xl"
+							class="flex min-w-0 flex-col gap-2 sm:flex-row sm:gap-4 cursor-pointer w-full px-2 py-2 dark:hover:bg-white/5 hover:bg-black/5 rounded-xl"
 						>
 							<a
-								class="flex flex-1 space-x-3.5 cursor-pointer w-full"
+								class="flex min-w-0 flex-1 space-x-3.5 cursor-pointer w-full"
+								aria-label={`${$i18n.t('Edit Plan')}: ${planLabel}`}
 								href={`/admin/billing/plans/${planStat.plan.id}/edit`}
 							>
-								<div class="flex items-center text-left">
-									<div class="flex-1 self-center pl-1">
+								<div class="flex min-w-0 w-full items-center text-left">
+									<div class="min-w-0 w-full flex-1 self-center pl-1">
 										<Tooltip content={planStat.plan.id} placement="top-start">
-											<div class="flex items-center gap-1.5">
+											<div class="flex min-w-0 flex-wrap items-center gap-1.5">
 												<div
-													class="text-xs font-semibold px-1 rounded-sm uppercase line-clamp-1
+													class="shrink-0 text-xs font-semibold px-1 rounded-sm uppercase
 													{planStat.plan.is_active
 														? 'bg-green-500/20 text-green-700 dark:text-green-200'
 														: 'bg-gray-500/20 text-gray-700 dark:text-gray-200'}"
 												>
 													{planStat.plan.is_active ? $i18n.t('Active') : $i18n.t('Inactive')}
 												</div>
-												<div class="line-clamp-1 text-sm font-medium">
-													{isRussian
-														? planStat.plan.name_ru || planStat.plan.name
-														: planStat.plan.name || planStat.plan.name_ru}
+												<div
+													class="min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere] text-sm font-medium"
+												>
+													{planName}
 												</div>
-												<div class="text-gray-500 text-xs font-medium shrink-0">
+												<div class="w-full sm:w-auto text-gray-500 text-xs font-medium shrink-0">
 													{formatPrice(
 														planStat.plan.price,
 														planStat.plan.currency,
@@ -321,7 +330,7 @@
 											</div>
 										</Tooltip>
 
-										<div class="flex gap-1.5 px-1">
+										<div class="flex min-w-0 flex-wrap gap-1.5 px-1">
 											<div class="text-xs text-gray-500 shrink-0">
 												{planStat.active_subscriptions}
 												{$i18n.t('subscribers')}
@@ -349,10 +358,10 @@
 								</div>
 							</a>
 
-							<div class="flex flex-row gap-0.5 self-center">
+							<div class="flex shrink-0 flex-wrap flex-row gap-0.5 self-start sm:self-center">
 								<Tooltip content={$i18n.t('Delete')}>
 									<button
-										aria-label={$i18n.t('Delete')}
+										aria-label={`${$i18n.t('Delete')}: ${planLabel}`}
 										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 										type="button"
 										disabled={planStat.active_subscriptions > 0}
@@ -363,7 +372,7 @@
 								</Tooltip>
 								<Tooltip content={$i18n.t('Subscribers')}>
 									<button
-										aria-label={$i18n.t('Subscribers')}
+										aria-label={`${$i18n.t('Subscribers')}: ${planLabel}`}
 										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 										type="button"
 										on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/subscribers`)}
@@ -387,7 +396,7 @@
 
 								<Tooltip content={$i18n.t('Analytics')}>
 									<button
-										aria-label={$i18n.t('Analytics')}
+										aria-label={`${$i18n.t('Analytics')}: ${planLabel}`}
 										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 										type="button"
 										on:click={() => goto(`/admin/billing/plans/${planStat.plan.id}/analytics`)}
@@ -398,7 +407,7 @@
 
 								<Tooltip content={$i18n.t('Duplicate')}>
 									<button
-										aria-label={$i18n.t('Duplicate')}
+										aria-label={`${$i18n.t('Duplicate')}: ${planLabel}`}
 										class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 										type="button"
 										disabled={actionInProgress}
@@ -426,6 +435,7 @@
 										content={planStat.plan.is_active ? $i18n.t('Enabled') : $i18n.t('Disabled')}
 									>
 										<Switch
+											ariaLabel={`${$i18n.t('Active')}: ${planLabel}`}
 											state={planStat.plan.is_active}
 											on:change={() => handleToggleActive(planStat.plan.id)}
 										/>

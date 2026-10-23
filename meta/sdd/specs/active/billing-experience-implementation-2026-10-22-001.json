@@ -2,7 +2,7 @@
   "spec_id": "billing-experience-implementation-2026-10-22-001",
   "title": "Billing experience implementation 2026-10-22",
   "generated": "2026-10-21T22:57:30.938442Z",
-  "last_updated": "2026-10-22T00:11:35Z",
+  "last_updated": "2026-10-23T13:48:32.929918Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -13,7 +13,9 @@
     "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-22__bugfix__billing-experience-implementation.md",
     "audited_source": "c63de6eb38afaac786fad5bf6df7338d15b074b3",
     "status": "active",
-    "activated_date": "2026-10-21T22:58:14.203941Z"
+    "activated_date": "2026-10-21T22:58:14.203941Z",
+    "progress_percentage": 80,
+    "current_phase": "phase-2"
   },
   "hierarchy": {
     "spec-root": {
@@ -27,7 +29,7 @@
         "phase-3"
       ],
       "total_tasks": 10,
-      "completed_tasks": 7,
+      "completed_tasks": 8,
       "metadata": {}
     },
     "phase-1": {
@@ -63,14 +65,14 @@
     "phase-3": {
       "type": "phase",
       "title": "Exact-SHA release and production acceptance",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "spec-root",
       "children": [
         "task-3-1",
         "task-3-2"
       ],
       "total_tasks": 2,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {}
     },
     "task-1-1": {
@@ -236,7 +238,7 @@
     "task-3-1": {
       "type": "task",
       "title": "Commit, PR, green CI and merge to airis_b2c",
-      "status": "pending",
+      "status": "completed",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -245,16 +247,20 @@
         "depends": []
       },
       "total_tasks": 1,
-      "completed_tasks": 0,
+      "completed_tasks": 1,
       "metadata": {
         "task_category": "implementation",
-        "file_path": ".github/workflows/billing-confidence.yml"
+        "file_path": ".github/workflows/billing-confidence.yml",
+        "completed_at": "2026-10-23T13:21:46.680711Z",
+        "needs_journaling": false,
+        "status_note": "PR385 merged normally at c38616a0b8dbb235e5cfecaa09e730ab63643b57; merge tree matches exact e48; merge CI39709565674/39709565660 success, backend1397/10 existing skips. Production acceptance remains task-3-2.",
+        "journaled_at": "2026-10-23T13:21:46.682089Z"
       }
     },
     "task-3-2": {
       "type": "task",
       "title": "Guarded clean-image deploy and production role checks",
-      "status": "pending",
+      "status": "in_progress",
       "parent": "phase-3",
       "children": [],
       "dependencies": {
@@ -266,8 +272,21 @@
       "completed_tasks": 0,
       "metadata": {
         "task_category": "implementation",
-        "file_path": "scripts/deploy_guarded.sh"
+        "file_path": "scripts/deploy_guarded.sh",
+        "started_at": "2026-10-23T13:48:32.929711Z",
+        "status_note": "Guarded release20261023T131945Z exited0; exact c386 runtime/public assets, pip/native/model cache accepted.9 money tables identical;144 wallet rows compare with11 updated_at-only differences; snapshot/backup gap not attributed. Production admin pass found SPA navigation/mobile plans/localization/expired-status UI follow-up. User role and real200percent remain pending; subscriptions off; no monetary test actions."
       }
     }
-  }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-23T13:21:46.682083Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: Commit, PR, green CI and merge to airis_b2c",
+      "author": "claude-code",
+      "content": "Task task-3-1 marked as completed. \nNote: PR385 merged normally at c38616a0b8dbb235e5cfecaa09e730ab63643b57; merge tree matches exact e48; merge CI39709565674/39709565660 success, backend1397/10 existing skips. Production acceptance remains task-3-2.",
+      "metadata": {},
+      "task_id": "task-3-1"
+    }
+  ]
 }

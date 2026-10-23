@@ -357,3 +357,49 @@ it('replaces the editable plan and saves the current identity after route reuse'
 		target.remove();
 	}
 });
+
+it.each([EditPlan, NewPlan])(
+	'names back, feature actions and each unlimited quota without saving',
+	async (Page) => {
+		const target = document.createElement('div');
+		document.body.append(target);
+		const component = mount(Page, { target, context: context() });
+		try {
+			await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+			expect(target.querySelector('button[aria-label="Back"]')?.getAttribute('type')).toBe(
+				'button'
+			);
+			for (const metric of ['Input Tokens', 'Output Tokens', 'Requests']) {
+				expect(
+					target.querySelector(`input[type="checkbox"][aria-label="Unlimited: ${metric}"]`)
+				).not.toBeNull();
+			}
+			const feature = target.querySelector<HTMLInputElement>(
+				'input[placeholder="Add feature..."]'
+			)!;
+			for (const value of ['Economy Models', 'Basic Support']) {
+				feature.value = value;
+				feature.dispatchEvent(new Event('input', { bubbles: true }));
+				await tick();
+				const add = target.querySelector<HTMLButtonElement>(`button[aria-label="Add: ${value}"]`)!;
+				expect(add.getAttribute('type')).toBe('button');
+				add.click();
+				await tick();
+				expect(target.querySelector(`button[aria-label="Remove: ${value}"]`)).not.toBeNull();
+			}
+			target
+				.querySelector<HTMLButtonElement>('button[aria-label="Remove: Economy Models"]')!
+				.click();
+			await tick();
+			expect(target.querySelector('button[aria-label="Remove: Economy Models"]')).toBeNull();
+			expect(target.querySelector('button[aria-label="Remove: Basic Support"]')).not.toBeNull();
+			expect(target.querySelector('button[aria-label="Add: Features"]')).not.toBeNull();
+			expect(api.updatePlan).not.toHaveBeenCalled();
+			expect(api.createPlan).not.toHaveBeenCalled();
+			expect(goto).not.toHaveBeenCalled();
+		} finally {
+			await unmount(component);
+			target.remove();
+		}
+	}
+);

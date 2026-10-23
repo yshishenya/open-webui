@@ -6,6 +6,7 @@ import { createInstance } from 'i18next';
 import { toast } from 'svelte-sonner';
 import EditUserModal from './EditUserModal.svelte';
 import * as api from '$lib/apis/admin/billing';
+import ru from '$lib/i18n/locales/ru-RU/translation.json';
 
 vi.hoisted(() => Object.assign(globalThis, { APP_VERSION: 'test', APP_BUILD_HASH: 'test' }));
 vi.mock('focus-trap', () => ({
@@ -122,12 +123,16 @@ const fill = async (selector: string, value: string): Promise<void> => {
 	await tick();
 };
 const open = async (
-	translations: Record<string, string> = {}
+	translations: Record<string, string> = {},
+	language = 'en-US'
 ): Promise<ReturnType<typeof mount>> => {
 	const i18n = createInstance();
 	await i18n.init({
-		lng: 'en',
-		resources: { en: { translation: translations } },
+		lng: language,
+		resources: {
+			'en-US': { translation: translations },
+			'ru-RU': { translation: { ...ru, ...translations } }
+		},
 		initImmediate: false
 	});
 	const component = mount(EditUserModal, {
@@ -190,6 +195,153 @@ it('keeps plan selection as a draft; cancel sends zero requests, confirm sends o
 		await unmount(component);
 	}
 });
+
+it.each(['en-US', 'ru-RU'])(
+	'distinguishes a stored active status from an ended period in %s without writing data',
+	async (language) => {
+		vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-23T12:00:00Z'));
+		const info = (await api.getUserSubscription('', 'fixture'))!;
+		info.subscription!.current_period_end = Date.parse('2026-03-12T12:00:00Z') / 1000;
+		const original = structuredClone(info);
+		const component = await open({}, language);
+		try {
+			const text = document.body.textContent!;
+			expect(text).toContain(
+				language === 'ru-RU' ? 'Сохранённый статус подписки' : 'Stored subscription status'
+			);
+			expect(text).toContain(language === 'ru-RU' ? 'Активен' : 'Active');
+			expect(text).toContain(language === 'ru-RU' ? 'Период завершён.' : 'The period has ended.');
+			expect(text).toContain(
+				new Date(info.subscription!.current_period_end * 1000).toLocaleString(language, {
+					timeZone: 'UTC'
+				})
+			);
+			expect(text).not.toContain('March');
+			const status = Array.from(document.querySelectorAll('span')).find(
+				(span) => span.textContent?.trim() === (language === 'ru-RU' ? 'Активен' : 'Active')
+			);
+			expect(status).toBeDefined();
+			expect(status!.className).not.toContain('green');
+			expect(info).toEqual(original);
+			expect(api.changeUserSubscription).not.toHaveBeenCalled();
+			expect(api.adjustUserWalletAdmin).not.toHaveBeenCalled();
+		} finally {
+			await unmount(component);
+			vi.restoreAllMocks();
+		}
+	}
+);
+
+it('localizes recent ledger types and formats their unchanged signed amounts in the entry currency', async () => {
+	const summary = await api.getUserWalletAdmin('', 'fixture');
+	summary.ledger_preview = ['charge', 'release', 'hold'].map((type, index) => ({
+		id: type,
+		user_id: 'fixture',
+		wallet_id: 'wallet',
+		currency: 'USD',
+		type,
+		amount_kopeks: index === 1 ? 125 : -125,
+		balance_included_after: 0,
+		balance_topup_after: 100,
+		reference_id: type,
+		reference_type: 'usage',
+		idempotency_key: null,
+		metadata_json: null,
+		created_at: 1
+	}));
+	const original = structuredClone(summary);
+	const component = await open({}, 'ru-RU');
+	try {
+		for (const label of ['Usage settled', 'Reservation released', 'Funds reserved']) {
+			expect(document.body.textContent).toContain(ru[label as keyof typeof ru]);
+		}
+		expect(document.body.textContent).not.toMatch(/\b(charge|release|hold)\b/);
+		const amount = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'USD' }).format(
+			-1.25
+		);
+		expect(document.body.textContent).toContain(amount);
+		expect(document.body.textContent).toContain(
+			'+' + new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'USD' }).format(1.25)
+		);
+		expect(summary).toEqual(original);
+		expect(api.adjustUserWalletAdmin).not.toHaveBeenCalled();
+	} finally {
+		await unmount(component);
+	}
+});
+
+it('keeps a future stored status neutral and localizes it in the confirmation without a write', async () => {
+	const info = (await api.getUserSubscription('', 'fixture'))!;
+	info.subscription!.status = 'trialing';
+	info.subscription!.current_period_end = Math.floor(Date.now() / 1000) + 86400;
+	const component = await open();
+	try {
+		expect(document.body.textContent).toContain('Trial');
+		expect(document.body.textContent).not.toContain('The period has ended.');
+		const select = document.querySelector<HTMLSelectElement>(
+			'select[aria-label="Subscription Plan"]'
+		)!;
+		select.value = 'new';
+		select.dispatchEvent(new Event('change', { bubbles: true }));
+		await tick();
+		const reason = Array.from(document.querySelectorAll('label'))
+			.find((label) => label.textContent?.includes('Reason'))!
+			.querySelector('input')!;
+		reason.value = 'display check';
+		reason.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		button('Review subscription change').click();
+		await tick();
+		const dialog = document.querySelector('[aria-label="Confirm subscription change"]')!;
+		expect(dialog).not.toBeNull();
+		expect(dialog.textContent).toContain('Stored subscription status: Trial');
+		expect(dialog.textContent).not.toContain('trialing');
+		expect(api.changeUserSubscription).not.toHaveBeenCalled();
+	} finally {
+		await unmount(component);
+	}
+});
+
+it.each(['RUB', 'USD'])(
+	'shows %s only once in balances and adjustment confirmation, preserving signs',
+	async (currency) => {
+		const summary = await api.getUserWalletAdmin('', 'fixture');
+		summary.wallet.currency = currency;
+		const original = structuredClone(summary);
+		const money = (amount: number): string =>
+			new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+		const component = await open();
+		try {
+			for (const [label, amount] of [
+				['Topup balance', 1],
+				['Included balance', 0]
+			] as const) {
+				const labelElement = Array.from(document.querySelectorAll('div.text-gray-500')).find(
+					(element) => element.textContent?.trim() === label
+				)!;
+				expect(labelElement.parentElement!.querySelector('.font-medium')!.textContent!.trim()).toBe(
+					money(amount)
+				);
+			}
+			await fill('#wallet-delta-topup', '-0.25');
+			await fill('#wallet-delta-included', '0.50');
+			await fill('#wallet-adjust-reason', 'display only');
+			button('Apply wallet adjustment').click();
+			await tick();
+			const dialog = document.querySelector('[aria-label="Confirm wallet adjustment"]')!;
+			expect(dialog).not.toBeNull();
+			const paragraphs = Array.from(dialog.querySelectorAll('p')).map((element) =>
+				element.textContent!.trim()
+			);
+			expect(paragraphs).toContain('Topup balance: ' + money(-0.25));
+			expect(paragraphs).toContain('Included balance: ' + money(0.5));
+			expect(summary).toEqual(original);
+			expect(api.adjustUserWalletAdmin).not.toHaveBeenCalled();
+		} finally {
+			await unmount(component);
+		}
+	}
+);
 
 it('persists the confirmed wallet intent after a lost response and retries it after remount', async () => {
 	vi.mocked(api.adjustUserWalletAdmin).mockRejectedValueOnce(

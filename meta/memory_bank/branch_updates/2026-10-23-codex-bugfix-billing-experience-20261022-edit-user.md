@@ -1,0 +1,8 @@
+- [x] **[BUG][UI][BILLING]** Correct Edit User billing status/date and ledger labels
+  - Spec: `meta/memory_bank/specs/work_items/2026-10-23__bugfix__edit-user-billing-display.md`
+  - Owner: Codex (EditUserModal scope)
+  - Started: 2026-10-23
+  - Done: 2026-10-23 (local scope frozen; main integrates)
+  - Summary: Separate stored subscription status from ended-period facts; reuse shared localized ledger labels and currency formatting. No data/business/API changes.
+  - Tests: Compose on 2brain: 42/42 focused tests, targeted ESLint/Prettier, full snapshot typecheck 0 errors/0 warnings; source/package-lock hashes matched. Actual RUB/USD balance and confirmation text has one currency with original signs.
+  - Risks: Combined-agent and compiled-browser acceptance remain main's responsibility; no commit/deploy or production writes.

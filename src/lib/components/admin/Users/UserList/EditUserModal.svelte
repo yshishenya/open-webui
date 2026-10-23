@@ -23,6 +23,15 @@
 	} from '$lib/apis/admin/billing';
 	import { formatCompactNumber, getUsageColor } from '$lib/utils/billing-formatters';
 	import {
+		formatReportMoney,
+		formatReportTime,
+		ledgerLabel
+	} from '$lib/utils/airis/billing_reporting_ui';
+	import {
+		subscriptionStatusLabel,
+		subscriptionPeriodEnded
+	} from '$lib/utils/airis/admin_billing_subscription_display';
+	import {
 		buildWalletAdjustmentRequest,
 		parseRubleAmountToKopeks,
 		validateWalletAdjustmentInput
@@ -311,10 +320,7 @@
 	};
 
 	const formatKopeksAmount = (amountKopeks: number): string =>
-		(amountKopeks / 100).toLocaleString(undefined, {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		});
+		formatReportMoney(amountKopeks, walletSummary?.wallet.currency ?? 'RUB', getI18nLocale($i18n));
 
 	const prepareWalletAdjustment = (): void => {
 		if (!selectedUser?.id || sessionUser?.role !== 'admin') {
@@ -421,15 +427,19 @@
 				)}: {userSubscription.subscription.next_plan_id}
 			</p>
 		{/if}
-		<p>{$i18n.t('Status')}: {userSubscription?.subscription?.status ?? $i18n.t('No plan')}</p>
+		<p>
+			{$i18n.t('Stored subscription status')}: {userSubscription?.subscription
+				? $i18n.t(subscriptionStatusLabel(userSubscription.subscription.status))
+				: $i18n.t('No plan')}
+		</p>
 		{#if userSubscription?.subscription}
 			<p>
-				{new Date(userSubscription.subscription.current_period_start * 1000).toLocaleString(
-					getI18nLocale($i18n)
-				)} — {new Date(userSubscription.subscription.current_period_end * 1000).toLocaleString(
-					getI18nLocale($i18n)
-				)}
+				{formatReportTime(userSubscription.subscription.current_period_start, getI18nLocale($i18n))} —
+				{formatReportTime(userSubscription.subscription.current_period_end, getI18nLocale($i18n))} UTC
 			</p>
+			{#if subscriptionPeriodEnded(userSubscription.subscription.current_period_end)}
+				<p>{$i18n.t('The period has ended. The stored status does not confirm current access.')}</p>
+			{/if}
 		{/if}
 		<p>
 			{$i18n.t(
@@ -456,11 +466,9 @@
 		<p>{selectedUser?.name} · {selectedUser?.email}</p>
 		<p>
 			{$i18n.t('Topup balance')}: {formatKopeksAmount(walletDraft?.delta_topup_kopeks ?? 0)}
-			{walletSummary?.wallet.currency}
 		</p>
 		<p>
 			{$i18n.t('Included balance')}: {formatKopeksAmount(walletDraft?.delta_included_kopeks ?? 0)}
-			{walletSummary?.wallet.currency}
 		</p>
 		<p>{$i18n.t('Reason')}: {walletDraft?.reason}</p>
 	</div>
@@ -590,17 +598,24 @@
 											<div class="text-xs text-gray-400 mt-1">{$i18n.t('Loading...')}</div>
 										{:else if userSubscription?.subscription}
 											<div class="text-xs text-gray-500 mt-1">
-												{$i18n.t('Status')}:
+												{$i18n.t('Stored subscription status')}:
 												<span
-													class={userSubscription.subscription.status === 'active'
-														? 'text-green-600 dark:text-green-400'
-														: 'text-gray-500'}>{userSubscription.subscription.status}</span
+													>{$i18n.t(
+														subscriptionStatusLabel(userSubscription.subscription.status)
+													)}</span
 												>
-												{#if userSubscription.subscription.current_period_end}
-													· {$i18n.t('until')}
-													{dayjs(userSubscription.subscription.current_period_end * 1000).format(
-														'LL'
-													)}
+												<div>
+													{$i18n.t('Period Ends')}: {formatReportTime(
+														userSubscription.subscription.current_period_end,
+														getI18nLocale($i18n)
+													)} UTC
+												</div>
+												{#if subscriptionPeriodEnded(userSubscription.subscription.current_period_end)}
+													<p class="mt-1 text-amber-700 dark:text-amber-300">
+														{$i18n.t(
+															'The period has ended. The stored status does not confirm current access.'
+														)}
+													</p>
 												{/if}
 											</div>
 											<!-- Usage -->
@@ -678,14 +693,12 @@
 														<div class="text-gray-500">{$i18n.t('Topup balance')}</div>
 														<div class="font-medium">
 															{formatKopeksAmount(walletSummary.wallet.balance_topup_kopeks)}
-															{` ${walletSummary.wallet.currency}`}
 														</div>
 													</div>
 													<div class="rounded-md bg-gray-50 dark:bg-gray-850 px-2 py-1">
 														<div class="text-gray-500">{$i18n.t('Included balance')}</div>
 														<div class="font-medium">
 															{formatKopeksAmount(walletSummary.wallet.balance_included_kopeks)}
-															{` ${walletSummary.wallet.currency}`}
 														</div>
 													</div>
 												</div>
@@ -701,14 +714,18 @@
 														</div>
 														{#each walletSummary.ledger_preview.slice(0, 5) as entry}
 															<div class="flex items-center justify-between text-[11px]">
-																<div class="truncate text-gray-500">{$i18n.t(entry.type)}</div>
+																<div class="truncate text-gray-500">
+																	{$i18n.t(ledgerLabel(entry.type))}
+																</div>
 																<div
 																	class={entry.amount_kopeks >= 0
 																		? 'text-green-600 dark:text-green-400'
 																		: 'text-red-600 dark:text-red-400'}
 																>
-																	{entry.amount_kopeks >= 0 ? '+' : ''}{formatKopeksAmount(
-																		entry.amount_kopeks
+																	{entry.amount_kopeks >= 0 ? '+' : ''}{formatReportMoney(
+																		entry.amount_kopeks,
+																		entry.currency,
+																		getI18nLocale($i18n)
 																	)}
 																</div>
 															</div>
