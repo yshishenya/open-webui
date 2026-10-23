@@ -6,7 +6,7 @@
 - Status: active
 - Owner: security-20261023
 - Branch: codex/bugfix/emudhra-security-20261023
-- SDD Spec: meta/sdd/specs/active/airis-emudhra-security-2026102-2026-10-23-1600.json
+- SDD Spec: meta/sdd/specs/active/airis-emudhra-security-2026-10-23-001.json
 - Created: 2026-10-23
 - Updated: 2026-10-23
 
