@@ -22,7 +22,7 @@ ARG BUILD_HASH=dev-build
 # Override at your own risk - non-root configurations are untested
 ARG UID=0
 ARG GID=0
-ARG AIRIS_NODE_IMAGE=node:22-alpine3.20
+ARG AIRIS_NODE_IMAGE=node:22.23.4-alpine3.23@sha256:6abbcf5dd6b231da109bcde1181db1d92bf78015ae1a9514d9807c1f857869db
 ARG AIRIS_PYTHON_IMAGE=python:3.11-slim-bookworm
 
 ######## WebUI frontend ########
@@ -140,7 +140,7 @@ RUN chown -R $UID:$GID /app $HOME
 # Install common system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    git build-essential pandoc gcc netcat-openbsd curl jq ca-certificates \
+    ca-certificates git build-essential pandoc gcc netcat-openbsd curl jq \
     libmariadb-dev \
     python3-dev \
     ffmpeg libsm6 libxext6 zstd \

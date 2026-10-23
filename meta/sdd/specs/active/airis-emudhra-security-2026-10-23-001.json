@@ -1,0 +1,101 @@
+{
+	"spec_id": "airis-emudhra-security-2026-10-23-001",
+	"title": "airis-emudhra-security-20261023",
+	"generated": "2026-10-23T13:00:45.529291Z",
+	"last_updated": "2026-10-23T13:31:51.878237Z",
+	"metadata": {
+		"template": "simple",
+		"complexity": "low",
+		"risk_level": "high",
+		"estimated_hours": 8,
+		"security_sensitive": true,
+		"status": "active",
+		"activated_date": "2026-10-23T13:02:48.692968Z",
+		"work_item_spec": "meta/memory_bank/specs/work_items/2026-10-23__bugfix__emudhra-security.md"
+	},
+	"hierarchy": {
+		"spec-root": {
+			"type": "spec",
+			"title": "airis-emudhra-security-20261023",
+			"status": "in_progress",
+			"parent": null,
+			"children": ["phase-1", "phase-2"],
+			"total_tasks": 4,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"phase-1": {
+			"type": "phase",
+			"title": "Targeted locks and isolated validation",
+			"status": "in_progress",
+			"parent": "spec-root",
+			"children": ["task-1", "task-2"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"phase-2": {
+			"type": "phase",
+			"title": "Guarded production and readback",
+			"status": "pending",
+			"parent": "spec-root",
+			"children": ["task-3", "task-4"],
+			"total_tasks": 2,
+			"completed_tasks": 0,
+			"metadata": {}
+		},
+		"task-1": {
+			"type": "task",
+			"title": "Update certifi hashes and patched Node/CA build inputs",
+			"status": "in_progress",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "Dockerfile",
+				"category": "implementation",
+				"started_at": "2026-10-23T13:31:51.878041Z"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0
+		},
+		"task-2": {
+			"type": "task",
+			"title": "Run existing suites and image/native/package checks",
+			"status": "pending",
+			"parent": "phase-1",
+			"children": [],
+			"metadata": {
+				"file_path": "backend/open_webui/test",
+				"category": "investigation"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0
+		},
+		"task-3": {
+			"type": "task",
+			"title": "Establish backup authority and pass migration/release gates",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "scripts/deploy_guarded.sh",
+				"category": "investigation"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0
+		},
+		"task-4": {
+			"type": "task",
+			"title": "Guarded production deployment and runtime TLS/function readback",
+			"status": "pending",
+			"parent": "phase-2",
+			"children": [],
+			"metadata": {
+				"file_path": "scripts/deploy_guarded.sh",
+				"category": "implementation"
+			},
+			"total_tasks": 1,
+			"completed_tasks": 0
+		}
+	}
+}
