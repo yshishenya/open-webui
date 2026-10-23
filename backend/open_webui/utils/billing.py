@@ -860,13 +860,16 @@ class BillingService:
                     Payment.status == PaymentStatus.PENDING.value,
                     Payment.auto_topup_claim_key.is_(None),
                     Payment.amount_kopeks == amount_kopeks,
-                    Payment.created_at >= now - MANUAL_PAYMENT_RETRY_WINDOW_SECONDS,
                 )
                 .order_by(Payment.created_at.desc())
                 .with_for_update()
                 .first()
             )
             if pending:
+                # The provider may have committed even when its response was lost.
+                # Never turn an expired idempotency key into a second payment.
+                if pending.created_at <= now - MANUAL_PAYMENT_RETRY_WINDOW_SECONDS:
+                    raise ValueError("Unresolved topup payment must be checked before another purchase")
                 if not pending.idempotency_key:
                     pending.idempotency_key = str(uuid.uuid4())
                     pending.updated_at = now

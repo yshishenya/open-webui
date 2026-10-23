@@ -6,6 +6,8 @@ import time
 import uuid
 
 import openpyxl
+import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
@@ -13,6 +15,86 @@ from test.util.mock_user import mock_webui_user
 
 class TestAdminBillingRateCardXlsx(AbstractPostgresTest):
     BASE_PATH = "/api/v1/admin/billing"
+
+    def test_full_sync_rolls_back_mid_apply_failure_and_can_be_previewed_again(
+        self,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        from sqlalchemy import event
+        from open_webui.internal.db import async_engine, engine
+        from open_webui.models.billing import RateCards
+        from open_webui.routers import admin_billing_rate_card
+        from open_webui.utils.rate_card_xlsx import dump_scope_model_ids
+
+        monkeypatch.setattr(admin_billing_rate_card, "ENABLE_BILLING_WALLET", True)
+        monkeypatch.setattr(admin_billing_rate_card, "BILLING_RATE_CARD_VERSION", "2025-01")
+
+        async def no_provider_models(*args: object, **kwargs: object) -> list[dict[str, object]]:
+            return []
+
+        monkeypatch.setattr(admin_billing_rate_card, "get_all_base_models", no_provider_models)
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.title = "RateCards"
+        ws.append(["model_id", "modality", "unit", "is_active", "raw_cost_per_unit_kopeks"])
+        ws.append([self.model_a, "text", "token_in", True, 999])
+        buf = io.BytesIO()
+        wb.save(buf)
+        files = {
+            "file": ("prices.xlsx", buf.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        }
+        data = {"mode": "full_sync", "scope_model_ids": dump_scope_model_ids([self.model_a])}
+        original = RateCards.list_rate_cards_by_model_ids([self.model_a], None, None, 0)
+        writes = 0
+
+        def fail_after_first_write(
+            connection: object,
+            cursor: object,
+            statement: str,
+            parameters: object,
+            context: object,
+            executemany: bool,
+        ) -> None:
+            nonlocal writes
+            if (
+                statement.lstrip()
+                .upper()
+                .startswith(("INSERT INTO BILLING_PRICING_RATE_CARD", "UPDATE BILLING_PRICING_RATE_CARD"))
+            ):
+                writes += 1
+                if writes == 2:
+                    raise RuntimeError("injected second rate-card write failure")
+
+        event.listen(engine, "before_cursor_execute", fail_after_first_write)
+        event.listen(async_engine.sync_engine, "before_cursor_execute", fail_after_first_write)
+        try:
+            with mock_webui_user(role="admin"), pytest.raises(RuntimeError, match="injected second"):
+                self.fast_api_client.post(self.create_url("/rate-card/import-xlsx/apply"), files=files, data=data)
+        finally:
+            event.remove(engine, "before_cursor_execute", fail_after_first_write)
+            event.remove(async_engine.sync_engine, "before_cursor_execute", fail_after_first_write)
+        assert writes == 2
+        after = RateCards.list_rate_cards_by_model_ids([self.model_a], None, None, 0)
+        assert sorted((r.model_dump() for r in after), key=lambda r: r["id"]) == sorted(
+            (r.model_dump() for r in original), key=lambda r: r["id"]
+        )
+        with mock_webui_user(role="admin"):
+            preview = self.fast_api_client.post(
+                self.create_url("/rate-card/import-xlsx/preview"), files=files, data=data
+            )
+            assert preview.status_code == 200
+            assert preview.json()["summary"]["updates_via_create"] == 1
+            assert preview.json()["summary"]["deactivations"] == 1
+            applied = self.fast_api_client.post(self.create_url("/rate-card/import-xlsx/apply"), files=files, data=data)
+            assert applied.status_code == 200
+            replay = self.fast_api_client.post(
+                self.create_url("/rate-card/import-xlsx/preview"), files=files, data=data
+            )
+        assert replay.json()["summary"]["updates_via_create"] == 0
+        assert replay.json()["summary"]["deactivations"] == 0
+        assert RateCards.get_active_rate_card(self.model_a, "text", "token_in").raw_cost_per_unit_kopeks == 999
+        assert RateCards.get_active_rate_card(self.model_a, "text", "token_out") is None
 
     def setup_method(self) -> None:
         super().setup_method()

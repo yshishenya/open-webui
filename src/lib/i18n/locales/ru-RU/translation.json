@@ -3259,6 +3259,7 @@
 	"Export Presets": "Экспорт Пресетов",
 	"External Tools": "Внешние инструменты",
 	"Failed to create topup": "Не удалось создать пополнение",
+	"Unresolved topup payment must be checked before another purchase": "Результат предыдущего пополнения ещё не подтверждён. Проверьте его в операциях или обратитесь в поддержку перед новой оплатой.",
 	"Payment provider credentials are invalid": "Некорректные учетные данные платежного провайдера",
 	"Payment provider rejected the payment request": "Платежный провайдер отклонил запрос на оплату",
 	"Payment provider is rate-limiting requests": "Платежный провайдер временно ограничил количество запросов",

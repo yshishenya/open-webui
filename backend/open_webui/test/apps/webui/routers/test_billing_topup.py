@@ -1,5 +1,6 @@
 # ruff: noqa
 
+import asyncio
 import time
 from decimal import Decimal
 from typing import Optional
@@ -13,6 +14,93 @@ from test.util.mock_user import mock_webui_user
 
 class TestBillingTopup(AbstractPostgresTest):
     BASE_PATH = "/api/v1/billing"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("lose_first_response", [True, False])
+    async def test_manual_topup_lost_response_and_concurrent_retry(
+        self,
+        monkeypatch: MonkeyPatch,
+        lose_first_response: bool,
+    ) -> None:
+        import open_webui.utils.billing as billing_utils
+        from open_webui.internal.db import get_db
+        from open_webui.models.billing import LedgerEntry, Payment, Payments
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        await self._ensure_user("lost-response")
+        wallet = wallet_service.get_or_create_wallet("lost-response", "RUB")
+        provider_payments: dict[str, dict[str, object]] = {}
+        keys: list[str] = []
+
+        class Provider:
+            async def create_payment(self, **kwargs: object) -> dict[str, object]:
+                key = str(kwargs["idempotence_key"])
+                keys.append(key)
+                payment = provider_payments.setdefault(
+                    key,
+                    {
+                        "id": "provider-committed",
+                        "status": "pending",
+                        "confirmation": {"confirmation_url": "https://example.com/checkout"},
+                    },
+                )
+                if lose_first_response and len(keys) == 1:
+                    raise TimeoutError("response lost after provider commit")
+                await asyncio.sleep(0)
+                return payment
+
+        monkeypatch.setattr(billing_utils, "get_yookassa_client", Provider)
+        monkeypatch.setattr(billing_utils, "BILLING_TOPUP_PACKAGES_KOPEKS", [50000])
+        monkeypatch.setattr(billing_utils, "BILLING_RECEIPT_ENABLED", False)
+        kwargs = dict(
+            user_id="lost-response", wallet_id=wallet.id, amount_kopeks=50000, return_url="https://example.com/return"
+        )
+        if lose_first_response:
+            with pytest.raises(TimeoutError):
+                await billing_service.create_topup_payment(**kwargs)
+            pending = Payments.list_payments_by_wallet(wallet.id)
+            assert len(pending) == 1 and pending[0].provider_payment_id is None
+        results = await asyncio.gather(*(billing_service.create_topup_payment(**kwargs) for _ in range(2)))
+        assert {result["payment_id"] for result in results} == {"provider-committed"}
+        assert len(keys) == (3 if lose_first_response else 2) and len(set(keys)) == 1
+        assert len(provider_payments) == 1
+        with get_db() as db:
+            assert db.query(Payment).filter(Payment.wallet_id == wallet.id).count() == 1
+            assert db.query(LedgerEntry).filter(LedgerEntry.wallet_id == wallet.id).count() == 0
+        assert wallet_service.refresh_wallet(wallet.id).balance_topup_kopeks == 0
+
+    @pytest.mark.parametrize("age_offset", [-1, 0, 1])
+    def test_manual_topup_retry_window_does_not_create_a_second_intent(
+        self,
+        monkeypatch: MonkeyPatch,
+        age_offset: int,
+    ) -> None:
+        import open_webui.utils.billing as billing_utils
+        from open_webui.internal.db import get_db
+        from open_webui.models.billing import Payment
+        from open_webui.utils.billing import billing_service
+        from open_webui.utils.wallet import wallet_service
+
+        wallet = wallet_service.get_or_create_wallet("retry-window", "RUB")
+        now = int(time.time())
+        monkeypatch.setattr(billing_utils.time, "time", lambda: now)
+        first = billing_service._get_or_create_manual_topup_payment("retry-window", wallet.id, 50000, {})
+        with get_db() as db:
+            db.query(Payment).filter(Payment.id == first.id).update(
+                {
+                    "created_at": now - billing_utils.MANUAL_PAYMENT_RETRY_WINDOW_SECONDS - age_offset,
+                }
+            )
+            db.commit()
+        if age_offset >= 0:
+            with pytest.raises(ValueError, match="Unresolved topup payment"):
+                billing_service._get_or_create_manual_topup_payment("retry-window", wallet.id, 50000, {})
+        else:
+            retry = billing_service._get_or_create_manual_topup_payment("retry-window", wallet.id, 50000, {})
+            assert retry.id == first.id and retry.idempotency_key == first.idempotency_key
+        with get_db() as db:
+            assert db.query(Payment).filter(Payment.wallet_id == wallet.id).count() == 1
 
     async def _ensure_user(
         self,
