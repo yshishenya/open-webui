@@ -322,6 +322,9 @@ it('distinguishes an initial 503 from an empty catalogue throughout retry', asyn
 		await vi.waitFor(() =>
 			expect(target.querySelector('[role="alert"]')?.textContent).toContain('Failed to load plans')
 		);
+		expect(target.querySelector('[role="alert"]')?.classList.contains('dark:text-red-300')).toBe(
+			true
+		);
 		expect(target.textContent).not.toContain('No plans found');
 		expect(target.querySelector('h1')?.nextElementSibling).toBeNull();
 		expect(target.textContent).not.toContain('Total Plans');

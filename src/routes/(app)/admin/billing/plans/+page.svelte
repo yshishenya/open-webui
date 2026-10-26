@@ -224,7 +224,7 @@
 		{:else if $config?.features?.enable_billing_subscriptions === true}
 			<p class="my-3 text-sm text-gray-500">{$i18n.t('New subscriptions are enabled.')}</p>
 		{/if}
-		{#if loadError}<p role="alert" class="my-3 text-red-700">
+		{#if loadError}<p role="alert" class="my-3 text-red-700 dark:text-red-300">
 				{loadError}
 				<button type="button" class="underline" disabled={loadingPlans} on:click={loadPlans}
 					>{$i18n.t('Retry')}</button
