@@ -337,6 +337,7 @@
 							<div class="shrink-0 mr-2">
 								<Tooltip content={$i18n.t('Back')}>
 									<button
+										aria-label={$i18n.t('Back')}
 										class="w-full text-left text-sm py-1.5 px-1 rounded-lg dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-gray-850"
 										on:click={() => goto('/admin/billing/plans')}
 										type="button"
@@ -520,7 +521,12 @@
 											/>
 										</div>
 										<label class="flex items-center gap-1.5 text-xs text-gray-500 pt-4">
-											<input type="checkbox" bind:checked={unlimitedTokensInput} class="rounded" />
+											<input
+												type="checkbox"
+												aria-label={`${$i18n.t('Unlimited')}: ${$i18n.t('Input Tokens')}`}
+												bind:checked={unlimitedTokensInput}
+												class="rounded"
+											/>
 											{$i18n.t('Unlimited')}
 										</label>
 									</div>
@@ -550,7 +556,12 @@
 											/>
 										</div>
 										<label class="flex items-center gap-1.5 text-xs text-gray-500 pt-4">
-											<input type="checkbox" bind:checked={unlimitedTokensOutput} class="rounded" />
+											<input
+												type="checkbox"
+												aria-label={`${$i18n.t('Unlimited')}: ${$i18n.t('Output Tokens')}`}
+												bind:checked={unlimitedTokensOutput}
+												class="rounded"
+											/>
 											{$i18n.t('Unlimited')}
 										</label>
 									</div>
@@ -580,7 +591,12 @@
 											/>
 										</div>
 										<label class="flex items-center gap-1.5 text-xs text-gray-500 pt-4">
-											<input type="checkbox" bind:checked={unlimitedRequests} class="rounded" />
+											<input
+												type="checkbox"
+												aria-label={`${$i18n.t('Unlimited')}: ${$i18n.t('Requests')}`}
+												bind:checked={unlimitedRequests}
+												class="rounded"
+											/>
 											{$i18n.t('Unlimited')}
 										</label>
 									</div>
@@ -601,6 +617,7 @@
 									<button
 										type="button"
 										on:click={addFeature}
+										aria-label={`${$i18n.t('Add')}: ${newFeature || $i18n.t('Features')}`}
 										class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
 									>
 										<Plus className="size-4" />
@@ -617,6 +634,7 @@
 												<button
 													type="button"
 													on:click={() => removeFeature(index)}
+													aria-label={`${$i18n.t('Remove')}: ${feature}`}
 													class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition text-gray-400 hover:text-red-500"
 												>
 													<GarbageBin className="size-3.5" />

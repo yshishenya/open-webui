@@ -3231,6 +3231,7 @@
 	"Export Presets": "",
 	"External Tools": "",
 	"Failed to create topup": "Failed to create topup",
+	"Unresolved topup payment must be checked before another purchase": "The previous top-up is unresolved. Check it in your transactions or contact support before paying again.",
 	"Payment provider credentials are invalid": "Payment provider credentials are invalid",
 	"Payment provider rejected the payment request": "Payment provider rejected the payment request",
 	"Payment provider is rate-limiting requests": "Payment provider is rate-limiting requests",

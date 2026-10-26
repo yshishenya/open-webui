@@ -1,6 +1,6 @@
 import time
 
-from open_webui.internal.db import get_db
+from open_webui.internal.db import get_async_db, get_db
 from open_webui.models.billing_wallet import (
     JsonDict,
     LeadMagnetState,
@@ -18,6 +18,7 @@ from open_webui.models.billing_wallet import (
     Wallet,
     WalletModel,
 )
+from sqlalchemy import update
 
 
 class WalletsTable:
@@ -240,6 +241,25 @@ class PromoCodesTable:
 
 
 class RateCardsTable:
+    async def apply_import(
+        self,
+        entries: list[PricingRateCardModel],
+        deactivate_ids: list[str],
+    ) -> None:
+        """Publish the entire imported price set or leave the old set intact."""
+        async with get_async_db() as db:
+            async with db.begin():
+                db.add_all(PricingRateCard(**entry.model_dump()) for entry in entries)
+                await db.flush()
+                if deactivate_ids:
+                    await db.execute(
+                        update(PricingRateCard)
+                        .where(
+                            PricingRateCard.id.in_(deactivate_ids),
+                        )
+                        .values(is_active=False)
+                    )
+
     def get_rate_card_by_id(self, rate_card_id: str) -> PricingRateCardModel | None:
         """Get rate card by ID."""
         with get_db() as db:

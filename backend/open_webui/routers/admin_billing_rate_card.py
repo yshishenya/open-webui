@@ -21,8 +21,6 @@ from fastapi import (
 )
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-
 from open_webui.env import BILLING_RATE_CARD_VERSION, ENABLE_BILLING_WALLET, SRC_LOG_LEVELS
 from open_webui.models.billing import PricingRateCardModel, RateCards
 from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
@@ -37,6 +35,7 @@ from open_webui.utils.rate_card_xlsx import (
     parse_import_workbook,
     parse_scope_model_ids,
 )
+from pydantic import BaseModel, Field
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS.get('BILLING', logging.INFO))
@@ -757,12 +756,11 @@ async def import_rate_cards_xlsx_apply(
         and row.model_id in known_model_ids
         and row.model_id not in db_base_model_ids
     }
-    if imported_model_ids:
-        await _ensure_base_models_exist(
-            model_ids=imported_model_ids,
-            model_names_by_id=model_names_by_id,
-            owner_user_id=admin_user.id,
-        )
+    await _ensure_base_models_exist(
+        model_ids=imported_model_ids,
+        model_names_by_id=model_names_by_id,
+        owner_user_id=admin_user.id,
+    )
 
     now = int(time.time())
 
@@ -778,6 +776,8 @@ async def import_rate_cards_xlsx_apply(
             created_at += 1
         return created_at
 
+    entries: list[PricingRateCardModel] = []
+    deactivate_ids: list[str] = []
     for action in actions:
         key = f'{action.model_id}:{action.modality}:{action.unit}'
         existing_active = next(
@@ -785,7 +785,7 @@ async def import_rate_cards_xlsx_apply(
             None,
         )
 
-        if action.action == 'create':
+        if action.action in {'create', 'update_via_create'}:
             entry_data = {
                 'id': str(uuid.uuid4()),
                 'model_id': action.model_id,
@@ -798,7 +798,12 @@ async def import_rate_cards_xlsx_apply(
                 'unit': action.unit,
                 'raw_cost_per_unit_kopeks': int(action.desired_price or 0),
                 'version': BILLING_RATE_CARD_VERSION,
-                'created_at': _next_created_at(action.model_id, action.modality, action.unit),
+                'created_at': await run_in_threadpool(
+                    _next_created_at,
+                    action.model_id,
+                    action.modality,
+                    action.unit,
+                ),
                 'provider': (
                     action.provider
                     if action.provider is not None
@@ -811,52 +816,12 @@ async def import_rate_cards_xlsx_apply(
                 ),
                 'is_active': True,
             }
-            await run_in_threadpool(RateCards.create_rate_card, entry_data)
+            entries.append(PricingRateCardModel.model_validate(entry_data))
 
-        elif action.action == 'update_via_create':
-            entry_data = {
-                'id': str(uuid.uuid4()),
-                'model_id': action.model_id,
-                'model_tier': (
-                    action.model_tier
-                    if action.model_tier is not None
-                    else (existing_active.model_tier if existing_active else None)
-                ),
-                'modality': action.modality,
-                'unit': action.unit,
-                'raw_cost_per_unit_kopeks': int(action.desired_price or 0),
-                'version': BILLING_RATE_CARD_VERSION,
-                'created_at': _next_created_at(action.model_id, action.modality, action.unit),
-                'provider': (
-                    action.provider
-                    if action.provider is not None
-                    else (existing_active.provider if existing_active else None)
-                ),
-                'is_default': (
-                    bool(action.is_default)
-                    if action.is_default is not None
-                    else (bool(existing_active.is_default) if existing_active else False)
-                ),
-                'is_active': True,
-            }
-            created = await run_in_threadpool(RateCards.create_rate_card, entry_data)
-            if existing_active:
-                await run_in_threadpool(
-                    RateCards.update_rate_card,
-                    existing_active.id,
-                    {'is_active': False},
-                )
-                active_entries = [entry for entry in active_entries if entry.id != existing_active.id]
-            active_entries.append(created)
+        if action.action in {'update_via_create', 'deactivate'} and existing_active:
+            deactivate_ids.append(existing_active.id)
 
-        elif action.action == 'deactivate':
-            if existing_active:
-                await run_in_threadpool(
-                    RateCards.update_rate_card,
-                    existing_active.id,
-                    {'is_active': False},
-                )
-                active_entries = [entry for entry in active_entries if entry.id != existing_active.id]
+    await RateCards.apply_import(entries, deactivate_ids)
 
     return RateCardXlsxImportApplyResponse(
         summary=RateCardXlsxImportSummary(**summary.__dict__),
