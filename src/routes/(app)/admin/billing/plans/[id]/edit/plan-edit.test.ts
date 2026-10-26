@@ -250,7 +250,7 @@ it.each([EditPlan, NewPlan])(
 	'preserves draft and prevents concurrent writes on refusal',
 	async (Page) => {
 		const save = Page === EditPlan ? vi.mocked(api.updatePlan) : vi.mocked(api.createPlan);
-		let refuse!: (reason: Error) => void;
+		let refuse!: (reason: { status: number }) => void;
 		save.mockImplementationOnce(
 			() =>
 				new Promise((_resolve, reject) => {
@@ -269,16 +269,62 @@ it.each([EditPlan, NewPlan])(
 			submit(target);
 			submit(target);
 			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
-			refuse(new Error('Save refused'));
+			refuse({ status: 503 });
 			await vi.waitFor(() => expect(toast.error).toHaveBeenCalled());
-			expect(name.value).toBe('Мой тариф');
+			expect(
+				target.querySelector<HTMLInputElement>('input[placeholder="Name (Russian)"]')?.value
+			).toBe('Мой тариф');
 			expect(goto).not.toHaveBeenCalled();
 			expect(target.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(
 				false
 			);
+			const failedPayload = save.mock.calls[0].at(-1);
+			const plan = await api.getPlan('', 'first');
+			save.mockResolvedValueOnce(plan);
+			submit(target);
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+			expect(save).toHaveBeenCalledTimes(2);
+			expect(save.mock.calls[1].at(-1)).toEqual(failedPayload);
+			expect(save.mock.calls[1].at(-1)).toEqual(expect.objectContaining({ name_ru: 'Мой тариф' }));
+			expect(goto).toHaveBeenCalledWith('/admin/billing/plans');
 		} finally {
 			await unmount(component);
 			target.remove();
+		}
+	}
+);
+
+it.each(['plan', 'totals', 'subscribers'])(
+	'keeps the edit form unavailable after a 503 loading %s and recovers on retry',
+	async (stage) => {
+		const request =
+			stage === 'plan'
+				? api.getPlan
+				: stage === 'totals'
+					? api.getPlansWithStats
+					: api.getPlanSubscribers;
+		vi.mocked(request).mockRejectedValueOnce({ status: 503 });
+		const target = document.createElement('div');
+		const component = mount(EditPlan, { target, context: context() });
+		try {
+			await vi.waitFor(() =>
+				expect(target.querySelector('[role="alert"]')?.textContent).toBe('Failed to load plan')
+			);
+			expect(target.querySelector('form')).toBeNull();
+			expect(goto).not.toHaveBeenCalled();
+			expect(api.updatePlan).not.toHaveBeenCalled();
+			Array.from(target.querySelectorAll('button'))
+				.find((button) => button.textContent === 'Retry')!
+				.click();
+			await vi.waitFor(() =>
+				expect(
+					target.querySelector<HTMLInputElement>('input[placeholder="Name (Russian)"]')?.value
+				).toBe('Тариф first')
+			);
+			expect(target.querySelector('[role="alert"]')).toBeNull();
+			expect(api.updatePlan).not.toHaveBeenCalled();
+		} finally {
+			await unmount(component);
 		}
 	}
 );

@@ -36,6 +36,8 @@
 	let actionInProgress = false;
 	let query = '';
 	let loadError = '';
+	let loadingPlans = false;
+	let hasLoadedPlans = false;
 	$: mrrByCurrency = Array.from(new Set(plansWithStats.map((item) => item.plan.currency))).map(
 		(currency) => ({
 			currency,
@@ -73,17 +75,20 @@
 		loaded = true;
 	});
 
-	const loadPlans = async () => {
+	const loadPlans = async (): Promise<void> => {
+		loadingPlans = true;
 		loadError = '';
 		try {
 			const result = await getPlansWithStats(localStorage.token);
-			if (result) {
-				plansWithStats = result;
-			}
-		} catch (error) {
+			if (!result) throw new Error('Failed to load plans');
+			plansWithStats = result;
+			hasLoadedPlans = true;
+		} catch (error: unknown) {
 			console.error('Failed to load plans:', error);
 			loadError = $i18n.t('Failed to load plans');
 			toast.error(loadError);
+		} finally {
+			loadingPlans = false;
 		}
 	};
 
@@ -221,16 +226,18 @@
 		{/if}
 		{#if loadError}<p role="alert" class="my-3 text-red-700">
 				{loadError}
-				<button type="button" class="underline" on:click={loadPlans}>{$i18n.t('Retry')}</button>
+				<button type="button" class="underline" disabled={loadingPlans} on:click={loadPlans}
+					>{$i18n.t('Retry')}</button
+				>
 			</p>{/if}
 		<div class="flex flex-col gap-1 px-1 mt-2.5 mb-2">
 			<div class="flex justify-between items-center mb-1 w-full">
 				<div class="flex justify-between items-center w-full">
 					<div class="flex items-center md:self-center text-xl font-medium px-0.5 gap-2 shrink-0">
 						<h1>{$i18n.t('Subscriptions')}</h1>
-						<div class="text-lg font-medium text-gray-500 dark:text-gray-500">
-							{filteredPlans.length}
-						</div>
+						{#if hasLoadedPlans}<div class="text-lg font-medium text-gray-500 dark:text-gray-500">
+								{filteredPlans.length}
+							</div>{/if}
 					</div>
 
 					<div class="flex w-full justify-end gap-1.5">
@@ -445,7 +452,9 @@
 						</div>
 					{/each}
 				</div>
-			{:else}
+			{:else if loadingPlans}
+				<div class="flex justify-center p-8"><Spinner className="size-5" /></div>
+			{:else if !loadError}
 				<div class="w-full h-full flex flex-col justify-center items-center my-16 mb-24">
 					<div class="max-w-md text-center">
 						<div class="text-3xl mb-3">📋</div>

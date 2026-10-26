@@ -312,3 +312,89 @@ it('keeps mobile plan titles above distinct named actions and updates labels wit
 		target.remove();
 	}
 });
+
+it('distinguishes an initial 503 from an empty catalogue throughout retry', async () => {
+	vi.mocked(api.getPlansWithStats).mockRejectedValueOnce({ status: 503 });
+	const { context } = await languageContext();
+	const target = document.createElement('div');
+	const component = mount(Plans, { target, context });
+	try {
+		await vi.waitFor(() =>
+			expect(target.querySelector('[role="alert"]')?.textContent).toContain('Failed to load plans')
+		);
+		expect(target.textContent).not.toContain('No plans found');
+		expect(target.querySelector('h1')?.nextElementSibling).toBeNull();
+		expect(target.textContent).not.toContain('Total Plans');
+		expect(target.textContent).not.toContain('across all plans');
+		expect(
+			Array.from(target.querySelectorAll('.text-xs')).some(
+				(element) => element.textContent?.trim() === 'Calculated monthly income'
+			)
+		).toBe(false);
+		let finish!: (value: PlanStats[]) => void;
+		vi.mocked(api.getPlansWithStats).mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					finish = resolve;
+				})
+		);
+		target.querySelector<HTMLButtonElement>('[role="alert"] button')!.click();
+		await tick();
+		expect(target.textContent).not.toContain('No plans found');
+		expect(target.querySelector('h1')?.nextElementSibling).toBeNull();
+		expect(target.textContent).not.toContain('Total Plans');
+		finish([stats]);
+		await vi.waitFor(() => expect(target.textContent).toContain('Русский тариф'));
+		expect(target.querySelector('[role="alert"]')).toBeNull();
+		expect(target.querySelector('h1')?.nextElementSibling?.textContent?.trim()).toBe('1');
+		expect(target.textContent).toContain('Total Plans');
+		expect(
+			Array.from(target.querySelectorAll('.text-xs')).some(
+				(element) => element.textContent?.trim() === 'Calculated monthly income'
+			)
+		).toBe(true);
+		expect(api.getPlansWithStats).toHaveBeenCalledTimes(2);
+	} finally {
+		await unmount(component);
+	}
+});
+
+it('preserves loaded plans and search on a 503 refresh and retry', async () => {
+	const { context } = await languageContext();
+	const target = document.createElement('div');
+	const component = mount(Plans, { target, context });
+	try {
+		await vi.waitFor(() => expect(target.querySelector('[role="switch"]')).not.toBeNull());
+		const search = target.querySelector<HTMLInputElement>('input[aria-label="Search Plans"]')!;
+		search.value = 'localized';
+		search.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		vi.mocked(api.getPlansWithStats).mockRejectedValueOnce({ status: 503 });
+		target.querySelector<HTMLButtonElement>('[role="switch"]')!.click();
+		await vi.waitFor(() => expect(target.querySelector('[role="alert"]')).not.toBeNull());
+		expect(target.textContent).toContain('Русский тариф');
+		expect(target.textContent).not.toContain('No plans found');
+		expect(target.textContent).toContain('Total Plans');
+		expect(target.textContent).toContain(String(stats.active_subscriptions));
+		expect(search.value).toBe('localized');
+		target.querySelector<HTMLButtonElement>('[role="alert"] button')!.click();
+		await vi.waitFor(() => expect(target.querySelector('[role="alert"]')).toBeNull());
+		expect(target.textContent).toContain('Русский тариф');
+		expect(search.value).toBe('localized');
+	} finally {
+		await unmount(component);
+	}
+});
+
+it('shows an empty catalogue only after a successful empty response', async () => {
+	vi.mocked(api.getPlansWithStats).mockResolvedValueOnce([]);
+	const { context } = await languageContext();
+	const target = document.createElement('div');
+	const component = mount(Plans, { target, context });
+	try {
+		await vi.waitFor(() => expect(target.textContent).toContain('No plans found'));
+		expect(target.querySelector('[role="alert"]')).toBeNull();
+	} finally {
+		await unmount(component);
+	}
+});

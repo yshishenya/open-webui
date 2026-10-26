@@ -2,7 +2,7 @@
   "spec_id": "billing-experience-implementation-2026-10-22-001",
   "title": "Billing experience implementation 2026-10-22",
   "generated": "2026-10-21T22:57:30.938442Z",
-  "last_updated": "2026-10-23T13:48:32.929918Z",
+  "last_updated": "2026-10-26T10:36:48.871002Z",
   "metadata": {
     "template": "medium",
     "complexity": "medium",
@@ -230,8 +230,8 @@
       "completed_tasks": 0,
       "metadata": {
         "task_category": "implementation",
-        "started_at": "2026-10-21T23:04:29.081788Z",
-        "status_note": "Central backend root 1394 passed/13 skipped (backend-all-final.log). Frontend preflight running; final browser/Compose confidence and exact-SHA checks pending. Historical red/tooling runs retained in work item.",
+        "started_at": "2026-10-26T10:36:48.870723Z",
+        "status_note": "2026-10-26: exact-f1 Backend CI39970347515 success. G3/G4 addressed on separate snapshots; A22 load-error delta and U03 test prepared. Combined frozen-SHA preflight, independent review, confidence tiers and full U03 execution still required.",
         "file_path": "scripts/ci/run_billing_confidence.sh"
       }
     },

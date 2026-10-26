@@ -20,6 +20,7 @@
 	$: isRussian = getI18nLocale($i18n).toLowerCase().startsWith('ru');
 
 	let loading = true;
+	let loadError = '';
 	let plans: Plan[] = [];
 	let subscription: Subscription | null = null;
 	let creatingPayment = false;
@@ -49,43 +50,32 @@
 		unsubscribeConfig?.();
 	});
 
-	const loadPlans = async (): Promise<Plan[]> => {
-		try {
-			const result = await getPlans(localStorage.token);
-			if (result) {
-				return result.sort((a, b) => a.display_order - b.display_order);
-			}
-		} catch (error) {
-			console.error('Failed to load plans:', error);
-			toast.error($i18n.t('Failed to load subscription plans'));
-		}
-		return [];
-	};
-
-	const loadSubscription = async (): Promise<Subscription | null> => {
-		try {
-			return await getMySubscription(localStorage.token);
-		} catch (error) {
-			console.error('Failed to load subscription:', error);
-			return null;
-		}
-	};
-
 	const loadData = async (): Promise<void> => {
 		loading = true;
+		loadError = '';
+		let failureMessage = 'Failed to load subscription plans';
 		try {
-			const [plansResult, subscriptionResult] = await Promise.all([
-				loadPlans(),
-				loadSubscription()
+			const [plansResult, subscriptionResult] = await Promise.allSettled([
+				getPlans(localStorage.token),
+				getMySubscription(localStorage.token)
 			]);
-			plans = plansResult;
-			subscription = subscriptionResult;
+			if (plansResult.status === 'rejected') throw plansResult.reason;
+			if (!plansResult.value) throw new Error(failureMessage);
+			failureMessage = 'Failed to load subscription';
+			if (subscriptionResult.status === 'rejected') throw subscriptionResult.reason;
+			// Publish a complete snapshot only: an unknown subscription must not become "none".
+			plans = [...plansResult.value].sort((a, b) => a.display_order - b.display_order);
+			subscription = subscriptionResult.value;
 			if (!didTrackView) {
 				trackEvent('billing_plans_view', {
-					status: plansResult.length > 0 ? 'loaded' : 'empty'
+					status: plans.length > 0 ? 'loaded' : 'empty'
 				});
 				didTrackView = true;
 			}
+		} catch (error: unknown) {
+			console.error('Failed to load subscription plans or subscription:', error);
+			loadError = failureMessage;
+			toast.error($i18n.t(loadError));
 		} finally {
 			loading = false;
 		}
@@ -196,6 +186,11 @@
 {#if loading}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />
+	</div>
+{:else if loadError}
+	<div role="alert" class="p-4 text-red-700 dark:text-red-300">
+		<p>{$i18n.t(loadError)}</p>
+		<button type="button" class="mt-2 underline" on:click={loadData}>{$i18n.t('Retry')}</button>
 	</div>
 {:else if plans.length === 0}
 	<div class="w-full">

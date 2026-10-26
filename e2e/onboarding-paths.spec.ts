@@ -9,6 +9,118 @@ import {
 	openSidebar,
 	type Mail
 } from './onboarding-paths.fixture';
+type FreeQuotaConfig = {
+	enabled: boolean;
+	cycle_days: number;
+	quotas: Record<string, number>;
+	config_version: number;
+};
+type Reservation = Record<'request_id' | 'model_id' | 'billing_source' | 'reason', string>;
+type ReservationEnvelope = { chat_id: string; data: { type: string; data: Reservation } };
+test('U03: real chat free-to-paid settlement', async ({ page, request, account, baseURL }) => {
+	expect(baseURL).toBe('http://localhost:8082');
+	const signin = await request.post('/api/v1/auths/signin', {
+		data: { email: 'fullpaths-admin@airis.you', password: 'local-fixture-only' }
+	});
+	expect(signin.ok()).toBe(true);
+	const admin = (await signin.json()) as { role: string; token: string };
+	expect(admin.role).toBe('admin');
+	const headers = { Authorization: `Bearer ${admin.token}` };
+	const configPath = '/api/v1/admin/billing/lead-magnet';
+	const response = await request.get(configPath, { headers });
+	expect(response.ok()).toBe(true);
+	const original = (await response.json()) as FreeQuotaConfig;
+	let version = original.config_version;
+	const save = async (config: FreeQuotaConfig): Promise<void> => {
+		const saved = await request.post(configPath, {
+			headers,
+			data: { ...config, expected_config_version: version }
+		});
+		expect(saved.ok()).toBe(true);
+		version = ((await saved.json()) as FreeQuotaConfig).config_version;
+	};
+	const events: (Reservation & { chat_id: string })[] = [];
+	page.on('websocket', (socket) => {
+		socket.on('framereceived', ({ payload }) => {
+			if (typeof payload !== 'string' || !payload.startsWith('42["events",')) return;
+			const [, event] = JSON.parse(payload.slice(2)) as [string, ReservationEnvelope];
+			if (event.data?.type === 'billing:reservation') {
+				events.push({ ...event.data.data, chat_id: event.chat_id });
+			}
+		});
+	});
+	const credit = await request.post(`/api/v1/admin/billing/users/${account.id}/wallet/adjust`, {
+		headers,
+		data: { delta_topup_kopeks: 10000, reason: 'U03', idempotency_key: randomUUID() }
+	});
+	expect(credit.ok()).toBe(true);
+	await page.goto('/auth?form=1');
+	await signIn(page, account);
+	try {
+		const reasons = ['free_quota', 'free_quota_insufficient', 'free_quota_exhausted'];
+		for (const [index, reason] of reasons.entries()) {
+			await test.step(reason, async () => {
+				// The first real settlement consumes 17/3; later settings leave 1/1, then 0/0.
+				const quota = index === 0 ? [100000, 100000] : index === 1 ? [18, 4] : [17, 3];
+				const quotas = { ...original.quotas, tokens_input: quota[0], tokens_output: quota[1] };
+				await save({ ...original, enabled: true, quotas });
+				expect((await billing(request, account, 'lead-magnet')).remaining).toMatchObject({
+					tokens_input: index === 0 ? 100000 : 2 - index,
+					tokens_output: index === 0 ? 100000 : 2 - index
+				});
+				const providerBefore = (await state(request)).calls.length;
+				events.length = 0;
+				await page.goto(`/?model=gpt-6-luna&q=U03%20${reason}&submit=false`);
+				const input = page.getByLabel(/^(Send a Message|How can I help you today\?)$/);
+				await expect(input).toContainText(`U03 ${reason}`);
+				const completion = page.waitForResponse('**/api/chat/completions');
+				await input.press('Enter');
+				expect((await completion).ok()).toBe(true);
+				await expect(page.getByRole('log').getByText('AIRIS deterministic answer.')).toBeVisible();
+				await expect.poll(() => events.length).toBe(1);
+				const event = events[0];
+				expect(event).toMatchObject({
+					chat_id: new URL(page.url()).pathname.split('/').at(-1),
+					reason,
+					model_id: 'gpt-6-luna',
+					billing_source: index === 0 ? 'lead_magnet' : 'payg',
+					request_id: expect.any(String)
+				});
+				const notice = page.getByRole('status').filter({ hasText: /not a charge confirmation/ });
+				if (index === 0) await expect(notice).toHaveCount(0);
+				else {
+					await expect(notice).toBeVisible();
+					await expect(notice).toContainText(
+						index === 1
+							? 'The remaining free quota cannot cover this request. The whole reply will use your wallet.'
+							: 'Free quota for this request is exhausted. This reply will use your wallet.'
+					);
+				}
+				await expect.poll(async () => (await facts(request, account)).usage.length).toBe(index + 1);
+				const settled = await facts(request, account);
+				const tokens = { model: 'gpt-6-luna', input: 17, output: 3 };
+				expect(settled.usage.sort((a, b) => a.charged - b.charged)).toEqual([
+					{ ...tokens, source: 'lead_magnet', charged: 0 },
+					...Array.from({ length: index }, () => ({ ...tokens, source: 'payg', charged: 2 }))
+				]);
+				const ledger = settled.ledger.filter((item) => item.reference === event.request_id);
+				expect(ledger.reduce((sum, item) => sum + item.amount, 0)).toBe(index === 0 ? 0 : -2);
+				if (index === 0) expect(ledger).toEqual([]);
+				expect(await billing(request, account, 'balance')).toMatchObject({
+					balance_topup_kopeks: 10000 - 2 * index,
+					daily_reserved_kopeks: 0
+				});
+				const { usage } = await billing(request, account, 'lead-magnet');
+				expect(usage).toMatchObject({ tokens_input: 17, tokens_output: 3 });
+				expect((await state(request)).calls.length).toBe(providerBefore + 1);
+			});
+		}
+	} finally {
+		await save(original);
+		const restored = await request.get(configPath, { headers });
+		expect(await restored.json()).toEqual({ ...original, config_version: version });
+	}
+});
 
 for (const example of ['написать текст', 'разобраться в теме', 'составить план']) {
 	test(`guide → login → answer → exact free quota: ${example}`, async ({
