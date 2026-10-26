@@ -756,12 +756,11 @@ async def import_rate_cards_xlsx_apply(
         and row.model_id in known_model_ids
         and row.model_id not in db_base_model_ids
     }
-    if imported_model_ids:
-        await _ensure_base_models_exist(
-            model_ids=imported_model_ids,
-            model_names_by_id=model_names_by_id,
-            owner_user_id=admin_user.id,
-        )
+    await _ensure_base_models_exist(
+        model_ids=imported_model_ids,
+        model_names_by_id=model_names_by_id,
+        owner_user_id=admin_user.id,
+    )
 
     now = int(time.time())
 
