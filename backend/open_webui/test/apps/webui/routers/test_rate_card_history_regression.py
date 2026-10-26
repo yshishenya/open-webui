@@ -79,9 +79,7 @@ class TestRateCardHistoryRegression(AbstractPostgresTest):
         from open_webui.utils.pricing import PricingService
 
         monkeypatch.setattr(admin_billing_rate_card, 'ENABLE_BILLING_WALLET', True)
-        monkeypatch.setattr(
-            admin_billing_rate_card, 'time', SimpleNamespace(time=lambda: 200)
-        )
+        monkeypatch.setattr(admin_billing_rate_card, 'time', SimpleNamespace(time=lambda: 200))
         self._seed_usage()
         original = UsageEvents.list_events_by_user('g3-user')[0].model_dump()
         assert (original['cost_raw_kopeks'], original['cost_charged_kopeks']) == (
@@ -136,16 +134,11 @@ class TestRateCardHistoryRegression(AbstractPostgresTest):
                 old_after = RateCards.get_rate_card_by_id(old_id)
                 assert old_after is not None
                 assert old_after.model_dump() == {**old_snapshot, 'is_active': False}
-                assert (
-                    UsageEvents.list_events_by_user('g3-user')[0].model_dump()
-                    == original
-                )
+                assert UsageEvents.list_events_by_user('g3-user')[0].model_dump() == original
 
             # New work uses the new rates, while the saved event retains both old cost parts.
             pricing = PricingService()
-            current = [
-                RateCards.get_rate_card_by_id(rate_id) for rate_id in revised_ids
-            ]
+            current = [RateCards.get_rate_card_by_id(rate_id) for rate_id in revised_ids]
             assert all(rate is not None for rate in current)
             assert (
                 sum(
