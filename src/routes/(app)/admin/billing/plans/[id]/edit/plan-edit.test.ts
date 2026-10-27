@@ -8,6 +8,12 @@ import * as api from '$lib/apis/admin/billing';
 import { goto } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+const draftGuard = vi.hoisted(() => ({
+	register: vi.fn<[isDirty: () => boolean, confirmDiscard: () => boolean], void>()
+}));
+vi.mock('$lib/utils/airis/billing_draft_guard', () => ({
+	registerBillingDraftGuard: draftGuard.register
+}));
 vi.mock('$app/stores', async () => {
 	const { writable } = await import('svelte/store');
 	return {
@@ -97,6 +103,7 @@ it.each([EditPlan, NewPlan])(
 				})
 			);
 			expect(goto).toHaveBeenCalledWith('/admin/billing/plans');
+			expect(draftGuard.register.mock.calls[0][0]()).toBe(false);
 		} finally {
 			await unmount(component);
 			target.remove();
@@ -271,6 +278,7 @@ it.each([EditPlan, NewPlan])(
 			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
 			refuse({ status: 503 });
 			await vi.waitFor(() => expect(toast.error).toHaveBeenCalled());
+			expect(draftGuard.register.mock.calls[0][0]()).toBe(true);
 			expect(
 				target.querySelector<HTMLInputElement>('input[placeholder="Name (Russian)"]')?.value
 			).toBe('Мой тариф');
@@ -290,6 +298,256 @@ it.each([EditPlan, NewPlan])(
 		} finally {
 			await unmount(component);
 			target.remove();
+		}
+	}
+);
+
+const input = async (target: HTMLElement, selector: string, value: string): Promise<void> => {
+	const field = target.querySelector<HTMLInputElement>(selector)!;
+	field.value = value;
+	field.dispatchEvent(new Event('input', { bubbles: true }));
+	await tick();
+};
+
+it('compares quota decreases against the latest confirmed save while retaining newer edits', async () => {
+	const plan = await api.getPlan('', 'first');
+	vi.mocked(api.getPlansWithStats).mockResolvedValueOnce([
+		{ plan, active_subscriptions: 1, canceled_subscriptions: 0, total_subscriptions: 1, mrr: 10 }
+	]);
+	let accept!: (value: api.Plan) => void;
+	vi.mocked(api.updatePlan).mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				accept = resolve;
+			})
+	);
+	const target = document.createElement('div');
+	const component = mount(EditPlan, { target, context: context() });
+	try {
+		await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+		await input(target, 'input[id$="-quotas-requests"]', '20');
+		submit(target);
+		await tick();
+		await input(target, 'input[id$="-quotas-requests"]', '15');
+		accept({ ...plan, quotas: { ...plan.quotas, requests: 20 } });
+		await vi.waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+		expect(goto).not.toHaveBeenCalled();
+		submit(target);
+		await tick();
+		expect(api.updatePlan).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith(
+			'Cannot decrease quotas while plan has active subscriptions'
+		);
+		await input(target, 'input[id$="-quotas-requests"]', '20');
+		expect(draftGuard.register.mock.calls[0][0]()).toBe(false);
+	} finally {
+		await unmount(component);
+	}
+});
+
+it.each([EditPlan, NewPlan])('tracks reverted fields and unadded feature drafts', async (Page) => {
+	const target = document.createElement('div');
+	const component = mount(Page, { target, context: context() });
+	try {
+		expect(draftGuard.register).toHaveBeenCalledTimes(1);
+		await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+		const [isDirty, confirmDiscard] = draftGuard.register.mock.calls[0];
+		expect(isDirty()).toBe(false);
+		const original = target.querySelector<HTMLInputElement>(
+			'input[placeholder="Name (Russian)"]'
+		)!.value;
+		await input(target, 'input[placeholder="Name (Russian)"]', 'Изменён');
+		expect(isDirty()).toBe(true);
+		await input(target, 'input[placeholder="Name (Russian)"]', original);
+		expect(isDirty()).toBe(false);
+		await input(target, 'input[placeholder="Add feature..."]', 'Не добавлено');
+		expect(isDirty()).toBe(true);
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+		expect(confirmDiscard()).toBe(false);
+		expect(confirm).toHaveBeenCalledWith('Discard unsaved changes?');
+		confirm.mockRestore();
+		await input(target, 'input[placeholder="Add feature..."]', '');
+		expect(isDirty()).toBe(false);
+	} finally {
+		await unmount(component);
+	}
+});
+
+it.each([EditPlan, NewPlan])(
+	'keeps newer edits after acceptance and saves the same identity',
+	async (Page) => {
+		const plan = await api.getPlan('', 'persisted');
+		const save = Page === EditPlan ? vi.mocked(api.updatePlan) : vi.mocked(api.createPlan);
+		let accept!: (value: api.Plan) => void;
+		save.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					accept = resolve;
+				})
+		);
+		const target = document.createElement('div');
+		const component = mount(Page, { target, context: context() });
+		try {
+			await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+			await input(target, 'input[placeholder="Name (Russian)"]', 'Отправлено A');
+			await input(target, 'input[placeholder="Add feature..."]', 'A');
+			target.querySelector<HTMLButtonElement>('button[aria-label="Add: A"]')!.click();
+			await tick();
+			submit(target);
+			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+			await input(target, 'input[placeholder="Name (Russian)"]', 'Новые правки B');
+			await input(target, 'input[id$="-quotas-requests"]', '6000');
+			await input(target, 'input[placeholder="Add feature..."]', 'B');
+			const sent = save.mock.calls[0].at(-1);
+			expect(sent).toEqual(expect.objectContaining({ name_ru: 'Отправлено A', features: ['A'] }));
+			expect((sent as api.CreatePlanRequest).quotas?.requests).not.toBe(6000);
+			accept(plan);
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+			expect(goto).not.toHaveBeenCalled();
+			expect(
+				target.querySelector<HTMLInputElement>('input[placeholder="Name (Russian)"]')!.value
+			).toBe('Новые правки B');
+			const isDirty = draftGuard.register.mock.calls[0][0];
+			expect(isDirty()).toBe(true);
+			if (Page === NewPlan) {
+				const id = target.querySelector<HTMLInputElement>('input[placeholder="Plan ID"]')!;
+				expect(id.value).toBe('persisted');
+				expect(id.disabled).toBe(true);
+			}
+			target.querySelector<HTMLButtonElement>('button[aria-label="Add: B"]')!.click();
+			await tick();
+			vi.mocked(api.updatePlan).mockResolvedValueOnce(plan);
+			submit(target);
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledTimes(2));
+			expect(api.updatePlan).toHaveBeenLastCalledWith(
+				undefined,
+				Page === NewPlan ? 'persisted' : 'first',
+				expect.objectContaining({
+					name_ru: 'Новые правки B',
+					features: ['A', 'B'],
+					quotas: expect.objectContaining({ requests: 6000 })
+				})
+			);
+			expect(api.createPlan).toHaveBeenCalledTimes(Page === NewPlan ? 1 : 0);
+			expect(isDirty()).toBe(false);
+			expect(goto).toHaveBeenCalledTimes(1);
+		} finally {
+			await unmount(component);
+		}
+	}
+);
+
+it.each([EditPlan, NewPlan])('does not treat unadded feature text as saved', async (Page) => {
+	const plan = await api.getPlan('', 'persisted');
+	const save = Page === EditPlan ? vi.mocked(api.updatePlan) : vi.mocked(api.createPlan);
+	save.mockResolvedValueOnce(plan);
+	const target = document.createElement('div');
+	const component = mount(Page, { target, context: context() });
+	try {
+		await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+		await input(target, 'input[placeholder="Name (Russian)"]', 'Название');
+		await input(target, 'input[placeholder="Add feature..."]', 'Не отправлено');
+		submit(target);
+		await vi.waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+		expect(goto).not.toHaveBeenCalled();
+		expect(draftGuard.register.mock.calls[0][0]()).toBe(true);
+		await input(target, 'input[placeholder="Add feature..."]', '');
+		expect(draftGuard.register.mock.calls[0][0]()).toBe(false);
+	} finally {
+		await unmount(component);
+	}
+});
+
+it.each([EditPlan, NewPlan])(
+	'ignores late save success and failure after destruction',
+	async (Page) => {
+		const plan = await api.getPlan('', 'persisted');
+		for (const outcome of ['accept', 'reject']) {
+			const save = Page === EditPlan ? vi.mocked(api.updatePlan) : vi.mocked(api.createPlan);
+			let accept!: (value: api.Plan) => void;
+			let reject!: (reason: Error) => void;
+			save.mockImplementationOnce(
+				() =>
+					new Promise((resolve, refuse) => {
+						accept = resolve;
+						reject = refuse;
+					})
+			);
+			const target = document.createElement('div');
+			const component = mount(Page, { target, context: context() });
+			await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+			await input(target, 'input[placeholder="Name (Russian)"]', 'Черновик');
+			submit(target);
+			await tick();
+			await unmount(component);
+			if (outcome === 'accept') accept(plan);
+			else reject(new Error('late refusal'));
+			await tick();
+			expect(goto).not.toHaveBeenCalled();
+			expect(toast.success).not.toHaveBeenCalled();
+			expect(toast.error).not.toHaveBeenCalled();
+		}
+	}
+);
+
+it.each(['accept', 'reject'])(
+	'ignores old saves across first-second-first route reuse (%s)',
+	async (outcome) => {
+		const plan = await api.getPlan('', 'first');
+		let accept!: (value: api.Plan) => void;
+		let reject!: (reason: Error) => void;
+		vi.mocked(api.updatePlan).mockImplementationOnce(
+			() =>
+				new Promise((resolve, refuse) => {
+					accept = resolve;
+					reject = refuse;
+				})
+		);
+		const target = document.createElement('div');
+		const component = mount(EditPlan, { target, context: context() });
+		try {
+			await vi.waitFor(() => expect(target.querySelector('form')).not.toBeNull());
+			await input(target, 'input[placeholder="Add feature..."]', 'Старый черновик');
+			submit(target);
+			await tick();
+			const { page } = await import('$app/stores');
+			for (const id of ['second', 'first']) {
+				(page as unknown as Writable<{ url: URL; params: { id: string } }>).set({
+					url: new URL(`https://example/admin/billing/plans/${id}/edit`),
+					params: { id }
+				});
+				await tick();
+				await vi.waitFor(() =>
+					expect(
+						target.querySelector<HTMLInputElement>('input[placeholder="Name (Russian)"]')?.value
+					).toBe(`Тариф ${id}`)
+				);
+			}
+			expect(
+				target.querySelector<HTMLInputElement>('input[placeholder="Add feature..."]')!.value
+			).toBe('');
+			expect(draftGuard.register.mock.calls[0][0]()).toBe(false);
+			let acceptCurrent!: (value: api.Plan) => void;
+			vi.mocked(api.updatePlan).mockImplementationOnce(
+				() =>
+					new Promise((resolve) => {
+						acceptCurrent = resolve;
+					})
+			);
+			await input(target, 'input[placeholder="Name (Russian)"]', 'Текущий черновик');
+			submit(target);
+			await vi.waitFor(() => expect(api.updatePlan).toHaveBeenCalledTimes(2));
+			if (outcome === 'accept') accept(plan);
+			else reject(new Error('old refusal'));
+			await tick();
+			expect(goto).not.toHaveBeenCalled();
+			expect(toast.success).not.toHaveBeenCalled();
+			expect(toast.error).not.toHaveBeenCalled();
+			expect(target.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+			acceptCurrent(plan);
+			await vi.waitFor(() => expect(goto).toHaveBeenCalledTimes(1));
+		} finally {
+			await unmount(component);
 		}
 	}
 );

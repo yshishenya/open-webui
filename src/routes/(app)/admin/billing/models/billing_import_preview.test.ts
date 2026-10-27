@@ -7,7 +7,8 @@ import * as api from '$lib/apis/admin/billing';
 import type { RateCardXlsxImportPreviewResponse } from '$lib/apis/admin/billing';
 import { toast } from 'svelte-sonner';
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), beforeNavigate: vi.fn() }));
+vi.mock('$app/state', () => ({ updated: { current: false } }));
 vi.mock('$app/stores', async () => {
 	const { writable } = await import('svelte/store');
 	return { page: writable({ url: new URL('http://localhost/admin/billing/models') }) };

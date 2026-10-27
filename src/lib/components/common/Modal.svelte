@@ -9,6 +9,7 @@
 	export let containerClassName = 'p-3';
 	export let className = 'bg-white dark:bg-gray-900 rounded-4xl';
 	export let ariaLabel: string | undefined = undefined;
+	export let beforeClose: () => boolean = () => true;
 
 	let modalElement: HTMLElement | null = null;
 	let portalElement: HTMLElement | null = null;
@@ -41,7 +42,7 @@
 	};
 
 	const handleKeyDown = (event: KeyboardEvent) => {
-		if (event.key === 'Escape' && isTopModal()) {
+		if (event.key === 'Escape' && isTopModal() && beforeClose()) {
 			show = false;
 		}
 	};
@@ -80,6 +81,8 @@
 			portalElement = modalElement;
 			document.body.appendChild(modalElement);
 			focusTrap = FocusTrap.createFocusTrap(modalElement, {
+				// Closing (or rejecting it) is handled by our Escape listener.
+				escapeDeactivates: false,
 				allowOutsideClick: (event: MouseEvent | TouchEvent) => {
 					const target = getEventTargetElement(event);
 					return (
@@ -121,7 +124,7 @@
 		style="scrollbar-gutter: stable;"
 		in:fade={{ duration: 10 }}
 		on:mousedown={(event) => {
-			if (event.target === event.currentTarget) show = false;
+			if (event.target === event.currentTarget && beforeClose()) show = false;
 		}}
 	>
 		<div

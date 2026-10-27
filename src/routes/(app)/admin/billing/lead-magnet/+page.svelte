@@ -7,6 +7,7 @@
 	import { getLeadMagnetConfig, updateLeadMagnetConfig } from '$lib/apis/admin/billing';
 	import type { LeadMagnetConfig } from '$lib/apis/admin/billing';
 	import { freeAccessModelLabel } from '$lib/utils/airis/billing_ui';
+	import { registerBillingDraftGuard } from '$lib/utils/airis/billing_draft_guard';
 	import { getModels } from '$lib/apis';
 	let freeModels: Array<{ id: string; name?: string }> = [];
 	let modelsError = false;
@@ -60,6 +61,19 @@
 	let configConflict = false;
 	let savedConfig: LeadMagnetConfig | null = null;
 	let comparing = false;
+	let appliedDraft: string | null = null;
+	const draftSnapshot = (): string =>
+		JSON.stringify([
+			enabled,
+			...[cycleDays, tokensInput, tokensOutput, images, ttsSeconds, sttSeconds].map((value) =>
+				String(value ?? '')
+			)
+		]);
+
+	registerBillingDraftGuard(
+		() => appliedDraft !== null && draftSnapshot() !== appliedDraft,
+		() => window.confirm($i18n.t('Discard unsaved changes?'))
+	);
 
 	const compareSavedConfig = async (): Promise<void> => {
 		if (comparing) return;
@@ -111,6 +125,7 @@
 		configVersion = config.config_version ?? null;
 		configConflict = false;
 		savedConfig = null;
+		appliedDraft = draftSnapshot();
 	};
 
 	const parsePositiveInt = (value: string | number | undefined, label: string): number | null => {

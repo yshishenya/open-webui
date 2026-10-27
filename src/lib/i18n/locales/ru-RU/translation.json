@@ -1,4 +1,8 @@
 {
+	"Discard unsaved changes?": "Отменить несохранённые изменения?",
+	"Draft kept. Reload current prices before saving again.": "Черновик остался на экране. Перед новым сохранением загрузите текущие цены — они заменят черновик.",
+	"Saving interrupted. Confirmed changes: {{count}}. Draft kept; reload current prices before saving again.": "Сохранение прервано. Подтверждено изменений: {{count}}. Другие изменения тоже могли дойти до сервера. Черновик сохранён на экране; перед повторным сохранением загрузите текущие цены.",
+	"Reload current prices": "Загрузить текущие цены",
 	"Adjustment key already belongs to a different intent": "Эта операция уже связана с другой суммой, причиной или администратором. Проверьте журнал перед новым изменением.",
 	"Failed to verify wallet adjustment": "Не удалось подтвердить изменение баланса. Проверьте журнал или повторите ту же операцию.",
 	"Subscription changed; reload and confirm the new terms": "Подписка изменилась. Обновите данные и подтвердите новые условия.",

@@ -120,6 +120,78 @@ async function history(page: Page): Promise<void> {
 	await expect(entries.getByText('+RUB 500.00', { exact: true })).toBeVisible();
 }
 
+test('the next Tab after the final history batch enters the first added operation details', async ({
+	page,
+	account
+}) => {
+	await page.goto('/auth?form=1');
+	await signIn(page, account);
+	const now = Math.floor(Date.now() / 1000);
+	const entries = Array.from({ length: 25 }, (_, index) => ({
+		id: `keyboard-history-${index}`,
+		user_id: account.id,
+		wallet_id: 'synthetic-wallet',
+		currency: 'RUB',
+		type: 'topup',
+		amount_kopeks: 100,
+		balance_included_after: 0,
+		balance_topup_after: 100,
+		created_at: now - index
+	}));
+	await page.route('**/api/v1/billing/ledger?**', (route) => {
+		const query = new URL(route.request().url()).searchParams;
+		const skip = Number(query.get('skip') || 0);
+		const limit = Number(query.get('limit') || 20);
+		return route.fulfill({ json: entries.slice(skip, skip + limit) });
+	});
+	await page.goto('/billing/history');
+	const items = page.getByTestId('timeline-item');
+	await expect(items).toHaveCount(20);
+	const more = page.getByRole('button', { name: 'Load more', exact: true });
+	await more.focus();
+	await page.keyboard.press('Enter');
+	await expect(items).toHaveCount(25);
+	await expect(more).toHaveCount(0);
+	await expect(items.nth(20)).toBeFocused();
+	await page.keyboard.press('Tab');
+	await expect(items.nth(20).locator('summary').first()).toBeFocused();
+});
+
+test('an expired server session returns to billing after sign-in without replaying the top-up', async ({
+	page,
+	request,
+	account
+}) => {
+	await page.goto('/auth?form=1');
+	await signIn(page, account);
+	const path = '/billing/balance?focus=topup&return_to=%2F';
+	await page.goto(path);
+	await page.getByTestId('topup-preset').first().click();
+	const mutations: string[] = [];
+	await page.route('**/api/v1/auths/', (route) =>
+		route.fulfill({ status: 401, json: { detail: 'Session expired' } })
+	);
+	await page.route('**/api/v1/billing/**', (route) => {
+		if (route.request().method() === 'GET') return route.continue();
+		mutations.push(new URL(route.request().url()).pathname);
+		return route.fulfill({ status: 401, json: { detail: 'Session expired' } });
+	});
+	await page.getByTestId('topup-proceed').click();
+	await expect(page).toHaveURL(/\/auth\?redirect=/);
+	expect(new URL(page.url()).searchParams.get('redirect')).toBe(path);
+	await page.unroute('**/api/v1/auths/');
+	await page.getByRole('textbox', { name: /email/i }).fill(account.email);
+	await page.getByPlaceholder('Enter Your Password').fill(account.password);
+	await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+	await expect(page).toHaveURL(/\/billing\/balance\?focus=topup/);
+	await expect(page.getByTestId('topup-proceed')).toBeDisabled();
+	await expect(page.getByTestId('topup-preset').first()).toBeVisible();
+	expect(mutations).toEqual(['/api/v1/billing/topup']);
+	await credit(request, account);
+	expect(await jobs(request, account)).toEqual([]);
+	expect(await notices(request, account)).toEqual([]);
+});
+
 test('closed checkout, delayed notification and mismatched provider status recover once', async ({
 	page,
 	context,
