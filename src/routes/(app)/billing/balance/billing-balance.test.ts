@@ -54,6 +54,7 @@ type MockSet = {
 	trackEventMock: ReturnType<typeof vi.fn>;
 	trackEcommercePurchaseMock: ReturnType<typeof vi.fn>;
 	gotoMock: ReturnType<typeof vi.fn>;
+	beforeNavigateMock: ReturnType<typeof vi.fn>;
 	toast: { error: ReturnType<typeof vi.fn>; success: ReturnType<typeof vi.fn> };
 	webuiNameStore: MockStore<string>;
 	modelsStore: MockStore<WalletTestModel[]>;
@@ -95,6 +96,7 @@ const mocks: MockSet = vi.hoisted(() => {
 		trackEventMock: vi.fn(),
 		trackEcommercePurchaseMock: vi.fn(),
 		gotoMock: vi.fn(),
+		beforeNavigateMock: vi.fn(),
 		toast: { error: vi.fn(), success: vi.fn() },
 		webuiNameStore: createStore('Airis'),
 		modelsStore: createStore<WalletTestModel[]>([]),
@@ -132,7 +134,12 @@ vi.mock('$lib/utils/analytics', () => ({
 	trackEvent: mocks.trackEventMock,
 	trackEcommercePurchase: mocks.trackEcommercePurchaseMock
 }));
-vi.mock('$app/navigation', () => ({ goto: mocks.gotoMock, afterNavigate: vi.fn() }));
+vi.mock('$app/navigation', () => ({
+	goto: mocks.gotoMock,
+	afterNavigate: vi.fn(),
+	beforeNavigate: mocks.beforeNavigateMock
+}));
+vi.mock('$app/state', () => ({ updated: { current: false } }));
 vi.mock('$app/stores', () => ({ page: mocks.pageStore }));
 vi.mock('svelte-sonner', () => ({ toast: mocks.toast }));
 // jsdom has no Web Animations API. Keep the real Modal and its focus lifecycle;
@@ -197,6 +204,7 @@ describe('Billing balance page', () => {
 	let target: HTMLDivElement | null = null;
 
 	beforeEach(() => {
+		mocks.beforeNavigateMock.mockReset();
 		mocks.createTopupMock.mockReset().mockResolvedValue({ confirmation_url: '/billing/balance' });
 		mocks.getBalanceMock.mockReset();
 		mocks.getLeadMagnetInfoMock.mockReset().mockResolvedValue({ enabled: false });
@@ -240,6 +248,44 @@ describe('Billing balance page', () => {
 		});
 		return target;
 	};
+
+	it.each(['max_reply_cost', 'billing_contact_email', 'auto_topup_threshold'])(
+		'guards the unsaved %s draft and allows confirmed departure',
+		async (name) => {
+			mocks.getBalanceMock.mockResolvedValue(
+				createBalance({ auto_topup_enabled: true, max_reply_cost_kopeks: 100 })
+			);
+			mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+			const root = renderPage();
+			await flushPromises();
+			const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+			try {
+				const navigate = mocks.beforeNavigateMock.mock.calls[0][0];
+				const navigation = {
+					from: { url: new URL('http://localhost/billing/balance') },
+					to: { url: new URL('http://localhost/billing/history') },
+					willUnload: false,
+					cancel: vi.fn()
+				};
+				navigate(navigation);
+				expect(confirm).not.toHaveBeenCalled();
+				const input = root.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+				expect(input).toBeTruthy();
+				input!.value = name === 'billing_contact_email' ? 'draft@example.test' : '10';
+				input!.dispatchEvent(new Event('input', { bubbles: true }));
+				await flushPromises();
+				navigate(navigation);
+				expect(navigation.cancel).toHaveBeenCalledOnce();
+				expect(input!.value).toBe(name === 'billing_contact_email' ? 'draft@example.test' : '10');
+				confirm.mockReturnValue(true);
+				navigation.cancel.mockClear();
+				navigate(navigation);
+				expect(navigation.cancel).not.toHaveBeenCalled();
+			} finally {
+				confirm.mockRestore();
+			}
+		}
+	);
 
 	it('updates wallet total and package amounts on language change without another balance fetch', async () => {
 		const selected = createInstance();
@@ -771,6 +817,116 @@ describe('Billing balance page', () => {
 			expect(field.getAttribute('aria-invalid')).toBe('false');
 			expect(field.getAttribute('aria-describedby')).toBeNull();
 		}
+	});
+
+	it.each([
+		['email', 'not-an-email', 'Enter a valid email address'],
+		['phone', 'not-a-phone', 'Enter a valid phone number']
+	])(
+		'identifies and focuses the invalid receipt %s without submitting it',
+		async (field, value, message) => {
+			mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+			mocks.getBalanceMock.mockResolvedValue(createBalance());
+			const root = renderPage();
+			await flushPromises();
+			const input = root.querySelector(
+				`input[name="billing_contact_${field}"]`
+			) as HTMLInputElement;
+			input.value = value;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await flushPromises();
+			const save = [...root.querySelectorAll('button')].find((button) =>
+				button.textContent?.includes('Save contacts')
+			) as HTMLButtonElement;
+			save.click();
+			await flushPromises();
+			expect(mocks.updateBillingSettingsMock).not.toHaveBeenCalled();
+			expect(input.getAttribute('aria-invalid')).toBe('true');
+			const errorId = input.getAttribute('aria-describedby');
+			expect(errorId).toBe(`billing-contact-${field}-error`);
+			expect(document.getElementById(errorId ?? '')?.textContent).toContain(message);
+			expect(document.activeElement).toBe(input);
+			const other = root.querySelector(
+				`input[name="billing_contact_${field === 'email' ? 'phone' : 'email'}"]`
+			);
+			expect(other?.getAttribute('aria-invalid')).not.toBe('true');
+			input.value = field === 'email' ? 'receipt@example.com' : '+7 900 000 00 00';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await flushPromises();
+			expect(input.getAttribute('aria-invalid')).toBe('false');
+			expect(input.getAttribute('aria-describedby')).toBeNull();
+			save.click();
+			await flushPromises();
+			expect(mocks.updateBillingSettingsMock).toHaveBeenCalledTimes(1);
+			expect(mocks.updateBillingSettingsMock.mock.calls[0][1][`billing_contact_${field}`]).toBe(
+				input.value
+			);
+			expect(save.disabled).toBe(true);
+		}
+	);
+
+	it('preserves receipt contacts after a network failure and permits retry without field errors', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		mocks.updateBillingSettingsMock.mockRejectedValueOnce(new Error('network unavailable'));
+		const root = renderPage();
+		await flushPromises();
+		const email = root.querySelector('input[name="billing_contact_email"]') as HTMLInputElement;
+		email.value = 'receipt@example.com';
+		email.dispatchEvent(new Event('input', { bubbles: true }));
+		await flushPromises();
+		const save = [...root.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Save contacts')
+		) as HTMLButtonElement;
+		save.click();
+		await flushPromises();
+		expect(root.textContent).toContain('Failed to update billing settings');
+		expect(email.value).toBe('receipt@example.com');
+		expect(save.disabled).toBe(false);
+		for (const input of root.querySelectorAll('input[name^="billing_contact_"]')) {
+			expect(input.getAttribute('aria-invalid')).toBe('false');
+			expect(input.getAttribute('aria-describedby')).toBeNull();
+		}
+		save.click();
+		await flushPromises();
+		expect(mocks.updateBillingSettingsMock).toHaveBeenCalledTimes(2);
+		expect(save.disabled).toBe(true);
+		expect(root.textContent).not.toContain('Failed to update billing settings');
+	});
+
+	it('keeps newer contact edits unsaved when an earlier save completes', async () => {
+		mocks.pageStore.set({ url: new URL('http://localhost/billing/balance?focus=limits') });
+		mocks.getBalanceMock.mockResolvedValue(createBalance());
+		let complete: () => void = () => {};
+		mocks.updateBillingSettingsMock.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					complete = () => resolve({ status: 'ok' });
+				})
+		);
+		const root = renderPage();
+		await flushPromises();
+		const email = root.querySelector('input[name="billing_contact_email"]') as HTMLInputElement;
+		const set = (value: string): void => {
+			email.value = value;
+			email.dispatchEvent(new Event('input', { bubbles: true }));
+		};
+		set('sent@example.com');
+		await flushPromises();
+		const save = [...root.querySelectorAll('button')].find((button) =>
+			button.textContent?.includes('Save contacts')
+		) as HTMLButtonElement;
+		save.click();
+		await flushPromises();
+		set('newer@example.com');
+		await flushPromises();
+		complete();
+		await flushPromises();
+		expect(mocks.updateBillingSettingsMock.mock.calls[0][1].billing_contact_email).toBe(
+			'sent@example.com'
+		);
+		expect(email.value).toBe('newer@example.com');
+		expect(save.disabled).toBe(false);
 	});
 
 	it.each(['limits', 'contacts', 'auto_topup', 'topup'])(

@@ -1,4 +1,8 @@
 {
+	"Discard unsaved changes?": "Discard unsaved changes?",
+	"Draft kept. Reload current prices before saving again.": "Your draft is kept on screen. Reload current prices before saving again; this replaces your draft.",
+	"Saving interrupted. Confirmed changes: {{count}}. Draft kept; reload current prices before saving again.": "Saving interrupted. Confirmed changes: {{count}}. Other changes may have reached the server. Your draft is kept; reload current prices before saving again.",
+	"Reload current prices": "Reload current prices",
 	"Adjustment key already belongs to a different intent": "Adjustment key already belongs to a different intent",
 	"Failed to verify wallet adjustment": "Failed to verify wallet adjustment",
 	"Subscription changed; reload and confirm the new terms": "Subscription changed; reload and confirm the new terms",

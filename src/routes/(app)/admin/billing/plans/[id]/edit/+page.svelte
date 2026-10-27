@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
+	import { registerBillingDraftGuard } from '$lib/utils/airis/billing_draft_guard';
 	import { onMount, onDestroy, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -70,6 +71,10 @@
 
 	// Features management
 	let newFeature = '';
+	let savedDraft: string | null = null;
+	const isDirty = (): boolean =>
+		savedDraft !== null && (JSON.stringify(formData) !== savedDraft || newFeature !== '');
+	registerBillingDraftGuard(isDirty, () => window.confirm($i18n.t('Discard unsaved changes?')));
 
 	const addFeature = (): void => {
 		if (newFeature.trim()) {
@@ -152,6 +157,9 @@
 		const version = ++loadVersion;
 		const selectedPlan = planId;
 		loading = true;
+		saving = false;
+		savedDraft = null;
+		newFeature = '';
 		loadError = '';
 		activeSubscriberCount = null;
 		subscribers = [];
@@ -195,6 +203,7 @@
 			unlimitedTokensInput = plan.quotas?.tokens_input == null;
 			unlimitedTokensOutput = plan.quotas?.tokens_output == null;
 			unlimitedRequests = plan.quotas?.requests == null;
+			savedDraft = JSON.stringify(formData);
 
 			// Load subscribers
 			const subs = await getPlanSubscribers(localStorage.token, selectedPlan);
@@ -259,23 +268,25 @@
 
 	const handleSave = async (): Promise<void> => {
 		const selectedPlan = planId;
+		const version = loadVersion;
 		if (activeSubscriberCount === null) {
 			toast.error($i18n.t('Subscription totals unavailable; reload before saving'));
 			return;
 		}
-		if (!validateForm() || saving) return;
+		if (saving || !validateForm()) return;
 
+		const sent: typeof formData = JSON.parse(JSON.stringify(formData));
 		saving = true;
 		try {
-			const result = await updatePlan(localStorage.token, selectedPlan, formData);
+			const result = await updatePlan(localStorage.token, selectedPlan, sent);
+			if (!alive || version !== loadVersion || selectedPlan !== String($page.params.id)) return;
 			if (!result) throw new Error('Failed to update plan');
-			if (!alive || selectedPlan !== String($page.params.id)) return;
-			if (result) {
-				toast.success($i18n.t('Plan updated successfully'));
-				if (alive) goto('/admin/billing/plans');
-			}
+			originalPlan = result;
+			savedDraft = JSON.stringify(sent);
+			toast.success($i18n.t('Plan updated successfully'));
+			if (!isDirty()) goto('/admin/billing/plans');
 		} catch (error: unknown) {
-			if (!alive || selectedPlan !== String($page.params.id)) return;
+			if (!alive || version !== loadVersion || selectedPlan !== String($page.params.id)) return;
 			console.error('Failed to update plan:', error);
 			toast.error(
 				(typeof error === 'object' &&
@@ -286,7 +297,9 @@
 					$i18n.t('Failed to update plan')
 			);
 		} finally {
-			saving = false;
+			if (alive && version === loadVersion && selectedPlan === String($page.params.id)) {
+				saving = false;
+			}
 		}
 	};
 

@@ -558,6 +558,109 @@ async def test_financial_totals_use_ledger_dates_and_full_selection(
         await engine.dispose()
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize('credit_delay_seconds', [0, 1])
+async def test_midnight_topup_reconciles_adjacent_days_and_combined_range(
+    monkeypatch: pytest.MonkeyPatch, credit_delay_seconds: int
+) -> None:
+    from open_webui.models.analytics_refunds import AnalyticsRefund
+    from open_webui.models.billing_models import Transaction
+    from open_webui.models.billing_wallet import LedgerEntry, Payment, UsageEvent, Wallet
+    from open_webui.models.users import User
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+    # 1970-01-02 23:59:59 UTC: provider succeeds before the ledger's UTC day.
+    provider_at = 2 * 86400 - 1
+    midnight = 2 * 86400
+    credited_at = midnight + credit_delay_seconds
+    monkeypatch.setattr('open_webui.utils.airis.billing_reporting.time.time', lambda: 4 * 86400)
+    engine = create_async_engine('sqlite+aiosqlite:///:memory:')
+    try:
+        async with engine.begin() as connection:
+            for model in (User, Wallet, Payment, Transaction, LedgerEntry, AnalyticsRefund, UsageEvent):
+                await connection.run_sync(model.__table__.create)
+        async with AsyncSession(engine) as session:
+            session.add(User(id='u', name='Anna', email='anna@example.test'))
+            session.add(Wallet(id='w', user_id='u', currency='RUB', created_at=provider_at, updated_at=credited_at))
+            session.add(
+                Payment(
+                    id='midnight-payment',
+                    user_id='u',
+                    wallet_id='w',
+                    currency='RUB',
+                    kind='topup',
+                    status='succeeded',
+                    provider='yookassa',
+                    provider_payment_id='provider-midnight',
+                    amount_kopeks=50000,
+                    created_at=provider_at,
+                    updated_at=provider_at,
+                    raw_payload_json={'test': False, 'created_at': '1970-01-02T23:59:59Z'},
+                )
+            )
+            session.add(
+                LedgerEntry(
+                    id='midnight-credit',
+                    user_id='u',
+                    wallet_id='w',
+                    currency='RUB',
+                    type='topup',
+                    amount_kopeks=50000,
+                    balance_topup_after=50000,
+                    balance_included_after=0,
+                    reference_id='provider-midnight',
+                    reference_type='payment',
+                    created_at=credited_at,
+                )
+            )
+            await session.commit()
+            service = BillingReportingService(session)
+            selections = []
+            paid_totals = []
+            for start, end, expected_count in (
+                (86400, midnight, 0),
+                (midnight, 3 * 86400, 1),
+                (86400, 3 * 86400, 1),
+            ):
+                overview = await service.overview(from_ts=start, to_ts=end, currency='RUB')
+                rows, total = await service.payment_page(
+                    from_ts=start,
+                    to_ts=end,
+                    currency='RUB',
+                    user_id='u',
+                    status='succeeded',
+                    kind='topup',
+                    credit_status='credited',
+                    is_test=False,
+                    page=1,
+                    page_size=100,
+                )
+                assert overview['timezone'] == 'UTC'
+                assert (overview['from'], overview['to']) == (start, end)
+                assert total == len(rows) == expected_count
+                metrics = overview['metrics']
+                assert metrics['successful_payment_count'] == expected_count
+                assert metrics['successful_payments_kopeks'] == sum(row['amount_kopeks'] for row in rows)
+                assert metrics['net_kopeks'] == expected_count * 50000
+                assert overview['series'] == (
+                    [{'date': '1970-01-03', 'paid_kopeks': 50000, 'refund_kopeks': 0, 'usage_kopeks': 0}]
+                    if expected_count
+                    else []
+                )
+                if rows:
+                    assert rows[0]['id'] == 'midnight-payment'
+                    assert rows[0]['status'] == 'succeeded'
+                    assert rows[0]['credit_status'] == 'credited'
+                    assert rows[0]['created_at'] == provider_at < midnight
+                    assert rows[0]['credited_at'] == rows[0]['processed_at'] == credited_at >= midnight
+                selections.append(rows)
+                paid_totals.append(metrics['successful_payments_kopeks'])
+            assert selections[0] + selections[1] == selections[2]
+            assert paid_totals[0] + paid_totals[1] == paid_totals[2] == 50000
+    finally:
+        await engine.dispose()
+
+
 def test_range_half_open_and_half_up_rounding() -> None:
     assert normalize_range(0, 100) == (0, 100)
     with pytest.raises(ValueError):

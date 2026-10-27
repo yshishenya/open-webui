@@ -11,7 +11,9 @@ import type { RateCard } from '$lib/apis/admin/billing';
 import { createNewModel, updateModelById } from '$lib/apis/models';
 import { toast } from 'svelte-sonner';
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+import { beforeNavigate } from '$app/navigation';
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), beforeNavigate: vi.fn() }));
+vi.mock('$app/state', () => ({ updated: { current: false } }));
 vi.mock('$app/stores', async () => {
 	const { writable } = await import('svelte/store');
 	return { page: writable({ url: new URL('http://localhost/admin/billing/models') }) };
@@ -269,4 +271,159 @@ describe('model price editor save requests (synthetic API)', () => {
 		expect(api.updateRateCard).not.toHaveBeenCalled();
 		expect(toast.success).not.toHaveBeenCalled();
 	});
+
+	it('guards Close, Escape, backdrop and route departure without losing the price draft', async () => {
+		await openEditor();
+		await setInputPrice('0.56');
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		try {
+			button('Close').click();
+			window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+			const modal = document.querySelector('.modal')!;
+			modal.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+			const navigation = {
+				from: { url: new URL('http://localhost/admin/billing/models') },
+				to: { url: new URL('http://localhost/admin/billing') },
+				willUnload: false,
+				cancel: vi.fn()
+			};
+			vi.mocked(beforeNavigate).mock.calls[0][0](
+				navigation as unknown as Parameters<Parameters<typeof beforeNavigate>[0]>[0]
+			);
+			await tick();
+			expect(confirm).toHaveBeenCalledTimes(4);
+			expect(navigation.cancel).toHaveBeenCalledOnce();
+			expect(
+				document.querySelector<HTMLInputElement>(
+					'input[aria-label="Input price per 1000 tokens · RUB"]'
+				)?.value
+			).toBe('0.56');
+			confirm.mockReturnValue(true);
+			window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+			await tick();
+			expect(document.querySelector('.modal')).toBeNull();
+			expect(api.createRateCard).not.toHaveBeenCalled();
+		} finally {
+			confirm.mockRestore();
+		}
+	});
+
+	it('keeps the draft after a partial save, blocks blind retry, and requires confirmed current-price reload', async () => {
+		await openEditor();
+		await setInputPrice('0.56');
+		vi.mocked(api.createRateCard).mockResolvedValueOnce({
+			...rates[0],
+			id: 'new-rate',
+			raw_cost_per_unit_kopeks: 56
+		});
+		vi.mocked(api.updateRateCard).mockRejectedValueOnce(new Error('connection lost after request'));
+		button('Save').click();
+		await vi.waitFor(() => expect(toast.error).toHaveBeenCalled());
+		expect(
+			document.querySelector<HTMLInputElement>(
+				'input[aria-label="Input price per 1000 tokens · RUB"]'
+			)?.value
+		).toBe('0.56');
+		expect(button('Save').disabled).toBe(true);
+		button('Save').click();
+		expect(api.createRateCard).toHaveBeenCalledTimes(1);
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		try {
+			button('Reload current prices').click();
+			await tick();
+			expect(button('Save').disabled).toBe(true);
+			confirm.mockReturnValue(true);
+			button('Reload current prices').click();
+			await vi.waitFor(() => expect(button('Save').disabled).toBe(false));
+			expect(
+				document.querySelector<HTMLInputElement>(
+					'input[aria-label="Input price per 1000 tokens · RUB"]'
+				)?.value
+			).toBe('0.12');
+			expect(api.createRateCard).toHaveBeenCalledTimes(1);
+		} finally {
+			confirm.mockRestore();
+		}
+	});
+
+	it('does not reopen a stale editor while reconciling an uncertain write after a failed read', async () => {
+		await openEditor();
+		await setInputPrice('0.56');
+		vi.mocked(api.createRateCard).mockRejectedValueOnce(new Error('unknown write result'));
+		vi.mocked(api.listRateCards).mockRejectedValueOnce(new Error('read unavailable'));
+		button('Save').click();
+		await vi.waitFor(() => expect(button('Reload current prices').disabled).toBe(false));
+		let finish!: (data: Awaited<ReturnType<typeof api.listRateCards>>) => void;
+		vi.mocked(api.listRateCards).mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					finish = resolve;
+				})
+		);
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		try {
+			button('Reload current prices').click();
+			await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+			button('Close').click();
+			await tick();
+			expect(
+				document.querySelector('button[aria-label="Edit: Model prices — Model A (model-a)"]')
+			).toBeNull();
+			expect(document.querySelector('.modal')).toBeNull();
+			finish({
+				items: rates.map((rate) => ({ ...rate, raw_cost_per_unit_kopeks: 56 })),
+				total_pages: 1,
+				total: 2,
+				page: 1,
+				page_size: 200
+			});
+			await vi.waitFor(() => expect(button('Refresh').disabled).toBe(false));
+			button('Edit: Model prices — Model A (model-a)').click();
+			await tick();
+			expect(
+				document.querySelector<HTMLInputElement>(
+					'input[aria-label="Input price per 1000 tokens · RUB"]'
+				)?.value
+			).toBe('0.56');
+			expect(api.createRateCard).toHaveBeenCalledTimes(1);
+		} finally {
+			confirm.mockRestore();
+		}
+	});
+
+	it.each(['edited', 'reopened'] as const)(
+		'does not close a newer %s draft after a late successful save',
+		async (scenario) => {
+			await openEditor();
+			await setInputPrice('0.56');
+			let finish!: (rate: RateCard) => void;
+			vi.mocked(api.createRateCard).mockImplementationOnce(
+				() =>
+					new Promise((resolve) => {
+						finish = resolve;
+					})
+			);
+			button('Save').click();
+			await vi.waitFor(() => expect(api.createRateCard).toHaveBeenCalledOnce());
+			if (scenario === 'reopened') {
+				const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+				button('Close').click();
+				await tick();
+				confirm.mockRestore();
+				button('Edit: Model prices — Model A (model-a)').click();
+				await tick();
+			}
+			await setInputPrice('0.78');
+			finish({ ...rates[0], id: 'new-rate', raw_cost_per_unit_kopeks: 56 });
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			await tick();
+			expect(
+				document.querySelector<HTMLInputElement>(
+					'input[aria-label="Input price per 1000 tokens · RUB"]'
+				)?.value
+			).toBe('0.78');
+			expect(button('Save').disabled).toBe(true);
+			expect(button('Reload current prices')).toBeTruthy();
+		}
+	);
 });

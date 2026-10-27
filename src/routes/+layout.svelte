@@ -43,7 +43,7 @@
 	import { getFileContentById } from '$lib/apis/files';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { beforeNavigate } from '$app/navigation';
+	import { beforeNavigate, onNavigate } from '$app/navigation';
 	import { updated } from '$app/state';
 
 	import i18n, { initI18n, getLanguages, changeLanguage } from '$lib/i18n';
@@ -100,7 +100,7 @@
 	};
 
 	// handle frontend updates (https://svelte.dev/docs/kit/configuration#version)
-	beforeNavigate(async ({ from, willUnload, to }) => {
+	beforeNavigate(({ from, willUnload, to }) => {
 		if (
 			!willUnload &&
 			from?.url &&
@@ -112,9 +112,15 @@
 			return;
 		}
 
+	});
+
+	// Leaf forms must be able to cancel departure before update cleanup starts.
+	onNavigate(async ({ willUnload, to }) => {
 		if (updated.current && !willUnload && to?.url) {
 			await unregisterServiceWorkers();
-			location.href = to.url.href;
+			return () => {
+				location.href = to.url.href;
+			};
 		}
 	});
 

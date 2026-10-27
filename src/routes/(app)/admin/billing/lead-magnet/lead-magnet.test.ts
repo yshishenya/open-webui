@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
-import { it, expect, vi, beforeEach } from 'vitest';
+import { it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { beforeNavigate } from '$app/navigation';
+import type { BeforeNavigate } from '@sveltejs/kit';
 import { mount, tick, unmount } from 'svelte';
 import { writable } from 'svelte/store';
 import FreeAccess from './+page.svelte';
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), beforeNavigate: vi.fn() }));
+vi.mock('$app/state', () => ({ updated: { current: false } }));
 vi.mock('$lib/stores', async () => {
 	const { writable } = await import('svelte/store');
 	return {
@@ -42,6 +45,89 @@ vi.mock('$lib/apis/admin/billing', () => ({
 }));
 beforeEach(() => {
 	vi.clearAllMocks();
+	vi.spyOn(window, 'confirm').mockReturnValue(false);
+});
+afterEach(() => vi.mocked(window.confirm).mockRestore());
+
+const navigateAway = (): ReturnType<typeof vi.fn> => {
+	expect(beforeNavigate).toHaveBeenCalledTimes(1);
+	const navigate = vi.mocked(beforeNavigate).mock.calls[0][0];
+	const cancel = vi.fn();
+	navigate({
+		from: { url: new URL('http://localhost/admin/billing/lead-magnet') },
+		to: { url: new URL('http://localhost/admin/billing/models') },
+		willUnload: false,
+		cancel
+	} as unknown as BeforeNavigate);
+	return cancel;
+};
+
+it('keeps navigation clean before the initial configuration loads', async () => {
+	const api = await import('$lib/apis/admin/billing');
+	const config = await api.getLeadMagnetConfig('test-token');
+	let finish!: (value: typeof config) => void;
+	vi.mocked(api.getLeadMagnetConfig).mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			})
+	);
+	const target = document.createElement('div');
+	const component = mount(FreeAccess, {
+		target,
+		context: new Map([['i18n', writable({ language: 'en-US', t: (key: string): string => key })]])
+	});
+	try {
+		await vi.waitFor(() => expect(api.getLeadMagnetConfig).toHaveBeenCalledTimes(2));
+		expect(navigateAway()).not.toHaveBeenCalled();
+		expect(window.confirm).not.toHaveBeenCalled();
+		finish(config);
+		await vi.waitFor(() => expect(target.textContent).toContain('Save changes'));
+		expect(navigateAway()).not.toHaveBeenCalled();
+		expect(window.confirm).not.toHaveBeenCalled();
+	} finally {
+		finish(config);
+		await unmount(component);
+	}
+});
+
+it('guards every edited allowance and status, permits confirmed departure and clears reverted edits', async () => {
+	const target = document.createElement('div');
+	document.body.append(target);
+	const component = mount(FreeAccess, {
+		target,
+		context: new Map([['i18n', writable({ language: 'en-US', t: (key: string): string => key })]])
+	});
+	try {
+		await vi.waitFor(() => expect(target.textContent).toContain('Save changes'));
+		for (const input of target.querySelectorAll<HTMLInputElement>('input[type="number"]')) {
+			const original = input.value;
+			input.value = String(Number(original) + 1);
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await tick();
+			expect(navigateAway()).toHaveBeenCalledOnce();
+			expect(window.confirm).toHaveBeenLastCalledWith('Discard unsaved changes?');
+			vi.mocked(window.confirm).mockReturnValueOnce(true);
+			expect(navigateAway()).not.toHaveBeenCalled();
+			input.value = original;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await tick();
+			vi.mocked(window.confirm).mockClear();
+			expect(navigateAway()).not.toHaveBeenCalled();
+			expect(window.confirm).not.toHaveBeenCalled();
+		}
+		const toggle = target.querySelector<HTMLButtonElement>('[role="switch"]')!;
+		toggle.click();
+		await vi.waitFor(() => expect(navigateAway()).toHaveBeenCalledOnce());
+		toggle.click();
+		await vi.waitFor(() => expect(navigateAway()).not.toHaveBeenCalled());
+		vi.mocked(window.confirm).mockClear();
+		expect(navigateAway()).not.toHaveBeenCalled();
+		expect(window.confirm).not.toHaveBeenCalled();
+	} finally {
+		await unmount(component);
+		target.remove();
+	}
 });
 
 it.each(['success', 'failure'] as const)(
@@ -82,6 +168,7 @@ it.each(['success', 'failure'] as const)(
 			for (const input of inputs) expect(input.disabled).toBe(true);
 			expect(toggle.disabled).toBe(true);
 			expect(save.disabled).toBe(true);
+			expect(navigateAway()).toHaveBeenCalledOnce();
 			toggle.click();
 			save.click();
 			await tick();
@@ -96,6 +183,13 @@ it.each(['success', 'failure'] as const)(
 			for (const input of inputs) expect(input.disabled).toBe(false);
 			expect(toggle.disabled).toBe(false);
 			expect(tokens.value).toBe('123');
+			vi.mocked(window.confirm).mockClear();
+			if (outcome === 'success') {
+				expect(navigateAway()).not.toHaveBeenCalled();
+				expect(window.confirm).not.toHaveBeenCalled();
+			} else {
+				expect(navigateAway()).toHaveBeenCalledOnce();
+			}
 			tokens.value = '456';
 			tokens.dispatchEvent(new Event('input', { bubbles: true }));
 			await tick();
@@ -189,6 +283,7 @@ it('names the free-access switch and preserves the draft after a version conflic
 		);
 		expect(input.value).toBe('123');
 		expect(save.disabled).toBe(true);
+		expect(navigateAway()).toHaveBeenCalledOnce();
 		const compare = Array.from(target.querySelectorAll('button')).find(
 			(button) => button.textContent?.trim() === 'Compare saved settings'
 		)!;
@@ -205,11 +300,22 @@ it('names the free-access switch and preserves the draft after a version conflic
 			).toContain('Input tokens: 80')
 		);
 		expect(input.value).toBe('123');
+		expect(navigateAway()).toHaveBeenCalledOnce();
 		Array.from(target.querySelectorAll('button'))
 			.find((button) => button.textContent?.trim() === 'Keep draft and use the reviewed version')!
 			.click();
 		await tick();
 		expect(save.disabled).toBe(false);
+		expect(navigateAway()).toHaveBeenCalledOnce();
+		input.value = '100';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		vi.mocked(window.confirm).mockClear();
+		expect(navigateAway()).not.toHaveBeenCalled();
+		expect(window.confirm).not.toHaveBeenCalled();
+		input.value = '123';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
 		save.click();
 		await vi.waitFor(() =>
 			expect(api.updateLeadMagnetConfig).toHaveBeenLastCalledWith(

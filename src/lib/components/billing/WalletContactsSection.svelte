@@ -11,6 +11,8 @@
 	export let onSave: () => void;
 	export let loadFailed = false;
 	export let errorMessage = '';
+	export let emailError = '';
+	export let phoneError = '';
 	export let successMessage = '';
 	export let onRetry: () => void = () => {};
 </script>
@@ -33,27 +35,45 @@
 		<label class="flex flex-col gap-1 text-sm">
 			<span class="text-gray-500">{$i18n.t('Email')}</span>
 			<input
+				id="billing-contact-email"
 				type="email"
 				name="billing_contact_email"
 				autocomplete="email"
 				spellcheck={false}
 				placeholder={$i18n.t('you@example.com')}
 				bind:value={contactEmail}
+				on:input={() => (emailError = '')}
+				aria-invalid={Boolean(emailError)}
+				aria-describedby={emailError ? 'billing-contact-email-error' : undefined}
 				disabled={loadFailed}
 				class="min-h-11 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 			/>
+			{#if emailError}<span
+					id="billing-contact-email-error"
+					role="alert"
+					class="text-sm text-red-700 dark:text-red-300">{emailError}</span
+				>{/if}
 		</label>
 		<label class="flex flex-col gap-1 text-sm">
 			<span class="text-gray-500">{$i18n.t('Phone')}</span>
 			<input
+				id="billing-contact-phone"
 				type="tel"
 				name="billing_contact_phone"
 				autocomplete="tel"
 				placeholder={$i18n.t('+7 900 000 00 00')}
 				bind:value={contactPhone}
+				on:input={() => (phoneError = '')}
+				aria-invalid={Boolean(phoneError)}
+				aria-describedby={phoneError ? 'billing-contact-phone-error' : undefined}
 				disabled={loadFailed}
 				class="min-h-11 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
 			/>
+			{#if phoneError}<span
+					id="billing-contact-phone-error"
+					role="alert"
+					class="text-sm text-red-700 dark:text-red-300">{phoneError}</span
+				>{/if}
 		</label>
 	</div>
 	{#if errorMessage}<p class="mt-3 text-sm text-red-700 dark:text-red-300" role="alert">

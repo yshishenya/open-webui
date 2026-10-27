@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getI18nLocale } from '$lib/utils/airis/i18n_locale';
-	import { onMount, getContext } from 'svelte';
+	import { registerBillingDraftGuard } from '$lib/utils/airis/billing_draft_guard';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
 	import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +9,7 @@
 	import { goto } from '$app/navigation';
 
 	import { WEBUI_NAME, user } from '$lib/stores';
-	import { createPlan } from '$lib/apis/admin/billing';
+	import { createPlan, updatePlan } from '$lib/apis/admin/billing';
 	import type { CreatePlanRequest } from '$lib/apis/admin/billing';
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -22,6 +23,11 @@
 	$: isRussian = getI18nLocale($i18n).toLowerCase().startsWith('ru');
 
 	let saving = false;
+	let alive = true;
+	let createdPlanId: string | null = null;
+	onDestroy(() => {
+		alive = false;
+	});
 
 	// Form data
 	let formData: Required<CreatePlanRequest> = {
@@ -46,6 +52,9 @@
 
 	// Features management
 	let newFeature = '';
+	let savedDraft = JSON.stringify(formData);
+	const isDirty = (): boolean => JSON.stringify(formData) !== savedDraft || newFeature !== '';
+	registerBillingDraftGuard(isDirty, () => window.confirm($i18n.t('Discard unsaved changes?')));
 
 	const addFeature = (): void => {
 		if (newFeature.trim()) {
@@ -150,28 +159,39 @@
 	};
 
 	const handleSave = async (): Promise<void> => {
-		if (!validateForm() || saving) return;
+		if (saving || !validateForm()) return;
 
+		const sent: typeof formData = JSON.parse(JSON.stringify(formData));
+		const { id, ...changes } = sent;
 		saving = true;
 		try {
-			const result = await createPlan(localStorage.token, formData);
-			if (!result) throw new Error('Failed to create plan');
-			if (result) {
-				toast.success($i18n.t('Plan created successfully'));
-				goto('/admin/billing/plans');
-			}
+			const result = createdPlanId
+				? await updatePlan(localStorage.token, createdPlanId, changes)
+				: await createPlan(localStorage.token, { id, ...changes });
+			if (!alive) return;
+			if (!result)
+				throw new Error(createdPlanId ? 'Failed to update plan' : 'Failed to create plan');
+			toast.success(
+				$i18n.t(createdPlanId ? 'Plan updated successfully' : 'Plan created successfully')
+			);
+			createdPlanId = result.id;
+			formData.id = result.id;
+			sent.id = result.id;
+			savedDraft = JSON.stringify(sent);
+			if (!isDirty()) goto('/admin/billing/plans');
 		} catch (error: unknown) {
-			console.error('Failed to create plan:', error);
+			if (!alive) return;
+			console.error(createdPlanId ? 'Failed to update plan:' : 'Failed to create plan:', error);
 			toast.error(
 				(typeof error === 'object' &&
 					error !== null &&
 					'detail' in error &&
 					typeof error.detail === 'string' &&
 					error.detail) ||
-					$i18n.t('Failed to create plan')
+					$i18n.t(createdPlanId ? 'Failed to update plan' : 'Failed to create plan')
 			);
 		} finally {
-			saving = false;
+			if (alive) saving = false;
 		}
 	};
 
@@ -238,6 +258,7 @@
 									type="text"
 									placeholder={$i18n.t('Plan ID')}
 									bind:value={formData.id}
+									disabled={saving || createdPlanId !== null}
 									required
 								/>
 							</Tooltip>

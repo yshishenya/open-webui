@@ -42,6 +42,7 @@
 		withBasePath
 	} from '$lib/utils/airis/billing_return_url';
 	import { sanitizeReturnTo } from '$lib/utils/airis/return_to';
+	import { registerBillingDraftGuard } from '$lib/utils/airis/billing_draft_guard';
 	import {
 		focusWalletSection,
 		invalidateWalletBalanceReads,
@@ -56,6 +57,10 @@
 	} from '$lib/utils/airis/billing_ui';
 
 	const i18n = getContext<Readable<I18nType>>('i18n');
+	registerBillingDraftGuard(
+		() => limitsDirty || autoTopupDirty || contactsDirty,
+		() => window.confirm($i18n.t('Discard unsaved changes?'))
+	);
 
 	const DEFAULT_TOPUP_PACKAGES_KOPEKS = [50000, 100000, 200000];
 	const LOW_BALANCE_THRESHOLD_KOPEKS = 10000;
@@ -103,6 +108,8 @@
 	let autoAmountError = '';
 	let autoStateRefreshError = false;
 	let contactsSaveError = '';
+	let emailError = '';
+	let phoneError = '';
 	let topupReturnAttempts = 0;
 	let topupReturnTimer: ReturnType<typeof setTimeout> | null = null;
 	let topupReturnDismissed = false;
@@ -720,6 +727,8 @@
 		maxReplyError = '';
 		dailyCapError = '';
 		contactsSaveError = '';
+		emailError = '';
+		phoneError = '';
 		saveResult = '';
 		try {
 			const payload: {
@@ -759,11 +768,15 @@
 					return;
 				}
 				if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-					contactsSaveError = $i18n.t('Enter a valid email address');
+					emailError = $i18n.t('Enter a valid email address');
+					await tick();
+					document.getElementById('billing-contact-email')?.focus();
 					return;
 				}
 				if (contactPhone && !/^\+?[\d ()-]{7,20}$/.test(contactPhone)) {
-					contactsSaveError = $i18n.t('Enter a valid phone number');
+					phoneError = $i18n.t('Enter a valid phone number');
+					await tick();
+					document.getElementById('billing-contact-phone')?.focus();
 					return;
 				}
 				payload.billing_contact_email = contactEmail ? contactEmail : null;
@@ -1330,6 +1343,8 @@
 							loadFailed={contactsError}
 							successMessage={saveSource === 'contacts' && !contactsDirty ? saveResult : ''}
 							errorMessage={contactsSaveError}
+							bind:emailError
+							bind:phoneError
 							onRetry={() => loadBalance({ showLoader: false })}
 							bind:contactEmail
 							bind:contactPhone

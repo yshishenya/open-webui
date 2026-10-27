@@ -3,6 +3,7 @@
 		import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { priceToKopeks } from '$lib/utils/airis/billing_reporting_ui';
+	import { registerBillingDraftGuard } from '$lib/utils/airis/billing_draft_guard';
 		import { toast } from 'svelte-sonner';
 
 		import { WEBUI_NAME, user } from '$lib/stores';
@@ -138,6 +139,14 @@
 	let linkTextPrices = true;
 	let leadMagnetEnabled = false;
 	let saving = false;
+	let editorSession = 0;
+	let editorBaseline = '';
+	let saveNeedsReview = false;
+	const editorDraft = (): string => JSON.stringify({ modalState, linkTextPrices, leadMagnetEnabled });
+	const editorDirty = (): boolean => showModal && editorDraft() !== editorBaseline;
+	const confirmEditorClose = (): boolean => !editorDirty() || window.confirm($i18n.t('Discard unsaved changes?'));
+	registerBillingDraftGuard(editorDirty, confirmEditorClose);
+	onDestroy(() => { editorSession += 1; });
 
 	let selectedModelIds = new Set<string>();
 	let showDeactivateModelsConfirm = false;
@@ -605,18 +614,34 @@
 	};
 
 	const openModal = (model: ModelRow): void => {
+		editorSession += 1;
+		saveNeedsReview = saving;
 		saveResult = '';
 		completedChanges = 0;
 		selectedModel = model;
 		formMode = model.status === 'configured' ? 'edit' : 'add';
 		initializeModalState(model.id);
+		editorBaseline = editorDraft();
 		showModal = true;
 	};
 
-	const closeModal = () => {
+	const closeModal = (): void => {
+		editorSession += 1;
 		showModal = false;
 		selectedModel = null;
 		resetModalState();
+	};
+	const reloadEditor = async (): Promise<void> => {
+		if (saving || !selectedModel || !confirmEditorClose()) return;
+		const session = editorSession;
+		const draft = editorDraft();
+		await loadData();
+		if (session !== editorSession || !showModal || errorMessage) return;
+		// Do not overwrite input entered while the read was in flight.
+		if (editorDraft() !== draft) return;
+		const model = modelRows.find((row) => row.id === selectedModel?.id);
+		if (!model) return;
+		openModal(model);
 	};
 
 	const handleDeactivateSelectedModels = async () => {
@@ -982,7 +1007,11 @@
 	};
 
 	const handleSave = async (): Promise<void> => {
-		if (saving || !selectedModel) return;
+		if (saving || saveNeedsReview || !selectedModel) return;
+		const session = editorSession;
+		const submittedDraft = editorDraft();
+		const isCurrentEditor = (): boolean => session === editorSession && showModal;
+		let appliedChanges = 0;
 		saveResult = '';
 		completedChanges = 0;
 			const activeModel = selectedModel;
@@ -1100,30 +1129,38 @@
 				if (!updatedModel) {
 					throw new Error('Failed to update model');
 				}
-				completedChanges += 1;
+				appliedChanges += 1;
 			}
 			for (const request of createRequests) {
 				await createRateCard(localStorage.token, request);
-				completedChanges += 1;
+				appliedChanges += 1;
 			}
 			for (const request of updateRequests) {
 				await updateRateCard(localStorage.token, request.id, request.data);
-				completedChanges += 1;
+				appliedChanges += 1;
 			}
 			toast.success($i18n.t(formMode === 'add' ? 'Rate card created' : 'Rate card updated'));
-			if (selectedModel?.id === activeModel.id) closeModal();
+			if (isCurrentEditor()) {
+				if (editorDraft() === submittedDraft) closeModal();
+				else {
+					saveNeedsReview = true;
+					saveResult = $i18n.t('Draft kept. Reload current prices before saving again.');
+				}
+			}
 			await loadData();
 		} catch (error) {
-			saveResult = $i18n.t(
-				'Saving interrupted. Applied changes: {{count}}. Current prices have been reloaded; check them before trying again.',
-				{ count: completedChanges }
-			);
+			if (isCurrentEditor()) {
+				completedChanges = appliedChanges;
+				saveNeedsReview = true;
+				saveResult = $i18n.t(
+					'Saving interrupted. Confirmed changes: {{count}}. Draft kept; reload current prices before saving again.',
+					{ count: completedChanges }
+				);
+			}
 			await loadData();
-			if (selectedModel?.id === activeModel.id) initializeModalState(activeModel.id);
 			const message = error instanceof Error ? error.message : String(error);
 			if (message.includes('already exists')) {
 				toast.error($i18n.t('Rate card already exists. Refreshing list.'));
-				await loadData();
 				return;
 			}
 			console.error('Failed to save rate card:', error);
@@ -2353,7 +2390,7 @@
 {/if}
 
 {#if showModal}
-	<Modal size="xl" bind:show={showModal} containerClassName="p-4" ariaLabel={getModalTitle()}>
+	<Modal size="xl" bind:show={showModal} beforeClose={confirmEditorClose} containerClassName="p-4" ariaLabel={getModalTitle()}>
 		<div class="px-4 py-3">
 			<div class="flex items-start justify-between gap-4 mb-4">
 				<div>
@@ -2364,7 +2401,7 @@
 				</div>
 				<button
 					type="button"
-					on:click={closeModal}
+					on:click={() => { if (confirmEditorClose()) closeModal(); }}
 					aria-label={$i18n.t('Close')}
 					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
 				>
@@ -2487,6 +2524,10 @@
 			{#if saveResult}<p role="alert" class="mt-3 text-sm text-amber-700 dark:text-amber-300">
 					{saveResult}
 				</p>{/if}
+			{#if saveNeedsReview}
+				<p class="mt-3 text-sm">{$i18n.t('Draft kept. Reload current prices before saving again.')}</p>
+				<button type="button" on:click={reloadEditor} disabled={saving} class="mt-2 min-h-11 rounded-full border px-4 text-sm disabled:opacity-50">{$i18n.t('Reload current prices')}</button>
+			{/if}
 			<div class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 				<div class="text-xs text-gray-500">
 					{$i18n.t('Will create {{count}} entries', { count: previewCounts.create })}
@@ -2504,7 +2545,7 @@
 				<button
 					type="button"
 					on:click={handleSave}
-					disabled={saving}
+					disabled={saving || saveNeedsReview}
 					class="px-4 py-2 text-sm font-medium bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full disabled:opacity-50"
 				>
 					{saving ? $i18n.t('Saving') : $i18n.t('Save')}
