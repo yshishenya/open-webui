@@ -12,7 +12,8 @@ const createStore = function <T>(value: T): Store<T> {
 	};
 };
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), beforeNavigate: vi.fn() }));
+vi.mock('$app/state', () => ({ updated: { current: false } }));
 
 vi.mock('$lib/stores', () => ({
 	WEBUI_NAME: createStore('Airis'),

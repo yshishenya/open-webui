@@ -12,7 +12,8 @@ import NewPlan from './new/+page.svelte';
 import Analytics from './[id]/analytics/+page.svelte';
 import Subscribers from './[id]/subscribers/+page.svelte';
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), beforeNavigate: vi.fn() }));
+vi.mock('$app/state', () => ({ updated: { current: false } }));
 vi.mock('$app/stores', async () => {
 	const { writable } = await import('svelte/store');
 	return {
@@ -37,6 +38,7 @@ vi.mock('$lib/apis/admin/billing', () => ({
 	getPlansWithStats: vi.fn(),
 	getPlanSubscribers: vi.fn(),
 	createPlan: vi.fn(),
+	updatePlan: vi.fn(),
 	deletePlan: vi.fn(),
 	togglePlanActive: vi.fn(),
 	duplicatePlan: vi.fn()
