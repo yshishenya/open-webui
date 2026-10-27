@@ -3280,7 +3280,7 @@
 	"Descending": "По убыванию",
 	"No modalities": "Нет модальностей",
 	"No modalities configured": "Модальности не настроены",
-	"Modalities: {list}": "Модальности: {list}",
+	"Modalities: {{list}}": "Модальности: {{list}}",
 	"Text": "Текст",
 	"TTS": "TTS",
 	"STT": "STT",

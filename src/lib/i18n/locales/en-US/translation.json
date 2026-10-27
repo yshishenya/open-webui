@@ -3252,7 +3252,7 @@
 	"Descending": "Descending",
 	"No modalities": "No modalities",
 	"No modalities configured": "No modalities configured",
-	"Modalities: {list}": "Modalities: {list}",
+	"Modalities: {{list}}": "Modalities: {{list}}",
 	"Text": "Text",
 	"TTS": "TTS",
 	"STT": "STT",

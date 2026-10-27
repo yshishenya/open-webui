@@ -245,7 +245,7 @@
 					excludeTests = false;
 					page = 1;
 					void load();
-				}}>{$i18n.t('Clear')}</button
+				}}>{$i18n.t('Reset')}</button
 			>
 		</div>{/if}
 	<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
