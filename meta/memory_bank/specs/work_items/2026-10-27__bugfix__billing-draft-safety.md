@@ -6,7 +6,7 @@
 - Status: active
 - Owner: Codex
 - Branch: codex/bugfix/billing-contact-errors-20261027
-- SDD Spec: meta/sdd/specs/active/billing-unsaved-draft-safety-2-2026-10-27-2356.json
+- SDD Spec: meta/sdd/specs/active/billing-unsaved-draft-safety-2026-10-27-002.json
 - Created: 2026-10-27
 - Updated: 2026-10-27
 
@@ -40,7 +40,7 @@ Fork-owned billing modules/routes/tests. Root `src/routes/+layout.svelte` needs 
 
 120 focused frontend regressions passed across seven files. Native unload confirmation is delegated to SvelteKit; internal departure uses the translated native confirm dialog. Price saves capture editor session and submitted draft; failures never reinitialize the draft. Further writes are disabled until an explicit current-price reload, with confirmation before replacing the visible draft. Input entered during that reload is retained. This intentionally avoids replaying an uncertain partial price write.
 
-Independent review and full exact-commit preflight are still pending. No changes in this branch have been released yet.
+Independent review by Heisenberg approved exact e9a149603 without findings; the only subsequent application-related delta in 8cc181b7f is navigation lifecycle mocks in existing tests. Both backend test files passed: 28 passed, 1 PostgreSQL-required skip. Black with the root project configuration leaves both files unchanged. Full preflight of exact 8cc is running. No changes in this branch have been released yet.
 
 ## Verification / Rollback
 

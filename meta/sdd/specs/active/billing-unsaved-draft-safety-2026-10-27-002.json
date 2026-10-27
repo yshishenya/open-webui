@@ -1,5 +1,5 @@
 {
-  "spec_id": "billing-unsaved-draft-safety-2-2026-10-27-2356",
+  "spec_id": "billing-unsaved-draft-safety-2026-10-27-002",
   "title": "Billing unsaved draft safety 2026-10-27",
   "generated": "2026-10-27T20:56:41.494614Z",
   "last_updated": "2026-10-27T21:08:20.773845Z",
@@ -73,6 +73,7 @@
       "completed_tasks": 1,
       "metadata": {
         "completed_at": "2026-10-27T21:05:19.846106Z",
+        "file_path": "src/lib/utils/airis/billing_draft_guard.ts",
         "needs_journaling": true,
         "status_note": "Root navigation regression and wallet/free-access guards green in 120-test focused pack"
       }
@@ -92,6 +93,7 @@
       "completed_tasks": 1,
       "metadata": {
         "completed_at": "2026-10-27T21:08:20.773596Z",
+        "file_path": "src/routes/(app)/admin/billing/plans/new/+page.svelte",
         "needs_journaling": true,
         "status_note": "Carver delivered bounded plan changes: new/edit route draft baselines, late response guards, creation identity retained; 30/30 focused tests pass"
       }
@@ -111,6 +113,7 @@
       "completed_tasks": 1,
       "metadata": {
         "completed_at": "2026-10-27T21:06:13.531286Z",
+        "file_path": "src/routes/(app)/admin/billing/models/+page.svelte",
         "needs_journaling": true,
         "status_note": "Price draft remains visible after uncertain write, retries require explicit reload; all close paths and late success covered in 120-test pack"
       }
@@ -130,7 +133,8 @@
       "completed_tasks": 0,
       "metadata": {
         "started_at": "2026-10-27T21:08:08.505830Z",
-        "status_note": "120 focused pass, types and frontend lint pass; independent review active; exact commit preflight pending"
+        "file_path": "tests/billing-update-navigation.test.ts",
+        "status_note": "120 focused pass, independent review approved e9; backend 28 pass and 1 PostgreSQL skip; exact 8cc full preflight running"
       }
     },
     "task-2-2": {
@@ -146,7 +150,9 @@
       },
       "total_tasks": 1,
       "completed_tasks": 0,
-      "metadata": {}
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-27__bugfix__billing-draft-safety.md"
+      }
     }
   }
 }
