@@ -487,7 +487,7 @@
 
 	const getModalityTooltipSummary = (modalities: ModalityKey[]): string => {
 		if (modalities.length === 0) return $i18n.t('No modalities configured');
-		return $i18n.t('Modalities: {list}', {
+		return $i18n.t('Modalities: {{list}}', {
 			list: modalities.map((modality) => getModalityLabel(modality)).join(', ')
 		});
 	};
@@ -1499,6 +1499,7 @@
 				</label>
 				<select
 					bind:value={statusFilter}
+					aria-label={$i18n.t('Status')}
 					class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent text-sm"
 				>
 					<option value="all">{$i18n.t('All statuses')}</option>

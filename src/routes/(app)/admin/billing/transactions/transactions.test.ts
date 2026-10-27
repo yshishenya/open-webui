@@ -2,6 +2,9 @@
 import { expect, it, vi } from 'vitest';
 import { mount, tick, unmount } from 'svelte';
 import { writable, type Writable } from 'svelte/store';
+import { createInstance } from 'i18next';
+import ru from '$lib/i18n/locales/ru-RU/translation.json';
+import en from '$lib/i18n/locales/en-US/translation.json';
 import Transactions from './+page.svelte';
 
 vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
@@ -36,6 +39,75 @@ vi.mock('$lib/apis/admin/billing_reporting', () => ({
 	getBillingReportingUsage: vi.fn(),
 	getBillingReportingExportUrl: vi.fn()
 }));
+
+it.each([
+	['ru-RU', ru, 'Сбросить'],
+	['en-US', en, 'Reset']
+] as const)(
+	'localizes extra-filter reset and preserves the main selection (%s)',
+	async (lng, translation, label) => {
+		const api = await import('$lib/apis/admin/billing_reporting');
+		const { goto } = await import('$app/navigation');
+		const { page } = await import('$app/stores');
+		const pageStore = page as unknown as Writable<{ url: URL }>;
+		const originalUrl = new URL('http://localhost/admin/billing/transactions');
+		const url = new URL(
+			'?tab=payments&from_date=2026-10-01&to_date=2026-10-02&currency=USD&user_id=selected&status=succeeded&kind=topup&credit_status=not_credited&older_than_hours=24&attention=uncredited&is_test=false',
+			originalUrl
+		);
+		pageStore.set({ url });
+		const i18n = createInstance();
+		await i18n.init({
+			lng,
+			resources: { [lng]: { translation } },
+			returnEmptyString: false,
+			interpolation: { escapeValue: false }
+		});
+		const target = document.createElement('div');
+		document.body.append(target);
+		const component = mount(Transactions, {
+			target,
+			context: new Map([['i18n', writable(i18n)]])
+		});
+		try {
+			await vi.waitFor(() => expect(target.querySelectorAll('tbody tr')).toHaveLength(3));
+			const reset = Array.from(target.querySelectorAll<HTMLButtonElement>('button')).find(
+				(button) => button.textContent?.trim() === label
+			);
+			expect(reset).toBeDefined();
+			vi.mocked(api.getBillingReportingPayments).mockClear();
+			vi.mocked(goto).mockClear();
+			reset!.click();
+			await vi.waitFor(() => expect(goto).toHaveBeenCalledTimes(1));
+			expect(api.getBillingReportingPayments).toHaveBeenCalledTimes(1);
+			expect(vi.mocked(api.getBillingReportingPayments).mock.calls[0]?.[1]).toEqual(
+				expect.objectContaining({
+					user_id: 'selected',
+					status: 'succeeded',
+					kind: 'topup',
+					page: 1,
+					credit_status: undefined,
+					older_than_hours: undefined,
+					attention: undefined,
+					is_test: undefined
+				})
+			);
+			const destination = new URL(String(vi.mocked(goto).mock.calls[0]?.[0]), originalUrl);
+			for (const key of ['tab', 'from_date', 'to_date', 'currency', 'user_id', 'status', 'kind']) {
+				expect(destination.searchParams.get(key)).toBe(url.searchParams.get(key));
+			}
+			for (const key of ['credit_status', 'older_than_hours', 'attention', 'is_test']) {
+				expect(destination.searchParams.get(key)).toBe('');
+			}
+			await tick();
+			expect(target.contains(reset!)).toBe(false);
+		} finally {
+			await unmount(component);
+			target.remove();
+			pageStore.set({ url: originalUrl });
+		}
+	}
+);
 
 it('shows profile names with ID fallback and opens the customer by ID', async () => {
 	const target = document.createElement('div');

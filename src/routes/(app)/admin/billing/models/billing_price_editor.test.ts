@@ -2,6 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, tick, unmount } from 'svelte';
 import { writable } from 'svelte/store';
+import { createInstance } from 'i18next';
+import ru from '$lib/i18n/locales/ru-RU/translation.json';
+import en from '$lib/i18n/locales/en-US/translation.json';
 import Models from './+page.svelte';
 import * as api from '$lib/apis/admin/billing';
 import type { RateCard } from '$lib/apis/admin/billing';
@@ -122,6 +125,54 @@ describe('model price editor save requests (synthetic API)', () => {
 		expect(createNewModel).not.toHaveBeenCalled();
 		expect(updateModelById).not.toHaveBeenCalled();
 	};
+
+	it.each([
+		['ru-RU', ru, 'Модальности: Текст, Изображения, Озвучивание, Распознавание речи', 'Статус'],
+		['en-US', en, 'Modalities: Text, Image, Speech synthesis, Speech recognition', 'Status']
+	] as const)(
+		'localizes modality summaries and the status filter with real i18next (%s)',
+		async (lng, translation, summary, statusLabel) => {
+			const i18n = createInstance();
+			await i18n.init({
+				lng,
+				resources: { [lng]: { translation } },
+				returnEmptyString: false,
+				interpolation: { escapeValue: false }
+			});
+			const items: RateCard[] = [
+				...rates,
+				...(['image', 'tts', 'stt'] as const).map((modality) => ({
+					...rates[0],
+					id: `rate-${modality}`,
+					modality,
+					unit: { image: 'image_1024', tts: 'tts_char', stt: 'stt_second' }[modality]
+				}))
+			];
+			vi.mocked(api.listRateCards).mockResolvedValue({
+				items,
+				total_pages: 1,
+				total: items.length,
+				page: 1,
+				page_size: 200
+			});
+			const target = document.createElement('div');
+			document.body.append(target);
+			component = mount(Models, {
+				target,
+				context: new Map([['i18n', writable(i18n)]])
+			});
+			await vi.waitFor(() =>
+				expect(
+					target
+						.querySelector('tbody [aria-label^="Modalities:"], tbody [aria-label^="Модальности:"]')
+						?.getAttribute('aria-label')
+				).toBe(summary)
+			);
+			expect(target.querySelector('select')?.getAttribute('aria-label')).toBe(statusLabel);
+			expect(api.createRateCard).not.toHaveBeenCalled();
+			expect(api.updateRateCard).not.toHaveBeenCalled();
+		}
+	);
 
 	it('creates linked input/output prices in integer kopeks without changing free access', async () => {
 		vi.mocked(api.listRateCards).mockResolvedValue({
