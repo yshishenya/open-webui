@@ -6,7 +6,7 @@
 	import { getBillingReturnTo } from '$lib/utils/airis/return_to';
 
 	import { getUsage } from '$lib/apis';
-	import { getSessionUser, userSignOut } from '$lib/apis/auths';
+	import { getLogoutRedirectUrl, getSessionUser, userSignOut } from '$lib/apis/auths';
 
 	import { chatId, showSettings, mobile, showSidebar, user, config, settings } from '$lib/stores';
 
@@ -43,7 +43,7 @@
 	export let profile = false;
 	export let help = false;
 
-	export let className = 'w-[240px]';
+	export let className = 'w-[15rem]';
 	export let align = 'end';
 
 	export let showActiveUsers = true;
@@ -73,7 +73,7 @@
 			updated = [...pinnedItems, id];
 		}
 		await settings.set({ ...$settings, pinnedMenuItems: updated });
-		await updateUserSettings(localStorage.token, { ui: $settings });
+		await updateUserSettings(localStorage.token, { ui: { pinnedMenuItems: updated } });
 	};
 
 	let usage: Awaited<ReturnType<typeof getUsage>> | null = null;
@@ -112,6 +112,9 @@
 	on:keyup={(e) => {
 		if (e.key === 'Shift') shiftKey = false;
 	}}
+	on:blur={() => {
+		shiftKey = false;
+	}}
 />
 
 <UserStatusModal
@@ -129,7 +132,8 @@
 			{#if $user}
 				<div>
 					<button
-						class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-xs w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none text-left"
+						role="menuitem"
+						class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-xs w-full hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none text-left"
 						type="button"
 						on:click={async () => {
 							show = false;
@@ -158,7 +162,7 @@
 							>
 								<div
 									role="group"
-									class="ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-1.5 py-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400"
+									class="ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full px-1.5 py-0.5 text-[0.6875rem] leading-none text-gray-500 dark:text-gray-400"
 									on:mouseenter={() => {
 										if ($config?.features?.enable_public_active_users_count || role === 'admin') {
 											getUsageInfo();
@@ -178,7 +182,8 @@
 				{#if $user?.status_emoji || $user?.status_message}
 					<div class="user-menu-status">
 						<button
-							class="w-full h-[1.6875rem] gap-2 rounded-xl px-2 hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none text-xs flex items-center text-left"
+							role="menuitem"
+							class="w-full h-[1.6875rem] gap-2 rounded-xl px-2 hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none text-xs flex items-center text-left"
 							type="button"
 							on:click={() => {
 								show = false;
@@ -201,6 +206,7 @@
 							<div class="self-center">
 								<Tooltip content={$i18n.t('Clear status')}>
 									<button
+										role="menuitem"
 										class="flex size-5 items-center justify-center"
 										type="button"
 										on:click={async (e) => {
@@ -230,7 +236,8 @@
 				{:else}
 					<div class="user-menu-status">
 						<button
-							class="w-full h-[1.6875rem] gap-2 rounded-xl px-2 hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none text-xs flex items-center text-left"
+							role="menuitem"
+							class="w-full h-[1.6875rem] gap-2 rounded-xl px-2 hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none text-xs flex items-center text-left"
 							type="button"
 							on:click={() => {
 								show = false;
@@ -251,11 +258,14 @@
 			{/if}
 
 			{#if $user?.role === 'admin' || $user?.permissions?.workspace?.models || $user?.permissions?.workspace?.knowledge || $user?.permissions?.workspace?.prompts || $user?.permissions?.workspace?.tools || $user?.permissions?.workspace?.skills}
-				<div class="flex items-center w-full">
+				<div
+					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
+				>
 					<a
+						role="menuitem"
 						href="/workspace"
 						draggable="false"
-						class="flex flex-1 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
@@ -274,16 +284,17 @@
 					</a>
 					{#if shiftKey}
 						<Tooltip
-							content={isPinned('workspace')
+							content={pinnedItems.includes('workspace')
 								? $i18n.t('Unpin from Sidebar')
 								: $i18n.t('Pin to Sidebar')}
 						>
 							<button
+								role="menuitem"
 								type="button"
 								class="p-1 mr-1 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition"
 								on:click|preventDefault|stopPropagation={() => togglePin('workspace')}
 							>
-								{#if isPinned('workspace')}
+								{#if pinnedItems.includes('workspace')}
 									<PinSlashIcon className="size-3.5" strokeWidth="1.5" />
 								{:else}
 									<PinIcon className="size-3.5" strokeWidth="1.5" />
@@ -295,11 +306,14 @@
 			{/if}
 
 			{#if ($config?.features?.enable_notes ?? false) && ($user?.role === 'admin' || ($user?.permissions?.features?.notes ?? true))}
-				<div class="flex items-center w-full">
+				<div
+					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
+				>
 					<a
+						role="menuitem"
 						href="/notes"
 						draggable="false"
-						class="flex flex-1 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
@@ -318,16 +332,17 @@
 					</a>
 					{#if shiftKey}
 						<Tooltip
-							content={isPinned('notes')
+							content={pinnedItems.includes('notes')
 								? $i18n.t('Unpin from Sidebar')
 								: $i18n.t('Pin to Sidebar')}
 						>
 							<button
+								role="menuitem"
 								type="button"
 								class="p-1 mr-1 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition"
 								on:click|preventDefault|stopPropagation={() => togglePin('notes')}
 							>
-								{#if isPinned('notes')}
+								{#if pinnedItems.includes('notes')}
 									<PinSlashIcon className="size-3.5" strokeWidth="1.5" />
 								{:else}
 									<PinIcon className="size-3.5" strokeWidth="1.5" />
@@ -339,11 +354,14 @@
 			{/if}
 
 			{#if $config?.features?.enable_calendar && ($user?.role === 'admin' || $user?.permissions?.features?.calendar)}
-				<div class="flex items-center w-full">
+				<div
+					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
+				>
 					<a
+						role="menuitem"
 						href="/calendar"
 						draggable="false"
-						class="flex flex-1 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
@@ -362,16 +380,17 @@
 					</a>
 					{#if shiftKey}
 						<Tooltip
-							content={isPinned('calendar')
+							content={pinnedItems.includes('calendar')
 								? $i18n.t('Unpin from Sidebar')
 								: $i18n.t('Pin to Sidebar')}
 						>
 							<button
+								role="menuitem"
 								type="button"
 								class="p-1 mr-1 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition"
 								on:click|preventDefault|stopPropagation={() => togglePin('calendar')}
 							>
-								{#if isPinned('calendar')}
+								{#if pinnedItems.includes('calendar')}
 									<PinSlashIcon className="size-3.5" strokeWidth="1.5" />
 								{:else}
 									<PinIcon className="size-3.5" strokeWidth="1.5" />
@@ -383,11 +402,14 @@
 			{/if}
 
 			{#if $config?.features?.enable_automations && ($user?.role === 'admin' || $user?.permissions?.features?.automations)}
-				<div class="flex items-center w-full">
+				<div
+					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
+				>
 					<a
+						role="menuitem"
 						href="/automations"
 						draggable="false"
-						class="flex flex-1 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
@@ -406,16 +428,17 @@
 					</a>
 					{#if shiftKey}
 						<Tooltip
-							content={isPinned('automations')
+							content={pinnedItems.includes('automations')
 								? $i18n.t('Unpin from Sidebar')
 								: $i18n.t('Pin to Sidebar')}
 						>
 							<button
+								role="menuitem"
 								type="button"
 								class="p-1 mr-1 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition"
 								on:click|preventDefault|stopPropagation={() => togglePin('automations')}
 							>
-								{#if isPinned('automations')}
+								{#if pinnedItems.includes('automations')}
 									<PinSlashIcon className="size-3.5" strokeWidth="1.5" />
 								{:else}
 									<PinIcon className="size-3.5" strokeWidth="1.5" />
@@ -427,11 +450,14 @@
 			{/if}
 
 			{#if role === 'admin'}
-				<div class="flex items-center w-full">
+				<div
+					class="user-menu-row flex items-center w-full rounded-xl hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition-colors"
+				>
 					<a
+						role="menuitem"
 						href="/playground"
 						draggable="false"
-						class="flex flex-1 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+						class="flex flex-1 min-w-0 h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] cursor-pointer select-none"
 						on:click={async (e) => {
 							if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
 							e.preventDefault();
@@ -450,16 +476,17 @@
 					</a>
 					{#if shiftKey}
 						<Tooltip
-							content={isPinned('playground')
+							content={pinnedItems.includes('playground')
 								? $i18n.t('Unpin from Sidebar')
 								: $i18n.t('Pin to Sidebar')}
 						>
 							<button
+								role="menuitem"
 								type="button"
 								class="p-1 mr-1 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition"
 								on:click|preventDefault|stopPropagation={() => togglePin('playground')}
 							>
-								{#if isPinned('playground')}
+								{#if pinnedItems.includes('playground')}
 									<PinSlashIcon className="size-3.5" strokeWidth="1.5" />
 								{:else}
 									<PinIcon className="size-3.5" strokeWidth="1.5" />
@@ -489,11 +516,12 @@
 
 				{#if $user?.role === 'admin'}
 					<a
+						role="menuitem"
 						data-testid="user-menu-documentation"
 						href="/documents"
 						target="_blank"
 						draggable="false"
-						class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+						class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] w-full hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none"
 						id="chat-share-button"
 						on:click={() => {
 							show = false;
@@ -507,7 +535,8 @@
 				{/if}
 
 				<button
-					class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+					role="menuitem"
+					class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] w-full hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none"
 					type="button"
 					id="chat-share-button"
 					on:click={async () => {
@@ -531,9 +560,10 @@
 
 			{#if role === 'admin'}
 				<a
+					role="menuitem"
 					href="/admin"
 					draggable="false"
-					class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+					class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] w-full hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none"
 					on:click={async (e) => {
 						if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
 							return;
@@ -556,7 +586,8 @@
 
 			<button
 				data-testid="user-menu-settings"
-				class="no-drag-region flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+				role="menuitem"
+				class="no-drag-region flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] w-full hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none"
 				type="button"
 				on:click={async () => {
 					show = false;
@@ -589,14 +620,14 @@
 			</a>
 
 			<button
-				class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[13px] w-full hover:bg-gray-50/40 dark:hover:bg-gray-800/40 transition cursor-pointer select-none"
+				role="menuitem"
+				class="flex h-[1.6875rem] items-center gap-2 rounded-xl px-2 text-[0.8125rem] w-full hover:bg-gray-50/60 dark:hover:bg-gray-800/60 transition cursor-pointer select-none"
 				type="button"
 				on:click={async () => {
 					const res = await userSignOut();
-					user.set(null);
 					localStorage.removeItem('token');
 
-					location.href = res?.redirect_url ?? '/auth';
+					location.href = getLogoutRedirectUrl(res?.redirect_url);
 					show = false;
 				}}
 			>

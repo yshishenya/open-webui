@@ -24,10 +24,18 @@ const initializer = (path: string, name: string): string => {
 };
 
 const setup = (fetch: typeof globalThis.fetch, title: string = 'Исходный заголовок') => {
-	const note = { title, data: { content: { md: 'Текст заметки', html: '<p>Текст заметки</p>' } } };
+	const note = {
+		title,
+		data: {
+			content: { md: 'Текст заметки', html: '<p>Текст заметки</p>' },
+			pages: [{ title: 'Main', content: { md: 'Текст заметки' } }]
+		}
+	};
 	const context = {
 		note,
 		titleGenerating: false,
+		destroyed: false,
+		loadGeneration: 1,
 		selectedModelId: 'test-model',
 		localStorage: { token: 'test-token' },
 		WEBUI_BASE_URL: '',
@@ -110,7 +118,10 @@ it('ignores a second click and a late response after changing notes', async () =
 	expect(fetch).toHaveBeenCalledOnce();
 	context.note = {
 		title: 'Другая заметка',
-		data: { content: { md: 'Другой текст', html: '<p>Другой текст</p>' } }
+		data: {
+			content: { md: 'Другой текст', html: '<p>Другой текст</p>' },
+			pages: [{ title: 'Main', content: { md: 'Другой текст' } }]
+		}
 	};
 	const before = structuredClone(context.note);
 	resolve(
@@ -198,6 +209,7 @@ it.each(['png', 'heic', 'conversion-error', 'read-error', 'compression-error', '
 			FileReader: ImageReader,
 			console: { log: vi.fn() },
 			$config: {},
+			isHeicImage: (file: File) => file.type === 'image/heic',
 			$settings: {},
 			$i18n: { t: (text: string): string => text },
 			toast: { error: vi.fn() },
@@ -215,7 +227,7 @@ it.each(['png', 'heic', 'conversion-error', 'read-error', 'compression-error', '
 				return url;
 			})
 		};
-		const code = `(${initializer('src/lib/components/notes/NoteEditor.svelte', 'inputFileHandler')})`;
+		const code = `(${initializer('src/lib/components/notes/NoteEditor.svelte', 'processInputFile')})`;
 		const handler = runInNewContext(
 			ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText,
 			context
@@ -235,62 +247,61 @@ it.each(['png', 'heic', 'conversion-error', 'read-error', 'compression-error', '
 		} else {
 			const expected = { id: 'image-id', type: 'image', url: 'data:image/png;base64,TEST' };
 			await expect(pending).resolves.toEqual(expected);
-			expect(context.files).toEqual([expected]);
-			expect(context.note.data.files).toEqual([expected]);
-			expect(context.editor.storage.files).toEqual([expected]);
-			expect(context.changeDebounceHandler).toHaveBeenCalledOnce();
+			expect(context.files).toEqual([]);
+			expect(context.note.data.files).toEqual([]);
+			expect(context.editor.storage.files).toEqual([]);
+			expect(context.changeDebounceHandler).not.toHaveBeenCalled();
 		}
 	}
 );
 
-it.each(['upload', 'lookup'])(
-	'does not attach a late %s result to a different note',
-	async (stage) => {
-		let done!: (value: object) => void;
-		const waiting = new Promise<object>((resolve) => {
-			done = resolve;
-		});
-		const original = { id: 'A', data: { files: [] } };
-		const replacement = { id: 'B', data: { files: [] } };
-		const context = {
-			note: original,
-			id: 'A',
-			files: [] as object[],
-			editor: { storage: { files: [] } },
-			loadGeneration: 1,
-			destroyed: false,
-			localStorage: { token: 'test' },
-			uuidv4: () => 'temp',
-			$settings: {},
-			console: { log: vi.fn(), warn: vi.fn() },
-			$i18n: { t: (s: string) => s },
-			toast: { error: vi.fn(), warning: vi.fn() },
-			changeDebounceHandler: vi.fn(),
-			uploadFile: vi
-				.fn()
-				.mockImplementation(() => (stage === 'upload' ? waiting : Promise.resolve({ id: 'file' }))),
-			getFileById: vi.fn().mockImplementation(() => waiting)
-		};
-		const handler = runInNewContext(
-			ts.transpileModule(
-				`(${initializer('src/lib/components/notes/NoteEditor.svelte', 'uploadFileHandler')})`,
-				{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
-			).outputText,
-			context
-		) as (f: File) => Promise<unknown>;
-		const pending = handler(new File(['content'], 'test.txt'));
-		for (let n = 0; n < 10; n++) await Promise.resolve();
-		context.note = replacement;
-		context.id = 'B';
-		context.files = [];
-		context.loadGeneration++;
-		done({ id: 'file' });
-		await pending;
-		expect(replacement.data.files).toEqual([]);
-		expect(context.files).toEqual([]);
-		expect(context.changeDebounceHandler).not.toHaveBeenCalled();
-	}
-);
+it.each(['upload'])('does not attach a late %s result to a different note', async (stage) => {
+	let done!: (value: object) => void;
+	const waiting = new Promise<object>((resolve) => {
+		done = resolve;
+	});
+	const original = { id: 'A', data: { files: [] } };
+	const replacement = { id: 'B', data: { files: [] } };
+	const context = {
+		note: original,
+		id: 'A',
+		files: [] as object[],
+		editor: { storage: { files: [] } },
+		loadGeneration: 1,
+		destroyed: false,
+		localStorage: { token: 'test' },
+		uuidv4: () => 'temp',
+		$settings: {},
+		$config: {},
+		isHeicImage: (file: File) => file.type === 'image/heic',
+		console: { log: vi.fn(), warn: vi.fn() },
+		$i18n: { t: (s: string) => s },
+		toast: { error: vi.fn(), warning: vi.fn() },
+		changeDebounceHandler: vi.fn(),
+		uploadFile: vi
+			.fn()
+			.mockImplementation(() => (stage === 'upload' ? waiting : Promise.resolve({ id: 'file' }))),
+		getFileById: vi.fn().mockImplementation(() => waiting)
+	};
+	const handler = runInNewContext(
+		ts.transpileModule(
+			`(${initializer('src/lib/components/notes/NoteEditor.svelte', 'processInputFile')})`,
+			{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
+		).outputText,
+		context
+	) as (f: File) => Promise<unknown>;
+	const pending = handler(new File(['content'], 'test.txt'));
+	for (let n = 0; n < 10; n++) await Promise.resolve();
+	context.note = replacement;
+	context.id = 'B';
+	context.files = [];
+	context.loadGeneration++;
+	done({ id: 'file' });
+	await pending;
+	expect(replacement.data.files).toEqual([]);
+	expect(context.files).toEqual([]);
+	expect(context.changeDebounceHandler).not.toHaveBeenCalled();
+});
 
 it.each(['note', 'session', 'destroyed', 'reload'])(
 	'discards a late image after %s changes',
@@ -317,6 +328,7 @@ it.each(['note', 'session', 'destroyed', 'reload'])(
 			console: { log: vi.fn() },
 			$settings: {},
 			$config: {},
+			isHeicImage: (file: File) => file.type === 'image/heic',
 			uuidv4: () => 'image',
 			editor: { storage: { files: [] } },
 			changeDebounceHandler: vi.fn(),
@@ -324,7 +336,7 @@ it.each(['note', 'session', 'destroyed', 'reload'])(
 		};
 		const handler = runInNewContext(
 			ts.transpileModule(
-				`(${initializer('src/lib/components/notes/NoteEditor.svelte', 'inputFileHandler')})`,
+				`(${initializer('src/lib/components/notes/NoteEditor.svelte', 'processInputFile')})`,
 				{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
 			).outputText,
 			context
@@ -343,5 +355,80 @@ it.each(['note', 'session', 'destroyed', 'reload'])(
 		expect(context.files).toEqual([]);
 		expect(context.note.data.files).toEqual([]);
 		expect(context.changeDebounceHandler).not.toHaveBeenCalled();
+	}
+);
+
+it.each(['success', 'note', 'page', 'session', 'destroy', 'editor', 'failure'] as const)(
+	'actual upload placeholder handles %s ownership',
+	async (mode) => {
+		let resolve!: (value: object) => void, reject!: (error: Error) => void;
+		const promise = new Promise<object>((yes, no) => {
+			resolve = yes;
+			reject = no;
+		});
+		const meta = vi.fn(() => ({})),
+			dispatch = vi.fn(),
+			insertContentAt = vi.fn();
+		type UploadChain = {
+			setMeta: () => UploadChain;
+			insertContentAt: (...args: unknown[]) => UploadChain;
+			focus: () => UploadChain;
+			run: () => void;
+		};
+		const chain: UploadChain = {
+			setMeta: vi.fn(() => chain),
+			insertContentAt: insertContentAt.mockImplementation(() => chain),
+			focus: vi.fn(() => chain),
+			run: vi.fn()
+		};
+		const editor = {
+			isDestroyed: false,
+			state: { selection: { from: 5 }, tr: { setMeta: meta } },
+			view: { dispatch },
+			chain: () => chain
+		};
+		const context = {
+			editor,
+			note: { id: 'note' },
+			activePageId: 'main',
+			localStorage: { token: 'original' },
+			destroyed: false,
+			uuidv4: () => 'upload',
+			fileUploadsKey: { getState: () => ({ find: () => [{ from: 7 }] }) },
+			processInputFile: () => promise,
+			pendingFileUploads: new Set<Promise<unknown>>(),
+			toast: { error: vi.fn() }
+		};
+		const handler = runInNewContext(
+			ts.transpileModule(
+				`(${initializer('src/lib/components/notes/NoteEditor.svelte', 'inputFileHandler')})`,
+				{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
+			).outputText,
+			context
+		) as (file: object) => Promise<unknown>;
+		const file = { name: 'image.png' };
+		const pending = handler(file);
+		expect(meta).toHaveBeenCalledWith(context.fileUploadsKey, {
+			add: { id: 'upload', pos: 5, file }
+		});
+		if (mode === 'note') context.note = { id: 'other' };
+		if (mode === 'page') context.activePageId = 'other';
+		if (mode === 'session') context.localStorage.token = 'new';
+		if (mode === 'destroy') context.destroyed = true;
+		if (mode === 'editor') editor.isDestroyed = true;
+		if (mode === 'failure') reject(new Error('failed'));
+		else resolve({ id: 'image', type: 'image', url: 'https://fixture.test/image' });
+		await pending;
+		if (mode === 'success') {
+			expect(insertContentAt).toHaveBeenCalledWith(7, {
+				type: 'image',
+				attrs: { src: 'https://fixture.test/image' }
+			});
+			expect(chain.run).toHaveBeenCalledOnce();
+		} else expect(insertContentAt).not.toHaveBeenCalled();
+		expect(context.pendingFileUploads.size).toBe(0);
+		expect(context.toast.error).toHaveBeenCalledTimes(mode === 'failure' ? 1 : 0);
+		if (mode !== 'editor')
+			expect(meta).toHaveBeenLastCalledWith(context.fileUploadsKey, { remove: 'upload' });
 	}
 );

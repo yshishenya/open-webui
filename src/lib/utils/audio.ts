@@ -1,9 +1,12 @@
-type AudioQueueEvent = 'stop' | 'empty-queue' | 'id-change';
+type AudioQueueEvent = 'stop' | 'empty-queue' | 'id-change' | 'error';
 
 interface AudioQueueStopDetail {
 	event: AudioQueueEvent;
 	id: string | null;
 }
+
+const SILENT_WAV =
+	'data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
 export type OnStoppedCallback = (detail: AudioQueueStopDetail) => void;
 
@@ -18,6 +21,7 @@ export class AudioQueue {
 	private readonly _onError = (): void => {
 		if (this.current && this.audio.error) this.next();
 	};
+	private readonly _onGesture = (): void => this.#unlock();
 
 	id: string | null = null;
 	onStopped: OnStoppedCallback | null = null;
@@ -26,6 +30,8 @@ export class AudioQueue {
 		this.audio = audioElement;
 		this.audio.addEventListener('ended', this._onEnded);
 		this.audio.addEventListener('error', this._onError);
+		document.addEventListener('pointerdown', this._onGesture, true);
+		document.addEventListener('keydown', this._onGesture, true);
 	}
 
 	setId(newId: string): void {
@@ -37,6 +43,7 @@ export class AudioQueue {
 	}
 
 	setPlaybackRate(rate: number): void {
+		this.audio.defaultPlaybackRate = rate;
 		this.audio.playbackRate = rate;
 	}
 
@@ -55,6 +62,23 @@ export class AudioQueue {
 		} else if (this.current) {
 			this.#play();
 		}
+	}
+
+	/** Play silence inside the first user gesture so WebKit allows later programmatic playback. */
+	#unlock(): void {
+		if (this.current || !this.audio.paused) return;
+
+		this.audio.src = SILENT_WAV;
+		this.audio
+			.play()
+			.then(() => this.#removeGestureListeners())
+			.catch(() => {})
+			.finally(() => {
+				if (this.current) return;
+
+				this.audio.pause();
+				if (this.queue.length) this.next();
+			});
 	}
 
 	next(): void {
@@ -79,6 +103,7 @@ export class AudioQueue {
 		this.audio.removeEventListener('ended', this._onEnded);
 		this.audio.removeEventListener('error', this._onError);
 		this.stop();
+		this.#removeGestureListeners();
 		this.onStopped = null;
 	}
 
@@ -99,6 +124,11 @@ export class AudioQueue {
 
 	#revoke(url: string | null): void {
 		if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+	}
+
+	#removeGestureListeners(): void {
+		document.removeEventListener('pointerdown', this._onGesture, true);
+		document.removeEventListener('keydown', this._onGesture, true);
 	}
 
 	/**

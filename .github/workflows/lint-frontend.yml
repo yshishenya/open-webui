@@ -1,4 +1,4 @@
-name: Bun CI
+name: Frontend CI
 
 on:
   push:
@@ -56,13 +56,16 @@ jobs:
         if: steps.changed.outputs.has_files != 'true'
         run: echo "No frontend lint targets changed."
 
-      - name: Use Bun
+      - name: Use Node.js
         if: steps.changed.outputs.has_files == 'true'
-        uses: oven-sh/setup-bun@v1
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
 
       - name: Install frontend dependencies
         if: steps.changed.outputs.has_files == 'true'
-        run: bun install --frozen-lockfile
+        run: npm ci --legacy-peer-deps --no-audit
 
       - name: Lint changed frontend files
         if: steps.changed.outputs.has_files == 'true'
@@ -74,4 +77,4 @@ jobs:
             echo "No frontend lint targets detected after normalization."
             exit 0
           fi
-          printf '%s\0' "${FILES[@]}" | xargs -0 bunx eslint
+          printf '%s\0' "${FILES[@]}" | xargs -0 npx --no-install eslint

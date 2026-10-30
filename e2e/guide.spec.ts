@@ -139,7 +139,7 @@ for (const name of exampleNames) {
 		);
 		const prompt = redirect.searchParams.get('q') ?? '';
 		await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-		await expect(page.getByRole('button', { name: 'Sign up', exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Create Account', exact: true })).toBeVisible();
 		await page.getByRole('textbox', { name: /email/i }).fill(credentials.email);
 		await page.getByPlaceholder('Enter Your Password').fill(credentials.password);
 		await page.getByRole('button', { name: 'Sign in', exact: true }).click();

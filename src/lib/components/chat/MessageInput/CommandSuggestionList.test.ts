@@ -47,7 +47,7 @@ describe('Context usage in slash suggestions', () => {
 		mounted = createClassComponent({
 			component: CommandSuggestionList,
 			target,
-			context: new Map([['i18n', readable({ t: (key: string) => key })]]),
+			context: new Map([['i18n', readable({ t: (key: string, values?: Record<string, unknown>): string => key.replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(values?.[name] ?? '')) })]]),
 			props: { char: '/', query: '', command: vi.fn(), canCompact: true, ...props }
 		});
 		await tick();

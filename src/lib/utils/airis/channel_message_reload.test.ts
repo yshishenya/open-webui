@@ -56,7 +56,7 @@ function renderer(
 	const api = vi.fn<[string, string, string], Promise<ChannelMessageData | null>>(fetchData);
 	const loadingMarkup = source
 		.slice(
-			source.indexOf('<!-- loading indicator -->'),
+			source.indexOf('{#if message?.data === true}') + '{#if message?.data === true}'.length,
 			source.indexOf('{:else if (message?.data?.files')
 		)
 		.replaceAll('<Skeleton />', '<span>loading</span>');

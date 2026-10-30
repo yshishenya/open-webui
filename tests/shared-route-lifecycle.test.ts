@@ -77,7 +77,7 @@ const load = (token = '') => {
 		clone = vi.fn(async () => ({ id: 'copy' }));
 	const destroys: (() => void)[] = [];
 	const context = {
-		$page: { params: { id: 'old' } },
+		$page: { params: { id: 'old' }, url: new URL('https://fixture.test/s/old') },
 		$config: { features: { enable_direct_connections: false } },
 		$settings: {} as Settings,
 		getContext: () => ({}),

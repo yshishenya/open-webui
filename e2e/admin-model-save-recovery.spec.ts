@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '@playwright/test';
+import { expect, request as apiRequest, test } from '@playwright/test';
+
+type ModelGrant = { principal_type: string; principal_id: string; permission: string };
 
 for (const mode of ['create', 'update'] as const) {
 	test(`admin ${mode}: HTTP and transport refusals retain fields; retry persists`, async ({
 		page,
 		request,
 		baseURL
-	}) => {
+	}, testInfo) => {
 		if (!baseURL || new URL(baseURL).origin !== 'http://localhost:8082')
 			throw new Error('Requires disposable onboarding-paths fixture');
 		const login = await request.post('/api/v1/auths/signin', {
@@ -19,32 +21,57 @@ for (const mode of ['create', 'update'] as const) {
 		const id = 'gpt-6-luna';
 		const before = await request.get('/api/v1/models/model', { headers, params: { id } });
 		expect(before.ok()).toBe(true);
-		const original = (await before.json()) as object;
-		if (mode === 'create') {
-			const deleted = await request.post('/api/v1/models/model/delete', { headers, data: { id } });
-			expect(deleted.ok()).toBe(true);
-		}
+		const original = (await before.json()) as { access_grants: ModelGrant[] };
+		const originalGrants = original.access_grants.map(
+			({ principal_type, principal_id, permission }) => ({
+				principal_type,
+				principal_id,
+				permission
+			})
+		);
+		const settings = await request.get('/api/v1/users/user/settings', { headers });
+		expect(settings.ok()).toBe(true);
+		const savedSettings = (await settings.json()) as { ui?: Record<string, unknown> } | null;
+		// An independent API context survives a timed-out test closing its browser/request fixtures.
+		const cleanupClient = await apiRequest.newContext({
+			baseURL,
+			extraHTTPHeaders: headers,
+			timeout: 10000
+		});
+		let testFailed = false;
+		const cleanupErrors: string[] = [];
 		const errors: string[] = [];
 		page.on('pageerror', (error) => errors.push(error.message));
-		await page.addInitScript(
-			({ token }) => {
-				localStorage.setItem('token', token);
-				localStorage.setItem('locale', 'en-US');
-				localStorage.setItem('airis.analytics.consent.v1', 'denied');
-			},
-			{ token: admin.token }
-		);
 		try {
+			const prepared = await request.post('/api/v1/users/user/settings/update', {
+				headers,
+				data: { ...savedSettings, ui: { ...savedSettings?.ui, showChangelog: false } }
+			});
+			expect(prepared.ok()).toBe(true);
+			if (mode === 'create') {
+				const deleted = await request.post('/api/v1/models/model/delete', {
+					headers,
+					data: { id }
+				});
+				expect(deleted.ok()).toBe(true);
+			}
+			await page.addInitScript(
+				({ token }) => {
+					localStorage.setItem('token', token);
+					localStorage.setItem('locale', 'en-US');
+					localStorage.setItem('airis.analytics.consent.v1', 'denied');
+				},
+				{ token: admin.token }
+			);
 			await page.goto('/?settings=admin%3Amodels');
-			const changelog = page.getByRole('button', { name: "Okay, Let's Go!" });
-			if ((await changelog.count()) > 0) await changelog.click();
 			await page
 				.locator(`#model-item-${id.replaceAll('.', '\\.')}`)
 				.getByRole('button')
 				.first()
 				.click();
 			const save = page.getByRole('button', { name: 'Save & Update', exact: true });
-			await expect(save).toBeEnabled();
+			await expect(save).toBeVisible();
+			if (mode === 'update') await expect(save).toBeDisabled();
 			const name = page.getByPlaceholder('Model Name', { exact: true });
 			const description = page.getByPlaceholder(
 				'Add a short description about what this model does'
@@ -53,12 +80,13 @@ for (const mode of ['create', 'update'] as const) {
 			const newName = `Admin retry ${randomUUID()}`;
 			await name.fill(newName);
 			const defaultDescription = page.getByRole('button', {
-				name: 'Default description enabled',
+				name: 'Description Default',
 				exact: true
 			});
 			if ((await defaultDescription.count()) > 0) await defaultDescription.click();
 			await description.fill('Keep this description');
 			await system.fill('Keep this instruction');
+			await expect(save).toBeEnabled();
 			let calls = 0;
 			await page.route(
 				mode === 'create' ? '**/api/v1/models/create' : '**/api/v1/models/model/update',
@@ -113,14 +141,57 @@ for (const mode of ['create', 'update'] as const) {
 			await refusedToggle;
 			await expect(active).toBeChecked();
 			expect(errors).toEqual([]);
+		} catch (error) {
+			testFailed = true;
+			throw error;
 		} finally {
-			await page.unrouteAll({ behavior: 'wait' });
-			const current = await request.get('/api/v1/models/model', { headers, params: { id } });
-			const restored = await request.post(
-				current.ok() ? '/api/v1/models/model/update' : '/api/v1/models/create',
-				{ headers, data: original }
-			);
-			expect(restored.ok()).toBe(true);
+			const cleanup = async (label: string, action: () => Promise<void>): Promise<void> => {
+				try {
+					await action();
+				} catch (error) {
+					cleanupErrors.push(`${label}: ${String(error)}`);
+				}
+			};
+			// No page calls here: browser teardown must not prevent restoring shared fixture state.
+			await cleanup('model configuration', async () => {
+				const current = await cleanupClient.get('/api/v1/models/model', { params: { id } });
+				expect([200, 404]).toContain(current.status());
+				const restored = await cleanupClient.post(
+					current.ok() ? '/api/v1/models/model/update' : '/api/v1/models/create',
+					{ data: original }
+				);
+				expect(restored.ok()).toBe(true);
+			});
+			// Configuration updates preserve the current grants; restore access separately after create.
+			await cleanup('model access', async () => {
+				const access = await cleanupClient.post('/api/v1/models/model/access/update', {
+					data: { id, access_grants: originalGrants }
+				});
+				expect(access.ok()).toBe(true);
+				const restoredGrants = (
+					(await access.json()) as { access_grants: ModelGrant[] }
+				).access_grants.map(({ principal_type, principal_id, permission }) => ({
+					principal_type,
+					principal_id,
+					permission
+				}));
+				expect(restoredGrants).toEqual(expect.arrayContaining(originalGrants));
+				expect(restoredGrants).toHaveLength(originalGrants.length);
+			});
+			await cleanup('user settings', async () => {
+				const restored = await cleanupClient.post('/api/v1/users/user/settings/update', {
+					data: savedSettings ?? {}
+				});
+				expect(restored.ok()).toBe(true);
+			});
+			await cleanup('API context', () => cleanupClient.dispose());
+			if (cleanupErrors.length && testFailed) {
+				await testInfo.attach('fixture-restoration-errors', {
+					body: cleanupErrors.join('\n'),
+					contentType: 'text/plain'
+				});
+			}
 		}
+		expect(cleanupErrors).toEqual([]);
 	});
 }

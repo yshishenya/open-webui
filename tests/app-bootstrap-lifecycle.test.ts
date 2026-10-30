@@ -102,10 +102,13 @@ function rig(
 		getVersionUpdates: vi.fn(async () => ({ current: 'fixture', latest: 'fixture' })),
 		loadKeybindings: vi.fn(),
 		setTextScale: vi.fn(),
+		setAppFontFamily: vi.fn(),
 		goto: vi.fn(),
 		toast: { error: vi.fn() },
 		console: { log: vi.fn(), error: vi.fn() },
 		WEBUI_VERSION: 'fixture',
+		WEBUI_BUILD_CHANNEL: 'stable',
+		$socket: null,
 		WEBUI_API_BASE_URL: '/api/v1',
 		Shortcut: { TOGGLE_SIDEBAR: 'sidebar' },
 		matchKeybinding: () => 'sidebar',
@@ -232,7 +235,7 @@ it.each(['success', 'unauthorized', 'requirements', 'requirements-error'])(
 			if (scenario === 'requirements-error') throw new Error('offline');
 			return { docs: [], server_time: 1 };
 		});
-		const mount = app.context.onMount.mock.calls[0][0]();
+		const mount = app.context.onMount.mock.calls.at(-1)![0]();
 		await Promise.resolve();
 		app.destroy();
 		app.context.localStorage.token = 'replacement';
@@ -265,7 +268,7 @@ it.each(['accepted', 'required', 'unauthorized', 'requirements', 'requirements-e
 		if (scenario === 'requirements-error')
 			app.context.getLegalRequirements.mockRejectedValue(new Error('offline'));
 		try {
-			await app.context.onMount.mock.calls[0][0]();
+			await app.context.onMount.mock.calls.at(-1)![0]();
 			expect(app.api.state()).toBe(scenario === 'accepted');
 			expect(app.api.legalGate()).toBe(
 				['required', 'requirements', 'requirements-error'].includes(scenario)

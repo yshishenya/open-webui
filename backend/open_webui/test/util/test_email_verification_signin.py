@@ -7,9 +7,11 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 from fastapi import FastAPI
+from open_webui.models import config as settings
 from open_webui.models.auths import Auth
 from open_webui.models.email_verification import EmailVerificationToken, EmailVerificationTokens
 from open_webui.models.users import User
+from open_webui.utils import mfa
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from test.util.test_onboarding_lifecycle import app as app
@@ -90,6 +92,41 @@ async def test_parallel_clicks_issue_at_most_one_session(
             )
         assert sorted(response.status_code for response in responses) == [200, 400]
         assert sum('set-cookie' in response.headers for response in responses) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('pending', [False, True])
+async def test_verification_respects_real_mfa_gate_without_issuing_session(
+    app: FastAPI, queue_database: async_sessionmaker[AsyncSession], smtp: AsyncMock, pending: bool
+) -> None:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='https://test.invalid') as client:
+        token = await signup_token(client, queue_database)
+        await settings.Config.upsert({'auth.mfa.enable': True})
+        async with queue_database() as db:
+            record = await EmailVerificationTokens.get_token_by_token_string(token, db=db)
+            user_id = record.user_id
+            if pending:
+                await db.execute(update(User).where(User.id == user_id).values(role='pending'))
+                await db.commit()
+        response = await client.post('/api/v1/auths/verify-email', json={'token': token})
+        assert response.status_code == 200, response.text
+        session = response.json()['session']
+        assert session['next_step'] == ('pending' if pending else 'enroll')
+        assert 'token' not in session and 'token' not in response.cookies
+        assert 'token' not in client.cookies
+        assert response.headers['cache-control'] == 'no-store'
+        if pending:
+            assert 'challenge_token' not in session
+        else:
+            assert response.cookies['mfa_challenge'] == session['challenge_token']
+            assert 'httponly' in response.headers['set-cookie'].lower()
+            user, auth, state, challenge, slot = await mfa.load_challenge(session['challenge_token'], {'enroll'})
+            assert user.id == user_id and challenge.auth_method == 'password'
+            assert slot == 'login_challenge' and state.login_challenge is not None
+        current = await client.get('/api/v1/auths/')
+        assert current.status_code == 401
+        replay = await client.post('/api/v1/auths/verify-email', json={'token': token})
+        assert replay.status_code == 400
 
 
 @pytest.mark.asyncio

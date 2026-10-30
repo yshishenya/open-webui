@@ -166,6 +166,8 @@ test('an expired server session returns to billing after sign-in without replayi
 	await signIn(page, account);
 	const path = '/billing/balance?focus=topup&return_to=%2F';
 	await page.goto(path);
+	// This account must retain its free model; low-balance recovery intentionally preselects a package.
+	await expect(page.getByTestId('topup-proceed')).toBeDisabled();
 	await page.getByTestId('topup-preset').first().click();
 	const mutations: string[] = [];
 	await page.route('**/api/v1/auths/', (route) =>

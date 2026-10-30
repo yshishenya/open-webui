@@ -2,7 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { models } from '$lib/stores';
+	import { models, config } from '$lib/stores';
+	import SessionExplorer from './SessionExplorer.svelte';
 	import {
 		getSummary,
 		getModelAnalytics,
@@ -58,6 +59,7 @@
 	} = { from: fromDate, to: toDate, start: null, end: null, group: '', granularity };
 	let selectedModel: { id: string; name: string } | null = null;
 	let showModelModal = false;
+	let showSessions = false;
 	let modelOrderBy: ModelSort = 'count';
 	let modelDirection = -1;
 	let userOrderBy: UserSort = 'count';
@@ -197,6 +199,12 @@
 				? (a.name || a.user_id).localeCompare(b.name || b.user_id)
 				: a[userOrderBy] - b[userOrderBy])
 	);
+	$: modelNames = Object.fromEntries($models.map((model) => [model.id, model.name || model.id]));
+	$: sessionScope = {
+		startDate: applied.start,
+		endDate: applied.end,
+		groupId: applied.group || null
+	};
 	$: topModels = [...modelStats]
 		.sort((a, b) => b.count - a.count)
 		.slice(0, 8)
@@ -411,6 +419,12 @@
 				</div>
 			</section>
 		</div>
+		{#if $config?.features?.enable_admin_chat_access && applied.start !== null && applied.end !== null}
+			<details bind:open={showSessions} class="border-t pt-4 text-sm dark:border-gray-800">
+				<summary class="cursor-pointer">Сеансы чатов</summary>
+				{#if showSessions}<SessionExplorer scope={sessionScope} {modelNames} />{/if}
+			</details>
+		{/if}
 		<details class="border-t pt-4 text-sm dark:border-gray-800">
 			<summary class="cursor-pointer">Токены и методика расчёта</summary>
 			<p class="mt-3">Токенов по сохранённым данным: {number(totalTokens)}</p>

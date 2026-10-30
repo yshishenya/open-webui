@@ -1,5 +1,5 @@
 /**
- * Marked extension for colon-fence blocks (:::type ... :::)
+ * Marked extension for colon-fence blocks (:::type{key="value"} ... :::)
  *
  * Used by newer OpenAI chat models to wrap semantically distinct content:
  *   :::writing    – reusable prose (letters, articles, docs)
@@ -10,13 +10,21 @@
  */
 
 import type { Token, TokenizerThis } from 'marked';
+function parseAttributes(attributeList: string): Record<string, string> {
+	const attributes: Record<string, string> = {};
+	for (const [, key, value] of attributeList.matchAll(/([\w-]+)="([^"]*)"/g)) {
+		attributes[key] = value;
+	}
+	return attributes;
+}
 
 function colonFenceTokenizer(this: TokenizerThis, src: string) {
 	// Match :::type at the start of a line, optionally followed by content, then closing :::
-	const match = /^:::([\w-]+)[^\n]*\n([\s\S]*?)(?:\n:::(?:\s*(?:\n|$)))/.exec(src);
+	const match = /^:::([\w-]+)(?:\{([^\n]*)\})?[^\n]*\n([\s\S]*?)(?:\n:::(?:\s*(?:\n|$)))/.exec(src);
 	if (match) {
 		const fenceType = match[1];
-		const text = match[2].trim();
+		const attributes = parseAttributes(match[2] ?? '');
+		const text = match[3].trim();
 		const raw = match[0];
 
 		const tokens: Token[] = [];
@@ -26,6 +34,7 @@ function colonFenceTokenizer(this: TokenizerThis, src: string) {
 			type: 'colonFence',
 			raw,
 			fenceType,
+			attributes,
 			text,
 			tokens
 		};

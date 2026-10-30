@@ -25,11 +25,11 @@ function input(
 		ts.ScriptTarget.Latest,
 		true
 	);
-	const names = ['inputFilesHandler', 'uploadFileHandler'];
+	const names = ['inputFilesHandler', 'prepareImageFileHandler', 'uploadFileHandler'];
 	const handlers = ast.statements
 		.filter(ts.isVariableStatement)
 		.filter((s) => s.declarationList.declarations.some((d) => names.includes(d.name.getText(ast))));
-	if (handlers.length !== 2) throw new Error('Missing actual file handlers');
+	if (handlers.length !== 3) throw new Error('Missing actual file handlers');
 	const upload = vi.fn(
 		async (): Promise<{
 			id: string;
@@ -51,6 +51,13 @@ function input(
 	}[] = [];
 	const context = {
 		channel,
+		queueKey: 'channel',
+		$user: { id: 'self' },
+		user: { id: 'self' },
+		get: (value: unknown) => value,
+		channelRequestQueues: { update: (callback: (queues: object) => object) => callback({}) },
+		processNextInQueue: vi.fn(),
+		isHeicImage: (file: File) => file.type === 'image/heic',
 		$settings: settings,
 		$config: config,
 		$i18n: { t: (text: string) => text },
@@ -117,7 +124,7 @@ it.each(['missing channel', 'empty', 'success', 'audio', 'rejected', 'null respo
 			expect(r.error).not.toHaveBeenCalled();
 		} else {
 			expect(r.actual.files()).toEqual([]);
-			expect(r.error).toHaveBeenCalledTimes(mode === 'null response' ? 0 : 1);
+			expect(r.error).toHaveBeenCalledTimes(1);
 		}
 		expect(result).toBe(mode === 'empty' ? null : undefined);
 	}
@@ -191,6 +198,11 @@ it.each([
 									? new ArrayBuffer(2)
 									: 'data:image/png;base64,original'
 					}
+	});
+	await vi.waitFor(() => {
+		if (['null target', 'null result', 'buffer result'].includes(mode))
+			expect(r.error).toHaveBeenCalledOnce();
+		else expect(r.upload).toHaveBeenCalledOnce();
 	});
 	if (['null target', 'null result', 'buffer result'].includes(mode)) {
 		expect(r.error).toHaveBeenCalledOnce();

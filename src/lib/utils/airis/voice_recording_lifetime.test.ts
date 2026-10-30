@@ -90,7 +90,8 @@ const rig = (displayMedia = false) => {
 		continuous = false;
 		onresult:
 			| ((event: {
-					results: Record<number, Record<number, { transcript: string }>>;
+					results: { 0: { transcript: string }; isFinal: boolean }[];
+					resultIndex: number;
 			  }) => Promise<void>)
 			| null = null;
 		onend: (() => void) | null = null;
@@ -179,7 +180,7 @@ const rig = (displayMedia = false) => {
 		localStorage: { token: 'fixture' },
 		toast: { error: vi.fn() },
 		tick: async (): Promise<void> => {},
-		dayjs: () => ({ format: () => 'fixture' }),
+		dayjs: () => ({ locale: () => ({ format: () => 'fixture' }) }),
 		blobToFile: (blob: Blob, name: string): File => new File([blob], name, { type: blob.type }),
 		onConfirm: vi.fn(),
 		onCancel: vi.fn(),
@@ -397,7 +398,7 @@ it.each(['recognition-first', 'recorder-first', 'cancel'])(
 		const recorder = r.recorders[0];
 		const recognition = r.recognizers[0];
 		await recorder.onstart?.();
-		await recognition.onresult?.({ results: { 0: { 0: { transcript: 'Recorded words' } } } });
+		await recognition.onresult?.({ resultIndex: 0, results: [{ 0: { transcript: 'Recorded words' }, isFinal: true }] });
 		const ended = recognition.onend;
 		if (mode === 'recognition-first') ended?.();
 		else if (mode === 'cancel') await r.api.cancelRecording();
@@ -444,7 +445,7 @@ it.each([undefined, {}, { audio: {} }])(
 		const recorder = r.recorders[0];
 		await recorder.onstart?.();
 		await r.recognizers[0].onresult?.({
-			results: { 0: { 0: { transcript: 'Selected web words' } } }
+			resultIndex: 0, results: [{ 0: { transcript: 'Selected web words' }, isFinal: true }]
 		});
 		await r.api.confirmRecording();
 		recorder.data('final');
@@ -486,7 +487,7 @@ it('keeps server and web transcript data out of logs while delivering it to the 
 		await recorder.onstart?.();
 		if (engine === 'web')
 			await r.recognizers[0].onresult?.({
-				results: { 0: { 0: { transcript: 'Private recorded words' } } }
+				resultIndex: 0, results: [{ 0: { transcript: 'Private recorded words' }, isFinal: true }]
 			});
 		await r.api.confirmRecording();
 		recorder.data('final');
@@ -522,7 +523,7 @@ it.each(['web', 'server'])(
 		await recorder.onstart?.();
 		if (mode === 'web') {
 			expect(r.recognizers).toHaveLength(1);
-			await r.recognizers[0].onresult?.({ results: { 0: { 0: { transcript: 'Web words' } } } });
+			await r.recognizers[0].onresult?.({ resultIndex: 0, results: [{ 0: { transcript: 'Web words' }, isFinal: true }] });
 		} else expect(r.recognizers).toHaveLength(0);
 		await r.api.confirmRecording();
 		recorder.data('final');

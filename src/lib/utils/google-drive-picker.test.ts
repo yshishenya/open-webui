@@ -14,6 +14,7 @@ it.each(['cancel', 'file', 'export', 'invalid', 'download-error', 'auth-error', 
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 		let callback: (data: Record<string, unknown>) => Promise<void>;
 		class PickerBuilder {
+			setAppId(): this { return this; }
 			enableFeature(): this {
 				return this;
 			}
@@ -54,6 +55,7 @@ it.each(['cancel', 'file', 'export', 'invalid', 'download-error', 'auth-error', 
 			}
 		}
 		class DocsView {
+			setMode(): this { return this; }
 			setIncludeFolders(): this {
 				return this;
 			}
@@ -80,6 +82,7 @@ it.each(['cancel', 'file', 'export', 'invalid', 'download-error', 'auth-error', 
 				}
 			},
 			picker: {
+				DocsViewMode: { LIST: 'list' },
 				PickerBuilder,
 				DocsView,
 				Feature: { NAV_HIDDEN: 'nav', MULTISELECT_ENABLED: 'multi' },

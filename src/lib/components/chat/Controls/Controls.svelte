@@ -13,9 +13,10 @@
 	import FileItem from '$lib/components/common/FileItem.svelte';
 	import Collapsible from '$lib/components/common/Collapsible.svelte';
 
-	import { user, settings } from '$lib/stores';
+	import { config, user, settings } from '$lib/stores';
 	export let chatFiles: ChatAttachment[] = [];
 	export let params: ModelParams = {};
+	export let onParamChange: (key: string, value: unknown) => void = () => {};
 	export let embed = false;
 
 	// Persist collapsible section open/close state
@@ -94,7 +95,7 @@
 				</Collapsible>
 			{/if}
 
-			{#if $user?.role === 'admin' || ($user?.permissions.chat?.valves ?? true)}
+			{#if ($config?.features?.enable_tools || $config?.features?.enable_functions) && ($user?.role === 'admin' || ($user?.permissions.chat?.valves ?? true))}
 				<Collapsible
 					bind:open={showValves}
 					onChange={setOpen('valves')}
@@ -121,6 +122,7 @@
 					<div class="pt-1 pb-1" slot="content">
 						<textarea
 							bind:value={params.system}
+							on:change={() => onParamChange('system', params.system)}
 							class={($settings?.highContrastMode ?? false)
 								? systemPromptTextareaClass
 								: compactSystemPromptTextareaClass}
@@ -142,7 +144,12 @@
 				>
 					<div class="pt-1 pb-1 text-xs" slot="content">
 						<div>
-							<AdvancedParams admin={$user?.role === 'admin'} custom={true} bind:params />
+							<AdvancedParams
+								admin={$user?.role === 'admin'}
+								custom={true}
+								bind:params
+								{onParamChange}
+							/>
 						</div>
 					</div>
 				</Collapsible>

@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { ArenaModel } from '$lib/apis/evaluations';
 	import { createEventDispatcher } from 'svelte';
+	import { resolveLocalizedResource } from '$lib/utils/localizedContent';
+	import { getContext } from 'svelte';
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 	const dispatch = createEventDispatcher();
 
 	import Cog6 from '$lib/components/icons/Cog6.svelte';
@@ -28,14 +31,14 @@
 			<div class="flex gap-2.5 items-center">
 				<img
 					src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}`}
-					alt={model.name}
+					alt={resolveLocalizedResource(model, $i18n.language)}
 					class="size-8 rounded-full object-cover shrink-0"
 				/>
 
 				<div class="w-full flex flex-col">
 					<div class="flex items-center gap-1">
 						<div class=" line-clamp-1">
-							{model.name}
+							{resolveLocalizedResource(model, $i18n.language)}
 						</div>
 					</div>
 

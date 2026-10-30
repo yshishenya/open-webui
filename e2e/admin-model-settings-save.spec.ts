@@ -58,13 +58,18 @@ test('model defaults retain failed edits, recover Save and persist retry', async
 		await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15000 });
 	}
 	await page.getByRole('button', { name: /^Model Capabilities/ }).click();
-	const vision = page.getByRole('checkbox', { name: 'Vision', exact: true });
+	await page
+		.locator('summary')
+		.filter({ hasText: /^Capabilities/ })
+		.click();
+	const vision = page.getByRole('switch', { name: 'Vision', exact: true });
+	await expect(vision).toBeVisible();
 	const save = page.getByRole('button', { name: 'Save', exact: true });
 	for (const step of [
 		{ path: '/api/v1/configs/models', method: 'POST' },
 		{ path: '/api/v1/configs/suggestions', method: 'POST' },
 		{ path: '/api/config', method: 'GET' },
-		{ path: '/api/v1/models/base/tags', method: 'GET' }
+		{ path: '/api/v1/models/all', method: 'GET' }
 	]) {
 		const before = await request.get('/api/v1/configs/models', { headers });
 		expect(before.ok()).toBe(true);

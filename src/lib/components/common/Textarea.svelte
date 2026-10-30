@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
+	import type { HTMLTextareaAttributes } from 'svelte/elements';
 
 	export let value: string | null | undefined = '';
 	export let placeholder = '';
@@ -8,6 +9,11 @@
 	export let maxSize: number | null = null;
 	export let required = false;
 	export let readonly = false;
+	export let disabled = false;
+	export let id: string | undefined = undefined;
+	export let autocomplete: HTMLTextareaAttributes['autocomplete'] = undefined;
+	export let spellcheck: boolean | undefined = undefined;
+	export let autocapitalize: HTMLTextareaAttributes['autocapitalize'] = undefined;
 	export let className =
 		'w-full rounded-lg px-3.5 py-2 text-sm bg-gray-50 dark:text-gray-300 dark:bg-gray-850 outline-hidden  h-full';
 	export let ariaLabel: string | null = null;
@@ -18,20 +24,11 @@
 
 	let textareaElement: HTMLTextAreaElement | null = null;
 
-	// Adjust height on mount and after setting the element.
-	onMount(async () => {
-		await tick();
+	// The bound element exists on mount. Cancel the layout callback on navigation.
+	onMount(() => {
 		resize();
-
-		requestAnimationFrame(() => {
-			// setInterveal to cehck until textareaElement is set
-			const interval = setInterval(() => {
-				if (textareaElement) {
-					clearInterval(interval);
-					resize();
-				}
-			}, 100);
-		});
+		const frame = requestAnimationFrame(resize);
+		return () => cancelAnimationFrame(frame);
 	});
 
 	const resize = () => {
@@ -83,6 +80,11 @@
 	{rows}
 	{required}
 	{readonly}
+	{disabled}
+	{id}
+	{autocomplete}
+	{spellcheck}
+	{autocapitalize}
 	on:input={(e) => {
 		resize();
 
@@ -93,4 +95,5 @@
 	}}
 	on:keydown={onKeydown}
 	on:blur={onBlur}
+	on:change
 ></textarea>

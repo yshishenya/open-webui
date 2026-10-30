@@ -35,10 +35,17 @@ export const parseChatImport = (text: string): object[] => {
 		const folderId = wrapped ? (row.folder_id ?? null) : null;
 		if (!isRecord(chat) || !isRecord(meta) || (folderId !== null && typeof folderId !== 'string'))
 			throw new Error('Invalid file format.');
+		const variables = wrapped ? (row.variables ?? {}) : {};
+		const pinned = wrapped ? (row.pinned ?? false) : false;
+		const archived = wrapped ? (row.archived ?? false) : false;
+		if (!isRecord(variables) || typeof pinned !== 'boolean' || typeof archived !== 'boolean')
+			throw new Error('Invalid file format.');
 		return {
 			chat,
+			variables,
+			archived,
 			meta,
-			pinned: false,
+			pinned,
 			folder_id: folderId,
 			created_at: row.created_at ?? null,
 			updated_at: row.updated_at ?? null

@@ -64,10 +64,18 @@ test('registration presents a separate unchecked optional choice', async ({ page
 test.describe('saved account choice', () => {
 	test.use({ storageState: 'e2e/.auth/admin.json' });
 	test('explicit save survives opening settings again and opt-out works', async ({ page }) => {
+		await page.goto('/');
+		const reset = await page.request.post(new URL('/api/v1/email-preferences', page.url()).href, {
+			headers: {
+				Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('token'))}`
+			},
+			data: { subscribed: false }
+		});
+		expect(reset.status()).toBe(200);
 		const openAccount = async (): Promise<void> => {
 			await page.goto('/');
 			await (await getUserMenuTrigger(page)).first().click();
-			await page.getByRole('button', { name: /Settings|Настройки/, exact: true }).click();
+			await page.getByRole('menuitem', { name: /Settings|Настройки/, exact: true }).click();
 			await page.getByRole('tab', { name: /Account|Аккаунт/ }).click();
 		};
 		await openAccount();
@@ -81,11 +89,13 @@ test.describe('saved account choice', () => {
 		);
 		await page.getByRole('button', { name: 'Сохранить выбор писем' }).click();
 		expect((await saved).status()).toBe(200);
-		await expect(page.getByRole('status')).toContainText('Согласие сохранено');
+		await expect(page.getByRole('status').filter({ hasText: 'Согласие сохранено' })).toBeVisible();
 		await openAccount();
 		await expect(choice).toBeChecked();
 		await choice.uncheck();
 		await page.getByRole('button', { name: 'Сохранить выбор писем' }).click();
-		await expect(page.getByRole('status')).toContainText('Продуктовые письма отключены');
+		await expect(
+			page.getByRole('status').filter({ hasText: 'Продуктовые письма отключены' })
+		).toBeVisible();
 	});
 });

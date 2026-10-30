@@ -26,6 +26,7 @@
 
 	<div class=" shrink-0 pr-1">
 		<button
+			aria-label={$i18n.t('Close')}
 			class=" hover:text-blue-900 dark:hover:text-blue-300 transition"
 			on:click={() => {
 				dispatch('close');

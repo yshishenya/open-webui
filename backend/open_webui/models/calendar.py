@@ -1,7 +1,9 @@
 import logging
 import time
+from typing import Optional
 from uuid import uuid4
 
+from open_webui.constants import ERROR_MESSAGES
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.access_grants import AccessGrantModel, AccessGrants
 from open_webui.models.groups import Groups
@@ -24,6 +26,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
+MIN_CALENDAR_RRULE_INTERVAL_SECONDS = 24 * 60 * 60
 
 
 ####################
@@ -168,11 +171,24 @@ class CalendarForm(BaseModel):
 
 
 class CalendarUpdateForm(BaseModel):
-    name: str | None = None
-    color: str | None = None
-    data: dict | None = None
-    meta: dict | None = None
-    access_grants: list[dict] | None = None
+    name: Optional[str] = None
+    color: Optional[str] = None
+    data: Optional[dict] = None
+    meta: Optional[dict] = None
+
+
+async def validate_calendar_rrule(value: Optional[str]) -> None:
+    if value:
+        from open_webui.utils.recurrence import rrule_interval_seconds
+
+        try:
+            interval = await rrule_interval_seconds(value)
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(ERROR_MESSAGES.AUTOMATION_INVALID_RRULE(e)) from e
+        if interval is not None and interval < MIN_CALENDAR_RRULE_INTERVAL_SECONDS:
+            raise ValueError(ERROR_MESSAGES.CALENDAR_RRULE_TOO_FREQUENT)
 
 
 class CalendarEventForm(BaseModel):
@@ -273,7 +289,7 @@ class CalendarTable:
     async def get_calendars_by_user(self, user_id: str, db: AsyncSession | None = None) -> list[CalendarModel]:
         """Owned + shared calendars."""
         async with get_async_db_context(db) as db:
-            user_groups = await Groups.get_groups_by_member_id(user_id, db=db)
+            user_groups = await Groups.get_groups_by_member_id(user_id, db=db, include_inherited=True)
             user_group_ids = [g.id for g in user_groups]
 
             stmt = select(Calendar)
@@ -344,8 +360,6 @@ class CalendarTable:
                 cal.data = {**(cal.data or {}), **update_data['data']}
             if 'meta' in update_data:
                 cal.meta = {**(cal.meta or {}), **update_data['meta']}
-            if 'access_grants' in update_data:
-                await AccessGrants.set_access_grants('calendar', id, update_data['access_grants'], db=db)
 
             cal.updated_at = int(time.time_ns())
             await db.commit()
@@ -425,8 +439,9 @@ class CalendarEventTable:
         return CalendarEventModel.model_validate(event_data)
 
     async def insert_new_event(
-        self, user_id: str, form_data: CalendarEventForm, db: AsyncSession | None = None
-    ) -> CalendarEventModel | None:
+        self, user_id: str, form_data: CalendarEventForm, db: Optional[AsyncSession] = None
+    ) -> Optional[CalendarEventModel]:
+        await validate_calendar_rrule(form_data.rrule)
         async with get_async_db_context(db) as db:
             now = int(time.time_ns())
             event = CalendarEvent(
@@ -476,7 +491,7 @@ class CalendarEventTable:
         Recurring events are fetched if they have any rrule (expansion in Python).
         """
         async with get_async_db_context(db) as db:
-            user_groups = await Groups.get_groups_by_member_id(user_id, db=db)
+            user_groups = await Groups.get_groups_by_member_id(user_id, db=db, include_inherited=True)
             user_group_ids = [g.id for g in user_groups]
 
             # Get calendar IDs accessible to user
@@ -529,7 +544,8 @@ class CalendarEventTable:
                             & (CalendarEvent.start_at < end)
                             & or_(
                                 CalendarEvent.end_at.is_(None) & (CalendarEvent.start_at >= start),
-                                CalendarEvent.end_at.isnot(None) & (CalendarEvent.end_at > start),
+                                CalendarEvent.end_at.isnot(None)
+                                & ((CalendarEvent.end_at > start) | (CalendarEvent.start_at >= start)),
                             )
                         ),
                         # Recurring: fetch all (expansion in Python)
@@ -577,7 +593,7 @@ class CalendarEventTable:
         db: AsyncSession | None = None,
     ) -> CalendarEventListResponse:
         async with get_async_db_context(db) as db:
-            user_groups = await Groups.get_groups_by_member_id(user_id, db=db)
+            user_groups = await Groups.get_groups_by_member_id(user_id, db=db, include_inherited=True)
             user_group_ids = [g.id for g in user_groups]
 
             # Get accessible calendar IDs
@@ -654,8 +670,9 @@ class CalendarEventTable:
             return CalendarEventListResponse(items=events, total=total)
 
     async def update_event_by_id(
-        self, id: str, form_data: CalendarEventUpdateForm, db: AsyncSession | None = None
-    ) -> CalendarEventModel | None:
+        self, id: str, form_data: CalendarEventUpdateForm, db: Optional[AsyncSession] = None
+    ) -> Optional[CalendarEventModel]:
+        await validate_calendar_rrule(form_data.rrule)
         async with get_async_db_context(db) as db:
             result = await db.execute(select(CalendarEvent).filter(CalendarEvent.id == id))
             event = result.scalars().first()
@@ -730,10 +747,10 @@ class CalendarEventTable:
         events = []
         for event, tz in rows:
             model = CalendarEventModel.model_validate(event)
-            # Determine per-event alert window
-            alert_minutes = None
-            if model.meta and 'alert_minutes' in model.meta:
-                alert_minutes = model.meta['alert_minutes']
+            # meta is user-writable and this poll is shared by every user.
+            alert_minutes = (model.meta or {}).get('alert_minutes')
+            if not isinstance(alert_minutes, (int, float)):
+                alert_minutes = None
 
             if alert_minutes is not None:
                 if alert_minutes < 0:

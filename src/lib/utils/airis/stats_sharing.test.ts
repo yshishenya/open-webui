@@ -6,6 +6,10 @@ import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
 import { getErrorMessage } from './error_message';
+const constantsSource = ts.createSourceFile('constants.ts', readFileSync('src/lib/constants.ts', 'utf8'), ts.ScriptTarget.Latest);
+const origins = constantsSource.statements.filter(ts.isVariableStatement).flatMap(s => [...s.declarationList.declarations]).find(d => d.name.getText(constantsSource) === 'COMMUNITY_ORIGINS');
+if (!origins?.initializer) throw new Error('Missing community origin list');
+const COMMUNITY_ORIGINS = runInNewContext(origins.initializer.getText(constantsSource)) as string[];
 
 const deferred = <T>() => {
 	let resolve!: (value: T) => void;
@@ -62,6 +66,7 @@ const rig = (
 		).outputText,
 		{
 			origin,
+			COMMUNITY_ORIGINS,
 			syncRequest: null,
 			openerOrigin: null,
 			window: win,

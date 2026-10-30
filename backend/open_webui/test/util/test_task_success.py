@@ -90,7 +90,7 @@ async def test_message_patch_preserves_absent_fields_and_rebuilds_history(
         'error': 'old error',
         'contextSummary': 'Original context',
         'usage': {'input_tokens': 12, 'output_tokens': 3},
-        'timestamp': 100,
+        'timestamp': 1791550000,
     }
     original = await chat_messages.ChatMessages.upsert_message('answer', 'chat', 'owner', data)
     sparse = await chat_messages.ChatMessages.upsert_message(
@@ -139,7 +139,7 @@ async def test_message_patch_preserves_absent_fields_and_rebuilds_history(
         {'contextSummary': None, 'sources': None, 'embeds': [], 'error': None},
     )
     assert cleared is not None and cleared.context_summary is None and cleared.sources is None
-    assert cleared.embeds == [] and cleared.error is None and cleared.created_at == 100
+    assert cleared.embeds == [] and cleared.error is None and cleared.created_at == 1791550000
     await chat_messages.ChatMessages.upsert_message(
         'sibling',
         'chat',
@@ -153,9 +153,10 @@ async def test_message_patch_preserves_absent_fields_and_rebuilds_history(
     assert messages['answer']['childrenIds'] == messages['sibling']['childrenIds'] == []
     assert messages['sibling']['content'] == '' and messages['answer']['content'] == ''
     assert messages['answer']['info']['usage'] == messages['answer']['usage'] == original.usage
-    assert messages['answer']['model'] == 'primary-model' and messages['answer']['timestamp'] == 100
+    assert messages['answer']['model'] == 'primary-model' and messages['answer']['timestamp'] == 1791550000
     assert 'contextSummary' not in messages['answer'] and 'sources' not in messages['answer']
-    assert all(key not in messages['answer'] for key in ('chat_id', 'user_id', 'updated_at', 'success_checkpoints'))
+    assert messages['answer']['user_id'] == 'owner'
+    assert all(key not in messages['answer'] for key in ('chat_id', 'updated_at', 'success_checkpoints'))
 
 
 @pytest.mark.asyncio
@@ -349,7 +350,7 @@ async def test_real_stream_handlers_use_common_completion_boundary(
         monkeypatch.setattr(middleware, name, AsyncMock(return_value=[] if name == 'get_filter_functions' else None))
     monkeypatch.setattr(middleware.Config, 'get', AsyncMock(return_value=False))
     monkeypatch.setattr(middleware, 'ENABLE_API_OUTLET_FILTERS', False)
-    monkeypatch.setattr(middleware, 'ENABLE_PLUGINS', False)
+    monkeypatch.setattr(middleware, 'ENABLE_FUNCTIONS', False)
     recorded = AsyncMock()
     monkeypatch.setattr(middleware, 'record_success', recorded)
 
@@ -360,7 +361,9 @@ async def test_real_stream_handlers_use_common_completion_boundary(
 
     response = StreamingResponse(chunks(), media_type='text/event-stream', status_code=http_status)
     ctx = {
-        'request': SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(MODELS={})), state=SimpleNamespace()),
+        'request': SimpleNamespace(
+            app=SimpleNamespace(state=SimpleNamespace(MODELS={}, redis=None)), state=SimpleNamespace()
+        ),
         'form_data': {'model': 'test', 'messages': [{'role': 'user', 'content': 'test'}]},
         'user': SimpleNamespace(id='owner', role='user'),
         'model': {'id': 'test'},
@@ -401,6 +404,7 @@ async def test_real_nonstream_handler_checks_error_and_output_without_choices(
         body['error'] = {'message': 'provider failed'}
     ctx = {
         'request': SimpleNamespace(state=SimpleNamespace()),
+        'form_data': {'model': 'test', 'messages': []},
         'user': SimpleNamespace(id='owner'),
         'metadata': {'airis_operation_id': 'op', 'chat_id': 'temporary:1', 'message_id': 'm'},
         'events': [],
@@ -416,7 +420,7 @@ async def test_stream_cancellation_does_not_record_partial_success(monkeypatch: 
     from open_webui.utils import middleware
 
     monkeypatch.setattr(middleware, 'get_system_oauth_token', AsyncMock(return_value=None))
-    monkeypatch.setattr(middleware, 'ENABLE_PLUGINS', False)
+    monkeypatch.setattr(middleware, 'ENABLE_FUNCTIONS', False)
     monkeypatch.setattr(middleware.Config, 'get', AsyncMock(return_value=False))
     recorded = AsyncMock()
     monkeypatch.setattr(middleware, 'record_success', recorded)
@@ -426,7 +430,9 @@ async def test_stream_cancellation_does_not_record_partial_success(monkeypatch: 
         raise asyncio.CancelledError
 
     ctx = {
-        'request': SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(MODELS={})), state=SimpleNamespace()),
+        'request': SimpleNamespace(
+            app=SimpleNamespace(state=SimpleNamespace(MODELS={}, redis=None)), state=SimpleNamespace()
+        ),
         'form_data': {'model': 'test', 'messages': []},
         'user': SimpleNamespace(id='owner', role='user'),
         'model': {'id': 'test'},
@@ -456,7 +462,7 @@ async def test_saved_stream_passes_server_checkpoint_in_all_save_modes(
         'publish_chat_finished_event',
     ]:
         monkeypatch.setattr(middleware, name, AsyncMock(return_value=None))
-    monkeypatch.setattr(middleware, 'ENABLE_PLUGINS', False)
+    monkeypatch.setattr(middleware, 'ENABLE_FUNCTIONS', False)
     monkeypatch.setattr(middleware, 'ENABLE_REALTIME_CHAT_SAVE', realtime)
     monkeypatch.setattr(middleware.Config, 'get', AsyncMock(return_value=False))
     monkeypatch.setattr(middleware.Chats, 'get_message_by_id_and_message_id', AsyncMock(return_value={'content': ''}))
@@ -473,7 +479,9 @@ async def test_saved_stream_passes_server_checkpoint_in_all_save_modes(
         yield b'data: [DONE]\n\n'
 
     ctx = {
-        'request': SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(MODELS={})), state=SimpleNamespace()),
+        'request': SimpleNamespace(
+            app=SimpleNamespace(state=SimpleNamespace(MODELS={}, redis=None)), state=SimpleNamespace()
+        ),
         'form_data': {'model': 'test', 'messages': [{'role': 'user', 'content': 'test'}]},
         'user': SimpleNamespace(id='owner', role='user'),
         'model': {'id': 'test'},
@@ -517,7 +525,7 @@ async def test_api_filter_cannot_hide_provider_failure_from_success(monkeypatch:
     from open_webui.utils import middleware
 
     monkeypatch.setattr(middleware, 'get_system_oauth_token', AsyncMock(return_value=None))
-    monkeypatch.setattr(middleware, 'ENABLE_PLUGINS', False)
+    monkeypatch.setattr(middleware, 'ENABLE_FUNCTIONS', False)
     monkeypatch.setattr(middleware, 'ENABLE_API_OUTLET_FILTERS', False)
     recorded = AsyncMock()
     monkeypatch.setattr(middleware, 'record_success', recorded)
@@ -534,7 +542,9 @@ async def test_api_filter_cannot_hide_provider_failure_from_success(monkeypatch:
         yield b'data: [DONE]\n\n'
 
     ctx = {
-        'request': SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(MODELS={})), state=SimpleNamespace()),
+        'request': SimpleNamespace(
+            app=SimpleNamespace(state=SimpleNamespace(MODELS={}, redis=None)), state=SimpleNamespace()
+        ),
         'form_data': {'model': 'test', 'messages': []},
         'user': SimpleNamespace(id='owner', role='user'),
         'model': {'id': 'test'},

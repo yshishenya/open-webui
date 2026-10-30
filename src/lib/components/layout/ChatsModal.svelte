@@ -46,14 +46,11 @@
 	export let orderBy = 'updated_at';
 	export let direction = 'desc'; // 'asc' or 'desc'
 
-	export let chatList:
-		| (Pick<ChatTitleIdResponse, 'id' | 'title' | 'updated_at'> & {
-				time_range?: string;
-				share_id?: string | null;
-				user_id?: string;
-				user_name?: string;
-		  })[]
-		| null = null;
+	$: if (!show) {
+		query = '';
+	}
+
+	export let chatList: (Pick<ChatTitleIdResponse, 'id' | 'title' | 'created_at' | 'updated_at'> & { time_range?: string; user_id?: string; user_name?: string; share_id?: string | null })[] | null = null;
 	export let allChatsLoaded = false;
 	export let chatListLoading = false;
 	export let chatListError: string | null = null;
@@ -167,6 +164,7 @@
 							<div class="self-center pl-1.5 pr-1 translate-y-[0.5px] rounded-l-xl bg-transparent">
 								<button
 									class="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition"
+									aria-label={$i18n.t('Clear search')}
 									on:click={() => {
 										query = '';
 									}}
@@ -319,14 +317,16 @@
 									<div class="{showUserInfo ? 'w-28' : 'basis-2/5'} flex items-center justify-end">
 										<div class="hidden sm:flex text-gray-500 dark:text-gray-400 text-xs">
 											{$i18n.t(
-												dayjs(chat?.updated_at * 1000).calendar(null, {
-													sameDay: '[Today]',
-													nextDay: '[Tomorrow]',
-													nextWeek: 'dddd',
-													lastDay: '[Yesterday]',
-													lastWeek: '[Last] dddd',
-													sameElse: 'L' // use localized format, otherwise dayjs.calendar() defaults to DD/MM/YYYY
-												})
+												dayjs(chat?.updated_at * 1000)
+													.locale($i18n.language)
+													.calendar(null, {
+														sameDay: '[Today]',
+														nextDay: '[Tomorrow]',
+														nextWeek: 'dddd',
+														lastDay: '[Yesterday]',
+														lastWeek: '[Last] dddd',
+														sameElse: 'L' // use localized format, otherwise dayjs.calendar() defaults to DD/MM/YYYY
+													})
 											)}
 										</div>
 

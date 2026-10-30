@@ -7,6 +7,7 @@ import { DEFAULT_PERMISSIONS } from '$lib/constants/permissions';
 import Groups from '$lib/components/admin/Users/Groups.svelte';
 import GroupItem from '$lib/components/admin/Users/Groups/GroupItem.svelte';
 import GroupFormHarness from './fixtures/GroupFormHarness.svelte';
+vi.mock('$lib/components/chat/ModelSelector/Selector.svelte', () => ({default: () => {}}));
 
 const api = vi.hoisted(() => ({
 	create: vi.fn(),
@@ -39,6 +40,7 @@ vi.mock('$lib/apis/users', () => ({
 	updateUserDefaultPermissions: api.updateDefaults,
 	getUsers: api.users
 }));
+vi.mock('$lib/apis/configs', () => ({ getModelsConfig: vi.fn(async () => ({ DEFAULT_MODELS: '' })) }));
 vi.mock('svelte-sonner', () => ({ toast: { success: api.success, error: api.error } }));
 vi.mock('focus-trap', () => ({
 	createFocusTrap: () => ({
@@ -53,6 +55,7 @@ vi.mock('$lib/stores', async () => {
 	return {
 		config: writable({}),
 		settings: writable({}),
+		models: writable([]),
 		user: writable({ role: 'admin' }),
 		adminGroupCount: writable(0)
 	};
@@ -94,7 +97,7 @@ async function render(
 		component = mount(GroupItem, {
 			target,
 			context,
-			props: { group: structuredClone(storedGroup), ...props }
+			props: { group: {...structuredClone(storedGroup), path: storedGroup.name, ancestor_ids: []}, ...props }
 		});
 	else component = mount(GroupFormHarness, { target, context, props: { props } });
 	await settle();
@@ -395,14 +398,14 @@ describe('group operation boundaries', () => {
 		await settle();
 		await save();
 		expect(submit.mock.calls[0][0].data).toEqual({
-			config: { share: true, future_option: 7 },
+			config: { share: true, future_option: 7, default_models: [] },
 			future_data: 'keep'
 		});
 		select.value = 'false';
 		select.dispatchEvent(new Event('change', { bubbles: true }));
 		await settle();
 		await save();
-		expect(submit.mock.calls[1][0].data).toEqual(storedGroup.data);
+		expect(submit.mock.calls[1][0].data).toEqual({...storedGroup.data, config: {...storedGroup.data.config, default_models: []}});
 	});
 });
 

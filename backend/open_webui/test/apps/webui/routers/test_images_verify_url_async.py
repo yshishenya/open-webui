@@ -92,7 +92,9 @@ class TestImagesVerifyUrlAsync(AbstractPostgresTest):
         )
 
         with mock_webui_user(id='1'):
-            response = self.fast_api_client.get(self.create_url('/config/url/verify'))
+            response = self.fast_api_client.post(
+                self.create_url('/verify'), json={'engine': 'automatic1111', 'url': 'https://auto1111.example'}
+            )
 
         assert response.status_code == 200
         assert response.json() is True
@@ -100,7 +102,7 @@ class TestImagesVerifyUrlAsync(AbstractPostgresTest):
         assert self._calls == [
             {
                 'url': 'https://auto1111.example/sdapi/v1/options',
-                'headers': {'authorization': ''},
+                'headers': {},
             }
         ]
 
@@ -122,7 +124,9 @@ class TestImagesVerifyUrlAsync(AbstractPostgresTest):
         )
 
         with mock_webui_user(id='1'):
-            response = self.fast_api_client.get(self.create_url('/config/url/verify'))
+            response = self.fast_api_client.post(
+                self.create_url('/verify'), json={'engine': 'automatic1111', 'url': 'https://auto1111.example'}
+            )
 
         assert response.status_code == 400
         assert response.json()['detail'] == ERROR_MESSAGES.INVALID_URL
@@ -145,7 +149,10 @@ class TestImagesVerifyUrlAsync(AbstractPostgresTest):
         )
 
         with mock_webui_user(id='1'):
-            response = self.fast_api_client.get(self.create_url('/config/url/verify'))
+            response = self.fast_api_client.post(
+                self.create_url('/verify'),
+                json={'engine': 'comfyui', 'url': 'https://comfyui.example', 'key': 'comfy-key'},
+            )
 
         assert response.status_code == 200
         assert response.json() is True

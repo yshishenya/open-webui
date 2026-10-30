@@ -161,7 +161,17 @@ async def test_vk_id_ignores_browser_claims_and_creates_auth_without_verifying_e
     monkeypatch.setattr(
         vk.Config, 'get', AsyncMock(side_effect=lambda key: 'user' if key == 'ui.default_user_role' else '1h')
     )
-    monkeypatch.setattr(vk, 'create_token', lambda **kwargs: 'test-only-session')
+
+    async def signin(
+        request: Request, user: User, db: AsyncSession, response: Response, **kwargs: object
+    ) -> dict[str, object]:
+        response.set_cookie('token', 'test-only-session')
+        return {
+            'token': 'test-only-session',
+            **{key: getattr(user, key) for key in ('id', 'name', 'email', 'role', 'profile_image_url')},
+        }
+
+    monkeypatch.setattr(vk, 'create_signin_response', signin)
     monkeypatch.setattr(email.email_service, 'is_configured', lambda: False)
     payload: dict[str, object] = {
         'user': {'user_id': '900', 'email': 'provider@airis.you', 'first_name': 'Name', 'avatar': None}
@@ -180,12 +190,12 @@ async def test_vk_id_ignores_browser_claims_and_creates_auth_without_verifying_e
     claims = vk.VKIDAuthRequest(access_token='test-provider-access', user_id=123, email='person1@airis.you')
     async with database() as session:
         result = await vk.vkid_callback(request, Response(), claims, db=session)
-        assert result.user['email'] == 'provider@airis.you'
+        assert result['user']['email'] == 'provider@airis.you'
         user = await Users.get_user_by_oauth_sub('vk', '900', db=session)
-        assert user.id == result.user['id'] and not user.email_verified
+        assert user.id == result['user']['id'] and not user.email_verified
         assert (await session.get(Auth, user.id)).active
         repeated = await vk.vkid_callback(request, Response(), claims, db=session)
-        assert repeated.user['id'] == user.id
+        assert repeated['user']['id'] == user.id
         assert await session.scalar(select(func.count()).select_from(User)) == 3
         for partial in [
             {'user_id': '900'},
@@ -195,7 +205,7 @@ async def test_vk_id_ignores_browser_claims_and_creates_auth_without_verifying_e
             payload['user'] = partial
             cookie_response = Response()
             repeated = await vk.vkid_callback(request, cookie_response, claims, db=session)
-            assert repeated.user['id'] == user.id and repeated.user['email'] == 'provider@airis.you'
+            assert repeated['user']['id'] == user.id and repeated['user']['email'] == 'provider@airis.you'
             assert 'token=' in cookie_response.headers['set-cookie']
         await session.execute(update(Auth).where(Auth.id == user.id).values(active=False))
         await session.commit()
@@ -302,7 +312,10 @@ async def test_shared_yandex_signup_collision_and_disabled_login(
     )
     monkeypatch.setattr(oauth, 'apply_default_group_assignment', AsyncMock())
     monkeypatch.setattr(oauth, 'publish_event', AsyncMock())
-    monkeypatch.setattr(oauth, 'create_token', lambda **kwargs: 'test-only-session')
+    from open_webui.utils import auth
+
+    signin = AsyncMock(return_value={'token': 'test-only-session'})
+    monkeypatch.setattr(auth, 'create_signin_response', signin)
     monkeypatch.setattr(oauth.OAuthSessions, 'get_sessions_by_user_id', AsyncMock(return_value=[]))
     monkeypatch.setattr(oauth.OAuthSessions, 'create_session', AsyncMock(return_value=None))
     monkeypatch.setattr(email.email_service, 'is_configured', lambda: False)
@@ -330,6 +343,9 @@ async def test_shared_yandex_signup_collision_and_disabled_login(
         assert user and not user.email_verified and (await session.get(Auth, user.id)).active
         repeated = await manager.handle_callback(request, 'yandex', Response(), db=session)
         assert 'error=' not in repeated.headers['location']
+        assert signin.await_count == 2
+        assert signin.await_args.kwargs['source'] == 'oauth'
+        assert signin.await_args.kwargs['provider'] == 'yandex'
         assert await session.scalar(select(func.count()).select_from(User)) == 3
         data['id'] = 'yandex-901'
         data['default_email'] = 'person1@airis.you'
@@ -390,7 +406,24 @@ async def test_oauth_role_claims_groups_and_logout_protocol_remain_compatible(mo
         assert await manager.get_user_role(None, {'claims': {'roles': roles}}) == expected
     with pytest.raises(HTTPException):
         await manager.get_user_role(None, {'claims': {'roles': ['foreign']}})
-    assert await oauth._read_group_claims('claims.groups', {'claims': {'groups': ['one', 'two']}}) == ['one', 'two']
+    runtime.OAUTH_GROUPS_CLAIM = 'claims.groups'
+    runtime.OAUTH_BLOCKED_GROUPS = ['blocked']
+    runtime.ENABLE_OAUTH_GROUP_CREATION = False
+    group = SimpleNamespace(id='one', name='one', description='', permissions={})
+    blocked = SimpleNamespace(id='blocked', name='blocked', permissions={})
+    monkeypatch.setattr(oauth.Groups, 'get_groups_by_member_id', AsyncMock(return_value=[]))
+    monkeypatch.setattr(oauth.Groups, 'get_all_groups', AsyncMock(return_value=[group, blocked]))
+    added = AsyncMock(return_value=False)
+    monkeypatch.setattr(oauth.Groups, 'add_users_to_group', added)
+    monkeypatch.setattr(oauth.Groups, 'update_group_by_id', AsyncMock())
+    await manager.update_user_groups(
+        None,
+        SimpleNamespace(id='user'),
+        {},
+        {},
+        token_claims={'claims': {'groups': ['one', 'blocked']}},
+    )
+    added.assert_awaited_once_with('one', ['user'], db=None)
     event = {'http://schemas.openid.net/event/backchannel-logout': {}}
     sub, sid, error = await oauth._validate_logout_claims({'events': event, 'sub': 'one'})
     assert sub == 'one' and sid is None and error is None
@@ -462,17 +495,18 @@ async def test_oauth_payloads_and_provider_errors_never_enter_logs_or_redirects(
     monkeypatch.setattr(oauth.Groups, 'get_all_groups', AsyncMock(return_value=[]))
     monkeypatch.setattr(oauth.Users, 'get_super_admin_user', AsyncMock(return_value=None))
     monkeypatch.setattr(oauth.Groups, 'insert_new_group', AsyncMock(side_effect=ValueError(marker)))
-    assert await oauth._create_missing_groups(runtime, None, {}, SimpleNamespace(id='fixture'), [marker]) == []
-    monkeypatch.setattr(oauth, 'OAUTH_PROVIDERS', {marker: {}})
-    manager.get_server_metadata_url = lambda provider: 'https://provider.invalid/metadata'
-
-    @asynccontextmanager
-    async def unavailable_metadata(*args: object, **kwargs: object) -> AsyncIterator[SimpleNamespace]:
-        raise ValueError(marker)
-        yield SimpleNamespace()
-
-    monkeypatch.setattr(oauth.aiohttp, 'ClientSession', unavailable_metadata)
-    assert await oauth._find_logout_provider(manager, marker) == (None, None, None, None)
+    runtime.OAUTH_GROUPS_CLAIM = 'groups'
+    runtime.OAUTH_BLOCKED_GROUPS = []
+    monkeypatch.setattr(oauth.Groups, 'get_groups_by_member_id', AsyncMock(return_value=[]))
+    await manager.update_user_groups(request, SimpleNamespace(id='fixture'), {'groups': [marker]}, {})
+    monkeypatch.setattr(oauth, 'OAUTH_PROVIDERS', {'fixture': {}})
+    manager.get_client = lambda provider: SimpleNamespace(
+        load_server_metadata=AsyncMock(side_effect=ValueError(marker))
+    )
+    monkeypatch.setattr(oauth, '_read_logout_issuer', AsyncMock(return_value=(marker, None)))
+    request.form = AsyncMock(return_value={'logout_token': marker})
+    response = await manager.handle_backchannel_logout(request)
+    assert response.status_code == 400
     assert marker not in caplog.text
     assert not any(record.exc_info for record in caplog.records)
     assert marker not in oauth._build_oauth_callback_error_message(ValueError(marker))

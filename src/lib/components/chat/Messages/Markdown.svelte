@@ -19,6 +19,8 @@
 	marked.use(footnoteExtension(options));
 	marked.use(colonFenceExtension(options));
 	marked.use(disableSingleTilde);
+	// Also set by RichTextInput, but messages can render before any input mounts.
+	marked.use({ breaks: true });
 	marked.use({
 		extensions: [
 			mentionExtension({ triggerChar: '@' }),
@@ -29,13 +31,15 @@
 </script>
 
 <script>
-	import { onDestroy } from 'svelte';
+	import { onDestroy, setContext } from 'svelte';
 	import { replaceTokens, processResponseContent } from '$lib/utils';
 	import { user } from '$lib/stores';
 
 	import MarkdownTokens from './Markdown/MarkdownTokens.svelte';
 
 	export let id = '';
+	export let chatId = '';
+	export let messageId = '';
 	export let content;
 	export let done = true;
 	export let model = null;
@@ -46,7 +50,15 @@
 	export let paragraphTag = 'p';
 	export let editCodeBlock = true;
 	export let topPadding = false;
-	export let allowEmbeds = true;
+	export let allowEmbeds = false;
+	export let allowHtml = true;
+	export let allowRemoteContent = true;
+
+	setContext('markdown', {
+		get allowRemoteContent() {
+			return allowRemoteContent;
+		}
+	});
 
 	export let sourceIds = [];
 
@@ -62,6 +74,8 @@
 	export let onSourceClick = () => {};
 	/** @type {NonNullable<import('svelte').ComponentProps<typeof MarkdownTokens>['onTaskClick']>} */
 	export let onTaskClick = () => {};
+	/** @type {NonNullable<import('svelte').ComponentProps<typeof MarkdownTokens>['onToolCallResolved']>} */
+	export let onToolCallResolved = () => {};
 
 	let tokens = [];
 	let pendingUpdate = null;
@@ -77,6 +91,20 @@
 		lastParsedContent = processed;
 
 		tokens = marked.lexer(processed);
+		if (!allowHtml || !allowRemoteContent) {
+			marked.walkTokens(tokens, (token) => {
+				if (
+					(!allowHtml && token.type === 'html') ||
+					(!allowRemoteContent &&
+						['html', 'image', 'iframe', 'mention', 'details', 'colonFence'].includes(token.type))
+				) {
+					const raw = token.raw;
+					// Drop child tokens too, so blocked content cannot render through a nested renderer.
+					for (const key of Object.keys(token)) Reflect.deleteProperty(token, key);
+					Object.assign(token, { type: 'text', raw, text: raw });
+				}
+			});
+		}
 	};
 
 	const updateHandler = (content) => {
@@ -106,6 +134,8 @@
 	<MarkdownTokens
 		{tokens}
 		{id}
+		{chatId}
+		{messageId}
 		{done}
 		{save}
 		{preview}
@@ -117,6 +147,7 @@
 		{allowEmbeds}
 		{onTaskClick}
 		{onSourceClick}
+		{onToolCallResolved}
 		{onSave}
 		{onUpdate}
 		{onPreview}

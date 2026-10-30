@@ -27,6 +27,8 @@ it('switches Work to Chat, disables direct execution, and keeps Work selected on
 		.join('\n');
 	const context = {
 		$selectedTerminalId: 'direct',
+		window: { matchMedia: () => ({ matches: true }) },
+		showControls: { set: vi.fn() },
 		$settings: { terminalServers: [{ url: 'https://fixture.invalid', enabled: true }] },
 		$terminalServers: [{ id: 'personal', name: 'Work' }, { url: 'https://fixture.invalid' }],
 		selectedTerminalId: { set: vi.fn() },

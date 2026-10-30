@@ -3,6 +3,7 @@ import { requestJSON } from '$lib/utils/airis/request_json';
 import { getErrorMessage } from '$lib/utils/airis/error_message';
 
 export type AudioConfigForm = {
+	realtime?: Partial<RealtimeConfig>;
 	tts: {
 		OPENAI_API_BASE_URL: string;
 		OPENAI_API_KEY: string;
@@ -11,6 +12,7 @@ export type AudioConfigForm = {
 		ENGINE: string;
 		MODEL: string;
 		VOICE: string;
+		REALTIME_TTS_PROMPT_TEMPLATE?: string | null;
 		SPLIT_ON: string;
 		AZURE_SPEECH_REGION: string;
 		AZURE_SPEECH_BASE_URL: string;
@@ -38,10 +40,24 @@ export type AudioConfigForm = {
 		MISTRAL_USE_CHAT_COMPLETIONS: boolean;
 	};
 };
+
+export type RealtimeConfig = {
+	ENABLED: boolean;
+	PROVIDER: 'openai' | 'azure';
+	AUTH_TYPE: 'api_key' | 'microsoft_entra_id';
+	OPENAI_API_BASE_URL: string;
+	OPENAI_API_KEY: string;
+	MODEL: string;
+	VOICE: string;
+	TRANSCRIPTION_MODEL: string;
+	INPUT_PARAMS: Record<string, unknown> | null;
+	REALTIME_CALL_PROMPT_TEMPLATE: string | null;
+};
 // Config.get_many omits absent keys; the form keeps its defaults for them.
 export type AudioConfigResponse = {
 	tts: Partial<AudioConfigForm['tts']>;
 	stt: Partial<AudioConfigForm['stt']>;
+	realtime?: Partial<RealtimeConfig>;
 };
 export type AudioVoice = { id: string; name: string };
 

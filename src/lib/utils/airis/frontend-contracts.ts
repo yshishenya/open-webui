@@ -1,4 +1,6 @@
 import type { GroupDetails } from './group-types';
+import type { I18nOverrides } from '$lib/utils/translationDictionary';
+import type { Visibility } from '$lib/utils/ui-visibility';
 import type { Node, SvelteFlow } from '@xyflow/svelte';
 import type { SessionUser } from '$lib/stores';
 import type { ModelParams } from '$lib/apis';
@@ -16,6 +18,7 @@ export type ArtifactContent = { type: 'iframe' | 'svg'; content: string };
 
 // GET /functions/ FunctionResponse; metadata may have null fields.
 export type FunctionListItem = {
+	version_id?: string | null;
 	id: string;
 	user_id: string | null;
 	type: string;
@@ -34,6 +37,7 @@ export type FunctionListItem = {
 
 // GET /tools/ ToolUserResponse and GET /skills/ SkillUserResponse.
 export type ToolListItem = {
+	version_id?: string | null;
 	id: string;
 	user_id: string | null;
 	name: string;
@@ -68,6 +72,7 @@ export type SkillListItem = {
 	name: string;
 	description: string | null;
 	meta: { tags: string[] | null };
+	source?: string | null;
 	is_active: boolean;
 	access_grants: ToolListItem['access_grants'];
 	updated_at: number;
@@ -82,6 +87,7 @@ export type ModelConnectionConfig = {
 	auth_type?: string;
 	headers?: Record<string, string>;
 	connection_type?: string;
+	forward_cookies?: boolean;
 	provider?: string;
 	azure?: boolean;
 	api_version?: string;
@@ -108,7 +114,8 @@ export type UserPermissions = {
 
 // Direct OpenAPI terminals have a URL; system terminals also have an id and name.
 export type StoredTerminalServer = Partial<Pick<TerminalServer, 'id' | 'name'>> &
-	Pick<TerminalServer, 'url'> & {
+	Pick<TerminalServer, 'url' | 'contexts' | 'config'> & {
+		key?: string;
 		info?: { title?: string; description?: string };
 		openapi?: {
 			info?: { title?: string; version?: string; description?: string };
@@ -122,12 +129,13 @@ export type DirectTerminalSettings = Pick<StoredTerminalServer, 'url' | 'name'> 
 	key?: string;
 	auth_type?: string;
 	path?: string;
+	forward_cookies?: boolean;
 };
 
 export type TerminalServerConnection = Pick<DirectTerminalSettings, 'url'> &
 	Partial<DirectTerminalSettings> & {
 		id?: string;
-		config?: { access_grants?: ComponentProps<typeof AccessControlModal>['accessGrants'] } | null;
+		config?: { access_grants?: ComponentProps<typeof AccessControlModal>['accessGrants']; contexts?: Record<string, false | { context_id?: string }>; working_directory_context?: boolean; user_shell_tools?: 'auto' | 'always'; chat_uploads?: 'default' | 'filesystem' } | null;
 		server_type?: 'orchestrator' | 'terminal' | null;
 		policy_id?: string | null;
 		[key: string]: unknown;
@@ -139,6 +147,7 @@ export type TerminalConnectionSave = (
 // configs.ToolServerConnection; optional fields also accept legacy user settings.
 export type ToolServerConnection = {
 	url: string;
+	forward_cookies?: boolean;
 	path?: string;
 	type?: string | null;
 	spec_type?: string;
@@ -168,6 +177,8 @@ export type ToolConnectionSave = (
 ) => boolean | void | Promise<boolean | void>;
 
 export type GenerationParams = {
+	tool_approval_mode?: 'ask' | 'full' | 'auto';
+	model_controls?: Record<string, Record<string, string>>;
 	stream_response?: boolean | null;
 	stream_delta_chunk_size?: number | null;
 	compact_token_threshold?: number | null;
@@ -234,6 +245,7 @@ export type FrontendConfig = {
 	name: string;
 	version: string;
 	default_locale: string;
+	i18n?: I18nOverrides;
 	onboarding?: boolean;
 	oauth: { providers: Record<string, OAuthProvider>; auto_redirect?: boolean | null };
 	telegram: { enabled: boolean; bot_username: string };
@@ -249,6 +261,19 @@ export type FrontendConfig = {
 		enable_billing_subscriptions: boolean;
 	} & Partial<
 		Record<
+			| 'enable_encrypted_channels'
+			| 'slim'
+			| 'enable_tool_permissions'
+			| 'enable_subagents'
+			| 'enable_tools'
+			| 'enable_functions'
+			| 'enable_tool_servers'
+			| 'enable_terminal_servers'
+			| 'enable_apps'
+			| 'enable_title_generation'
+			| 'enable_follow_up_generation'
+			| 'enable_tags_generation'
+			| 'enable_direct_integrations'
 			| 'enable_api_keys'
 			| 'enable_password_change_form'
 			| 'enable_version_update_check'
@@ -283,14 +308,15 @@ export type FrontendConfig = {
 			| 'enable_onedrive_business',
 			boolean
 		>
-	> & { folder_max_file_count?: number; web_search_confirmation_content?: string };
+	> & { folder_max_file_count?: number; web_search_confirmation_content?: string; websocket_heartbeat_interval?: number | null };
 	default_models?: string;
 	default_pinned_models?: string | null;
-	default_prompt_suggestions?: { content: string; title: [string, string] }[];
+	default_prompt_suggestions?: { content: string; title: [string, string] }[] | null;
+	default_prompt_suggestions_i18n?: Record<string, { suggestion_prompts: { content: string; title: [string, string] }[] }>;
 	user_count?: number;
 	active_entries?: number;
 	code?: { engine: string; interpreter_engine: string };
-	audio?: { tts: { engine: string; voice: string; split_on: string }; stt: { engine: string } };
+	audio?: { realtime?: { enabled: boolean; model: string; voice: string }; tts: { engine: string; voice: string; split_on: string }; stt: { engine: string } };
 	file?: {
 		max_size: number | null;
 		max_count: number | null;
@@ -305,6 +331,8 @@ export type FrontendConfig = {
 		sharepoint_tenant_id: string;
 	};
 	ui?: {
+		default_interface_settings?: Record<string, unknown>;
+		visibility?: Visibility;
 		pending_user_overlay_title?: string;
 		pending_user_overlay_content?: string;
 		response_watermark?: string;
@@ -317,6 +345,7 @@ export type FrontendConfig = {
 		html?: string;
 		background_image_url?: string;
 		input_footer?: string;
+		chat_placeholder_description?: string;
 	} | null;
 };
 
@@ -393,6 +422,7 @@ export type SavedChat = {
 	context_usage?: ContextUsage | null;
 	tasks?: { id: string; content: string; status: string }[] | null;
 	chat: {
+		share_mode?: 'view' | 'continue';
 		title: string;
 		timestamp?: number | null;
 		models?: string[] | null;
@@ -404,6 +434,7 @@ export type SavedChat = {
 };
 
 export type ChatListItem = {
+	participants?: import('$lib/apis/folders').ChatParticipant[];
 	id: string;
 	title?: string;
 	created_at?: number;
@@ -438,7 +469,7 @@ export type RichTextContent = { md: string; html: string; json: Content };
 export type CommandSelection =
 	| { type: 'model'; data: Model }
 	| { type: 'skill'; data: SkillListItem };
-export type CommandUpload = { type: 'file'; data: ChatAttachment } | { type: 'web'; data: string };
+export type CommandUpload = { type: 'file' | 'filesystem'; data: ChatAttachment } | { type: 'web'; data: string };
 
 export type SelectOption<Value extends string | null = string> = { value: Value; label: string };
 
@@ -448,6 +479,7 @@ export type SvelteGeneric<T> = T;
 /** Data created by Overview/View and passed through native nodeclick events. */
 export type ChatOverviewNode = Node<
 	{
+		direction?: string;
 		message: ChatHistoryMessage;
 		user: Pick<SessionUser, 'id' | 'name'> | null | undefined;
 		model?: Model | null;

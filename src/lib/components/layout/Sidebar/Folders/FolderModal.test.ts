@@ -12,10 +12,15 @@ vi.mock('$lib/stores', async () => {
 	const { readable } = await import('svelte/store');
 	return {
 		user: readable({ role: 'user', permissions: { chat: { system_prompt: false } } }),
-		config: readable({ features: {} })
+		config: readable({ features: {} }),
+		models: readable([]),
+		settings: readable({})
 	};
 });
 vi.mock('$lib/components/workspace/Models/Knowledge.svelte', async () => ({
+	default: (await import('$lib/components/common/Spinner.svelte')).default
+}));
+vi.mock('$lib/components/chat/ModelSelector/Selector.svelte', async () => ({
 	default: (await import('$lib/components/common/Spinner.svelte')).default
 }));
 vi.mock('svelte/transition', () => ({ fade: () => ({ duration: 0 }) }));
@@ -110,7 +115,7 @@ describe('FolderModal loading', () => {
 		expect(api.submit).toHaveBeenCalledWith({
 			name: 'Renamed',
 			meta: { icon: 'grinning' },
-			data: { system_prompt: 'Keep me', files: [] },
+			data: { description: '', model_ids: [], system_prompt: 'Keep me', files: [] },
 			parent_id: undefined
 		});
 	});
@@ -187,7 +192,7 @@ describe('FolderModal loading', () => {
 		expect(api.submit).toHaveBeenCalledWith({
 			name: 'New',
 			meta: { background_image_url: null },
-			data: { system_prompt: '', files: [] },
+			data: { description: '', model_ids: [], system_prompt: '', files: [] },
 			parent_id: 'parent-b'
 		});
 	});

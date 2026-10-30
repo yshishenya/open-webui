@@ -845,6 +845,8 @@ class BillingService:
         """
         now = int(time.time())
         with get_db() as db:
+            if db.bind is not None and db.bind.dialect.name == "sqlite":
+                db.execute(sa.text("BEGIN IMMEDIATE"))
             wallet = (
                 db.query(Wallet).filter(Wallet.id == wallet_id, Wallet.user_id == user_id).with_for_update().first()
             )

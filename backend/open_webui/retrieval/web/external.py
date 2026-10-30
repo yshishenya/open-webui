@@ -20,7 +20,10 @@ def search_external(
 ) -> list[SearchResult]:
     try:
         headers = {
-            'User-Agent': 'Airis (https://airis.you) RAG Bot',
+            # LICENSE covers this Open WebUI user-agent identifier.
+            # Do not alter, remove, obscure, or replace it except as LICENSE permits:
+            # https://docs.openwebui.com/license.
+            'User-Agent': 'Open WebUI (https://github.com/open-webui/open-webui) RAG Bot',
             'Authorization': f'Bearer {external_api_key}',
         }
         headers = include_user_info_headers(headers, user)
@@ -49,7 +52,7 @@ def search_external(
             )
             for result in results[:count]
         ]
-        log.info(f'External search results: {results}')
+        log.info('External search results: %s', results)
         return results
     except Exception as e:
         log.error(f'Error in External search: {e}')

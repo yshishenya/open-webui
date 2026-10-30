@@ -1,3 +1,6 @@
+import { decode } from 'html-entities';
+import { type Token, type TokenizerThis, type Tokens } from 'marked';
+
 // Helper function to find matching closing tag
 function findMatchingClosingTag(src: string, openTag: string, closeTag: string): number {
 	let depth = 1;
@@ -26,7 +29,7 @@ function parseAttributes(tag: string): { [key: string]: string } {
 	return attributes;
 }
 
-function detailsTokenizer(src: string) {
+function detailsTokenizer(this: TokenizerThis, src: string) {
 	// Updated regex to capture attributes inside <details>
 	const detailsRegex = /^<details(\s+[^>]*)?>\n/;
 	const summaryRegex = /^<summary>(.*?)<\/summary>\n/;
@@ -49,11 +52,17 @@ function detailsTokenizer(src: string) {
 			content = content.slice(summaryMatch[0].length).trim();
 		}
 
+		const tokens: Token[] = [];
+		if (attributes.type !== 'tool_calls') {
+			this.lexer.blockTokens(decode(content), tokens);
+		}
+
 		return {
 			type: 'details',
 			raw: fullMatch,
 			summary: summary,
 			text: content,
+			tokens,
 			attributes: attributes // Include extracted attributes from <details>
 		};
 	}
@@ -105,6 +114,30 @@ function detailsExtension() {
 	};
 }
 
+function underlineRenderer(this: { parser: { parseInline(tokens: Token[]): string } }, token: { tokens: Token[] }): string {
+	return `<u>${this.parser.parseInline(token.tokens)}</u>`;
+}
+
+function underlineExtension() {
+	return {
+		name: 'underline',
+		level: 'inline' as const,
+		start: (src: string) => src.indexOf('<u>'),
+		tokenizer(this: TokenizerThis, src: string) {
+			const match = /^<u>([\s\S]+?)<\/u>/.exec(src);
+			if (!match) return;
+
+			return {
+				type: 'underline',
+				raw: match[0],
+				text: match[1],
+				tokens: this.lexer.inlineTokens(match[1])
+			};
+		},
+		renderer: underlineRenderer
+	};
+}
+
 export default function (options: Record<string, unknown> = {}) {
 	void options;
 	return {
@@ -114,7 +147,7 @@ export default function (options: Record<string, unknown> = {}) {
 				NonNullable<MarkedExtension['tokenizer']>['lheading']
 			>
 		},
-		extensions: [detailsExtension()]
+		extensions: [detailsExtension(), underlineExtension()]
 	};
 }
-import type { MarkedExtension, TokenizerThis, Tokens } from 'marked';
+import type { MarkedExtension } from 'marked';

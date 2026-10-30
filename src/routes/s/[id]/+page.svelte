@@ -12,25 +12,27 @@
 	import { page } from '$app/stores';
 
 	import dayjs from 'dayjs';
+	import localizedFormat from 'dayjs/plugin/localizedFormat';
 
 	import { settings, chatId, WEBUI_NAME, models, config, user as sessionUser } from '$lib/stores';
-	import { convertMessagesToHistory, createMessagesList } from '$lib/utils';
+	import { convertMessagesToHistory, createMessagesList, getDeepestChildId } from '$lib/utils';
 
-	import { getChatByShareId, cloneSharedChatById } from '$lib/apis/chats';
+	import { getChatByShareId, cloneSharedChatById, forkChatById } from '$lib/apis/chats';
 
 	import Messages from '$lib/components/chat/Messages.svelte';
 
 	import { getUserInfoById, getUserSettings, type UserInfoResponse } from '$lib/apis/users';
 	import { getModels } from '$lib/apis';
 	import { toast } from 'svelte-sonner';
-	import localizedFormat from 'dayjs/plugin/localizedFormat';
 
 	const i18n = getContext<Readable<I18n>>('i18n');
 	dayjs.extend(localizedFormat);
 
 	let loaded = false;
+	let forking = false;
 
 	let autoScroll = true;
+	let messagesComponent: Messages | undefined;
 	let selectedModels = [''];
 
 	let chat: SavedChat | null = null;
@@ -107,6 +109,10 @@
 				await goto('/');
 				return;
 			}
+			if (sharedChat.chat?.share_mode === 'continue' && sharedChat.id !== shareId) {
+				await goto(`/c/${sharedChat.id}${$page.url.search}`, { replaceState: true });
+				return;
+			}
 			const owner = token
 				? await getUserInfoById(token, sharedChat.user_id).catch((error) => {
 						console.error(error);
@@ -128,12 +134,47 @@
 				history.messages[lastMessage.id].done = true;
 			}
 			await tick();
-			if (isCurrent(request, shareId)) loaded = true;
+			if (isCurrent(request, shareId)) {
+				loaded = true;
+				await tick();
+				if (!isCurrent(request, shareId)) return;
+				const target = $page.url.searchParams.get('message');
+				if (target && history.messages[target]) {
+					autoScroll = false;
+					history.currentId = getDeepestChildId(history, target);
+					await tick();
+					if (isCurrent(request, shareId)) await messagesComponent?.scrollToMessage(target);
+				} else messagesComponent?.scrollToBottom();
+			}
 		} catch (error) {
 			if (isCurrent(request, shareId)) {
 				console.error(error);
 				await goto('/');
 			}
+		}
+	};
+
+	const forkSharedChat = async (messageId: string | null = null) => {
+		const shareId = $page.params.id;
+		if (!canClone || !shareId || forking) return;
+		forking = true;
+		const toastId = toast.loading($i18n.t('Forking chat...'));
+		try {
+			const result = await forkChatById(
+				localStorage.token,
+				shareId,
+				messageId ?? history.currentId
+			);
+			if (result?.id) {
+				await goto(`/c/${result.id}`);
+				toast.success($i18n.t('Chat forked'), { id: toastId });
+			} else {
+				toast.error($i18n.t('Failed to fork chat'), { id: toastId });
+			}
+		} catch (error) {
+			toast.error(`${error}`, { id: toastId });
+		} finally {
+			forking = false;
 		}
 	};
 
@@ -159,6 +200,9 @@
 </script>
 
 <svelte:head>
+	<!-- LICENSE covers this Open WebUI browser-title identifier.
+	Do not alter, remove, obscure, or replace it except as LICENSE permits:
+	https://docs.openwebui.com/license. -->
 	<title>
 		{title
 			? `${title.length > 30 ? `${title.slice(0, 30)}...` : title} / ${$WEBUI_NAME}`
@@ -167,43 +211,53 @@
 	<meta name="robots" content="noindex,nofollow" />
 </svelte:head>
 
-{#if loaded}
+{#if loaded && chat}
 	<div
 		class="h-screen max-h-[100dvh] w-full flex flex-col text-gray-700 dark:text-gray-100 bg-white dark:bg-gray-900"
 	>
 		<div class="flex flex-col flex-auto justify-center relative">
-			<div class=" flex flex-col w-full flex-auto overflow-auto h-0" id="messages-container">
-				<div
-					class="pt-5 px-2 w-full {($settings?.widescreenMode ?? null)
-						? 'max-w-full'
-						: 'max-w-[58rem]'} mx-auto"
+			<div
+				class="@container flex flex-col w-full flex-auto overflow-auto h-0"
+				id="messages-container"
+			>
+				<header
+					class="sticky top-0 z-30 mx-auto w-full max-w-[58rem] shrink-0 bg-white px-2 dark:bg-gray-900"
 				>
-					<div class="px-3">
-						<h1 class=" text-2xl font-normal line-clamp-1 m-0">
+					<div
+						class="pointer-events-none absolute inset-x-0 top-full h-10 z-[-1] bg-linear-to-b from-white to-transparent dark:from-gray-900"
+					></div>
+					<div class="flex items-center gap-3 px-3 py-2">
+						<h1
+							class="min-w-0 truncate text-[0.9375rem] font-normal text-gray-700 dark:text-gray-300"
+							{title}
+						>
 							{title}
 						</h1>
-
-						<div class="flex text-sm justify-between items-center mt-1">
-							<time
-								class="text-gray-400"
-								datetime={new Date(chat?.chat?.timestamp || Date.now()).toISOString()}
-							>
-								{dayjs(chat?.chat?.timestamp ?? undefined).format('LLL')}
-							</time>
-						</div>
+						<time
+							class="ms-auto shrink-0 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500"
+							datetime={dayjs(chat.chat.timestamp || chat.created_at * 1000)
+								.locale($i18n.language)
+								.toISOString()}
+						>
+							{dayjs(chat.chat.timestamp || chat.created_at * 1000)
+								.locale($i18n.language)
+								.format('LLL')}
+						</time>
 					</div>
-				</div>
+				</header>
 
 				<div class=" h-full w-full flex flex-col py-2" role="main">
 					<div class="w-full">
 						<Messages
-							className="h-full flex pt-4 pb-8 "
+							bind:this={messagesComponent}
+							className="h-full flex pb-8"
 							{user}
 							chatId={$chatId}
 							readOnly={true}
 							atSelectedModel={undefined}
 							mergeResponses={() => {}}
 							chatActionHandler={() => {}}
+							forkHandler={canClone ? forkSharedChat : null}
 							{selectedModels}
 							bind:history
 							bind:autoScroll
@@ -218,16 +272,14 @@
 
 			{#if canClone}
 				<div
-					class="absolute bottom-0 right-0 left-0 flex justify-center w-full bg-linear-to-b from-transparent to-white dark:to-gray-900"
+					class="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center gap-2 bg-linear-to-t from-white dark:from-gray-900 to-transparent pb-5 pt-10"
 				>
-					<div class="pb-5">
-						<button
-							class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
-							on:click={cloneSharedChat}
-						>
-							{$i18n.t('Clone Chat')}
-						</button>
-					</div>
+					<button
+						class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white pointer-events-auto"
+						on:click={cloneSharedChat}
+					>
+						{$i18n.t('Clone Chat')}
+					</button>
 				</div>
 			{/if}
 		</div>

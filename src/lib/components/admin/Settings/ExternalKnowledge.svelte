@@ -10,6 +10,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import ExperimentalBadge from '$lib/components/common/ExperimentalBadge.svelte';
 	import Cog6 from '$lib/components/icons/Cog6.svelte';
 	import DatabaseSettings from '$lib/components/icons/DatabaseSettings.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
@@ -20,7 +21,8 @@
 		searchKnowledgeBases,
 		testExternalKnowledgeSource,
 		updateExternalKnowledgeConnection,
-		updateExternalKnowledgeSource
+		updateExternalKnowledgeSource,
+		updateKnowledgeAccessGrants
 	} from '$lib/apis/knowledge';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 
@@ -161,7 +163,7 @@
 			tableName: sourceConfig.table_name ?? defaults.tableName,
 			collectionField: sourceConfig.collection_field ?? defaults.collectionField
 		};
-		accessGrants = item.access_grants ?? [];
+		accessGrants = structuredClone(item.access_grants ?? []);
 		showSourceModal = true;
 	};
 
@@ -340,7 +342,6 @@
 			description: sourceForm.description,
 			connection: connectionPayload(),
 			source: sourcePayload(),
-			access_grants: accessGrants,
 			test_query: sourceForm.testQuery,
 			test_count: 5
 		}).catch((error) => {
@@ -358,6 +359,7 @@
 	};
 
 	const submitSource = async () => {
+		if (creating) return;
 		if (editingItem) {
 			await updateSource();
 		} else {
@@ -420,7 +422,12 @@
 
 		<div class="flex flex-col md:flex-row w-full px-4 pb-4 md:space-x-4 dark:text-gray-200">
 			<div class="flex flex-col w-full sm:flex-row sm:justify-center sm:space-x-6">
-				<form class="flex flex-col w-full" on:submit|preventDefault={submitSource}>
+				<form
+					class="flex flex-col w-full"
+					inert={creating}
+					aria-busy={creating}
+					on:submit|preventDefault={submitSource}
+				>
 					<div class="px-1">
 						<div class="flex gap-2">
 							<div class="flex flex-col flex-1">
@@ -743,6 +750,9 @@
 								</div>
 
 								<div class="text-xs text-gray-500 mt-1">
+									<!-- LICENSE covers this Open WebUI wordmark.
+										Do not alter, remove, obscure, or replace it except as LICENSE permits:
+										https://docs.openwebui.com/license. -->
 									{$i18n.t(
 										'External vectors must be generated with the same embedding model configured in Airis.'
 									)}
@@ -758,18 +768,37 @@
 							share={true}
 							sharePublic={true}
 							shareUsers={true}
+							onChange={async (grants) => {
+								if (editingItem) {
+									const item = editingItem;
+									creating = true;
+									try {
+										const updated = await updateKnowledgeAccessGrants(localStorage.token, item.id, grants);
+										if (!updated) throw new Error($i18n.t('Failed to save changes'));
+										item.access_grants = structuredClone(updated.access_grants);
+										if (editingItem === item) accessGrants = item.access_grants;
+										toast.success($i18n.t('Saved'));
+									} catch (error) {
+										if (editingItem === item)
+											accessGrants = structuredClone(item.access_grants ?? []);
+										toast.error(`${error}`);
+									} finally {
+										creating = false;
+									}
+								}
+							}}
 						/>
 
 						<div class="flex justify-between items-center pt-3 text-sm font-normal">
 							<div></div>
 
 							<button
-								class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+								class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:cursor-not-allowed"
 								type="submit"
 								disabled={creating || !sourceFormIsValid() || !testResult?.documents?.length}
 							>
 								{editingItem ? $i18n.t('Save') : $i18n.t('Create')}
-								{#if creating}<Spinner />{/if}
+								{#if creating}<Spinner className="size-3" />{/if}
 							</button>
 						</div>
 					</div>
@@ -782,16 +811,13 @@
 <div class="flex w-full flex-col justify-between text-xs">
 	<div class="mb-2 flex items-center justify-between">
 		<div class="flex items-center gap-2 leading-none text-gray-600 dark:text-gray-400">
-			<div>{$i18n.t('External Knowledge Sources')}</div>
-			<span
-				class="inline-flex items-center text-[0.625rem] font-normal uppercase leading-none text-gray-400 dark:text-gray-600"
-			>
-				{$i18n.t('Experimental')}
-			</span>
+			<div>{$i18n.t('settings.admin.integrations.externalKnowledge.title')}</div>
+			<ExperimentalBadge />
 		</div>
 
-		<Tooltip content={$i18n.t('Add Connection')}>
+		<Tooltip content={$i18n.t('settings.admin.integrations.externalKnowledge.addConnection.label')}>
 			<button
+				aria-label={$i18n.t('settings.admin.integrations.externalKnowledge.addConnection.label')}
 				class="flex size-6 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-gray-900 dark:text-gray-600 dark:hover:bg-white/5 dark:hover:text-white"
 				on:click={openCreateSource}
 				type="button"
@@ -804,7 +830,7 @@
 	<div class="flex flex-col gap-1.5">
 		{#each items as item}
 			{@const connection = connectionForItem(item)}
-			<div class="flex w-full gap-2 items-center">
+			<div class="group/setting-row flex w-full gap-2 items-center">
 				<Tooltip className="w-full relative" content={''} placement="top-start">
 					<div class="flex w-full">
 						<div
@@ -818,7 +844,11 @@
 							</Tooltip>
 
 							<div class="outline-hidden w-full bg-transparent text-xs min-w-0 line-clamp-1">
-								<span>{item.name}</span>
+								<label
+									for={`knowledge-${item.id}-control`}
+									class="text-gray-600 dark:text-gray-400 transition-colors duration-150 group-hover/setting-row:text-gray-900 group-focus-within/setting-row:text-gray-900 dark:group-hover/setting-row:text-white dark:group-focus-within/setting-row:text-white group-has-[button[id$=-control]:enabled]/setting-row:cursor-pointer group-has-[button[id$=-control]:disabled]/setting-row:cursor-not-allowed"
+									>{item.name}</label
+								>
 								{' '}
 								<span class="text-gray-500">
 									{item?.meta?.external?.provider ?? connection?.provider}
@@ -848,6 +878,7 @@
 						content={connection?.enabled !== false ? $i18n.t('Enabled') : $i18n.t('Disabled')}
 					>
 						<Switch
+							id={`knowledge-${item.id}-control`}
 							state={connection?.enabled !== false}
 							on:change={() => {
 								toggleSource(item);

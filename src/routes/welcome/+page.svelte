@@ -6,6 +6,7 @@
 	import type { PublicLeadMagnetConfig, PublicRateCardResponse } from '$lib/apis/billing';
 	import { sanitizeRedirectPath } from '$lib/utils/airis/return_to';
 	import { NavHeader, WelcomeProductLanding } from '$lib/components/landing';
+	import type { MfaChallenge } from '$lib/apis/auths/mfa';
 
 	type TelegramAuthPayload = {
 		id: number;
@@ -19,6 +20,7 @@
 	};
 
 	type TelegramAuthResponse = {
+		next_step?: MfaChallenge['next_step'] | 'pending';
 		requires_email?: boolean;
 		temp_session?: string;
 		name?: string;
@@ -63,13 +65,19 @@
 			try {
 				const response = await fetch('/api/v1/oauth/telegram/callback', {
 					method: 'POST',
+					credentials: 'same-origin',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(userData)
 				});
 
 				const data = (await response.json()) as TelegramAuthResponse;
+				if (!response.ok) throw new Error('Telegram authentication failed');
 
-				if (data.requires_email && data.temp_session && data.name) {
+				if (data.next_step) {
+					localStorage.removeItem('token');
+					if (redirectParam) localStorage.setItem('redirectPath', redirectParam);
+					window.location.replace(data.next_step === 'pending' ? '/auth?pending=1' : '/auth?mfa=1');
+				} else if (data.requires_email && data.temp_session && data.name) {
 					// Store temp session and redirect to email collection
 					sessionStorage.setItem('telegram_temp_session', data.temp_session);
 					sessionStorage.setItem('telegram_name', data.name);

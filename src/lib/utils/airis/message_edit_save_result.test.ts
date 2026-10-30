@@ -5,6 +5,7 @@ import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import equal from 'fast-deep-equal';
 import { createMessagesList } from '../index';
+import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
 import { expect, it, vi } from 'vitest';
 vi.mock('$app/environment', () => ({ browser: false, dev: false }));
 vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '', WEBUI_BASE_URL: '' }));
@@ -203,6 +204,7 @@ function parent(role: string = 'assistant') {
 		chatId: 'chat1',
 		history,
 		createMessagesList,
+		getOutputText,
 		selectedModels: ['model'],
 		$temporaryChatEnabled: false,
 		pendingCopyIds: new Map<string, string>(),
@@ -301,7 +303,7 @@ it('structured save preserves empty content and saved output; null API is reject
 			{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'new' }] }
 		];
 	expect(await s.edit('m1', { output }, false)).toBe(true);
-	expect(s.context.history.messages.m1.content).toBe('');
+	expect(s.context.history.messages.m1.content).toBe('new');
 	expect(s.context.history.messages.m1.output).toEqual(output);
 	const before = structuredClone(s.context.history);
 	s.context.updateChatById.mockResolvedValueOnce(

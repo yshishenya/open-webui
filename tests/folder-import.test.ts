@@ -158,6 +158,7 @@ it.each(['sidebar-chats', 'sidebar-pinned-chats'])(
 		const pinned = id === 'sidebar-pinned-chats';
 		const context = {
 			...importContext(),
+			getErrorMessage: (error: unknown) => String(error),
 			getChatById: vi.fn().mockResolvedValue(null),
 			toggleChatPinnedStatusById: vi.fn(),
 			updateChatFolderIdById: vi.fn(),

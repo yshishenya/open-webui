@@ -36,17 +36,9 @@ const rig = () => {
 		.filter((n) => !ts.isImportDeclaration(n) && !ts.isLabeledStatement(n))
 		.map((n) => n.getText(ast))
 		.join('\n');
-	const input = source.slice(source.indexOf('type="file"'));
-	const legacy = input.includes('on:change={() => {')
-		? input.slice(
-				input.indexOf('on:change={') + 'on:change={'.length,
-				input.indexOf('\n\t\t}}') + 4
-			)
-		: 'null';
 	const mounts: (() => unknown)[] = [],
 		destroys: (() => void)[] = [],
-		cleanups: (() => void)[] = [],
-		jobs: Promise<unknown>[] = [];
+		cleanups: (() => void)[] = [];
 	const listeners = new Map<string, Set<unknown>>(),
 		errors: string[] = [],
 		successes: string[] = [];
@@ -57,7 +49,13 @@ const rig = () => {
 		get = vi.fn(async () => ({ ...item })),
 		toggle = vi.fn<[], Promise<typeof item | null>>(async () => ({ ...item, is_active: false }));
 	const context = {
+		structuredClone,
+		workspaceCounts: { update: vi.fn() },
 		parseSkillImport,
+		uuidv4: () => 'fixture-clone',
+		skillError: (error: unknown) => (error instanceof Error ? error.message : String(error)),
+		cloneSkill: get,
+		exportSkillBundle: get,
 		AbortController,
 		Error,
 		Blob,
@@ -75,8 +73,6 @@ const rig = () => {
 		goto: vi.fn(async () => undefined),
 		fileSaver: { saveAs: vi.fn() },
 		getErrorMessage: (e: unknown) => (e instanceof Error ? e.message : String(e)),
-		parseFrontmatter: () => ({ name: 'from-md', description: 'Description' }),
-		formatSkillName: (s: string) => s,
 		toast: { error: (s: string) => errors.push(s), success: (s: string) => successes.push(s) },
 		getSkillItems: list,
 		getSkills: catalog,
@@ -96,20 +92,12 @@ const rig = () => {
 			},
 			removeEventListener: (n: string, f: unknown) => listeners.get(n)?.delete(f)
 		},
-		console: { log: () => undefined, error: () => undefined },
-		FileReader: class {
-			onload!: (e: { target: { result: string } }) => Promise<void> | void;
-			readAsText(file: { text: () => Promise<string> }): void {
-				const job = file.text().then((result) => this.onload({ target: { result } }));
-				void job.catch(() => undefined);
-				jobs.push(job);
-			}
-		}
+		console: { log: () => undefined, error: () => undefined }
 	};
 	const codeAPI = runInNewContext(
 		ts.transpileModule(
 			code +
-				`\n({load:loadSkillItems,toggle:typeof toggleHandler==='undefined'?null:toggleHandler,remove:deleteHandler,clone:cloneHandler,export:exportHandler,importFile:typeof importHandler==='undefined'?${legacy}:importHandler,items:()=>filteredItems,setItems:v=>filteredItems=v,loading:()=>loading,setFile:f=>{importFiles=[f];importInputElement={value:'selected'};},activate:()=>loaded=true})`,
+				`\n({load:loadSkillItems,toggle:typeof toggleHandler==='undefined'?null:toggleHandler,remove:deleteHandler,clone:cloneHandler,export:exportHandler,importFile:importHandler,items:()=>filteredItems,setItems:v=>filteredItems=v,loading:()=>loading,setFile:f=>{importInputElement={files:f?[f]:[],value:'selected'};},setFiles:f=>{importInputElement={files:f,value:'selected'};},importState:()=>({show:showImport,files:bundleFiles}),activate:()=>loaded=true})`,
 			{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
 		).outputText,
 		context
@@ -123,7 +111,9 @@ const rig = () => {
 		items: () => (typeof item)[];
 		setItems: (v: (typeof item)[]) => void;
 		loading: () => boolean;
-		setFile: (f: { name: string; text: () => Promise<string> }) => void;
+		setFile: (f: { name: string; text: () => Promise<string> } | null) => void;
+		setFiles: (files: { name: string; text: () => Promise<string> }[]) => void;
+		importState: () => { show: boolean; files: { name: string; text: () => Promise<string> }[] };
 		activate: () => void;
 	};
 	codeAPI.activate();
@@ -148,11 +138,6 @@ const rig = () => {
 		destroy: () => {
 			cleanups.forEach((f) => f());
 			destroys.forEach((f) => f());
-		},
-		import: async (text: string, name = 'skills.json') => {
-			codeAPI.setFile({ name, text: async () => text });
-			await codeAPI.importFile();
-			await Promise.all(jobs);
 		}
 	};
 };
@@ -206,48 +191,40 @@ it('sends one delete per id while pending', async () => {
 	d.resolve(true);
 	await first;
 });
-it('contains refused import without a success notice', async () => {
+it.each(['skills.json', 'skill.md', 'skills.zip', 'skill.skill'])(
+	'opens the actual bundle preview without reading or writing a selected %s',
+	async (name) => {
+		const r = rig();
+		const file = { name, text: vi.fn(async () => 'bundle') };
+		r.api.setFile(file);
+		await r.api.importFile();
+		expect(r.api.importState()).toEqual({ show: true, files: [file] });
+		expect(file.text).not.toHaveBeenCalled();
+		expect(r.create).not.toHaveBeenCalled();
+		expect(r.context.goto).not.toHaveBeenCalled();
+		expect(r.successes).toEqual([]);
+		expect(r.errors).toEqual([]);
+	}
+);
+it('preserves multiple selected files for confirmation and connects the actual chooser', async () => {
 	const r = rig();
-	r.create.mockRejectedValue(Error('refused'));
-	await r.import(JSON.stringify([item]));
-	expect(r.successes).toEqual([]);
-	expect(r.errors).toHaveLength(1);
+	const files = ['first.md', 'second.zip'].map((name) => ({ name, text: async () => '' }));
+	r.api.setFiles(files);
+	await r.api.importFile();
+	expect(r.api.importState()).toEqual({ show: true, files });
+	const source = readFileSync('src/lib/components/workspace/Skills.svelte', 'utf8');
+	expect(source).toMatch(/type="file"[\s\S]*?on:change=\{importHandler\}/);
 });
-it('validates all entries before the first write', async () => {
+it('does not open a preview for a cancelled selection or after destruction', async () => {
 	const r = rig();
-	await r.import(JSON.stringify([item, { ...item, id: 7 }]));
-	expect(r.create).not.toHaveBeenCalled();
-});
-it('stops partial import at first refusal and reports accepted count', async () => {
-	const r = rig();
-	r.create.mockResolvedValueOnce({ ...item }).mockRejectedValueOnce(Error('refused'));
-	await r.import(JSON.stringify([item, { ...item, id: 'second' }, { ...item, id: 'third' }]));
-	expect(r.create).toHaveBeenCalledTimes(2);
-	expect(r.successes).toEqual([]);
-	expect(r.errors[0]).toContain('1');
-});
-it('ignores late JSON reads after destruction', async () => {
-	const r = rig(),
-		d = deferred<string>();
-	r.api.setFile({ name: 'skills.json', text: () => d.promise });
-	const pending = r.api.importFile();
+	r.api.setFile(null);
+	await r.api.importFile();
+	expect(r.api.importState().show).toBe(false);
 	r.destroy();
-	d.resolve(JSON.stringify([item]));
-	await pending;
-	await setImmediate();
+	r.api.setFile({ name: 'skill.md', text: async () => '' });
+	await r.api.importFile();
+	expect(r.api.importState().show).toBe(false);
 	expect(r.create).not.toHaveBeenCalled();
-});
-it('ignores late Markdown reads after destruction', async () => {
-	const r = rig(),
-		d = deferred<string>();
-	r.api.setFile({ name: 'skill.md', text: () => d.promise });
-	const pending = r.api.importFile();
-	r.destroy();
-	d.resolve('markdown');
-	await pending;
-	await setImmediate();
-	expect(r.context.goto).not.toHaveBeenCalled();
-	expect(r.context.sessionStorage.skill).toBe('');
 });
 it.each(['clone', 'export'] as const)('ignores late %s results', async (name) => {
 	const r = rig(),
@@ -289,16 +266,6 @@ it('loads an ordinary page as a positive control', async () => {
 	expect(r.api.items()[0].id).toBe('sample');
 	expect(r.errors).toEqual([]);
 });
-it('preserves the Markdown editor path as a positive control', async () => {
-	const r = rig();
-	await r.import('markdown', 'skill.md');
-	expect(r.create).not.toHaveBeenCalled();
-	expect(r.context.goto).toHaveBeenCalledWith('/workspace/skills/create');
-	expect(JSON.parse(r.context.sessionStorage.skill)).toMatchObject({
-		id: 'from-md',
-		content: 'markdown'
-	});
-});
 it.each(['refused', 'null', 'accepted'])(
 	'only confirms accepted editor access update: %s',
 	async (mode) => {
@@ -311,8 +278,10 @@ it.each(['refused', 'null', 'accepted'])(
 			success = vi.fn();
 		const run = runInNewContext(`(${fn})`, {
 			edit: true,
+			structuredClone,
 			skill: { id: 'id' },
 			accessGrants: [],
+			savedAccessGrants: [],
 			localStorage: { token: 't' },
 			$i18n: { t: (s: string) => s },
 			Error,
@@ -345,7 +314,15 @@ it('recovers editor loading after submit refusal and preserves inactive state', 
 			onSubmit,
 			Error,
 			disabled: false,
+			readOnly: false,
+			meta: { tags: ['saved'] },
+			fileEditor: { getOperations: async () => [] },
+			currentVersionId: 'version',
+			commitMessage: '',
+			skillError: (e: unknown) => String(e),
+			conflict: false,
 			edit: true,
+			structuredClone,
 			skill: { is_active: false, meta: { tags: ['saved'] } },
 			id: 'id',
 			name: 'Name',
@@ -474,25 +451,6 @@ it('aborts before fetch and enforces deadline through response body', async () =
 	await vi.advanceTimersByTimeAsync(60_000);
 	await pending;
 	expect(vi.getTimerCount()).toBe(0);
-});
-it('contains file/JSON failures and blocks a duplicate pending import', async () => {
-	const r = rig(),
-		d = deferred<string>();
-	r.api.setFile({ name: 'skills.json', text: () => d.promise });
-	const first = r.api.importFile();
-	await r.api.importFile();
-	d.resolve(JSON.stringify(item));
-	await first;
-	expect(r.create).toHaveBeenCalledTimes(1);
-	await r.import('{');
-	r.api.setFile({
-		name: 'skills.json',
-		text: async () => {
-			throw Error('read refused');
-		}
-	});
-	await r.api.importFile();
-	expect(r.errors).toHaveLength(2);
 });
 it.each([undefined, null, [], [{ principal_type: 'user', principal_id: 'u', permission: 'read' }]])(
 	'preserves import grants: %j',

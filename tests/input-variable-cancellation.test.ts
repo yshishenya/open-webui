@@ -152,10 +152,11 @@ const initializer = (kind: 'chat' | 'channel' | 'form', name: string): string =>
 		readFileSync(path, 'utf8').split('<script lang="ts">').at(-1)!.split('</script>')[0],
 		ts.ScriptTarget.Latest
 	);
+	const actualName = kind === 'chat' && name === 'setText' ? 'setTextHandler' : name;
 	const declaration = source.statements
 		.filter(ts.isVariableStatement)
 		.flatMap((s) => Array.from(s.declarationList.declarations))
-		.find((d) => d.name.getText(source) === name);
+		.find((d) => d.name.getText(source) === actualName);
 	if (!declaration?.initializer) throw new Error(`Missing real ${name}`);
 	return declaration.initializer.getText(source);
 };
@@ -168,6 +169,7 @@ const caller = (kind: 'chat' | 'channel') => {
 		inputVariablesModalCallback: (values: Record<string, unknown>) => void;
 		inputVariablesModalCancelCallback: () => void;
 	} = {
+		focus: (): void => {},
 		inputVariables: {},
 		inputVariableValues: {},
 		showInputVariablesModal: false,
@@ -205,6 +207,11 @@ const caller = (kind: 'chat' | 'channel') => {
 			context
 		) as (text: string, cb?: (text: string) => void) => Promise<string | null | void | boolean>;
 	context.inputVariableHandler = evaluate('inputVariableHandler');
+	if (kind === 'chat') {
+		context.setText = (text = '') => {
+			(context.chatInputElement as { setText: (value: string) => void } | null)?.setText(text);
+		};
+	}
 	return { context, input, replacement, evaluate, draft: (): string => draft };
 };
 it.each(

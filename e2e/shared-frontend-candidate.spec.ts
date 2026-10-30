@@ -36,14 +36,18 @@ test('knowledge editor keeps nullable files, lazy content, rename and read-only 
 	const id = 'isolated-knowledge-contract';
 	let writeAccess = true;
 	let name = 'Document';
-	let contentReads = 0;
+	let originalReads = 0;
+	let indexedReads = 0;
+	let indexedContent = 'Lazy extracted content';
+	const contentWrites: string[] = [];
+	const unexpectedFileRequests: string[] = [];
 	const renames: string[] = [];
 	const file = () => ({
 		id: 'stored',
 		user_id: 'owner',
 		filename: 'document.txt',
 		hash: null,
-		meta: { name },
+		meta: { name, content_type: 'text/plain' },
 		data: null,
 		created_at: 0,
 		updated_at: null
@@ -87,14 +91,35 @@ test('knowledge editor keeps nullable files, lazy content, rename and read-only 
 		});
 	});
 	await page.route('**/api/v1/files/stored**', async (route) => {
-		if (new URL(route.request().url()).pathname.endsWith('/rename')) {
-			const body = route.request().postDataJSON() as { filename: string };
+		const request = route.request();
+		const url = new URL(request.url());
+		if (request.method() === 'POST' && url.pathname === '/api/v1/files/stored/rename') {
+			const body = request.postDataJSON() as { filename: string };
 			renames.push(body.filename);
 			name = body.filename;
 			return route.fulfill({ json: file() });
 		}
-		contentReads++;
-		return route.fulfill({ json: { ...file(), data: { content: 'Lazy extracted content' } } });
+		if (request.method() === 'GET' && url.pathname === '/api/v1/files/stored/content') {
+			expect(url.search).toBe('?attachment=false');
+			originalReads++;
+			return route.fulfill({ contentType: 'text/plain', body: 'Original uploaded document' });
+		}
+		if (request.method() === 'GET' && url.pathname === '/api/v1/files/stored/data/content') {
+			indexedReads++;
+			return route.fulfill({ json: { content: indexedContent } });
+		}
+		if (
+			request.method() === 'POST' &&
+			url.pathname === '/api/v1/files/stored/data/content/update'
+		) {
+			expect(writeAccess).toBe(true);
+			const body = request.postDataJSON() as { content: string };
+			contentWrites.push(body.content);
+			indexedContent = body.content;
+			return route.fulfill({ json: { content: indexedContent } });
+		}
+		unexpectedFileRequests.push(`${request.method()} ${url.pathname}${url.search}`);
+		return route.abort();
 	});
 	await page.goto(`/workspace/knowledge/${id}`);
 	await expect(page.getByLabel('Knowledge Name', { exact: true })).toHaveValue(
@@ -107,15 +132,29 @@ test('knowledge editor keeps nullable files, lazy content, rename and read-only 
 	await expect(rows).toHaveCount(3);
 	await expect(rows.nth(0)).toContainText('Folder');
 	await expect(rows.nth(1)).toContainText('Document');
-	expect(contentReads).toBe(0);
+	expect(originalReads).toBe(0);
+	expect(indexedReads).toBe(0);
 	await rows.nth(1).getByRole('button', { name: 'Document', exact: true }).click();
-	await expect(page.getByLabel('File content', { exact: true })).toHaveValue(
-		'Lazy extracted content'
+	await expect(page.getByRole('button', { name: 'Preview', exact: true })).toHaveAttribute(
+		'aria-pressed',
+		'true'
 	);
-	expect(contentReads).toBe(1);
-	await page.getByRole('button', { name: 'Close', exact: true }).click();
+	await expect.poll(() => originalReads).toBe(1);
+	await expect.poll(() => indexedReads).toBe(1);
+	await page.getByRole('button', { name: 'Indexed text', exact: true }).click();
+	const content = page.getByRole('textbox', { name: 'File content', exact: true });
+	await expect(content).toHaveText('Lazy extracted content');
+	await expect(content).not.toBeEditable();
+	await expect.poll(() => indexedReads).toBe(2);
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+	await expect(content).toBeEditable();
+	await content.fill('Accepted indexed content');
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect.poll(() => contentWrites).toEqual(['Accepted indexed content']);
+	await expect(content).not.toBeEditable();
+	await expect(content).toHaveText('Accepted indexed content');
 	await rows.nth(1).getByRole('button').last().click();
-	await page.getByRole('button', { name: 'Rename', exact: true }).click();
+	await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
 	const rename = rows.nth(1).locator('input');
 	await rename.fill('Renamed document');
 	await rename.press('Enter');
@@ -126,7 +165,12 @@ test('knowledge editor keeps nullable files, lazy content, rename and read-only 
 	await expect(page.getByLabel('Knowledge Name', { exact: true })).toBeDisabled();
 	await expect(page.getByRole('button', { name: 'Add Content', exact: true })).toHaveCount(0);
 	await rows.nth(1).getByRole('button', { name: 'Renamed document', exact: true }).click();
-	await expect(page.getByLabel('File content', { exact: true })).toBeDisabled();
+	await page.getByRole('button', { name: 'Indexed text', exact: true }).click();
+	await expect(content).toHaveText('Accepted indexed content');
+	await expect(content).not.toBeEditable();
+	await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
+	expect(contentWrites).toEqual(['Accepted indexed content']);
+	expect(unexpectedFileRequests).toEqual([]);
 	expect(errors).toEqual([]);
 });
 
@@ -188,7 +232,7 @@ test('empty-data note accepts title and collaborative text and survives reload',
 		await page.goto(`/notes/${record.id}`);
 		const title = page.getByPlaceholder('Title', { exact: true });
 		await expect(title).toHaveValue('Isolated note acceptance');
-		const editor = page.locator(`#note-${record.id}`);
+		const editor = page.getByRole('textbox', { name: 'Write something...', exact: true });
 		await expect(editor).toBeVisible();
 		await title.fill('Accepted title');
 		await editor.click();
@@ -197,11 +241,15 @@ test('empty-data note accepts title and collaborative text and survives reload',
 			.poll(async () => {
 				const r = await page.request.get(`/api/v1/notes/${record.id}`, { headers });
 				expect(r.ok()).toBe(true);
-				return (await r.json()) as { title: string; data: { content: { md: string } } };
+				const saved = (await r.json()) as {
+					title: string;
+					data: { pages: { id: string; content: { md: string } }[] };
+				};
+				return { title: saved.title, pages: saved.data.pages };
 			})
 			.toMatchObject({
 				title: 'Accepted title',
-				data: { content: { md: 'Accepted collaborative text' } }
+				pages: [{ id: 'main', content: { md: 'Accepted collaborative text' } }]
 			});
 		await page.reload();
 		await expect(title).toHaveValue('Accepted title');

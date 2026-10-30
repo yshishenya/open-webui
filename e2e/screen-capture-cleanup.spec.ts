@@ -53,7 +53,7 @@ test('failed screen frame releases tracks and leaves the draft usable', async ({
 		});
 	});
 	await page.locator('#input-menu-button').click();
-	await page.getByRole('button', { name: 'Capture', exact: true }).click();
+	await page.getByRole('menuitem', { name: 'Capture', exact: true }).click();
 	await expect
 		.poll(() => page.evaluate(() => window.__airisCaptureProof))
 		.toEqual({

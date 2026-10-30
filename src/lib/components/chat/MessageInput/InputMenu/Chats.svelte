@@ -6,7 +6,7 @@
 	import type { ChatTitleIdResponse } from '$lib/utils/airis/frontend-contracts';
 
 	import { decodeString } from '$lib/utils';
-	import { getChatList, getChatListBySearchText } from '$lib/apis/chats';
+	import { getChatList, getChatListBySearchText, getChatSearchSnippet } from '$lib/apis/chats';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -16,7 +16,7 @@
 
 	const i18n = getContext<Writable<I18n>>('i18n');
 
-	type ChatSelection = ChatTitleIdResponse & { type: string; name: string; description: string };
+	type ChatSelection = ChatTitleIdResponse & { type: string; name: string; description?: string };
 	export let onSelect: (item: ChatSelection) => void = () => {};
 
 	let loaded = false;
@@ -32,6 +32,18 @@
 	let searchedQuery = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 	let requestId = 0;
+
+	const loadSnippet = async (item: { id: string; snippet?: string | null }) => {
+		if (!searchedQuery.trim() || item.snippet !== undefined) return;
+		item.snippet = null;
+		try {
+			item.snippet = await getChatSearchSnippet(localStorage.token, item.id, searchedQuery);
+			items = items;
+		} catch (error) {
+			item.snippet = undefined;
+			console.error(error);
+		}
+	};
 
 	// Only re-run the search when the query actually changes. Flipping `initialized`
 	// after the initial load would otherwise trigger a second, identical request.
@@ -86,9 +98,10 @@
 				.map((item) => {
 					return {
 						...item,
+						snippet: item.snippet,
+						description: item.snippet ?? undefined,
 						type: 'chat',
-						name: item.title,
-						description: item.snippet || dayjs(item.updated_at * 1000).fromNow()
+						name: item.title
 					};
 				})
 		];
@@ -125,7 +138,7 @@
 				<div class="flex flex-col gap-0.5">
 					{#each items as item, idx}
 						<button
-							class=" h-[1.6875rem] px-2 rounded-xl w-full text-left flex justify-between items-center text-[13px] font-normal {idx ===
+							class=" h-[1.6875rem] px-2 rounded-xl w-full text-left flex justify-between items-center text-[0.8125rem] font-normal {idx ===
 							selectedIdx
 								? ' bg-gray-50/40 dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button'
 								: ''}"
@@ -145,8 +158,12 @@
 						>
 							<div class="text-black dark:text-gray-100 flex items-center gap-1.5">
 								<Tooltip
-									content={item.description || decodeString(item?.name)}
+									content={item.snippet ||
+										dayjs(item.updated_at * 1000)
+											.locale($i18n.language)
+											.fromNow()}
 									placement="top-start"
+									tippyOptions={{ onShown: () => loadSnippet(item) }}
 								>
 									<div class="line-clamp-1 flex-1">
 										{decodeString(item?.name)}

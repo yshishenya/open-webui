@@ -71,6 +71,7 @@ it('preserves the one-shot null opt-out and normal temporary-mode initialization
 		[true, false, true]
 	] as const) {
 		const context = {
+			$page: { url: new URL('https://chat.test/') },
 			$user: { role: 'user', permissions: { chat: { temporary: true } } },
 			$settings: { temporaryChatByDefault: defaultEnabled },
 			$temporaryChatEnabled: initial as boolean | null,

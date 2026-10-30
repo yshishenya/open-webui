@@ -53,7 +53,7 @@ it('initializes a sorter after binding the real list and destroys it on unmount'
 	await tick();
 	expect(mocks.destroyed).toHaveBeenCalledOnce();
 });
-it('replacing rendered banners destroys the previous sorter exactly once', async () => {
+it('replacing rendered banners retains the sorter on the same list and releases it on unmount', async () => {
 	const instance = createClassComponent({
 		component: Banners,
 		target: document.body,
@@ -67,6 +67,10 @@ it('replacing rendered banners destroys the previous sorter exactly once', async
 	await tick();
 	expect(document.querySelector('#banner-item-a')).toBeNull();
 	expect(document.querySelector('#banner-item-b')).not.toBeNull();
-	expect(mocks.created).toHaveBeenCalledTimes(2);
+	expect(mocks.created).toHaveBeenCalledOnce();
+	expect(mocks.destroyed).not.toHaveBeenCalled();
+	instance.$destroy();
+	instances.pop();
+	await tick();
 	expect(mocks.destroyed).toHaveBeenCalledOnce();
 });

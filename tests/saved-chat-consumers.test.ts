@@ -29,6 +29,16 @@ function assignment(name: string, contains: string): string {
 		throw new Error(`Expected one ${name} consumer, found ${matches.length}`);
 	return matches[0];
 }
+const normalization = (() => {
+ let expression = '';
+ function visit(node: ts.Node): void {
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken && node.left.getText(source) === 'chatContent.history') expression = node.getText(source);
+  ts.forEachChild(node, visit);
+ }
+ visit(source);
+ if (!expression) throw new Error('Missing legacy history normalization');
+ return expression;
+})();
 function initializer(file: ts.SourceFile, name: string): string {
 	for (const statement of file.statements) {
 		if (!ts.isVariableStatement(statement)) continue;
@@ -66,7 +76,7 @@ const record = (): SavedChat => ({
 });
 
 it('preserves the stored-owner read-only boundary, including null state', () => {
-	const code = assignment('readOnly', 'chat.user_id');
+	const code = assignment('isShared', 'chat.user_id');
 	expect(run(code, { chat: record(), $user: { id: 'owner' } })).toBe(false);
 	expect(run(code, { chat: record(), $user: { id: 'reader' } })).toBe(true);
 	expect(run(code, { chat: record(), $user: null })).toBe(true);
@@ -113,7 +123,7 @@ it('loads modern and legacy history while preserving duplicate model slots and s
 		expect(run(assignment('selectedModels', 'chatContent.models'), context)).toEqual(['']);
 		expect(
 			run<{ currentId: string; messages: Record<string, { childrenIds: string[] }> }>(
-				assignment('history', 'chatContent.history'),
+				`(() => { ${normalization}; return ${assignment('history', 'chatContent.history')}; })()`,
 				context
 			)
 		).toMatchObject({
@@ -128,6 +138,7 @@ it('loads modern and legacy history while preserving duplicate model slots and s
 it('updates the actual autosave baseline once, keeps it on failure and excludes temporary chats', async () => {
 	const context = {
 		$chatId: 'chat',
+		isShared: false,
 		$temporaryChatEnabled: false,
 		chat: record(),
 		params: { temperature: 0.8 },
@@ -149,14 +160,14 @@ it('updates the actual autosave baseline once, keeps it on failure and excludes 
 	await save();
 	expect(context.updateChatById).toHaveBeenCalledTimes(1);
 	const baseline = context.chat;
-	context.params = { temperature: 0.9 };
+	context.chatFiles = [{ id: 'next-file' }];
 	context.updateChatById.mockRejectedValueOnce(new Error('offline'));
 	await save();
 	expect(context.chat).toEqual(baseline);
 	await save();
 	expect(context.updateChatById).toHaveBeenCalledTimes(3);
 	context.$temporaryChatEnabled = true;
-	context.params = { temperature: 0.1 };
+	context.chatFiles = [{ id: 'temporary-file' }];
 	await save();
 	expect(context.updateChatById).toHaveBeenCalledTimes(3);
 });

@@ -7,6 +7,7 @@ import ts from 'typescript';
 import { afterEach, expect, it, vi } from 'vitest';
 import { loadToolByUrl } from '$lib/apis/tools';
 import { getErrorMessage } from './error_message';
+import { lockBodyScroll } from './body_scroll_lock';
 vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
 
 const transpile = (code: string): string =>
@@ -319,6 +320,7 @@ const modalRig = (env = modalEnvironment()) => {
 		{
 			exports: {},
 			element,
+			lockBodyScroll,
 			document: env.doc,
 			window: env.win,
 			Element: FakeElement,

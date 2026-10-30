@@ -7,7 +7,7 @@ vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api/v1' }));
 afterEach(() => {
 	vi.unstubAllGlobals();
 });
-import { transpileModule, ScriptTarget } from 'typescript';
+import ts, { transpileModule, ScriptTarget } from 'typescript';
 
 type Item = {
 	id: string;
@@ -18,10 +18,11 @@ type Item = {
 	authenticated?: boolean;
 	has_user_valves?: boolean;
 };
-type Menu = Record<string, { name: string; enabled: boolean; authenticated?: boolean }>;
+type Menu = Record<string, { name: string; authenticated?: boolean }>;
 type State = {
 	toolList: Item[] | null;
 	skillList: Item[] | null;
+	terminalList: Item[] | null;
 	servers: { url: string; info?: { title?: string; description?: string } }[];
 	selectedTools: string[];
 	selectedSkills: string[];
@@ -38,7 +39,8 @@ type InitFactory = (
 
 // Exercise the actual component initializer, with its stores and API outcomes.
 const source = readFileSync('src/lib/components/chat/MessageInput/IntegrationsMenu.svelte', 'utf8');
-const initializer = source.slice(source.indexOf('const init = async'), source.indexOf('</script>'));
+const script = ts.createSourceFile('integrations.ts', source.split('<script lang="ts">')[1].split('</script>')[0], ts.ScriptTarget.Latest);
+const initializer = script.statements.filter(ts.isVariableStatement).flatMap(s => [...s.declarationList.declarations]).filter(d => ['init', 'setTools', 'setSkills', 'loadTools', 'loadSkills'].includes(d.name.getText(script))).map(d => `const ${d.getText(script)};`).join('\n');
 const compiled = transpileModule(initializer, { compilerOptions: { target: ScriptTarget.ES2022 } });
 const initializerFactory = new Function(
 	'state',
@@ -52,6 +54,10 @@ const initializerFactory = new Function(
 	 let tools = state.tools, skills = state.skills, tab = '';
 	 let selectedToolIds = state.selectedTools, selectedSkillIds = state.selectedSkills;
 	 let $toolServers = state.servers;
+	 let toolQuery = '', skillQuery = '', searchedToolQuery = '', searchedSkillQuery = '';
+	 let toolRequestId = 0, skillRequestId = 0;
+	 const getTerminalSkillItems = async () => state.terminalList;
+	 const resolveLocalizedResource = (item, lang, key = 'name') => item[key] ?? '';
 	 ${compiled.outputText}
 	 return async () => {
 		$_tools = state.toolList; $_skills = state.skillList; $toolServers = state.servers;
@@ -66,6 +72,7 @@ const item = (id: string): Item => ({ id, name: id, meta: { description: null } 
 const state = (): State => ({
 	toolList: null,
 	skillList: [],
+	terminalList: [],
 	servers: [{ url: 'https://fixture.invalid', info: { title: 'Direct' } }],
 	selectedTools: ['saved', 'direct_server:0'],
 	selectedSkills: ['saved-skill'],
@@ -95,12 +102,12 @@ describe('integration menu list recovery', () => {
 				error: (message) => errors.push(message)
 			});
 			await init();
-			expect(value.tools).toMatchObject({ 'direct_server:0': { name: 'Direct', enabled: true } });
+			expect(value.tools).toMatchObject({ 'direct_server:0': { name: 'Direct' } });
 			expect(value.selectedTools).toEqual(['saved', 'direct_server:0']);
 			expect(errors).toHaveLength(1);
 			value.toolList = [item('saved')];
 			await init();
-			expect(value.tools?.saved.enabled).toBe(true);
+			expect(value.selectedTools).toContain('saved');
 		}
 	);
 
@@ -119,7 +126,20 @@ describe('integration menu list recovery', () => {
 		expect(value.selectedSkills).toEqual(['saved-skill']);
 		value.skillList = [{ ...item('saved-skill'), is_active: true }];
 		await init();
-		expect(value.skills?.['saved-skill'].enabled).toBe(true);
+		expect(value.selectedSkills).toContain('saved-skill');
+	});
+
+	it('preserves terminal skill selection on failed discovery and removes it after authoritative recovery', async () => {
+		const value = state();
+		value.toolList = [];
+		value.terminalList = null;
+		value.selectedSkills = ['terminal-skill'];
+		const init = createInit(value, fetched, fetched, {error: () => {}});
+		await init();
+		expect(value.selectedSkills).toEqual(['terminal-skill']);
+		value.terminalList = [];
+		await init();
+		expect(value.selectedSkills).toEqual([]);
 	});
 
 	it('does not retain stale records when reopened after a failed list', async () => {
@@ -165,8 +185,8 @@ describe('integration menu list recovery', () => {
 		value.selectedSkills = ['active', 'inactive'];
 		await createInit(value, fetched, fetched, { error: () => {} })();
 		expect(value.tools).toMatchObject({
-			'server:mcp:one': { authenticated: false, has_user_valves: true, enabled: true },
-			'direct_server:1': { name: 'fallback', enabled: true }
+			'server:mcp:one': { authenticated: false, has_user_valves: true },
+			'direct_server:1': { name: 'fallback' }
 		});
 		expect(value.selectedTools).toEqual(['server:mcp:one', 'direct_server:1']);
 		expect(value.selectedSkills).toEqual(['active']);

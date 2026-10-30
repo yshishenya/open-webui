@@ -28,6 +28,7 @@
 	export let boilerplate = '';
 	export let value = '';
 	export let className = 'text-sm';
+	export let readOnly = false;
 
 	export let onSave: () => unknown = () => {};
 	export let onChange: (value: string) => unknown = () => {};
@@ -76,6 +77,7 @@
 
 	export let id = '';
 	export let lang = '';
+	export let ariaLabel = '';
 
 	let codeEditor: EditorView | null = null;
 	let container: HTMLDivElement;
@@ -89,6 +91,23 @@
 	let isDarkMode = false;
 	let editorTheme = new Compartment();
 	let editorLanguage = new Compartment();
+	const editorPlaceholder = new Compartment();
+	const editorReadOnly = new Compartment();
+	$: if (codeEditor) {
+		codeEditor.dispatch({
+			effects: editorReadOnly.reconfigure([
+				EditorState.readOnly.of(readOnly),
+				EditorView.editable.of(!readOnly)
+			])
+		});
+	}
+	$: if (codeEditor) {
+		codeEditor.dispatch({
+			effects: editorPlaceholder.reconfigure(
+				readOnly ? [] : placeholder($i18n.t('Enter your code here...'))
+			)
+		});
+	}
 
 	const getLang = async (): Promise<LanguageSupport | undefined> => {
 		const language = languages.find((l) => l.alias.includes(lang));
@@ -196,7 +215,8 @@ print("${endTag}")
 		});
 	};
 
-	export const formatPythonCodeHandler = async (): Promise<boolean> => {
+	export const formatPythonCodeHandler = async () => {
+		if (readOnly) return false;
 		if (codeEditor) {
 			const editor = codeEditor;
 			const original = _value;
@@ -212,7 +232,7 @@ print("${endTag}")
 			});
 			if (activeFormat !== request || codeEditor !== editor || _value !== original) return false;
 			activeFormat = null;
-			if (res && typeof res.code === 'string' && res.code) {
+			if (!readOnly && res && typeof res.code === 'string') {
 				const formattedCode = res.code;
 				editor.dispatch({
 					changes: [{ from: 0, to: editor.state.doc.length, insert: formattedCode }]
@@ -230,13 +250,16 @@ print("${endTag}")
 
 	let extensions: Extension[] = [
 		basicSetup,
+		EditorView.contentAttributes.of({ tabindex: '0' }),
+		EditorView.contentAttributes.of(ariaLabel ? { 'aria-label': ariaLabel } : {}),
 		keymap.of([{ key: 'Tab', run: acceptCompletion }, indentWithTab]),
 		indentUnit.of('    '),
-		placeholder($i18n.t('Enter your code here...')),
+		editorPlaceholder.of([]),
+		editorReadOnly.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
 		EditorView.updateListener.of((e) => {
 			if (e.docChanged) {
 				_value = e.state.doc.toString();
-				onChange(_value);
+				if (!readOnly) onChange(_value);
 			}
 		}),
 		editorTheme.of([]),
@@ -257,7 +280,7 @@ print("${endTag}")
 	};
 
 	onMount(() => {
-		if (value === '') {
+		if (value === '' && !readOnly) {
 			value = boilerplate;
 		}
 
@@ -309,15 +332,16 @@ print("${endTag}")
 			attributeFilter: ['class']
 		});
 
-		const keydownHandler = async (e: KeyboardEvent): Promise<void> => {
+		const keydownHandler = async (e: KeyboardEvent) => {
+			if (!codeEditor?.hasFocus) return;
 			if ((e.ctrlKey || e.metaKey) && e.key === 's') {
 				e.preventDefault();
 
-				onSave();
+				if (!readOnly) onSave();
 			}
 
 			// Format code when Ctrl + Shift + F is pressed
-			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'f') {
+			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
 				e.preventDefault();
 				await formatPythonCodeHandler();
 			}

@@ -23,7 +23,7 @@
 		controller.abort();
 	});
 	$: promptId = $page.params.id;
-	const onSubmit = async (draft: PromptForm): Promise<boolean> => {
+	const onSubmit = async (draft: PromptForm): Promise<PromptRecord | false> => {
 		if (!alive || disabled || saving) return false;
 		saving = true;
 		try {
@@ -32,7 +32,7 @@
 			if (!alive) return false;
 			prompt = updated;
 			toast.success($i18n.t('Prompt updated successfully'));
-			return true;
+			return updated;
 		} catch (error) {
 			if (alive) toast.error(`${error}`);
 			return false;

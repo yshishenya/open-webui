@@ -194,6 +194,7 @@ it.each(['hide', 'privacy'])(
 			`let models=[fixtureModel]; ${handler.getText(ast)} ({mutate:${name}, reload:()=>{models=null;}, state:()=>models});`,
 			{
 				fixtureModel: model,
+				savedModels: [],
 				upsertModelHandler: () => pending,
 				updateModelAccessGrants: () => pending,
 				isPublicModel: () => false,

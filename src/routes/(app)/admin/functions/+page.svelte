@@ -7,7 +7,7 @@
 	let enabled = false;
 
 	onMount(() => {
-		if (!$config?.features?.enable_plugins) {
+		if (!$config?.features?.enable_functions) {
 			void goto('/admin', { replaceState: true });
 			return;
 		}

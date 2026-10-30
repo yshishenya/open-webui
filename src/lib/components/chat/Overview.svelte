@@ -7,8 +7,9 @@
 
 	export let history: ChatHistory;
 	export let onNodeClick: (event: ChatOverviewClick) => void;
+	export let chatUser: import('svelte').ComponentProps<typeof View>['chatUser'] = null;
 </script>
 
 <SvelteFlowProvider>
-	<View {history} {onNodeClick} />
+	<View {history} {onNodeClick} {chatUser} />
 </SvelteFlowProvider>

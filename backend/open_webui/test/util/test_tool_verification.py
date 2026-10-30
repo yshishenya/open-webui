@@ -246,7 +246,8 @@ async def test_tool_verification_native_oauth_discovery(monkeypatch: pytest.Monk
         if scenario == 'valid':
             assert response.json()['status'] is True
             metadata = response.json()['oauth_server_metadata']
-            assert metadata['issuer'] == 'https://issuer.invalid/'
+            # Issuer identifiers are preserved exactly, including a meaningful trailing slash.
+            assert metadata['issuer'] == 'https://issuer.invalid'
             assert metadata['response_types_supported'] == ['code']
         else:
             expected = {

@@ -9,12 +9,15 @@
 ## Dependency Policy (Important)
 
 - CPU production builds can use `backend/requirements-production.lock` with
-  `AIRIS_PRODUCTION_LOCK=true`. This freezes the accepted Python 3.11 amd64
-  environment by artifact URL and SHA256; dependencies are not implicitly upgraded.
+  `AIRIS_PRODUCTION_LOCK=true`. The v0.12.5 candidate freezes Python 3.12 linux/amd64
+  dependencies by exact version and SHA256. It was installed in a clean Debian 13
+  dependency image; application and migration acceptance are still required.
   The compatible native trio is torch 2.9.1, torchvision 0.24.1 and torchaudio 2.9.1.
   The 2.9.1 compatibility exception preserves the tested runtime and the existing
   ARM SIGILL constraint; upgrade all three together in a separate work item.
-- Build-time uv remains 0.12.5, the accepted installer version. Production builds
+- Build-time uv is 0.12.10 for the v0.12.5 candidate. Latest stable checked
+  2026-10-30 is 0.13.6; keep 0.12.10 to reproduce this resolved and hash-verified
+  dependency graph. Upgrade the installer separately after clean-build acceptance. Production builds
   pass immutable Node/Python image digests and use the prepared static manifest to
   avoid fetching newer Pyodide wheels. CUDA and CPU locks are separate; the CPU lock
   rejects CUDA builds. `backend/check_native_audio.py` validates native imports and
@@ -26,13 +29,19 @@
 - **Upgrade path**: when current pinned versions are behind, run upgrades as explicit work items:
   read release notes, update versions incrementally where needed, and run the full verification suite.
 
+- AIRIS mail compatibility exceptions: retain `aiosmtplib==3.0.2` and
+  `email-validator==2.2.0` during upstream integration. PyPI latest stable on
+  2026-10-30 is 5.1.3 and 2.3.0 respectively. Existing delivery/replay/address
+  contracts require separate upgrade acceptance; do not mix those upgrades
+  with the upstream migration.
+
 ## Core Stack
 
 ### Backend
 
-- **Language**: Python 3.11-3.12
-- **Web Framework**: FastAPI 0.128.0 (async-first, high-performance API framework)
-- **Server**: Uvicorn 0.40.0 (ASGI server)
+- **Language**: Python 3.12 (Debian 13/trixie candidate base)
+- **Web Framework**: FastAPI 0.136.3 (async-first, high-performance API framework)
+- **Server**: Uvicorn 0.54.0 (ASGI server)
 - **Async Runtime**: asyncio with async/await patterns
 
 ### Frontend
@@ -49,9 +58,9 @@
 - **Default**: SQLite (embedded, for development)
 - **Production**: PostgreSQL 16-alpine
 - **ORM**:
-  - SQLAlchemy 2.0.45 (primary)
+  - SQLAlchemy 2.0.50 (primary)
   - Peewee 3.18.3 (legacy, for backward compatibility)
-- **Migrations**: Alembic 1.17.2
+- **Migrations**: Alembic 1.18.4
 
 ### Caching & Sessions
 
@@ -67,7 +76,7 @@
 
 ### Python
 
-- **Pydantic 2.12.5**: Runtime data validation and settings management
+- **Pydantic 2.13.4**: Runtime data validation and settings management
 - **email-validator 2.2.0**: Email validation for `EmailStr`
 - Environment variables parsed in `backend/open_webui/env.py` (no Pydantic Settings in this repo)
 
@@ -92,8 +101,8 @@
   global `data-onauth` callback is removed on replacement/destruction and late
   auth/error events are discarded. Backend verification remains authoritative.
 
-- **JWT**: PyJWT 2.10.1 with crypto support
-- **OAuth/OIDC**: Authlib 1.6.6
+- **JWT**: PyJWT 2.13.0 with crypto support
+- **OAuth/OIDC**: Authlib 1.7.2
 - **JWT Legacy**: python-jose 3.5.0
 - **Password Hashing**:
   - bcrypt 5.0.0
@@ -109,10 +118,10 @@
 ### Backend
 
 - **HTTP Client**: httpx 0.28.1 (async, with http2, socks, brotli, zstd support)
-- **Async HTTP**: aiohttp 3.13.2
-- **Sync HTTP (legacy-only; do not use in app code)**: requests 2.32.5 (kept for legacy/third-party compatibility; prefer httpx)
-- **WebSocket**: python-socketio 5.16.0 (real-time communication)
-- **Compression**: starlette-compress 1.6.1
+- **Async HTTP**: aiohttp 3.14.5
+- **Sync HTTP (legacy-only; do not use in app code)**: requests 2.34.2 (kept for legacy/third-party compatibility; prefer httpx)
+- **WebSocket**: python-socketio 5.16.2 (real-time communication)
+- **Compression**: starlette-compress 1.7.1
 
 ### Frontend
 
@@ -139,7 +148,12 @@
   - sentence-transformers 5.2.0
   - transformers 4.57.3
 - **Vector Search**: pgvector 0.4.2 (PostgreSQL extension)
-- **Model Context Protocol**: mcp 1.25.0
+- **Model Context Protocol**: mcp 2.3.0 with httpx2 2.16.0. Both match PyPI
+  latest stable checked 2026-10-30. MCP transport uses its own httpx2 Auth,
+  AsyncClient and streamable_http_client; legacy provider HTTP remains httpx.
+  Python 3.12 is required by the integrated runtime syntax, regardless of lower
+  package metadata minima. Official SDK README and httpx2 release history are
+  recorded with the integration evidence.
 
 ### On-Device AI (Frontend)
 
@@ -235,6 +249,13 @@
 
 ## Code Quality & Testing
 
+The full backend CI test container pins `setuptools==80.10.2` after installing
+test requirements. `gcp-storage-emulator==2024.8.3` imports `pkg_resources`,
+which is absent from the observed setuptools84.2.1 installation. This test-only
+compatibility exception reproduces the successful Python3.12 full suite and does
+not change the production lock. Remove it when the storage emulator no longer
+requires `pkg_resources`, after running the storage tests and full suite.
+
 ### Python
 
 - **Linting**: ruff 0.1+ (fast Python linter; preferred in Docker-first workflow via Codex Actions/`pytools`)
@@ -278,7 +299,7 @@
 ### Backend
 
 - **Async File I/O**: aiofiles
-- **Multipart Upload**: python-multipart 0.0.21
+- **Multipart Upload**: python-multipart 0.0.32
 - **Storage**: Local filesystem or S3-compatible
 
 ### Frontend
@@ -335,7 +356,7 @@ logger.error("Payment failed", error=str(e), exc_info=True)
 
 ### Migrations
 
-- **Tool**: Alembic 1.17.2
+- **Tool**: Alembic 1.18.4
 - **Location**: backend/open_webui/migrations/versions/
 - **Naming**: `{revision}_{description}.py`
 - **Example**: b2f8a9c1d5e3_add_billing_tables.py
@@ -492,6 +513,6 @@ repo-root/
 ## Last Updated
 
 **Date**: 2026-02-05
-**Python Version**: 3.11+
+**Python Version**: 3.12
 **Node Version**: 18.13.0 - 22.x.x
-**Framework**: FastAPI 0.128.0 + SvelteKit 2.5.27
+**Framework**: FastAPI 0.136.3 + SvelteKit 2.5.27

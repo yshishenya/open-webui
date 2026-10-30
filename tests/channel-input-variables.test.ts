@@ -41,6 +41,7 @@ it.each<['channel' | 'chat', boolean, string, string, boolean]>([
 			inputVariablesModalCancelCallback: (): void => {},
 			document: { getElementById: (id: string) => (id === 'chat-input' ? input : container) },
 			Event,
+			focus: vi.fn(),
 			tick: async (): Promise<void> => {},
 			textVariableHandler: async (text: string): Promise<string> => text,
 			inputVariableHandler: async (text: string): Promise<string> => {

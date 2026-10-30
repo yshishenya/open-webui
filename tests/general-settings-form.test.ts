@@ -36,6 +36,9 @@ const loadForm = (saved: Settings) => {
 		$config: { features: { enable_easter_eggs: false } },
 		$i18n: { language: 'ru' },
 		getContext: () => ({}),
+		allowSystemPrompt: () => true,
+		canEditParameters: () => true,
+		$user: { role: 'admin' },
 		createEventDispatcher: () => dispatch,
 		onMount: (callback: () => Promise<void>) => mounts.push(callback),
 		getLanguages: async () => [],
@@ -81,7 +84,7 @@ it('saves edited form values using the existing settings payload', async () => {
 	form.edit({ stop: 'END,,STOP', temperature: 0, stream_response: true, seed: 42 });
 	await form.save();
 	const updated = persist.mock.calls[0][0];
-	expect(updated.system).toBeUndefined();
+	expect(updated.system).toBeNull();
 	expect(updated.params).toMatchObject({
 		stop: ['END', 'STOP'],
 		temperature: 0,

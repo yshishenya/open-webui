@@ -2,7 +2,7 @@ import logging
 
 import requests
 from open_webui.env import VERSION
-from open_webui.retrieval.web.main import SearchResult
+from open_webui.retrieval.web.main import SearchResult, get_filtered_results
 from open_webui.utils.headers import include_user_info_headers
 
 log = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def search_perplexity_search(
         json_response = response.json()
 
         # Extract citations from the response
-        results = json_response.get('results', [])
+        results = get_filtered_results(json_response.get('results', []), filter_list)
 
         return [
             SearchResult(link=result['url'], title=result['title'], snippet=result['snippet']) for result in results

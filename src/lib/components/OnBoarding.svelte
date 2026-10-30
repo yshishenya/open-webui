@@ -1,6 +1,7 @@
 <script>
 	import { getContext } from 'svelte';
 	import { trackEvent } from '$lib/utils/analytics';
+	import { WEBUI_NAME } from '$lib/stores';
 	const i18n = getContext('i18n');
 
 	export let show = true;
@@ -41,12 +42,15 @@
 {#if show}
 	<div class="relative h-screen max-h-[100dvh] w-full overflow-hidden text-white">
 		<div class="fixed top-6 left-6 z-50 sm:top-10 sm:left-10">
+			<!-- LICENSE covers this Open WebUI onboarding logo.
+			Do not alter, remove, obscure, or replace it except as LICENSE permits:
+			https://docs.openwebui.com/license. -->
 			<img
 				id="logo"
 				crossorigin="anonymous"
 				src="/static/favicon.png"
 				class="size-6 rounded-full"
-				alt="logo"
+				alt="{$WEBUI_NAME} logo"
 			/>
 		</div>
 
@@ -69,7 +73,10 @@
 		<div class="relative z-10 flex h-screen max-h-[100dvh] w-full">
 			<div class="flex w-full flex-col justify-end px-6 pb-8 sm:px-10 sm:pb-10 lg:px-16 lg:pb-14">
 				<div class="max-w-3xl">
-					<div class="mb-4 text-[11px] font-medium tracking-[0.18em] uppercase opacity-35">
+					<!-- LICENSE covers this Open WebUI welcome identifier.
+					Do not alter, remove, obscure, or replace it except as LICENSE permits:
+					https://docs.openwebui.com/license. -->
+					<div class="mb-4 text-[0.6875rem] font-medium tracking-[0.18em] uppercase opacity-35">
 						Airis
 					</div>
 

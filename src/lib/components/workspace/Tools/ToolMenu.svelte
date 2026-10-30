@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LockClosed from '$lib/components/icons/LockClosed.svelte';
 	import { getContext } from 'svelte';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
@@ -17,6 +18,7 @@
 	export let cloneHandler: () => void | Promise<void>;
 	export let exportHandler: () => void | Promise<void>;
 	export let deleteHandler: () => void | Promise<void>;
+	export let accessHandler: (() => void) | null = null;
 	export let onClose: () => void | Promise<void>;
 
 	export let show = false;
@@ -40,9 +42,9 @@
 	</Tooltip>
 
 	<div slot="content">
-		<DropdownMenu className="min-w-[170px]">
+		<DropdownMenu className="min-w-[10.625rem]">
 			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 				draggable="false"
 				on:click={() => {
 					editHandler();
@@ -66,9 +68,22 @@
 
 				<div class="flex items-center">{$i18n.t('Edit')}</div>
 			</button>
+			{#if accessHandler}
+				<button
+					type="button"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => {
+						accessHandler?.();
+						closeMenu();
+					}}
+				>
+					<LockClosed className="size-3.5" />
+					<div class="flex items-center">{$i18n.t('Access')}</div>
+				</button>
+			{/if}
 
 			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 				draggable="false"
 				on:click={() => {
 					cloneHandler();
@@ -82,7 +97,7 @@
 
 			{#if $user?.role === 'admin' || $user?.permissions?.workspace?.tools_export}
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					draggable="false"
 					on:click={() => {
 						exportHandler();
@@ -98,7 +113,7 @@
 			<hr class="border-gray-50 dark:border-gray-850/30 mx-1 my-0.5" />
 
 			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 				draggable="false"
 				on:click={() => {
 					deleteHandler();

@@ -1,11 +1,11 @@
 import asyncio
-import json
 import logging
 import uuid
 
 import aiohttp
 import websockets
 from open_webui.env import AIOHTTP_CLIENT_ALLOW_REDIRECTS
+from open_webui.utils.json_codec import JSONCodec
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ class JupyterCodeExecuter:
         # send message
         msg_id = uuid.uuid4().hex
         await ws.send(
-            json.dumps(
+            JSONCodec.dumps(
                 {
                     'header': {
                         'msg_id': msg_id,
@@ -156,7 +156,7 @@ class JupyterCodeExecuter:
             try:
                 # wait for message
                 message = await asyncio.wait_for(ws.recv(), self.timeout)
-                message_data = json.loads(message)
+                message_data = JSONCodec.loads(message)
                 # msg id not match, skip
                 if message_data.get('parent_header', {}).get('msg_id') != msg_id:
                     continue

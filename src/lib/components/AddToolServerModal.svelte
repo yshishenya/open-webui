@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { v4 as uuidv4 } from 'uuid';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
 	import { toast } from 'svelte-sonner';
-	import { getContext, onMount, onDestroy } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
 	import type {
@@ -24,7 +25,12 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import { getToolServerData } from '$lib/apis';
-	import { verifyToolServerConnection, registerOAuthClient } from '$lib/apis/configs';
+	import { slugify } from '$lib/utils';
+	import {
+		verifyToolServerConnection,
+		registerOAuthClient,
+		initiateOAuthRedirect
+	} from '$lib/apis/configs';
 	import AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
 	import AccessButton from '$lib/components/common/AccessButton.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
@@ -52,6 +58,7 @@
 	let path = 'openapi.json';
 
 	let auth_type = 'bearer';
+	let forwardCookies = false;
 	let key = '';
 	let headers = '';
 
@@ -91,6 +98,38 @@
 		'bg-transparent outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-700';
 	const selectClass =
 		'bg-transparent pr-5 outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-700';
+	const oauthAuthTypes = ['oauth_2.1', 'oauth_2.1_static'];
+	$: verifyLabel = oauthAuthTypes.includes(auth_type)
+		? $i18n.t('Check OAuth Discovery')
+		: $i18n.t('Verify Connection');
+	const verifySuccessMessage = () =>
+		oauthAuthTypes.includes(auth_type)
+			? $i18n.t('OAuth discovery successful')
+			: $i18n.t('Connection successful');
+
+	const ensureConnectionId = () => {
+		if (type === 'mcp' && !edit && !id.trim()) {
+			id = slugify(name.trim()) || uuidv4();
+		}
+	};
+
+	const authorizeOAuthHandler = () => {
+		if (!id) {
+			toast.error($i18n.t('Please enter a Connection ID before authorizing OAuth.'));
+			return;
+		}
+
+		if (!edit) {
+			toast.error($i18n.t('Please save the connection before authorizing OAuth'));
+			return;
+		}
+
+		initiateOAuthRedirect({
+			id: `server:mcp:${id}`,
+			serverId: id,
+			authType: 'mcp'
+		});
+	};
 
 	let session = 0;
 	let destroyed = false;
@@ -103,12 +142,19 @@
 
 	const registerOAuthClientHandler = async (): Promise<void> => {
 		if (loading || verifying || destroyed) return;
-		if (!url || !id) {
+		if (!url) {
 			toast.error($i18n.t('Please enter a valid URL and ID'));
 			return;
 		}
+
 		if (auth_type === 'oauth_2.1_static' && (!oauthClientId || !oauthClientSecret)) {
 			toast.error($i18n.t('Please enter Client ID and Client Secret'));
+			return;
+		}
+
+		ensureConnectionId();
+		if (!id.trim()) {
+			toast.error($i18n.t('Enter a Connection ID to register.'));
 			return;
 		}
 		const currentSession = session;
@@ -136,9 +182,7 @@
 			oauthClientInfo = res.oauth_client_info;
 			oauthIdentity = identity;
 			toast.warning(
-				$i18n.t(
-					'Please save the connection to persist the OAuth client information and do not change the ID'
-				)
+				$i18n.t('Save the connection to keep the OAuth details. Keep the Connection ID unchanged.')
 			);
 			toast.success($i18n.t('Registration successful'));
 		} catch {
@@ -180,8 +224,7 @@
 				const res = await verifyToolServerConnection(localStorage.token, data, request.signal);
 				if (!res || res.status === false) throw new Error('Connection failed');
 			}
-			if (!destroyed && show && currentSession === session)
-				toast.success($i18n.t('Connection successful'));
+			if (!destroyed && show && currentSession === session) toast.success(verifySuccessMessage());
 		} catch {
 			if (!destroyed && show && currentSession === session)
 				toast.error($i18n.t('Connection failed'));
@@ -220,6 +263,7 @@
 		spec: spec_type === 'json' ? JSON.stringify(parseToolSpec(spec), null, 2) : spec,
 		path,
 		auth_type,
+		...(!direct && ['', 'openapi'].includes(type) ? { forward_cookies: forwardCookies } : {}),
 		headers: parseConnectionHeaders(headers),
 		key,
 		config: {
@@ -264,6 +308,7 @@
 		loading = true;
 		const currentSession = session;
 		try {
+			ensureConnectionId();
 			if (id.includes(':') || id.includes('|'))
 				throw new Error('ID cannot contain ":" or "|" characters');
 			if (
@@ -308,6 +353,7 @@
 		spec = c?.spec ?? '';
 		path = c?.path ?? 'openapi.json';
 		auth_type = c?.auth_type ?? 'bearer';
+		forwardCookies = c?.forward_cookies ?? false;
 		headers = c?.headers ? JSON.stringify(c.headers, null, 2) : '';
 		key = c?.key ?? '';
 		id = c?.info?.id ?? '';
@@ -338,9 +384,9 @@
 		init();
 	}
 
-	onMount(() => {
-		init();
-	});
+	$: if (show && type === 'mcp' && !edit && !oauthClientInfo && name) {
+		id = slugify(name.trim());
+	}
 </script>
 
 <Modal size="sm" bind:show>
@@ -416,15 +462,15 @@
 											class=" text-xs text-gray-700 dark:text-gray-300"
 										>
 											{#if ['', 'openapi'].includes(type)}
-												{$i18n.t('OpenAPI')}
+												{$i18n.t('settings.admin.integrations.openApi.label')}
 											{:else if type === 'mcp'}
-												{$i18n.t('MCP')}
+												{$i18n.t('settings.admin.integrations.mcp.label')}
 												<span class="text-gray-500">{$i18n.t('Streamable HTTP')}</span>
 											{/if}
 										</button>
 									{:else}
 										<div class="text-xs text-gray-700 dark:text-gray-300">
-											{$i18n.t('OpenAPI')}
+											{$i18n.t('settings.personal.tools.openApi.label')}
 										</div>
 									{/if}
 								</div>
@@ -451,13 +497,28 @@
 							{#if !direct}
 								<div class="flex flex-col flex-1">
 									<div class="flex justify-between mb-0.5">
-										<label for="enter-id" class={`text-xs text-gray-500`}
-											>{$i18n.t('ID')}
-											{#if type !== 'mcp'}<span class="opacity-50">({$i18n.t('optional')})</span
-												>{/if}</label
+										<label for="enter-id" class={`text-xs text-gray-500`}>
+											{#if type === 'mcp'}
+												{$i18n.t('Connection ID')}
+											{:else}
+												{$i18n.t('ID')}
+												<span class="opacity-50">({$i18n.t('optional')})</span>
+											{/if}</label
 										>
 									</div>
-									<div class="flex flex-1 items-center">
+									<Tooltip
+										className="flex flex-1 items-center"
+										tippyOptions={{ trigger: 'mouseenter focusin' }}
+										content={type === 'mcp' && oauthAuthTypes.includes(auth_type)
+											? edit
+												? $i18n.t(
+														'Identifies this connection in Open WebUI, separately from the OAuth client ID.'
+													)
+												: $i18n.t(
+														'Generated from the name, or enter your own. Identifies this connection in Open WebUI, separately from the OAuth client ID.'
+													)
+											: ''}
+									>
 										<input
 											id="enter-id"
 											class={`w-full flex-1 text-sm font-mono ${inputClass}`}
@@ -465,9 +526,9 @@
 											bind:value={id}
 											placeholder="auto"
 											autocomplete="off"
-											required={type === 'mcp'}
+											required={type === 'mcp' && edit}
 										/>
-									</div>
+									</Tooltip>
 								</div>
 							{/if}
 						</div>
@@ -506,16 +567,13 @@
 										required
 									/>
 
-									<Tooltip
-										content={$i18n.t('Verify Connection')}
-										className="shrink-0 flex items-center mr-1"
-									>
+									<Tooltip content={verifyLabel} className="shrink-0 flex items-center mr-1">
 										<button
 											class="self-center p-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-850 rounded-lg transition"
 											on:click={() => {
 												verifyHandler();
 											}}
-											aria-label={$i18n.t('Verify Connection')}
+											aria-label={verifyLabel}
 											disabled={loading || verifying}
 											type="button"
 										>
@@ -551,8 +609,27 @@
 										</label>
 									</div>
 
-									{#if ['oauth_2.1', 'oauth_2.1_static'].includes(auth_type)}
+									{#if oauthAuthTypes.includes(auth_type)}
 										<div class="flex items-center gap-2">
+											{#if oauthClientInfo}
+												<div class="flex flex-col justify-end items-center shrink-0">
+													<Tooltip
+														content={edit
+															? $i18n.t('Authorize OAuth')
+															: $i18n.t('Please save the connection before authorizing OAuth')}
+													>
+														<button
+															class=" text-xs underline dark:text-gray-500 dark:hover:text-gray-200 text-gray-700 hover:text-gray-900 disabled:opacity-50 disabled:no-underline transition"
+															type="button"
+															disabled={!edit}
+															on:click={authorizeOAuthHandler}
+														>
+															{$i18n.t('Authorize OAuth')}
+														</button>
+													</Tooltip>
+												</div>
+											{/if}
+
 											<div class="flex flex-col justify-end items-center shrink-0">
 												<Tooltip
 													content={oauthClientInfo
@@ -690,11 +767,30 @@
 									on:click={() => {
 										showAccessControlModal = true;
 									}}
+									label={$i18n.t('Access Control')}
 								/>
 							{/if}
 						</div>
 
 						{#if showAdvanced}
+							{#if !direct && ['', 'openapi'].includes(type)}
+								<div class="flex items-center justify-between gap-3 mt-2">
+									<div>
+										<label for="forward-cookies" class="text-xs text-gray-500">
+											{$i18n.t('Forward cookies')}
+										</label>
+										<p class="text-xs text-gray-500">
+											{$i18n.t('Forward cookies from your Open WebUI request to this server.')}
+										</p>
+									</div>
+									<Switch
+										id="forward-cookies"
+										ariaLabel={$i18n.t('Forward cookies')}
+										bind:state={forwardCookies}
+									/>
+								</div>
+							{/if}
+
 							{#if ['', 'openapi'].includes(type)}
 								<div class="flex gap-2 mt-2">
 									<div class="flex flex-col w-full">
@@ -763,7 +859,7 @@
 								</div>
 							{/if}
 
-							{#if type === 'mcp' && ['oauth_2.1', 'oauth_2.1_static'].includes(auth_type)}
+							{#if type === 'mcp' && oauthAuthTypes.includes(auth_type)}
 								<div class="flex gap-2 mt-2">
 									<div class="flex flex-col w-full">
 										<label for="oauth-scope" class={`mb-0.5 text-xs text-gray-500`}
@@ -862,6 +958,9 @@
 							<span class="font-normal">
 								{$i18n.t('Warning')}:
 							</span>
+							<!-- LICENSE covers this Open WebUI wordmark.
+							Do not alter, remove, obscure, or replace it except as LICENSE permits:
+							https://docs.openwebui.com/license. -->
 							{$i18n.t(
 								'MCP support is experimental and its specification changes often, which can lead to incompatibilities. OpenAPI specification support is directly maintained by the Airis team, making it the more reliable option for compatibility.'
 							)}
@@ -884,9 +983,7 @@
 						</div>
 
 						<button
-							class="px-3.5 py-1.5 text-sm font-medium bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full flex items-center gap-2 whitespace-nowrap {loading
-								? ' cursor-not-allowed'
-								: ''}"
+							class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:cursor-not-allowed"
 							type="submit"
 							disabled={loading || verifying}
 						>
@@ -894,7 +991,7 @@
 
 							{#if loading}
 								<span class="shrink-0">
-									<Spinner />
+									<Spinner className="size-3" />
 								</span>
 							{/if}
 						</button>

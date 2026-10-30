@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import type { SigninResult } from '$lib/apis/auths/mfa';
 
 	let tempSession = '';
 	let name = '';
@@ -18,7 +19,7 @@
 		}
 	});
 
-	const handleSubmit = async () => {
+	const handleSubmit = async (): Promise<void> => {
 		if (!email) {
 			error = 'Пожалуйста, введите email';
 			return;
@@ -35,6 +36,7 @@
 		try {
 			const response = await fetch('/api/v1/oauth/telegram/complete-profile', {
 				method: 'POST',
+				credentials: 'same-origin',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					temp_session: tempSession,
@@ -49,14 +51,18 @@
 				throw new Error(data.detail || 'Ошибка регистрации');
 			}
 
-			const data = await response.json();
-
-			// Save token
-			localStorage.setItem('token', data.token);
+			const data = (await response.json()) as SigninResult;
 
 			// Clear session storage
 			sessionStorage.removeItem('telegram_temp_session');
 			sessionStorage.removeItem('telegram_name');
+			if ('next_step' in data) {
+				localStorage.removeItem('token');
+				window.location.replace(data.next_step === 'pending' ? '/auth?pending=1' : '/auth?mfa=1');
+				return;
+			}
+			if (!data.token) throw new Error('Ошибка регистрации');
+			localStorage.setItem('token', data.token);
 
 			// Redirect to home
 			goto('/home');
@@ -124,7 +130,9 @@
 						class="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
 					/>
 					<label for="terms" class="ml-2 text-sm text-gray-700">
-						Я принимаю <a href="/terms" class="text-purple-600 hover:underline" target="_blank">оферту</a>
+						Я принимаю <a href="/terms" class="text-purple-600 hover:underline" target="_blank"
+							>оферту</a
+						>
 						и
 						<a href="/privacy" class="text-purple-600 hover:underline" target="_blank"
 							>политику конфиденциальности</a

@@ -37,7 +37,7 @@ if (!defaults) throw new Error('Capability defaults missing');
 
 const diagnostics = (fixture: string): string[] => {
 	const filename = resolve('model-meta-probe.ts');
-	const code = `${defaults.getText(defaultsSource)}\n${metadataTypes}\n${meta.getText(source)}\n${fixture}`;
+	const code = `import type { VoiceAvatarConfig } from './src/lib/utils/voice-avatar';\n${defaults.getText(defaultsSource)}\n${metadataTypes}\n${meta.getText(source).replace("import('$lib/utils/voice-avatar').VoiceAvatarConfig", 'VoiceAvatarConfig')}\n${fixture}`;
 	const options: ts.CompilerOptions = {
 		strict: true,
 		noEmit: true,

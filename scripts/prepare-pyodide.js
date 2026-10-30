@@ -11,16 +11,20 @@ const packages = [
 	'regex',
 	'sympy',
 	'tiktoken',
-	'seaborn',
 	'pytz',
 	'black',
 	'openai',
-	'openpyxl'
+	'lxml',
+	'openpyxl',
+	'seaborn',
+	'python-pptx',
+	'python-docx',
+	'xlsxwriter'
 ];
 
 import { loadPyodide } from 'pyodide';
 import { setGlobalDispatcher, ProxyAgent } from 'undici';
-import { writeFile, readFile, copyFile, readdir, mkdir } from 'node:fs/promises';
+import { writeFile, readFile, copyFile, readdir, mkdir, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { basename, dirname, isAbsolute, resolve } from 'node:path';
 
@@ -118,6 +122,17 @@ async function downloadPackages(accepted) {
 }
 
 initNetworkProxyFromEnv();
+if (process.env.USE_SLIM === 'true') {
+	await rm('static/pyodide', { recursive: true, force: true });
+	await copyPyodide();
+	const { version } = JSON.parse(await readFile('node_modules/pyodide/package.json', 'utf-8'));
+	const lockPath = 'static/pyodide/pyodide-lock.json';
+	const lock = JSON.parse(await readFile(lockPath, 'utf-8'));
+	for (const entry of Object.values(lock.packages)) {
+		entry.file_name = new URL(entry.file_name, `https://cdn.jsdelivr.net/pyodide/v${version}/full/`).href;
+	}
+	await writeFile(lockPath, JSON.stringify(lock, null, 2));
+} else {
 /** @type {PackageLock | null} */
 let accepted = null;
 try {
@@ -127,3 +142,4 @@ try {
 }
 await copyPyodide();
 await downloadPackages(accepted);
+}

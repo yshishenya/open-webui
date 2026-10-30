@@ -14,10 +14,12 @@
 	dayjs.extend(LocalizedFormat);
 
 	type RecognitionResultEvent = {
-		results: Record<number, Record<number, { transcript: string }>>;
+		resultIndex: number;
+		results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>;
 	};
 	type BrowserRecognizer = {
 		continuous: boolean;
+		interimResults: boolean;
 		onresult: ((event: RecognitionResultEvent) => Promise<void>) | null;
 		onend: (() => void) | null;
 		onerror: ((event: { error: string }) => void) | null;
@@ -221,7 +223,7 @@
 
 		await tick();
 		if (request !== recordingRequest || destroyed || !confirmed) return;
-		const file = blobToFile(audioBlob, `Recording-${dayjs().format('L LT')}.${ext}`);
+		const file = blobToFile(audioBlob, `Recording-${dayjs().locale($i18n.language).format('L LT')}.${ext}`);
 
 		if (transcribe) {
 			if (webRecognition) {
@@ -347,6 +349,7 @@
 
 						// Set continuous to true for continuous recognition
 						recognition.continuous = true;
+						recognition.interimResults = true;
 
 						// Set the timeout for turning off the recognition after inactivity (in milliseconds)
 						const inactivityTimeout = 2000;
@@ -361,9 +364,9 @@
 							clearTimeout(recognitionTimeout);
 
 							// Handle recognized speech
-							const transcript = event.results[Object.keys(event.results).length - 1][0].transcript;
-
-							transcription = `${transcription}${transcript}`;
+							for (const result of Array.from(event.results).slice(event.resultIndex)) {
+								if (result.isFinal) transcription += result[0].transcript;
+							}
 
 							await tick();
 							if (request !== recordingRequest || destroyed || !recording || confirmed) return;
@@ -483,6 +486,8 @@
 	let resizeObserver: ResizeObserver | undefined;
 	let containerWidth: number;
 
+
+
 	const handleKeyDown = (e: KeyboardEvent): void => {
 		if (e.key === 'Escape') {
 			e.preventDefault();
@@ -563,12 +568,12 @@
 			{#each visualizerData.slice().reverse() as rms}
 				<div class="flex items-center h-full">
 					<div
-						class="w-[2px] shrink-0
-                    
+						class="w-[0.125rem] shrink-0
+
                     {loading
 							? ' bg-gray-500 dark:bg-gray-400   '
 							: 'bg-indigo-500 dark:bg-indigo-400  '} 
-                    
+
                     inline-block h-full"
 						style="height: {Math.min(100, Math.max(14, rms * 100))}%;"
 					></div>
@@ -581,8 +586,8 @@
 		<div class="  mx-1.5 pr-1 flex justify-center items-center">
 			<div
 				class="text-sm
-        
-        
+
+
         {loading ? ' text-gray-500  dark:text-gray-400  ' : ' text-indigo-400 '} 
        font-normal flex-1 mx-auto text-center"
 			>

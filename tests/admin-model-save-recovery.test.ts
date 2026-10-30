@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
+import { parse } from 'svelte/compiler';
 import { expect, it, vi } from 'vitest';
 
 const source = readFileSync('src/lib/components/admin/Settings/Models.svelte', 'utf8');
@@ -28,7 +29,8 @@ function admin(existing = true) {
 	const context = {
 		models: [model],
 		filteredModels: [model],
-		workspaceModels: existing ? [{ id: model.id }] : [],
+		isPresetModel: (item: { base_model_id?: string | null }) => !!item.base_model_id,
+		savedModels: existing ? [{ id: model.id }] : [],
 		selectedModelId: model.id as string | null,
 		localStorage: { token: 'fixture' },
 		console: { log: vi.fn() },
@@ -65,8 +67,26 @@ it.each([false, true])(
 		const { context, model, run } = admin(existing);
 		const mutation = existing ? context.updateModelById : context.createNewModel;
 		mutation.mockRejectedValueOnce('offline');
-		const body = source.split('onSubmit={async (model) => {')[1].split('}}')[0];
-		const submit = run<(model: Model) => Promise<void>>(`async (model) => {${body}}`);
+		const walk = (value: unknown): Record<string, unknown>[] => {
+			if (!value || typeof value !== 'object') return [];
+			if (Array.isArray(value)) return value.flatMap(walk);
+			const node = value as Record<string, unknown>;
+			return [node, ...Object.values(node).flatMap(walk)];
+		};
+		const editor = walk(parse(source).html).find(
+			(node) => node.type === 'InlineComponent' && node.name === 'ModelEditor'
+		);
+		const attribute = (
+			editor?.attributes as {
+				name: string;
+				value: { expression: { start: number; end: number } }[];
+			}[]
+		).find((item) => item.name === 'onSubmit');
+		if (!attribute) throw new Error('Model editor submit handler missing');
+		const expression = attribute.value[0].expression;
+		const submit = run<(model: Model) => Promise<void>>(
+			source.slice(expression.start, expression.end)
+		);
 		await expect(submit(model)).rejects.toBe('offline');
 		expect(context.selectedModelId).toBe(model.id);
 		expect(model.name).toBe('Unsaved');
@@ -96,7 +116,7 @@ it.each(['enableAllHandler', 'disableAllHandler', 'showAllHandler', 'hideAllHand
 		const second = { ...model, id: 'second', meta: { ...model.meta } };
 		context.models.push(second);
 		context.filteredModels.push(second);
-		context.workspaceModels.push({ id: second.id });
+		context.savedModels.push({ id: second.id });
 		const before = JSON.stringify(context.models);
 		let finish: (value: Model) => void = () => {};
 		context.updateModelById.mockRejectedValueOnce('offline').mockImplementationOnce(
@@ -151,7 +171,7 @@ it('remembers a newly persisted base model for subsequent visibility and toggle 
 	const { context, model, run } = admin(false);
 	const hide = run<(model: Model) => Promise<void>>(handler('hideModelHandler'));
 	await hide(model);
-	expect(context.workspaceModels.some((item) => item.id === model.id)).toBe(true);
+	expect(context.savedModels.some((item) => item.id === model.id)).toBe(true);
 	await hide(context.models[0]);
 	expect(context.createNewModel).toHaveBeenCalledTimes(1);
 	expect(context.updateModelById).toHaveBeenCalledTimes(1);

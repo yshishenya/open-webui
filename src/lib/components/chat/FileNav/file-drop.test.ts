@@ -36,8 +36,7 @@ it('rejects a malformed terminal multi-selection before moving any row', async (
 		expect(onMove).not.toHaveBeenCalled();
 		drop(row, 'application/x-terminal-file-move', { paths: ['/a.txt', '/b.txt'] });
 		expect(onMove.mock.calls).toEqual([
-			['/a.txt', '/folder/'],
-			['/b.txt', '/folder/']
+			[['/a.txt', '/b.txt'], '/folder/']
 		]);
 	} finally {
 		await unmount(component);
@@ -60,7 +59,7 @@ it('rejects a malformed terminal selection at the breadcrumb destination', async
 		drop(crumb, 'application/x-terminal-file-move', { paths: ['/valid.txt', 7] });
 		expect(onMove).not.toHaveBeenCalled();
 		drop(crumb, 'application/x-terminal-file-move', { path: '/a.txt' });
-		expect(onMove.mock.calls).toEqual([['/a.txt', '/']]);
+		expect(onMove.mock.calls).toEqual([[['/a.txt'], '/']]);
 	} finally {
 		await unmount(component);
 	}

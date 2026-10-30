@@ -1,6 +1,10 @@
 <script lang="ts">
 	import ProductEmailChoice from '$lib/components/airis/ProductEmailChoice.svelte';
 	import DOMPurify from 'dompurify';
+	import MfaChallengeForm from '$lib/components/auth/MfaChallenge.svelte';
+	import { mfaRequest, type MfaChallenge } from '$lib/apis/auths/mfa';
+	let mfaChallenge: MfaChallenge | null = null;
+	let pendingApproval = false;
 	import { marked } from 'marked';
 
 	import { toast } from 'svelte-sonner';
@@ -108,14 +112,30 @@
 			: null;
 
 	const setSessionUser = async (
-		sessionUser: (SessionUser & { token?: string }) | null,
+		sessionUser:
+			| (SessionUser & { token?: string })
+			| MfaChallenge
+			| { next_step: 'pending' }
+			| null,
 		redirectPath: string | null = null
 	): Promise<void> => {
 		if (sessionUser) {
+			if ('next_step' in sessionUser && sessionUser.next_step === 'pending') {
+				pendingApproval = true;
+				return;
+			}
+			if ('challenge_token' in sessionUser) {
+				mfaChallenge = sessionUser;
+				password = '';
+				confirmPassword = '';
+				return;
+			}
 			trackEvent(mode === 'signup' ? 'signup_completed' : 'login_completed', {
 				method: 'auth',
 				source: analyticsSource()
 			});
+			mfaChallenge = null;
+			pendingApproval = false;
 			toast.success($i18n.t(`You're now logged in.`));
 			if (sessionUser.token) {
 				localStorage.token = sessionUser.token;
@@ -275,6 +295,25 @@
 					);
 				}
 
+				if (callbackData.next_step === 'pending') {
+					await setSessionUser({ next_step: 'pending' });
+					return;
+				}
+				if (
+					(callbackData.next_step === 'enroll' ||
+						callbackData.next_step === 'verify' ||
+						callbackData.next_step === 'recover') &&
+					typeof callbackData.challenge_token === 'string' &&
+					typeof callbackData.expires_in === 'number'
+				) {
+					await setSessionUser({
+						next_step: callbackData.next_step,
+						challenge_token: callbackData.challenge_token,
+						expires_in: callbackData.expires_in
+					});
+					return;
+				}
+
 				const token = typeof callbackData.token === 'string' ? callbackData.token : '';
 				if (!token) {
 					throw new Error('VK ID authentication failed');
@@ -381,7 +420,13 @@
 
 	onMount(async () => {
 		const redirectPath = sanitizeRedirectPath($page.url.searchParams.get('redirect'));
-		if ($user) {
+		const logout = $page.url.searchParams.get('state') === 'logout';
+		if (
+			$user &&
+			!logout &&
+			!$page.url.searchParams.has('mfa') &&
+			!$page.url.searchParams.has('pending')
+		) {
 			await goto(redirectPath || '/');
 			return;
 		}
@@ -395,13 +440,49 @@
 			toast.error(message || error);
 		}
 
-		await oauthCallbackHandler();
+		if ($page.url.searchParams.has('mfa')) {
+			localStorage.removeItem('token');
+			try {
+				mfaChallenge = await mfaRequest('challenge');
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : String(error));
+			}
+			loaded = true;
+			return;
+		}
+		if ($page.url.searchParams.has('pending')) {
+			pendingApproval = true;
+			loaded = true;
+			return;
+		}
+		if (!logout) await oauthCallbackHandler();
 		form = $page.url.searchParams.get('form');
 		requestedMode = form ?? $page.url.searchParams.get('mode');
 		if (requestedMode === 'signup' && ($config?.features.enable_signup ?? true)) {
 			mode = 'signup';
 		} else if (requestedMode === 'signin' && $config?.features.enable_login_form) {
 			mode = $config?.features.enable_ldap ? 'ldap' : 'signin';
+		}
+
+		// Auto-redirect to SSO when OAUTH_AUTO_REDIRECT is enabled and the
+		// deployment is unambiguously SSO-only (single provider, no login form,
+		// no LDAP). Suppressed after logout, by ?form=, ?error=, onboarding,
+		// trusted-header auth, or an existing session/token.
+		if ($config?.oauth?.auto_redirect && !logout && !form && !error) {
+			const providers = Object.keys($config?.oauth?.providers ?? {});
+			if (
+				providers.length === 1 &&
+				$config?.features?.auth !== false &&
+				$config?.features?.enable_login_form === false &&
+				!$config?.features?.enable_ldap &&
+				!$config?.features?.auth_trusted_header &&
+				!$config?.onboarding &&
+				!localStorage.token &&
+				!document.cookie.split('; ').some((c) => c.startsWith('token='))
+			) {
+				window.location.href = `${WEBUI_BASE_URL}/oauth/${providers[0]}/login`;
+				return;
+			}
 		}
 
 		// Default panel: choice (social + email) unless the caller explicitly asks for a form,
@@ -443,6 +524,9 @@
 </script>
 
 <svelte:head>
+	<!-- LICENSE covers this Open WebUI browser-title identifier.
+	Do not alter, remove, obscure, or replace it except as LICENSE permits:
+	https://docs.openwebui.com/license. -->
 	<title>
 		{`${$WEBUI_NAME}`}
 	</title>
@@ -467,13 +551,26 @@
 
 	<div class="w-full absolute top-0 left-0 right-0 h-8 drag-region"></div>
 
-	{#if loaded}
+	{#if loaded && !onboarding}
 			<div
 				class="fixed inset-0 z-50 flex justify-center overflow-y-auto overscroll-contain px-4 py-10 sm:py-14"
 				id="auth-container"
 			>
 			<div class="w-full max-w-sm">
-				{#if ($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false}
+				{#if mfaChallenge}
+					<MfaChallengeForm
+						challenge={mfaChallenge}
+						onComplete={setSessionUser}
+						onCancel={() => {
+							mfaChallenge = null;
+							window.location.href = '/auth?state=logout&form=signin';
+						}}
+					/>
+				{:else if pendingApproval}
+					<p class="py-14 text-sm text-white/60">
+						{$i18n.t('Your account is awaiting administrator approval.')}
+					</p>
+				{:else if ($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false}
 					<div class="py-14">
 						<div
 							class="flex items-center justify-center gap-3 text-xl text-center font-semibold text-white/90"
@@ -517,6 +614,7 @@
 						<div class="relative px-6 pt-12 pb-7 sm:px-7 sm:pt-12 sm:pb-8">
 							{#if $config?.metadata?.auth_logo_position === 'center'}
 								<div class="flex justify-center mb-5 animate-[fade-up_650ms_ease-out_both]">
+									<!-- LICENSE covers the Open WebUI sign-in logo: https://docs.openwebui.com/license. -->
 									<img
 										id="logo"
 										crossorigin="anonymous"
@@ -977,7 +1075,7 @@
 														</a>
 													</div>
 												{/if}
-	
+
 												{#if mode === 'signup' && $config?.features?.enable_signup_password_confirmation}
 													<div>
 														<label for="confirm-password" class="sr-only">

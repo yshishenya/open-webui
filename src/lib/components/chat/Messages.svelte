@@ -18,6 +18,7 @@
 
 	import { toast } from 'svelte-sonner';
 	import { deleteChatMessageById, updateChatById } from '$lib/apis/chats';
+	import { getOutputText } from './Messages/structuredOutput';
 
 	import Message from './Messages/Message.svelte';
 	import Loader from '../common/Loader.svelte';
@@ -69,8 +70,10 @@
 		messages: ChatHistoryMessage[];
 	}) => void | Promise<void> = () => {};
 	export let forkHandler: ((messageId?: string | null) => void | Promise<void>) | null = null;
+	export let onToolCallResolved: ComponentProps<typeof Message>['onToolCallResolved'] = () => {};
 
 	export let readOnly = false;
+	export let shareMode: 'view' | 'continue' | null = null;
 	export let allowDelete = true;
 	export let compactPreview = false;
 	export let editCodeBlock = true;
@@ -96,9 +99,7 @@
 	const loadMoreMessages = async (): Promise<void> => {
 		// scroll slightly down to disable continuous loading
 		const element = getMessagesContainer();
-		if (element) {
-			element.scrollTop = element.scrollTop + 100;
-		}
+		const previousScrollHeight = element?.scrollHeight ?? 0;
 
 		messagesLoading = true;
 		messagesCount! += 8;
@@ -106,6 +107,10 @@
 		buildMessages();
 
 		await tick();
+
+		if (element) {
+			element.scrollTop += element.scrollHeight - previousScrollHeight;
+		}
 
 		messagesLoading = false;
 	};
@@ -172,30 +177,51 @@
 		})();
 	}
 
-	const scrollToBottom = (): void => {
+	export const scrollToBottom = () => {
 		const element = getMessagesContainer();
 		if (element) {
 			element.scrollTop = element.scrollHeight;
 
-			// Follow-up scroll to account for content-visibility: auto re-layouts
+			// Re-scroll across two frames as content-visibility resolves message heights.
 			requestAnimationFrame(() => {
 				if (element) {
 					element.scrollTop = element.scrollHeight;
+					requestAnimationFrame(() => {
+						element.scrollTop = element.scrollHeight;
+					});
 				}
 			});
 		}
 	};
 
-	export const scrollToTop = async (): Promise<void> => {
+	export const scrollToMessage = async (id: string) => {
 		messagesCount = null;
 		buildMessages();
 		await tick();
-		if (messages.length > 0) {
-			const firstMessageEl = document.getElementById(`message-${messages[0].id}`);
-			if (firstMessageEl) {
-				firstMessageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			}
-		}
+		const element = getMessagesContainer()?.querySelector<HTMLElement>(
+			`#${CSS.escape(`message-${id}`)}`
+		);
+		element?.scrollIntoView({ block: 'center' });
+		element?.animate([{ backgroundColor: '#a5a5c544' }, { backgroundColor: 'transparent' }], {
+			duration: 2200
+		});
+	};
+
+	export const scrollToTop = async () => {
+		messagesCount = null;
+		buildMessages();
+		await tick();
+
+		const element = getMessagesContainer();
+		if (!element) return;
+
+		element.scrollTo({ top: 0, behavior: 'smooth' });
+		requestAnimationFrame(() => {
+			element.scrollTo({ top: 0, behavior: 'smooth' });
+			requestAnimationFrame(() => {
+				element.scrollTo({ top: 0, behavior: 'smooth' });
+			});
+		});
 	};
 
 	const updateChat = async (): Promise<void> => {
@@ -387,6 +413,8 @@
 					parentId: message.parentId,
 					childrenIds: history.messages[userMessageId]?.childrenIds ?? [],
 					role: 'user',
+					user_id: $_user?.id,
+					user: { id: $_user?.id, name: $_user?.name },
 					content: userPrompt,
 					...(files && { files: files }),
 					models: selectedModels,
@@ -424,7 +452,7 @@
 					? { content: content!, files }
 					: {
 							...(content !== undefined ? { content, originalContent: message.content } : {}),
-							...(output !== undefined ? { output, content: '' } : {})
+							...(output !== undefined ? { output, content: getOutputText(output) } : {})
 						};
 			const editedMessage: ChatHistoryMessage = {
 				...message,
@@ -435,6 +463,8 @@
 							childrenIds: [],
 							files: undefined,
 							originalContent: message.originalContent,
+							annotation: undefined,
+							feedbackId: undefined,
 							timestamp: Math.floor(Date.now() / 1000)
 						}
 					: {})
@@ -586,41 +616,45 @@
 							</div>
 						</Loader>
 					{/if}
-					<ul role="log" aria-live="polite" aria-relevant="additions" aria-atomic="false">
-						{#each messages as message, messageIdx (message.id)}
-							<Message
-								{chatId}
-								bind:history
-								{selectedModels}
-								messageId={message.id}
-								idx={messageIdx}
-								{user}
-								{setInputText}
-								{gotoMessage}
-								{showPreviousMessage}
-								{showNextMessage}
-								{updateChat}
-								{editMessage}
-								{deleteMessage}
-								{rateMessage}
-								{actionMessage}
-								{saveMessage}
-								{submitMessage}
-								{regenerateResponse}
-								{continueResponse}
-								{mergeResponses}
-								{addMessages}
-								{forkHandler}
-								{allowDelete}
-								{triggerScroll}
-								{readOnly}
-								{compactPreview}
-								{editCodeBlock}
-								{topPadding}
-								{onInsertToNote}
-							/>
-						{/each}
-					</ul>
+					<div role="log" aria-live="polite" aria-relevant="additions" aria-atomic="false">
+						<ul>
+							{#each messages as message, messageIdx (message.id)}
+								<Message
+									{chatId}
+									bind:history
+									{selectedModels}
+									messageId={message.id}
+									idx={messageIdx}
+									{user}
+									{setInputText}
+									{gotoMessage}
+									{showPreviousMessage}
+									{showNextMessage}
+									{updateChat}
+									{editMessage}
+									{deleteMessage}
+									{rateMessage}
+									{actionMessage}
+									{saveMessage}
+									{submitMessage}
+									{regenerateResponse}
+									{continueResponse}
+									{mergeResponses}
+									{addMessages}
+									{onToolCallResolved}
+									{forkHandler}
+									{allowDelete}
+									{triggerScroll}
+									{readOnly}
+									{compactPreview}
+									{editCodeBlock}
+									{topPadding}
+									{onInsertToNote}
+									{shareMode}
+								/>
+							{/each}
+						</ul>
+					</div>
 				</section>
 				<div class="pb-18"></div>
 				{#if bottomPadding}

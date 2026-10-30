@@ -30,6 +30,7 @@ export type ChannelListItem = {
 		| null;
 	last_message_at: number | null;
 	unread_count: number;
+	is_channel_muted?: boolean;
 };
 
 // Base ChannelModel returned by create/update; list-only fields are absent.
@@ -98,7 +99,13 @@ export type ChannelMessageForm = {
 	data?: ChannelMessageData | null;
 	meta?: ChannelMessageMeta | null;
 };
-export type ChannelMessageInput = { content: string; data: { files: ChatAttachment[] } };
+export type ChannelMessageInput = {
+	content: string;
+	data: { files: ChatAttachment[] };
+	channel_id: string;
+	parent_id: string | null;
+	reply_to_message: ChannelDisplayMessage | null;
+};
 export type ChannelPinHandler = (
 	messageId: string,
 	pinned: boolean,
@@ -131,7 +138,7 @@ export type ChannelPendingMessage = Pick<
 		>
 	>;
 // Pinned replies/counts are absent in the API; loaded data replaces its slim bool in the UI.
-export type ChannelDisplayMessage =
+export type ChannelDisplayMessage = { client_id?: string } & (
 	| (Omit<ChannelMessageResponse, 'data'> & {
 			data: ChannelMessageData | boolean | null;
 			temp_id?: string | null;
@@ -143,7 +150,7 @@ export type ChannelDisplayMessage =
 			reply_count?: number;
 			latest_reply_at?: number | null;
 	  })
-	| ChannelPendingMessage;
+	| ChannelPendingMessage);
 
 // Narrow consumed fields for delete events and deduplication.
 export type ChannelEventMessage = Pick<ChannelMessage, 'id' | 'parent_id'> & {

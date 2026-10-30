@@ -12,22 +12,27 @@ import type { FunctionListItem } from '$lib/utils/airis/frontend-contracts';
 export type FunctionUserItem = FunctionListItem & {
 	user?: { id: string; name: string; email: string; username?: string } | null;
 };
-export type FunctionRecord = FunctionListItem & {
+export type FunctionMeta = FunctionListItem['meta'] & {
+	i18n?: Record<string, Record<string, string>>;
+};
+export type FunctionRecord = Omit<FunctionListItem, 'meta'> & {
+	meta: FunctionMeta;
 	content: string;
 	valves?: Record<string, unknown> | null;
 };
 export type FunctionForm = {
+	commit_message?: string | null;
 	id: string;
 	name: string;
 	content: string;
-	meta: Partial<FunctionListItem['meta']>;
+	meta: Partial<FunctionMeta>;
 };
 
 export const createNewFunction = async (
 	token: string,
 	func: FunctionForm,
 	signal?: AbortSignal
-): Promise<FunctionListItem | null> =>
+): Promise<FunctionRecord | null> =>
 	requestJSON(`${WEBUI_API_BASE_URL}/functions/create`, token, func, signal, 'Function request');
 
 export const getFunctions = async (
@@ -94,7 +99,7 @@ export const updateFunctionById = async (
 	id: string,
 	func: FunctionForm,
 	signal?: AbortSignal
-): Promise<FunctionListItem | null> =>
+): Promise<FunctionRecord | null> =>
 	requestJSON(
 		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/update`,
 		token,
@@ -222,3 +227,107 @@ export const updateUserValvesById = async (
 		valves,
 		signal
 	);
+
+export type FunctionHistoryEntry = {
+	id: string;
+	function_id: string;
+	parent_id: string | null;
+	user_id: string;
+	commit_message: string | null;
+	created_at: number;
+	user?: { name: string } | null;
+};
+
+export type FunctionSnapshot = {
+	name: string;
+	content: string;
+	meta: FunctionMeta;
+};
+
+export const getFunctionHistory = async (
+	token: string,
+	id: string,
+	page = 1
+): Promise<FunctionHistoryEntry[]> => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/history?page=${page}`,
+		{
+			method: 'GET',
+			headers: { authorization: `Bearer ${token}` }
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
+export const getFunctionHistoryEntry = async (
+	token: string,
+	id: string,
+	versionId: string
+): Promise<FunctionHistoryEntry & { snapshot: FunctionSnapshot }> => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/history/${encodeURIComponent(versionId)}`,
+		{
+			method: 'GET',
+			headers: { authorization: `Bearer ${token}` }
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
+export type FunctionHistoryDiff = {
+	from_id: string; to_id: string;
+	metadata: Record<string, {before: unknown; after: unknown}>;
+	content_diff: string; line_endings_only: boolean;
+};
+
+export const getFunctionHistoryDiff = async (
+	token: string,
+	id: string,
+	fromId: string,
+	toId: string
+): Promise<FunctionHistoryDiff> => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/history/diff?${new URLSearchParams({ from_id: fromId, to_id: toId })}`,
+		{
+			method: 'GET',
+			headers: { authorization: `Bearer ${token}` }
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
+export const deleteFunctionHistoryVersion = async (
+	token: string,
+	id: string,
+	versionId: string
+): Promise<boolean> => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/history/${encodeURIComponent(versionId)}`,
+		{
+			method: 'DELETE',
+			headers: { authorization: `Bearer ${token}` }
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
+export const setProductionFunctionVersion = async (
+	token: string,
+	id: string,
+	versionId: string
+): Promise<FunctionRecord> => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/functions/id/${encodeURIComponent(id)}/update/version`,
+		{
+			method: 'POST',
+			headers: { authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+			body: JSON.stringify({ version_id: versionId })
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};

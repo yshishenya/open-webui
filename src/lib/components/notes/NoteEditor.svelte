@@ -9,13 +9,14 @@
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
 	import { marked } from 'marked';
 	import { toast } from 'svelte-sonner';
-	import equal from 'fast-deep-equal';
+	import { equalEditorJSON } from '$lib/utils/editorJson';
 
-	import { goto } from '$app/navigation';
+	import { goto, onNavigate, replaceState } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	import dayjs from '$lib/dayjs';
 	import calendar from 'dayjs/plugin/calendar';
@@ -26,11 +27,15 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	import { PaneGroup, Pane } from 'paneforge';
-
-	import { compressImage, copyToClipboard, convertHeicToJpeg } from '$lib/utils';
+	import {
+		resolveDefaultModelIds,
+		compressImage,
+		copyToClipboard,
+		convertHeicToJpeg,
+		isHeicImage
+	} from '$lib/utils';
 	import { WEBUI_BASE_URL } from '$lib/constants';
-	import { getFileById, uploadFile } from '$lib/apis/files';
+	import { uploadFile } from '$lib/apis/files';
 	import { generateOpenAIChatCompletion } from '$lib/apis/openai';
 
 	import {
@@ -45,62 +50,33 @@
 		pinnedNotes
 	} from '$lib/stores';
 
-	import { downloadPdf } from './utils';
+	import { contentFiles, downloadNote } from './utils';
+
+	import NoteTabs from './NoteTabs.svelte';
+	import ChevronDown from '../icons/ChevronDown.svelte';
+	import type { NotePage, NotePageOperation } from '$lib/apis/notes';
 
 	import Chat from '$lib/components/chat/Chat.svelte';
 
 	import NotePanel from '$lib/components/notes/NotePanel.svelte';
 	import AccessControlModal from '$lib/components/workspace/common/AccessControlModal.svelte';
 
-	async function loadLocale(locales: readonly string[]): Promise<void> {
-		for (const locale of locales) {
-			try {
-				dayjs.locale(locale);
-				break; // Stop after successfully loading the first available locale
-			} catch (error) {
-				console.error(`Could not load locale '${locale}':`, error);
-			}
-		}
-	}
-
-	// Assuming $i18n.languages is an array of language codes
-	$: loadLocale($i18n.languages);
-
-	import {
-		deleteNoteById,
-		createNoteChatById,
-		getNoteById,
-		getNoteChatById,
-		getNoteChatsById,
-		updateNoteById,
-		updateNoteAccessGrants,
-		toggleNotePinnedStatusById,
-		getPinnedNoteList,
-		type NoteForm
-	} from '$lib/apis/notes';
+	import { deleteNoteById, createNoteChatById, getNoteById, getNoteChatById, getNoteChatsById, updateNoteById, updateNotePages, updateNoteAccessGrants, toggleNotePinnedStatusById, getPinnedNoteList } from '$lib/apis/notes';
 	import { deleteChatById } from '$lib/apis/chats';
 
-	import {
-		normalizeNote,
-		prepareNoteChatOperation,
-		readNoteChatOperation,
-		completeNoteChatOperation,
-		type NoteRecord,
-		type NoteFile,
-		type NoteEvent,
-		type NoteDownloadType
-	} from '$lib/utils/airis/notes';
+	import { prepareNoteChatOperation, readNoteChatOperation, completeNoteChatOperation, type NoteRecord, type NoteFile, type NoteEvent, type NoteDownloadType } from '$lib/utils/airis/notes';
 	import type { Editor } from '@tiptap/core';
 	import type { SavedChat, FrontendConfig } from '$lib/utils/airis/frontend-contracts';
 	import type { Settings } from '$lib/stores';
 	import RichTextInput from '../common/RichTextInput.svelte';
-	import FileItem from '../common/FileItem.svelte';
+	import { fileUploadsKey } from '../common/RichTextInput/FileAttachment';
 	import Spinner from '../common/Spinner.svelte';
 	import Mic from '../icons/Mic.svelte';
 	import VoiceRecording from '../chat/MessageInput/VoiceRecording.svelte';
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
 	import AccessButton from '../common/AccessButton.svelte';
+	import ChatParticipants from '../common/ChatParticipants.svelte';
 
 	import FilesOverlay from '../chat/MessageInput/FilesOverlay.svelte';
 	import RecordMenu from './RecordMenu.svelte';
@@ -116,20 +92,248 @@
 	export let id: null | string = null;
 
 	let editor: Editor | null = null;
+	let revealedSearch = '';
+	$: if (editor && note?.id === id && $page.url.searchParams.get('search')) {
+		const query = $page.url.searchParams.get('search')!.trim().toLowerCase();
+		const key = `${id}:${activePageId}:${query}`;
+		if (query && revealedSearch !== key) {
+			revealedSearch = key;
+			tick().then(() => {
+				if (!editor || note?.id !== id) return;
+				let found = false;
+				const targetEditor = editor;
+				targetEditor.state.doc.descendants((node, position) => {
+					if (found || !node.isText) return;
+					const text = (node.text ?? '').toLowerCase();
+					const term = [query, ...query.split(/\s+/)].find((term) => text.includes(term));
+					if (term) {
+						const from = position + text.indexOf(term);
+						targetEditor.commands.setTextSelection({ from, to: from + term.length });
+						targetEditor.commands.scrollIntoView();
+						found = true;
+					}
+				});
+			});
+		}
+	}
+	let autoFormat = true;
 	let note: NoteRecord | null = null;
+	let activePageId = '';
+	let activePage: NotePage | undefined;
+	let pageBusy = false;
+	let showNoteTabs = false;
+	let noteTabsPreferenceReady = false;
+	$: if (noteTabsPreferenceReady && $user?.id) {
+		localStorage.setItem(`note-tabs-open:${$user.id}`, String(showNoteTabs));
+	}
+	const pendingFileUploads = new Set<Promise<NoteFile | null | undefined>>();
+	let previousPage: NotePage | null = null;
+	let loadGeneration = 0;
+	let pageScroll: Record<string, number> = {};
+	$: activePage = note?.data?.pages?.find((p) => p.id === activePageId);
+	$: activeDocumentId = activePage
+		? `note:${note?.id}:page:${activePage.id}:${activePage.generation}`
+		: '';
+	let presenceNoteId = '';
+	let cursorTarget: { cursor_position?: number; cursor?: Record<string, unknown> } | null = null;
+	let liveParticipants: {
+		id: string;
+		name: string;
+		page_id?: string;
+		document_id?: string;
+		cursor?: Record<string, unknown>;
+		cursor_position?: number;
+	}[] = [];
+	const clearPresence = () => (liveParticipants = []);
+	$: if (presenceNoteId !== note?.id) {
+		presenceNoteId = note?.id ?? '';
+		clearPresence();
+	}
+	const presenceEventHandler = (event: { note_id: string; users: typeof liveParticipants }) => {
+		if (!$socket?.connected || event.note_id !== note?.id) return;
+		liveParticipants = event.users.filter((person) => person.id !== $user?.id);
+	};
+	const joinNote = () => {
+		if (note?.id)
+			$socket?.emit('note:join', { note_id: note.id, auth: { token: localStorage.token } });
+	};
+	const goToParticipant = async (person: { id: string }) => {
+		const target = liveParticipants.find((participant) => participant.id === person.id);
+		if (!target?.page_id || pageBusy) return;
+		await selectPage(target.page_id);
+		await tick();
+		if (activePageId === target.page_id) cursorTarget = { ...target };
+	};
+	$: if (
+		note?.id === id &&
+		$page.url.searchParams.get('page') &&
+		$page.url.searchParams.get('page') !== activePageId
+	) {
+		activatePage($page.url.searchParams.get('page'));
+	}
 
-	let files: NoteFile[] = [];
+	function activatePage(requested: string | null) {
+		const target = note?.data?.pages?.find((p) => p.id === requested);
+		if (!target || target.id === activePageId) return;
+		const body = document.getElementById('note-content-container');
+		if (body && activePageId) pageScroll[activePageId] = body.scrollTop;
+		cursorTarget = null;
+		activePageId = target.id;
+		selectedContent = null;
+		versionIdx = null;
+		revealedSearch = '';
+		localStorage.setItem(`note-page:${$user?.id}:${id}`, target.id);
+		tick().then(() => {
+			const container = document.getElementById('note-content-container');
+			if (container) container.scrollTop = pageScroll[target.id] ?? 0;
+			document
+				.getElementById(`note-page-tab-${target.id}`)
+				?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		});
+	}
+
+	async function flushActivePage() {
+		while (pendingFileUploads.size) await Promise.all([...pendingFileUploads]);
+		if (note?.write_access && versionIdx === null && inputElement) await inputElement.flush();
+		if (debounceTimeout || titleInputFocused) {
+			if (debounceTimeout) clearTimeout(debounceTimeout);
+			debounceTimeout = null;
+			await saveHandler(true);
+		}
+	}
+
+	async function selectPage(pageId: string) {
+		if (pageBusy || pageId === activePageId) return;
+		const url = new URL($page.url);
+		url.searchParams.set('page', pageId);
+		try {
+			pageBusy = true;
+			await flushActivePage();
+			await goto(url.pathname + url.search, { noScroll: true, keepFocus: true });
+		} catch (error) {
+			toast.error(String(error));
+		} finally {
+			pageBusy = false;
+		}
+	}
+
+	async function pageAction(
+		operation: Omit<NotePageOperation, 'revision'>
+	): Promise<string | null> {
+		if (pageBusy || !note || destroyed || note.id !== id) return null;
+		const targetNote = note;
+		const targetId = id;
+		const token = localStorage.token;
+		const isCurrent = (): boolean =>
+			!destroyed && note === targetNote && id === targetId && localStorage.token === token;
+		pageBusy = true;
+		try {
+			if (
+				['create', 'duplicate'].includes(operation.action) ||
+				(operation.action === 'delete' && operation.page_id === activePageId)
+			) {
+				await flushActivePage();
+			}
+			if (!isCurrent()) return null;
+			const previous = targetNote.data.pages;
+			const activeIndex = previous.findIndex((p) => p.id === activePageId);
+			const newId = ['create', 'duplicate'].includes(operation.action) ? uuidv4() : undefined;
+			const saved = await updateNotePages(token, targetId, {
+				...operation,
+				new_id: newId,
+				revision: targetNote.data.pages_revision
+			});
+			if (!isCurrent()) return null;
+			mergePages(saved.data.pages, saved.data.pages_revision);
+			const target =
+				newId ??
+				(saved.data.pages.some((p) => p.id === activePageId)
+					? activePageId
+					: saved.data.pages[Math.min(activeIndex, saved.data.pages.length - 1)].id);
+			activatePage(target);
+			const url = new URL($page.url);
+			url.searchParams.set('page', target);
+			// The old page was flushed above; the new editor is still initializing.
+			await goto(url.pathname + url.search, {
+				replaceState: true,
+				noScroll: true,
+				keepFocus: true
+			});
+			return newId ?? target;
+		} catch (error) {
+			toast.error(String(error));
+			const current = await getNoteById(token, targetId).catch(() => null);
+			if (isCurrent() && current) mergePages(current.data.pages, current.data.pages_revision);
+			return null;
+		} finally {
+			pageBusy = false;
+		}
+	}
+
+	function mergePages(incoming: NotePage[], revision: number = 0) {
+		if (!note || destroyed || !incoming.length || revision < (note.data.pages_revision ?? 0))
+			return;
+		const previous = note.data.pages;
+		const oldIndex = previous.findIndex((p) => p.id === activePageId);
+		const oldPage = previous[oldIndex];
+		const nextPage = incoming.find((p) => p.id === activePageId);
+		if (
+			!pageBusy &&
+			note.write_access &&
+			oldPage?.content?.md &&
+			(!nextPage ||
+				(nextPage.generation > oldPage.generation && nextPage.content.md !== oldPage.content.md))
+		) {
+			previousPage = structuredClone(oldPage);
+		}
+		note.data.pages = incoming.map((remote) => {
+			const local = previous.find((p) => p.id === remote.id);
+			if (local && local.generation > remote.generation)
+				return {
+					...local,
+					title: remote.title,
+					inherit_note_title: remote.inherit_note_title,
+					parent_id: remote.parent_id
+				};
+			if (local && local.generation === remote.generation) {
+				if (local.revision > remote.revision)
+					return {
+						...local,
+						title: remote.title,
+						inherit_note_title: remote.inherit_note_title,
+						parent_id: remote.parent_id
+					};
+				if (remote.id === activePageId && note?.write_access)
+					return { ...remote, content: local.content, versions: local.versions };
+			}
+			return remote;
+		});
+		note.data.pages_revision = revision;
+		if (!note.data.pages.some((p) => p.id === activePageId)) {
+			activatePage(note.data.pages[Math.max(0, Math.min(oldIndex, note.data.pages.length - 1))].id);
+			const url = new URL($page.url);
+			url.searchParams.set('page', activePageId);
+			replaceState(url, $page.state);
+		}
+	}
+
 
 	let wordCount = 0;
 	let charCount = 0;
 
+	$: if (editor) {
+		wordCount = editor.storage.characterCount.words();
+		charCount = editor.storage.characterCount.characters();
+	}
+
 	let versionIdx: number | null = null;
-	let selectedModelId: string | null = null;
+	let selectedModelId = '';
 
 	let recording = false;
 	let displayMediaRecord = false;
 
 	let showNoteChat = false;
+	$: if (showNoteChat) showNoteTabs = false;
 	let noteChatId: string | null = null;
 	let noteChatLoading = false;
 	let noteChats: SavedChat[] = [];
@@ -137,14 +341,9 @@
 	let noteChatCreating = false;
 
 	let selectedContent: { text: string; from: number; to: number } | null = null;
-	let noteAttachmentFiles: NoteFile[] = [];
-	let noteChatSuggestedPrompts: string[] = [];
-	let pendingNoteEvent: NoteEvent | null = null;
-	let pendingNoteEventTimer: ReturnType<typeof setTimeout> | null = null;
-	let lastLocalContentChangeAt = 0;
-	$: noteAttachmentFiles = (files ?? []).filter(
-		(file) => file?.type !== 'image' && !(file?.content_type ?? '').startsWith('image/')
-	);
+	let noteAttachmentFiles = [];
+	let noteChatSuggestedPrompts = [];
+	$: noteAttachmentFiles = contentFiles(activePage?.content);
 	$: noteChatSuggestedPrompts = [
 		$i18n.t('Enhance this note and update it.'),
 		$i18n.t('Summarize this note.'),
@@ -154,6 +353,7 @@
 
 	let showDeleteConfirm = false;
 	let showAccessControlModal = false;
+	let savedAccessGrants: NoteRecord['access_grants'] = [];
 
 	let ignoreBlur = false;
 	let titleInputFocused = false;
@@ -166,10 +366,9 @@
 
 	// Computed HTML for editor: fall back to markdown if HTML is missing
 	$: editorHtml =
-		note?.data?.content?.html ||
-		(note?.data?.content?.md ? marked.parse(note.data.content.md) : '');
+		activePage?.content?.html ||
+		(activePage?.content?.md ? marked.parse(activePage.content.md) : '');
 
-	let loadGeneration = 0;
 	let destroyed = false;
 
 	const init = async (): Promise<void> => {
@@ -186,51 +385,94 @@
 			generation === loadGeneration &&
 			id === requestedId &&
 			localStorage.token === token;
+
+		autoFormat = true;
 		loading = true;
-		try {
-			const res = await getNoteById(token, requestedId);
-			if (!isCurrent()) return;
+		const res = await getNoteById(token, requestedId).catch((error) => {
+			if (isCurrent()) toast.error(`${error}`);
+			return null;
+		});
+
+		if (!isCurrent()) return;
+		if (res) {
+			if (note?.id && note.id !== res.id) $socket?.emit('note:leave', { note_id: note.id });
+			previousPage = null;
 			note = res;
-			files = res.data.files;
-			$socket?.emit('join-note', { note_id: requestedId, auth: { token } });
+			savedAccessGrants = structuredClone(res.access_grants);
+			const requested = $page.url.searchParams.get('page');
+			const remembered = localStorage.getItem(`note-page:${$user?.id}:${id}`);
+			activePageId = '';
+			activatePage(
+				note.data.pages.find((p) => p.id === (requested || remembered))?.id ??
+					note.data.pages[0]?.id ??
+					null
+			);
+			if (requested && requested !== activePageId)
+				toast.info($i18n.t('This page no longer exists'));
+			if (!Array.isArray(note?.access_grants)) {
+				note.access_grants = [];
+			}
+
 			$socket?.off('events:note', noteEventHandler);
 			$socket?.on('events:note', noteEventHandler);
-		} catch (error) {
-			if (isCurrent()) toast.error(`${error}`);
-		} finally {
-			if (isCurrent()) loading = false;
+			$socket?.off('note:presence', presenceEventHandler);
+			$socket?.on('note:presence', presenceEventHandler);
+			$socket?.off('disconnect', clearPresence);
+			$socket?.on('disconnect', clearPresence);
+			$socket?.off('connect', joinNote);
+			$socket?.on('connect', joinNote);
+			joinNote();
+		} else {
+			if (note?.id) $socket?.emit('note:leave', { note_id: note.id });
+			note = null;
+			loading = false;
+			return;
 		}
+		if (isCurrent()) loading = false;
 	};
 
-	const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
+	const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	const saveTitle = async (
+		token: string,
+		noteId: string,
+		title: string,
+		propagateError = false
+	): Promise<void> => {
+		if (localStorage.token !== token) return;
+		try {
+			const result = await updateNoteById(token, noteId, { title });
+			if (!result) throw new Error($i18n.t('Failed to save note'));
+			if (destroyed || localStorage.token !== token) return;
+			const pinned = await getPinnedNoteList(token);
+			if (!destroyed && localStorage.token === token) pinnedNotes.set(pinned);
+		} catch (error) {
+			if (!destroyed && localStorage.token === token) toast.error(String(error));
+			if (propagateError) throw error;
+		}
+	};
+	const saveHandler = async (propagateError = false): Promise<void> => {
+		if (!note || destroyed) return;
+		const timer = saveTimers.get(note.id);
+		if (timer !== undefined) clearTimeout(timer);
+		saveTimers.delete(note.id);
+		await saveTitle(localStorage.token, note.id, note.title || $i18n.t('Untitled'), propagateError);
+	};
 	const changeDebounceHandler = (): void => {
-		if (!note) return;
-		const noteId: string = note.id;
-		const token: string = localStorage.token;
-		const payload: NoteForm = structuredClone({
-			title: note.title === '' ? $i18n.t('Untitled') : note.title,
-			data: { files },
-			access_grants: note.access_grants ?? []
-		});
+		if (!note || destroyed) return;
+		const noteId = note.id;
+		const token = localStorage.token;
+		const title = note.title || $i18n.t('Untitled');
 		const previous = saveTimers.get(noteId);
 		if (previous !== undefined) clearTimeout(previous);
-		saveTimers.set(
-			noteId,
-			setTimeout(async (): Promise<void> => {
-				saveTimers.delete(noteId);
-				// Do not issue a delayed write after logout/account change.
-				if (localStorage.token !== token) return;
-				try {
-					await updateNoteById(token, noteId, payload);
-					if (localStorage.token !== token) return;
-					const pinned = await getPinnedNoteList(token);
-					if (localStorage.token === token) pinnedNotes.set(pinned);
-				} catch (error) {
-					if (localStorage.token === token) toast.error(`${error}`);
-				}
-			}, 200)
-		);
+		const timer = setTimeout(async (): Promise<void> => {
+			saveTimers.delete(noteId);
+			if (debounceTimeout === timer) debounceTimeout = null;
+			await saveTitle(token, noteId, title);
+		}, 200);
+		saveTimers.set(noteId, timer);
+		debounceTimeout = timer;
 	};
 
 	const pinHandler = async (): Promise<void> => {
@@ -247,114 +489,35 @@
 		}
 	};
 
-	const applyExternalNoteContent = async (_note: NoteEvent): Promise<boolean> => {
-		if (!note || _note.id !== id || _note.id !== note.id) return false;
-		const incomingContent = _note.data?.content;
-		if (!incomingContent) return false;
-		const contentLength = incomingContent?.md?.length ?? incomingContent?.html?.length ?? 0;
-
-		console.info('[note-chat] external note event apply requested', {
-			noteId: _note.id,
-			eventUpdatedAt: _note.updated_at,
-			currentUpdatedAt: note?.updated_at,
-			editorPresent: !!editor,
-			contentLength
-		});
-
-		if (_note.updated_at && note?.updated_at && _note.updated_at < note.updated_at) {
-			console.info('[note-chat] external note event skipped', {
-				noteId: _note.id,
-				reason: 'stale',
-				eventUpdatedAt: _note.updated_at,
-				currentUpdatedAt: note.updated_at,
-				contentLength
-			});
-			return false;
+	onNavigate(async () => {
+		if (!note || !inputElement || loading || pageBusy) return;
+		try {
+			await flushActivePage();
+		} catch (error) {
+			toast.error(String(error));
+			throw error;
 		}
-
-		const elapsed = Date.now() - lastLocalContentChangeAt;
-		if (elapsed < 800) {
-			pendingNoteEvent = _note;
-			if (pendingNoteEventTimer) {
-				clearTimeout(pendingNoteEventTimer);
-			}
-			pendingNoteEventTimer = setTimeout(async () => {
-				const event = pendingNoteEvent;
-				pendingNoteEvent = null;
-				if (event) {
-					await applyExternalNoteContent(event);
-				}
-			}, 850 - elapsed);
-
-			console.info('[note-chat] external note event deferred', {
-				noteId: _note.id,
-				reason: 'local-edit-settling',
-				eventUpdatedAt: _note.updated_at,
-				contentLength
-			});
-			return false;
-		}
-
-		note.data.content = normalizeNote({
-			...note,
-			data: { ...note.data, content: { ...note.data.content, ...incomingContent } }
-		}).data.content;
-		if (_note.updated_at) {
-			note.updated_at = _note.updated_at;
-		}
-
-		if (!editor) {
-			console.info('[note-chat] external note event applied', {
-				noteId: _note.id,
-				reason: 'no-editor',
-				eventUpdatedAt: _note.updated_at,
-				contentLength
-			});
-			return true;
-		}
-
-		const selection = editor.state.selection;
-		editor.commands.setContent(incomingContent.html || marked.parse(incomingContent.md ?? ''));
-		await tick();
-
-		const docSize = editor.state.doc.content.size;
-		const from = Math.min(selection.from, docSize);
-		const to = Math.min(selection.to, docSize);
-		if (from < to) {
-			editor.commands.setTextSelection({ from, to });
-			const text = editor.state.doc.textBetween(from, to, ' ');
-			selectedContent = text ? { text, from, to } : null;
-		} else {
-			selectedContent = null;
-		}
-
-		console.info('[note-chat] external note event applied', {
-			noteId: _note.id,
-			reason: 'content',
-			eventUpdatedAt: _note.updated_at,
-			contentLength
-		});
-		return true;
-	};
+	});
 
 	$: if (id) {
 		init();
 	}
 
 	function areContentsEqual(a: unknown, b: unknown): boolean {
-		return equal(a, b);
+		return equalEditorJSON(a, b);
 	}
 
-	function insertNoteVersion(note: NoteRecord): boolean {
+	function insertNoteVersion(): boolean {
+		if (!activePage) return false;
 		const current = {
-			json: note.data.content.json,
-			html: note.data.content.html,
-			md: note.data.content.md
+			json: activePage.content.json,
+			html: activePage.content.html,
+			md: activePage.content.md
 		};
-		const lastVersion = note.data.versions?.at(-1);
+		const lastVersion = activePage.versions?.at(-1);
 
 		if (!lastVersion || !areContentsEqual(lastVersion, current)) {
-			note.data.versions = (note.data.versions ?? []).concat(current);
+			activePage.versions = (activePage.versions ?? []).concat(current);
 			return true;
 		}
 		return false;
@@ -363,7 +526,14 @@
 	const generateTitleHandler = async (): Promise<void> => {
 		if (!note || titleGenerating) return;
 		const targetNote = note;
-		const content = note.data.content.md;
+		const token = localStorage.token;
+		const generation = loadGeneration;
+		const isCurrent = (): boolean =>
+			!destroyed &&
+			note === targetNote &&
+			localStorage.token === token &&
+			loadGeneration === generation;
+		const content = note.data.pages.map((p) => `${p.title}\n${p.content.md}`).join('\n\n');
 		const DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE = `### Task:
 Generate a concise title summarizing the content in the content's primary language.
 ### Guidelines:
@@ -404,7 +574,7 @@ ${content}
 				},
 				`${WEBUI_BASE_URL}/api`
 			);
-			if (note !== targetNote) return;
+			if (!isCurrent()) return;
 			const response = res?.choices?.[0]?.message?.content ?? '';
 			const jsonStartIndex = response.indexOf('{');
 			const jsonEndIndex = response.lastIndexOf('}');
@@ -422,6 +592,7 @@ ${content}
 				}
 			}
 		} catch {
+			if (!isCurrent()) return;
 			console.error('Failed to generate note title');
 			toast.error($i18n.t('Failed to generate title'));
 			return;
@@ -430,102 +601,15 @@ ${content}
 		}
 
 		await tick();
-		if (note === targetNote) changeDebounceHandler();
+		if (isCurrent()) changeDebounceHandler();
 	};
-	const uploadFileHandler = async (file: File): Promise<NoteFile | null | undefined> => {
-		if (!note) return;
-		const targetNote = note;
-		const token: string = localStorage.token;
-		const generation = loadGeneration;
-		const isCurrent = (): boolean =>
-			!destroyed &&
-			note === targetNote &&
-			id === targetNote.id &&
-			generation === loadGeneration &&
-			localStorage.token === token;
-		const tempItemId = uuidv4();
-		const fileItem: NoteFile = {
-			type: 'file',
-			file: '',
-			id: null,
-			url: '',
-			name: file.name,
-			collection_name: '',
-			status: 'uploading',
-			size: file.size,
-			error: '',
-			itemId: tempItemId
-		};
 
-		if (fileItem.size == 0) {
-			toast.error($i18n.t('You cannot upload an empty file.'));
-			return null;
-		}
-
-		files = [...files, fileItem];
-
-		try {
-			// If the file is an audio file, provide the language for STT.
-			let metadata = null;
-			if (
-				(file.type.startsWith('audio/') || file.type.startsWith('video/')) &&
-				$settings?.audio?.stt?.language
-			) {
-				metadata = {
-					language: $settings?.audio?.stt?.language
-				};
-			}
-
-			// During the file upload, file content is automatically extracted.
-			const uploadedFile = await uploadFile(token, file, metadata);
-			if (!isCurrent()) return;
-
-			if (uploadedFile) {
-				console.log('File upload completed:', uploadedFile);
-
-				if (uploadedFile.error) {
-					console.warn('File upload warning:', uploadedFile.error);
-					toast.warning(uploadedFile.error);
-				}
-
-				fileItem.status = 'uploaded';
-				fileItem.file = await getFileById(token, uploadedFile.id).catch((e) => {
-					if (isCurrent()) toast.error(`${e}`);
-					return null;
-				});
-				if (!isCurrent()) return;
-				fileItem.id = uploadedFile.id;
-				fileItem.collection_name =
-					uploadedFile?.meta?.collection_name || uploadedFile?.collection_name;
-
-				fileItem.url = `${uploadedFile.id}`;
-
-				files = files;
-			} else {
-				files = files.filter((item) => item?.itemId !== tempItemId);
-			}
-		} catch (e) {
-			if (!isCurrent()) return;
-			toast.error(`${e}`);
-			files = files.filter((item) => item?.itemId !== tempItemId);
-		}
-
-		targetNote.data.files = files;
-
-		if (editor) {
-			editor.storage.files = files;
-		}
-
-		changeDebounceHandler();
-
-		return fileItem;
-	};
 
 	const compressImageHandler = async (
 		imageUrl: string,
 		settings: Pick<Settings, 'imageCompression' | 'imageCompressionSize'> = {},
-		config: Pick<FrontendConfig, 'file'> | null = {}
-	): Promise<string> => {
+		config: Pick<FrontendConfig, 'file'> | undefined = {}
+	) => {
 		// Quick shortcut so we don’t do unnecessary work.
 		const settingsCompression = settings?.imageCompression ?? false;
 		const configWidth = config?.file?.image_compression?.width ?? null;
@@ -562,10 +646,69 @@ ${content}
 	};
 
 	type NoteImage = { id: string; type: 'image'; url: string };
+	const inputFileHandler = (
+		file: File,
+		uploadEditor = editor,
+		pos = uploadEditor?.state.selection.from
+	) => {
+		if (!uploadEditor || uploadEditor.isDestroyed || !file) return Promise.resolve(null);
+		const targetNote = note;
+		const targetPage = activePageId;
+		const token = localStorage.token;
+		const id = uuidv4();
+		// Keep upload UI local so unfinished files never enter saved or shared content.
+		uploadEditor.view.dispatch(
+			uploadEditor.state.tr.setMeta(fileUploadsKey, { add: { id, pos, file } })
+		);
+		const pending = (async () => {
+			try {
+				const item = await processInputFile(file);
+				if (
+					!item ||
+					destroyed ||
+					note !== targetNote ||
+					targetPage !== activePageId ||
+					localStorage.token !== token ||
+					uploadEditor.isDestroyed
+				)
+					return null;
+				const placeholder = fileUploadsKey
+					.getState(uploadEditor.state)
+					?.find(undefined, undefined, (spec) => spec.id === id)[0];
+				if (!placeholder) return null;
+				uploadEditor
+					.chain()
+					.setMeta(fileUploadsKey, { remove: id })
+					.insertContentAt(
+						placeholder.from,
+						item.type === 'image'
+							? { type: 'image', attrs: { src: item.url } }
+							: { type: 'fileAttachment', attrs: { id: item.id, name: item.name, size: item.size } }
+					)
+					.focus()
+					.run();
+				return item;
+			} catch (error) {
+				if (
+					!destroyed &&
+					note === targetNote &&
+					targetPage === activePageId &&
+					localStorage.token === token
+				)
+					toast.error(String(error));
+				return null;
+			} finally {
+				if (!uploadEditor.isDestroyed) {
+					uploadEditor.view.dispatch(uploadEditor.state.tr.setMeta(fileUploadsKey, { remove: id }));
+				}
+			}
+		})();
+		pendingFileUploads.add(pending);
+		pending.finally(() => pendingFileUploads.delete(pending));
+		return pending;
+	};
 
-	const inputFileHandler = async (
-		file: File
-	): Promise<Awaited<ReturnType<typeof uploadFileHandler>> | NoteImage | undefined> => {
+	const processInputFile = async (file: File): Promise<NoteFile | null | undefined> => {
 		if (!note) return;
 		const targetNote = note;
 		const token: string = localStorage.token;
@@ -576,6 +719,7 @@ ${content}
 			id === targetNote.id &&
 			generation === loadGeneration &&
 			localStorage.token === token;
+
 		console.log('Processing file:', {
 			name: file.name,
 			type: file.type,
@@ -599,8 +743,8 @@ ${content}
 			return;
 		}
 
-		if (file['type'].startsWith('image/')) {
-			const imageFile = file.type === 'image/heic' ? await convertHeicToJpeg(file) : file;
+		if (file.type.startsWith('image/') || isHeicImage(file)) {
+			const imageFile = isHeicImage(file) ? await convertHeicToJpeg(file) : file;
 			if (Array.isArray(imageFile)) throw new Error('Expected a single converted image');
 			const uploadImagePromise = new Promise<NoteImage | undefined>((resolve, reject) => {
 				let reader = new FileReader();
@@ -620,13 +764,6 @@ ${content}
 							type: 'image',
 							url: `${imageUrl}`
 						};
-						files = [...files, fileItem];
-						targetNote.data.files = files;
-						if (editor) {
-							editor.storage.files = files;
-						}
-
-						changeDebounceHandler();
 						resolve(fileItem);
 					} catch (err) {
 						reject(err);
@@ -639,29 +776,40 @@ ${content}
 
 			return await uploadImagePromise;
 		} else {
-			return await uploadFileHandler(file);
+			if (!file.size) throw new Error($i18n.t('You cannot upload an empty file.'));
+			const metadata =
+				(file.type.startsWith('audio/') || file.type.startsWith('video/')) &&
+				$settings?.audio?.stt?.language
+					? { language: $settings.audio.stt.language }
+					: null;
+			// Save the attachment as soon as it is uploaded; transcription runs on the server.
+			const uploaded = await uploadFile(token, file, metadata, null, false);
+			if (!isCurrent()) return;
+			if (!uploaded?.id) return null;
+			if (uploaded.error) toast.warning(uploaded.error);
+			return { type: 'file', id: uploaded.id, name: file.name, size: file.size };
 		}
 	};
 
-	const inputFilesHandler = async (inputFiles: File[]): Promise<void> => {
-		console.log('Input files handler called with:', inputFiles);
-		inputFiles.forEach(async (file) => {
-			await inputFileHandler(file);
-		});
+	const inputFilesHandler = async (
+		inputFiles: File[],
+		uploadEditor = editor,
+		position = uploadEditor?.state.selection.from
+	) => {
+		for (const file of inputFiles) {
+			await inputFileHandler(file, uploadEditor, position);
+			position = uploadEditor?.state.selection.to;
+		}
 	};
 
 	const uploadNoteFilesHandler = () => {
 		const input = document.createElement('input');
 		input.type = 'file';
 		input.multiple = true;
+		const uploadEditor = editor;
+		const position = uploadEditor?.state.selection.from;
+		input.onchange = () => inputFilesHandler(Array.from(input.files ?? []), uploadEditor, position);
 		input.click();
-
-		input.onchange = async () => {
-			const inputFiles = Array.from(input.files ?? []);
-			if (inputFiles.length > 0) {
-				await inputFilesHandler(inputFiles);
-			}
-		};
 	};
 
 	const openNoteChat = async (): Promise<void> => {
@@ -815,21 +963,14 @@ ${content}
 		noteChats = chats;
 	};
 
-	const downloadHandler = async (type: NoteDownloadType): Promise<void> => {
-		if (!note) return;
-		console.log('downloadHandler', type);
-		if (type === 'txt') {
-			const blob = new Blob([note.data.content.md], { type: 'text/plain' });
-			saveAs(blob, `${note.title}.txt`);
-		} else if (type === 'md') {
-			const blob = new Blob([note.data.content.md], { type: 'text/markdown' });
-			saveAs(blob, `${note.title}.md`);
-		} else if (type === 'pdf') {
-			try {
-				await downloadPdf(note);
-			} catch (error) {
-				toast.error(`${error}`);
-			}
+	const downloadHandler = async (type: NoteDownloadType, pageId: string | null = null) => {
+		try {
+			await flushActivePage();
+			if (!id || !note || destroyed) return;
+			const saved = await getNoteById(localStorage.token, id);
+			if (saved) await downloadNote(saved, type, pageId);
+		} catch (error) {
+			toast.error(String(error));
 		}
 	};
 
@@ -840,6 +981,10 @@ ${content}
 		});
 
 		if (res) {
+			if (debounceTimeout) clearTimeout(debounceTimeout);
+			debounceTimeout = null;
+			$socket?.emit('note:leave', { note_id: id });
+			note = null;
 			pinnedNotes.set(await getPinnedNoteList(localStorage.token).catch(() => []));
 			toast.success($i18n.t('Note deleted successfully'));
 			goto('/notes');
@@ -850,101 +995,73 @@ ${content}
 
 	const insertHandler = (content: string): void => {
 		if (!note) return;
-		insertNoteVersion(note);
+		insertNoteVersion();
 		inputElement?.insertContent(content);
 	};
 
-	const noteEventHandler = async (_note: NoteEvent): Promise<void> => {
-		console.log('noteEventHandler', _note);
-		if (!note || _note.id !== id || _note.id !== note.id) return;
-
-		if (_note.updated_at && note?.updated_at && _note.updated_at < note.updated_at) {
-			console.info('[note-chat] external note event skipped', {
-				noteId: _note.id,
-				reason: 'stale-event',
-				eventUpdatedAt: _note.updated_at,
-				currentUpdatedAt: note.updated_at,
-				contentLength: _note.data?.content?.md?.length ?? _note.data?.content?.html?.length ?? 0
-			});
+	const noteEventHandler = async (_note: NoteEvent) => {
+		if (destroyed || _note.id !== id || !note || _note.id !== note.id) return;
+		if (_note.page) {
+			const remote = _note.page;
+			const local = note.data.pages.find((p) => p.id === remote.id);
+			if (!local || remote.revision < local.revision || remote.generation < local.generation)
+				return;
+			if (
+				remote.id === activePageId &&
+				note.write_access &&
+				remote.generation === local.generation
+			) {
+				local.revision = remote.revision;
+			} else {
+				note.data.pages = note.data.pages.map((p) => (p.id === remote.id ? remote : p));
+				if (remote.id === activePageId && !note.write_access)
+					editor?.commands.setContent(
+						remote.content.json || remote.content.html || marked.parse(remote.content.md)
+					);
+			}
 			return;
 		}
+		if (_note.data?.pages) mergePages(_note.data.pages, _note.data.pages_revision);
+		if (_note.access_grants) note.access_grants = _note.access_grants;
+		if (_note.title && !titleInputFocused && !debounceTimeout) note.title = _note.title;
 
-		if (_note.access_grants && _note.access_grants !== note.access_grants) {
-			note.access_grants = _note.access_grants;
-		}
-
-		if (_note.data && 'files' in _note.data) {
-			files = _note.data.files ?? [];
-			note.data.files = files;
-		}
-
-		if (_note.data?.content) {
-			await applyExternalNoteContent(_note);
-		}
-
-		if (_note.title && _note.title) {
-			note.title = _note.title;
-		}
-
-		if (_note.updated_at) {
-			note.updated_at = _note.updated_at;
-		}
-
-		if (editor) {
-			editor.storage.files = files;
-		}
-		await tick();
-
-		for (const file of files) {
-			if (file.type === 'image' || (file?.content_type ?? '').startsWith('image/')) {
-				const e = new CustomEvent('data');
-
-				const img = document.getElementById(`image:${file.id}`);
-				if (img) {
-					img.dispatchEvent(e);
-				}
-			}
-		}
+		if (_note.updated_at) note.updated_at = _note.updated_at;
 	};
 
 	onMount(async () => {
+		showNoteTabs = localStorage.getItem(`note-tabs-open:${$user?.id}`) === 'true';
+		noteTabsPreferenceReady = true;
 		await tick();
 
-		if ($settings?.models) {
-			selectedModelId = $settings?.models[0];
-		} else if ($config?.default_models) {
-			selectedModelId = $config?.default_models.split(',')[0];
-		} else {
-			selectedModelId = '';
-		}
+		selectedModelId =
+			resolveDefaultModelIds($models, $settings?.models, $config?.default_models?.split(','))[0] ??
+			'';
 
-		if (selectedModelId) {
-			const model = $models
-				.filter((model) => model.id === selectedModelId && !(model?.info?.meta?.hidden ?? false))
-				.find((model) => model.id === selectedModelId);
-
-			if (!model) {
-				selectedModelId = '';
-			}
-		}
-
-		if (!selectedModelId) {
-			selectedModelId =
-				$models.filter((model) => !(model?.info?.meta?.hidden ?? false)).at(0)?.id || '';
-		}
 	});
 
 	onDestroy(() => {
 		destroyed = true;
-		console.log('destroy');
+		loadGeneration++;
+		if (note?.id) $socket?.emit('note:leave', { note_id: note.id });
 		$socket?.off('events:note', noteEventHandler);
-		if (pendingNoteEventTimer) {
-			clearTimeout(pendingNoteEventTimer);
+		$socket?.off('note:presence', presenceEventHandler);
+		$socket?.off('disconnect', clearPresence);
+		$socket?.off('connect', joinNote);
+
+		const dropzoneElement = document.getElementById('note-editor');
+
+		if (dropzoneElement) {
+			// dropzoneElement?.removeEventListener('dragover', onDragOver);
+			// dropzoneElement?.removeEventListener('drop', onDrop);
+			// dropzoneElement?.removeEventListener('dragleave', onDragLeave);
 		}
 	});
 </script>
 
 <svelte:head>
+	<!-- LICENSE covers this Open WebUI browser-title identifier.
+	Do not alter, remove, obscure, or replace it except as LICENSE permits:
+	https://docs.openwebui.com/license. -->
 	<title>
 		{note?.title
 			? `${note?.title.length > 30 ? `${note?.title.slice(0, 30)}...` : note?.title} / ${$WEBUI_NAME}`
@@ -952,7 +1069,7 @@ ${content}
 	</title>
 </svelte:head>
 
-{#if note}
+{#if note && activePage}
 	<AccessControlModal
 		bind:show={showAccessControlModal}
 		bind:accessGrants={note.access_grants}
@@ -960,12 +1077,20 @@ ${content}
 		share={$user?.permissions?.sharing?.notes || $user?.role === 'admin'}
 		sharePublic={$user?.permissions?.sharing?.public_notes || $user?.role === 'admin'}
 		shareUsers={($user?.permissions?.access_grants?.allow_users ?? true) || $user?.role === 'admin'}
+		allowGroups={($user?.permissions?.access_grants?.allow_groups ?? true) ||
+			$user?.role === 'admin'}
 		onChange={async () => {
 			if (id && note) {
 				try {
-					await updateNoteAccessGrants(localStorage.token, id, note.access_grants ?? []);
+					const saved = await updateNoteAccessGrants(
+						localStorage.token,
+						id,
+						note.access_grants ?? []
+					);
+					if (saved) savedAccessGrants = structuredClone(saved.access_grants);
 					toast.success($i18n.t('Saved'));
 				} catch (error) {
+					note.access_grants = structuredClone(savedAccessGrants);
 					toast.error(`${error}`);
 				}
 			}
@@ -990,8 +1115,8 @@ ${content}
 	</DeleteConfirmDialog>
 {/if}
 
-<PaneGroup direction="horizontal" class="w-full h-full">
-	<Pane defaultSize={70} minSize={30} class="h-full flex flex-col w-full relative">
+<div class="w-full h-full flex">
+	<div class="h-full flex flex-col min-w-0 flex-1 relative">
 		<div class="relative flex-1 w-full h-full flex justify-center pt-2" id="note-editor">
 			{#if loading}
 				<div class=" absolute top-0 bottom-0 left-0 right-0 flex">
@@ -999,7 +1124,7 @@ ${content}
 						<Spinner className="size-5" />
 					</div>
 				</div>
-			{:else if note && note.id === id}
+			{:else if note && note.id === id && activePage}
 				<div class=" w-full flex flex-col {loading ? 'opacity-20' : ''}">
 					<div class="shrink-0 w-full flex justify-between items-center px-3">
 						<div class="w-full min-w-0 flex items-center">
@@ -1036,10 +1161,17 @@ ${content}
 								on:focus={() => {
 									titleInputFocused = true;
 								}}
-								on:blur={(): void => {
+								on:blur={(e: FocusEvent): void => {
 									// check if target is generate button
 									if (ignoreBlur) {
 										ignoreBlur = false;
+										return;
+									}
+
+									if (
+										e.relatedTarget instanceof HTMLElement &&
+										e.relatedTarget.id === 'generate-title-button'
+									) {
 										return;
 									}
 
@@ -1056,10 +1188,15 @@ ${content}
 										<button
 											class="flex size-5 items-center justify-center self-center dark:hover:text-white transition disabled:cursor-not-allowed"
 											id="generate-title-button"
+											aria-label={$i18n.t('Generate')}
 											disabled={(note?.user_id !== $user?.id && $user?.role !== 'admin') ||
 												titleGenerating}
 											on:mouseenter={() => {
 												ignoreBlur = true;
+											}}
+											on:blur={() => {
+												titleInputFocused = false;
+												changeDebounceHandler();
 											}}
 											on:click={(e) => {
 												e.preventDefault();
@@ -1083,6 +1220,7 @@ ${content}
 											<div class="flex items-center gap-0.5 self-center min-w-fit" dir="ltr">
 												<button
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
+													aria-label={$i18n.t('Undo')}
 													on:click={() => {
 														editor?.chain().focus().undo().run();
 													}}
@@ -1093,6 +1231,7 @@ ${content}
 
 												<button
 													class="self-center p-1 hover:enabled:bg-black/5 dark:hover:enabled:bg-white/5 dark:hover:enabled:text-white hover:enabled:text-black rounded-md transition disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:text-gray-500"
+													aria-label={$i18n.t('Redo')}
 													on:click={() => {
 														editor?.chain().focus().redo().run();
 													}}
@@ -1159,20 +1298,26 @@ ${content}
 												const files = input.files;
 
 												if (files && files.length > 0) {
-													await uploadFileHandler(files[0]);
+													await inputFileHandler(files[0]);
 												}
 											};
 										}}
 									>
 										<Tooltip content={$i18n.t('Record')} placement="top">
-											<div class="p-1 bg-transparent hover:bg-white/5 transition rounded-lg">
+											<button
+												type="button"
+												class="p-1 bg-transparent hover:bg-white/5 transition rounded-lg"
+												aria-label={$i18n.t('Record')}
+											>
 												<Mic className="size-4" />
-											</div>
+											</button>
 										</Tooltip>
 									</RecordMenu>
 								{/if}
 
 								<NoteMenu
+									bind:autoFormat
+									showAutoFormat={note?.write_access ?? false}
 									onUploadFiles={note?.write_access ? uploadNoteFilesHandler : null}
 									onDownload={(type) => {
 										downloadHandler(type);
@@ -1191,8 +1336,8 @@ ${content}
 									onCopyToClipboard={async () => {
 										if (!note) return;
 										const res = await copyToClipboard(
-											note.data.content.md,
-											note.data.content.html,
+											activePage.content.md,
+											activePage.content.html,
 											true
 										).catch((error) => {
 											toast.error(`${error}`);
@@ -1209,20 +1354,38 @@ ${content}
 									isPinned={$pinnedNotes.some((n) => n.id === note?.id)}
 									onPin={pinHandler}
 								>
-									<div class="p-1 bg-transparent hover:bg-white/5 transition rounded-lg">
+									<button
+										type="button"
+										class="p-1 bg-transparent hover:bg-white/5 transition rounded-lg"
+										aria-label={$i18n.t('Note Menu')}
+									>
 										<EllipsisHorizontal className="size-5" />
-									</div>
+									</button>
 								</NoteMenu>
 
-								{#if note?.write_access}
-									<div class="ml-1.5">
-										<AccessButton
-											on:click={() => {
-												showAccessControlModal = true;
-											}}
-											disabled={note?.user_id !== $user?.id && $user?.role !== 'admin'}
+								{#if liveParticipants.length > 0}
+									<div class="ms-1 me-0.5">
+										<ChatParticipants
+											participants={liveParticipants}
+											onSelect={goToParticipant}
+											mode="presence"
+											avatarClass="size-5"
 										/>
 									</div>
+								{/if}
+
+								{#if note?.write_access}
+									{#if $user?.permissions?.sharing?.notes || $user?.role === 'admin'}
+										<div class="ml-1.5">
+											<AccessButton
+												on:click={() => {
+													savedAccessGrants = structuredClone(note?.access_grants ?? []);
+													showAccessControlModal = true;
+												}}
+												disabled={note?.user_id !== $user?.id && $user?.role !== 'admin'}
+											/>
+										</div>
+									{/if}
 								{:else}
 									<div class="shrink-0 text-xs text-gray-500 px-2 py-1">
 										{$i18n.t('Read-Only Access')}
@@ -1243,31 +1406,60 @@ ${content}
 							}}
 						>
 							<div
-								class="flex gap-0.5 items-center text-xs font-normal text-gray-500 dark:text-gray-500 w-fit"
+								class="flex gap-0.5 items-center text-xs font-normal text-gray-500 dark:text-gray-500 w-full"
 							>
-								<button class=" flex items-center gap-1 w-fit py-1 px-1.5 rounded-lg min-w-fit">
+								<div class="min-w-0 max-w-40 pl-2 pr-1">
+									<button
+										class="flex max-w-full items-center gap-1 bg-transparent text-xs text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition"
+										aria-label={$i18n.t('Toggle pages')}
+										aria-expanded={showNoteTabs}
+										aria-controls="note-tabs-panel"
+										on:click={() => {
+											if (!showNoteTabs) showNoteChat = false;
+											showNoteTabs = !showNoteTabs;
+										}}
+										><span class="truncate"
+											>{activePage?.id === 'main' && activePage.inherit_note_title !== false
+												? note.title || $i18n.t('Untitled')
+												: activePage?.title}</span
+										><ChevronDown className="size-3 shrink-0" /></button
+									>
+								</div>
+								<div class=" flex items-center gap-1 w-fit py-1 px-1.5 rounded-lg min-w-fit">
 									<!-- check for same date, yesterday, last week, and other -->
 
-									{#if dayjs(note.created_at / 1000000).isSame(dayjs(), 'day')}
+									{#if dayjs(note.created_at / 1000000)
+										.locale($i18n.language)
+										.isSame(dayjs().locale($i18n.language), 'day')}
 										<span
-											>{dayjs(note.created_at / 1000000).format($i18n.t('[Today at] h:mm A'))}</span
+											>{dayjs(note.created_at / 1000000)
+												.locale($i18n.language)
+												.format($i18n.t('[Today at] h:mm A'))}</span
 										>
-									{:else if dayjs(note.created_at / 1000000).isSame(dayjs().subtract(1, 'day'), 'day')}
+									{:else if dayjs(note.created_at / 1000000)
+										.locale($i18n.language)
+										.isSame(dayjs().locale($i18n.language).subtract(1, 'day'), 'day')}
 										<span
-											>{dayjs(note.created_at / 1000000).format(
-												$i18n.t('[Yesterday at] h:mm A')
-											)}</span
+											>{dayjs(note.created_at / 1000000)
+												.locale($i18n.language)
+												.format($i18n.t('[Yesterday at] h:mm A'))}</span
 										>
-									{:else if dayjs(note.created_at / 1000000).isSame(dayjs().subtract(1, 'week'), 'week')}
+									{:else if dayjs(note.created_at / 1000000)
+										.locale($i18n.language)
+										.isSame(dayjs().locale($i18n.language).subtract(1, 'week'), 'week')}
 										<span
-											>{dayjs(note.created_at / 1000000).format(
-												$i18n.t('[Last] dddd [at] h:mm A')
-											)}</span
+											>{dayjs(note.created_at / 1000000)
+												.locale($i18n.language)
+												.format($i18n.t('[Last] dddd [at] h:mm A'))}</span
 										>
 									{:else}
-										<span>{dayjs(note.created_at / 1000000).format($i18n.t('DD/MM/YYYY'))}</span>
+										<span
+											>{dayjs(note.created_at / 1000000)
+												.locale($i18n.language)
+												.format($i18n.t('DD/MM/YYYY'))}</span
+										>
 									{/if}
-								</button>
+								</div>
 
 								{#if editor}
 									<div class="flex items-center gap-1 px-1 min-w-fit">
@@ -1287,139 +1479,125 @@ ${content}
 						</div>
 					</div>
 
-					<div
-						class=" flex-1 w-full h-full overflow-auto px-3 relative flex flex-col"
-						id="note-content-container"
-					>
-						{#if noteAttachmentFiles.length > 0}
-							<div class="shrink-0 flex flex-wrap gap-1.5 px-0.5 pt-1.5 pb-2">
-								{#each noteAttachmentFiles as file, fileIdx (file?.id ?? file?.itemId ?? file?.url ?? fileIdx)}
-									<FileItem
-										item={file}
-										name={file.name}
-										type={file.type}
-										size={file?.size}
-										loading={file.status === 'uploading'}
-										dismissible={versionIdx === null && note?.write_access}
-										edit={true}
-										small={true}
-										modal={['file', 'collection'].includes(file?.type ?? '')}
-										className="w-56 max-w-full"
-										colorClassName="bg-gray-50/60 dark:bg-white/[0.03] border border-gray-100/80 dark:border-white/5"
-										on:dismiss={() => {
-											if (!note) return;
-											files = files.filter((item) => item !== file);
-											note.data.files = files;
-											if (editor) {
-												editor.storage.files = files;
-											}
-											changeDebounceHandler();
-										}}
-									/>
-								{/each}
-							</div>
-						{/if}
+					{#if previousPage}
+						<div
+							role="status"
+							class="flex items-center gap-3 px-4 py-2 text-sm bg-amber-50 dark:bg-amber-950"
+						>
+							<span class="flex-1"
+								>{$i18n.t(
+									'A page changed elsewhere. Your previous text is available to download.'
+								)}</span
+							>
+							<button
+								class="underline"
+								on:click={() =>
+									saveAs(
+										new Blob([previousPage?.content.md ?? ''], { type: 'text/markdown' }),
+										`${previousPage?.title ?? 'note'}.md`
+									)}>{$i18n.t('Download')}</button
+							>
+							<button on:click={() => (previousPage = null)}>{$i18n.t('Dismiss')}</button>
+						</div>
+					{/if}
+					<div class="flex min-h-0 flex-1">
+						<NotePanel
+							bind:show={showNoteTabs}
+							side="left"
+							panelWidth={280}
+							minWidth={240}
+							closeOnDragBelowMinWidth={false}
+							resizerId="note-tabs-resizer"
+							storageKey={`note-tabs-width:${$user?.id}`}
+							floating
+						>
+							<NoteTabs
+								onClose={() => (showNoteTabs = false)}
+								pages={note.data.pages.map((page) =>
+									page.id === 'main' && page.inherit_note_title !== false
+										? { ...page, title: note?.title || $i18n.t('Untitled') }
+										: page
+								)}
+								activeId={activePageId}
+								editable={note.write_access}
+								busy={pageBusy}
+								onSelect={async (pageId) => {
+									await selectPage(pageId);
+									if ($mobile) showNoteTabs = false;
+								}}
+								onAction={pageAction}
+								onCopyLink={async (pageId) => {
+									await copyToClipboard(
+										`${window.location.origin}/notes/${id}?page=${encodeURIComponent(pageId)}`
+									);
+									toast.success($i18n.t('Copied link to clipboard'));
+								}}
+								onDownload={(pageId, format) => downloadHandler(format as NoteDownloadType, pageId)}
+							/>
+						</NotePanel>
+						<div
+							class="min-w-0 flex-1 h-full overflow-auto px-3 relative flex flex-col"
+							id="note-content-container"
+							role="tabpanel"
+							aria-label={activePage?.id === 'main' && activePage.inherit_note_title !== false
+								? note.title || $i18n.t('Untitled')
+								: activePage?.title}
+						>
+							{#each [activePage] as renderedPage (`${note.id}:${renderedPage.id}:${renderedPage.generation}:${autoFormat}`)}
+								<RichTextInput
+									{autoFormat}
+									bind:this={inputElement}
+									on:editor={(event) => (editor = event.detail)}
+									id={`note-${note.id}-${renderedPage.id}`}
+									className="input-prose-sm px-0.5 flex-1 min-h-[12rem]"
+									json={true}
+									bind:value={renderedPage.content.json}
+									html={editorHtml}
+									documentId={activeDocumentId}
+									bind:cursorTarget
+									collaboration={true}
+									socket={$socket}
+									user={$user}
+									dragHandle={true}
+									link={true}
+									image={true}
+									attachments={true}
+									placeholder={$i18n.t('Write something...')}
+									editable={versionIdx === null && note?.write_access}
+									onSelectionUpdate={({ editor }) => {
+										const { from, to } = editor.state.selection;
+										const selectedText = editor.state.doc.textBetween(from, to, ' ');
 
-						<RichTextInput
-							bind:this={inputElement}
-							bind:editor
-							id={`note-${note.id}`}
-							className="input-prose-sm px-0.5 flex-1 min-h-[12rem]"
-							json={true}
-							bind:value={note.data.content.json}
-							html={editorHtml}
-							documentId={`note:${note.id}`}
-							collaboration={true}
-							socket={$socket}
-							user={$user}
-							dragHandle={true}
-							link={true}
-							image={true}
-							{files}
-							placeholder={$i18n.t('Write something...')}
-							editable={versionIdx === null && note?.write_access}
-							onSelectionUpdate={({ editor }) => {
-								const { from, to } = editor.state.selection;
-								const selectedText = editor.state.doc.textBetween(from, to, ' ');
-
-								if (selectedText.length === 0) {
-									selectedContent = null;
-								} else {
-									selectedContent = {
-										text: selectedText,
-										from: from,
-										to: to
-									};
-								}
-							}}
-							onChange={(content) => {
-								if (!note) return;
-								lastLocalContentChangeAt = Date.now();
-								note.data.content.html = content.html;
-								note.data.content.md = content.md;
-
-								if (editor) {
-									wordCount = editor.storage.characterCount.words();
-									charCount = editor.storage.characterCount.characters();
-								}
-							}}
-							fileHandler={true}
-							onFileDrop={(currentEditor, files, pos) => {
-								files.forEach(async (file) => {
-									const fileItem = await inputFileHandler(file).catch((): null => {
-										return null;
-									});
-
-									if (fileItem?.type === 'image') {
-										// If the file is an image, insert it directly
-										currentEditor
-											.chain()
-											.insertContentAt(pos, {
-												type: 'image',
-												attrs: {
-													src: `data://${fileItem.id}`
-												}
-											})
-											.focus()
-											.run();
-									}
-								});
-							}}
-							onFilePaste={() => {}}
-							on:paste={async (event) => {
-								const e = event.detail.event;
-								const clipboardData = e.clipboardData || window.clipboardData;
-								console.log('Clipboard data:', clipboardData);
-
-								if (clipboardData && clipboardData.items) {
-									console.log('Clipboard data items:', clipboardData.items);
-									for (const item of clipboardData.items) {
-										console.log('Clipboard item:', item);
-										if (item.type.indexOf('image') !== -1) {
-											const blob = item.getAsFile();
-											const fileItem = await inputFileHandler(blob);
-
-											if (editor && fileItem?.type === 'image') {
-												editor
-													?.chain()
-													.insertContentAt(editor.state.selection.$anchor.pos, {
-														type: 'image',
-														attrs: {
-															src: `data://${fileItem.id}` // Use data URI for the image
-														}
-													})
-													.focus()
-													.run();
-											}
-										} else if (item?.kind === 'file') {
-											const file = item.getAsFile();
-											await inputFileHandler(file);
-											e.preventDefault();
+										if (selectedText.length === 0) {
+											selectedContent = null;
+										} else {
+											selectedContent = {
+												text: selectedText,
+												from: from,
+												to: to
+											};
 										}
-									}
-								}
-							}}
-						/>
+									}}
+									onChange={(content) => {
+										renderedPage.content.json = content.json;
+										renderedPage.content.html = content.html;
+										renderedPage.content.md = content.md;
+									}}
+									fileHandler={true}
+									onFileDrop={(currentEditor, files, pos) =>
+										inputFilesHandler(files, currentEditor, pos)}
+									onFilePaste={() => {}}
+									on:paste={(event) => {
+										const e: ClipboardEvent = event.detail.event || event;
+										const pasted = Array.from(e.clipboardData?.files ?? []);
+										if (pasted.length) {
+											e.preventDefault();
+											inputFilesHandler(pasted);
+										}
+									}}
+								/>
+							{/each}
+						</div>
 					</div>
 				</div>
 			{:else}
@@ -1445,7 +1623,7 @@ ${content}
 						}}
 						onConfirm={(data) => {
 							if (data?.file) {
-								uploadFileHandler(data?.file);
+								inputFileHandler(data?.file);
 							}
 
 							recording = false;
@@ -1455,13 +1633,13 @@ ${content}
 				</div>
 			</div>
 		{/if}
-	</Pane>
+	</div>
 	<NotePanel bind:show={showNoteChat}>
 		{#if noteChatLoading}
 			<div class="flex h-full items-center justify-center">
 				<Spinner className="size-5" />
 			</div>
-		{:else if noteChatId || noteChatDraftKey}
+		{:else if note && (noteChatId || noteChatDraftKey)}
 			<Chat
 				embedded={true}
 				chatIdProp={noteChatId ?? ''}
@@ -1469,7 +1647,10 @@ ${content}
 				embeddedDraftKey={noteChatDraftKey}
 				suggestedPrompts={noteChatSuggestedPrompts}
 				selectedText={selectedContent?.text ?? ''}
-				onInsertToNote={insertHandler}
+				notePageId={activePageId}
+				noteFiles={noteAttachmentFiles}
+				onBeforeNoteSubmit={flushActivePage}
+				onInsertToNote={note?.write_access ? insertHandler : null}
 				onNewEmbeddedChat={createNoteChat}
 				onCreateEmbeddedChat={createNoteChatOnFirstMessage}
 				onSelectEmbeddedChat={(chatId) => {
@@ -1498,4 +1679,4 @@ ${content}
 			/>
 		{/if}
 	</NotePanel>
-</PaneGroup>
+</div>

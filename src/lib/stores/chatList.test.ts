@@ -44,3 +44,36 @@ it.each(['refresh', 'page'])(
 		expect(get(chats)?.map((chat) => chat.id)).toEqual(['new-session']);
 	}
 );
+
+it('a superseded refresh is rejected while the newer accepted refresh owns published rows', async () => {
+	let finishOld!: (rows: Awaited<ReturnType<typeof getChatList>>) => void;
+	vi.mocked(getChatList).mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				finishOld = resolve;
+			})
+	);
+	const old = refreshChatList(localStorage.token, { refreshPinned: true });
+	vi.mocked(getChatList).mockResolvedValueOnce([row('current')]);
+	expect((await refreshChatList(localStorage.token)).accepted).toBe(true);
+	finishOld([row('stale')]);
+	expect((await old).accepted).toBe(false);
+	expect(get(chats)?.map((chat) => chat.id)).toEqual(['current']);
+});
+it('retries failed first and next pages without publishing empty rows or skipping a page', async () => {
+	vi.mocked(getChatList)
+		.mockRejectedValueOnce(new Error('503'))
+		.mockResolvedValueOnce([row('retained')])
+		.mockRejectedValueOnce(new Error('503'))
+		.mockResolvedValueOnce([row('retained'), row('next')])
+		.mockResolvedValueOnce([]);
+	await expect(refreshChatList(localStorage.token)).rejects.toThrow('503');
+	expect(get(chats)).toBeNull();
+	await refreshChatList(localStorage.token);
+	await expect(loadNextChatListPage(localStorage.token)).rejects.toThrow('503');
+	expect(get(chats)?.map((chat) => chat.id)).toEqual(['retained']);
+	await loadNextChatListPage(localStorage.token);
+	expect(get(chats)?.map((chat) => chat.id)).toEqual(['retained', 'next']);
+	expect((await loadNextChatListPage(localStorage.token)).allLoaded).toBe(true);
+	expect(vi.mocked(getChatList).mock.calls.map((call) => call[1])).toEqual([1, 1, 2, 2, 3]);
+});

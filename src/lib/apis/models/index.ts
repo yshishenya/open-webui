@@ -18,6 +18,17 @@ export type WorkspaceModel = ModelConfig & {
 	write_access?: boolean | null;
 };
 
+export const exportModels = async (token: string, ids?: string[]) => {
+	const query = new URLSearchParams();
+	(ids ?? []).forEach((id) => query.append('ids', id));
+	if (ids && !ids.length) return [];
+	const response = await fetch(`${WEBUI_API_BASE_URL}/models/export${ids ? `?${query}` : ''}`, {
+		headers: { authorization: `Bearer ${token}` }
+	});
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
 export const getModelItems = async (
 	token: string = '',
 	query: string | null,
@@ -25,8 +36,9 @@ export const getModelItems = async (
 	selectedTag: string | null,
 	orderBy: string | null,
 	direction: string | null,
-	page: number
-): Promise<{ items: WorkspaceModel[]; total: number } | null> => {
+	page: number,
+	signal?: AbortSignal
+) => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -51,6 +63,7 @@ export const getModelItems = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/models/list?${searchParams.toString()}`, {
 		method: 'GET',
+		signal,
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -65,6 +78,7 @@ export const getModelItems = async (
 			return json;
 		})
 		.catch((err) => {
+			if (signal?.aborted) return null;
 			error = err;
 			console.error(err);
 			return null;
@@ -165,6 +179,18 @@ export const importModels = async (token: string, models: object[]) => {
 	}
 
 	return res;
+};
+
+export const getAllModels = async (token: string = '') => {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/models/all`, {
+		method: 'GET',
+		headers: {
+			Accept: 'application/json',
+			authorization: `Bearer ${token}`
+		}
+	});
+	if (!res.ok) throw await res.json();
+	return res.json();
 };
 
 export const getBaseModels = async (token: string = '', tag: string = '') => {
@@ -436,4 +462,76 @@ export const deleteAllModels = async (token: string) => {
 	}
 
 	return res;
+};
+
+export type ModelHistoryEntry = {
+	id: string;
+	model_id: string;
+	parent_id: string | null;
+	user_id: string;
+	commit_message: string | null;
+	created_at: number;
+	user?: { name: string } | null;
+};
+
+export type ModelSnapshot = {
+	name: string;
+	base_model_id: string | null;
+	params: Record<string, any>;
+	meta: Record<string, any>;
+};
+
+export const getModelHistory = async (
+	token: string,
+	id: string,
+	page = 1
+): Promise<ModelHistoryEntry[]> => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/models/model/history?${new URLSearchParams({ id, page: String(page) })}`,
+		{
+			headers: { authorization: `Bearer ${token}` }
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
+export const getModelHistoryEntry = async (
+	token: string,
+	id: string,
+	versionId: string
+): Promise<ModelHistoryEntry & { snapshot: ModelSnapshot }> => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/models/model/history/${encodeURIComponent(versionId)}?${new URLSearchParams({ id })}`,
+		{
+			headers: { authorization: `Bearer ${token}` }
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
+export const deleteModelHistoryVersion = async (token: string, id: string, versionId: string) => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/models/model/history/${encodeURIComponent(versionId)}?${new URLSearchParams({ id })}`,
+		{
+			method: 'DELETE',
+			headers: { authorization: `Bearer ${token}` }
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
+};
+
+export const setProductionModelVersion = async (token: string, id: string, versionId: string) => {
+	const response = await fetch(
+		`${WEBUI_API_BASE_URL}/models/model/update/version?${new URLSearchParams({ id })}`,
+		{
+			method: 'POST',
+			headers: { authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+			body: JSON.stringify({ version_id: versionId })
+		}
+	);
+	if (!response.ok) throw await response.json();
+	return response.json();
 };

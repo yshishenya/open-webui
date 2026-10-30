@@ -25,7 +25,7 @@ for (const form of ['account', 'administrator'] as const) {
 		});
 		if (form === 'account') {
 			await (await getUserMenuTrigger(page)).first().click();
-			await page.getByRole('button', { name: 'Settings', exact: true }).click();
+			await page.getByRole('menuitem', { name: 'Settings', exact: true }).click();
 			await page.getByRole('tab', { name: 'Account', exact: true }).click();
 			await expect(page.getByPlaceholder('Enter your name')).toHaveValue('Admin User');
 		} else {

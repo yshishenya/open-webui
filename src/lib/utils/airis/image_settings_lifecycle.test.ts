@@ -7,7 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import {
 	getConfig,
 	updateConfig,
-	verifyConfigUrl,
+	verifyConnection,
 	getImageGenerationModels
 } from '$lib/apis/images';
 vi.mock('$lib/constants', () => ({ IMAGES_API_BASE_URL: '/api/v1/images' }));
@@ -115,7 +115,7 @@ const rig = () => {
 			return { ...cfg };
 		}),
 		getImageGenerationModels: vi.fn(async () => [{ id: 'fixture', name: 'Fixture' }]),
-		verifyConfigUrl: vi.fn(async () => true),
+		verifyConnection: vi.fn(async () => true),
 		toast: { error: vi.fn(), success: vi.fn() },
 		console: { log: vi.fn(), debug: vi.fn(), error: vi.fn() },
 		onMount: (fn: () => Promise<void>): void => {
@@ -288,7 +288,7 @@ it('does not verify or announce success after a refused save', async () => {
 	const r = rig();
 	r.context.updateConfig.mockRejectedValueOnce(new Error('save refused'));
 	await r.api.updateConfigHandler(true);
-	expect(r.context.verifyConfigUrl).not.toHaveBeenCalled();
+	expect(r.context.verifyConnection).not.toHaveBeenCalled();
 	expect(r.context.toast.success).not.toHaveBeenCalled();
 	expect(r.api.state().loading).toBe(false);
 });
@@ -297,10 +297,10 @@ it('verifies only after the current settings have been saved', async () => {
 		p = deferred<object>();
 	r.context.updateConfig.mockReturnValue(p.promise);
 	const work = r.api.updateConfigHandler(true);
-	expect(r.context.verifyConfigUrl).not.toHaveBeenCalled();
+	expect(r.context.verifyConnection).not.toHaveBeenCalled();
 	p.resolve(configuration());
 	await work;
-	expect(r.context.verifyConfigUrl).toHaveBeenCalledTimes(1);
+	expect(r.context.verifyConnection).toHaveBeenCalledTimes(1);
 	expect(r.context.toast.success).toHaveBeenCalledTimes(1);
 	expect(r.api.state().loading).toBe(false);
 });
@@ -367,7 +367,7 @@ for (const index of [0, 1]) {
 for (const [name, request] of [
 	['config', (signal: AbortSignal) => getConfig('fixture', signal)],
 	['update', (signal: AbortSignal) => updateConfig('fixture', configuration(), signal)],
-	['verify', (signal: AbortSignal) => verifyConfigUrl('fixture', signal)],
+	['verify', (signal: AbortSignal) => verifyConnection('fixture', {engine: 'comfyui', url: 'https://example.test', key: ''}, signal)],
 	['models', (signal: AbortSignal) => getImageGenerationModels('fixture', signal)]
 ] as const) {
 	it(`does not fetch an already cancelled image ${name} request`, async () => {

@@ -4,6 +4,9 @@ import type { DirectProviderModelsResponse } from '$lib/utils/airis/model-types'
 import { OPENAI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 import { enhanceOpenAIChatCompletionBody } from '$lib/utils/airis/openai';
 
+export { getErrorMessage } from '$lib/utils/airis/error_message';
+import { getErrorMessage } from '$lib/utils/airis/error_message';
+
 export type OpenAIConfig = {
 	ENABLE_OPENAI_API: boolean | null;
 	OPENAI_API_BASE_URLS: string[];
@@ -94,6 +97,194 @@ export const getOpenAIModels = async (token: string, urlIdx?: number) => {
 	return res;
 };
 
+export const getProviderModelCatalog = async (token: string, urlIdx: number) => {
+	let error = null;
+
+	const res = await fetch(`${OPENAI_API_BASE_URL}/models/${urlIdx}/catalog`, {
+		method: 'GET',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			...(token && { authorization: `Bearer ${token}` })
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = getErrorMessage(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const downloadProviderModel = async (
+	token: string,
+	urlIdx: number,
+	model: string,
+	signal?: AbortSignal
+) => {
+	let error = null;
+
+	const res = await fetch(`${OPENAI_API_BASE_URL}/models/${urlIdx}/download`, {
+		signal,
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ model })
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = getErrorMessage(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const getProviderModelDownloadStatus = async (
+	token: string,
+	urlIdx: number,
+	jobId: string,
+	signal?: AbortSignal
+) => {
+	let error = null;
+
+	const res = await fetch(
+		`${OPENAI_API_BASE_URL}/models/${urlIdx}/download/status/${encodeURIComponent(jobId)}`,
+		{
+			signal,
+			method: 'GET',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			}
+		}
+	)
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = getErrorMessage(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const loadProviderModel = async (token: string, urlIdx: number, model: string) => {
+	let error = null;
+
+	const res = await fetch(`${OPENAI_API_BASE_URL}/models/${urlIdx}/load`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ model })
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = getErrorMessage(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const unloadProviderModel = async (
+	token: string,
+	urlIdx: number,
+	model: string,
+	instanceId?: string
+) => {
+	let error = null;
+
+	const res = await fetch(`${OPENAI_API_BASE_URL}/models/${urlIdx}/unload`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ model, ...(instanceId ? { instance_id: instanceId } : {}) })
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = getErrorMessage(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const deleteProviderModel = async (token: string, urlIdx: number, model: string) => {
+	let error = null;
+
+	const res = await fetch(
+		`${OPENAI_API_BASE_URL}/models/${urlIdx}?${new URLSearchParams({ model })}`,
+		{
+			method: 'DELETE',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`
+			}
+		}
+	)
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = getErrorMessage(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
 export const verifyOpenAIConnection = (
 	token: string,
 	connection: Pick<ModelConnection, 'url' | 'key'> & { config?: ModelConnectionConfig },
@@ -170,7 +361,7 @@ export const generateOpenAIChatCompletion = async (
 			return res.json();
 		})
 		.catch((err) => {
-			error = err?.detail ?? err;
+			error = getErrorMessage(err);
 			return null;
 		});
 

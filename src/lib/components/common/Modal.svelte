@@ -1,18 +1,29 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { lockBodyScroll } from '$lib/utils/airis/body_scroll_lock';
 	import { fade } from 'svelte/transition';
 
 	import { flyAndScale } from '$lib/utils/transitions';
 	import * as FocusTrap from 'focus-trap';
+	import { settings } from '$lib/stores';
+	import { matchKeybinding, Shortcut } from '$lib/shortcuts';
 	export let show = true;
 	export let size = 'md';
 	export let containerClassName = 'p-3';
 	export let className = 'bg-white dark:bg-gray-900 rounded-4xl';
 	export let ariaLabel: string | undefined = undefined;
 	export let beforeClose: () => boolean = () => true;
+	export let onRequestClose: (() => void) | null = null;
+	const requestClose = (): void => {
+		if (beforeClose()) {
+			if (onRequestClose) onRequestClose();
+			else show = false;
+		}
+	};
 
 	let modalElement: HTMLElement | null = null;
 	let portalElement: HTMLElement | null = null;
+	let releaseBodyScroll: (() => void) | null = null;
 	// Create focus trap to trap user tabs inside modal
 	// https://www.w3.org/WAI/WCAG21/Understanding/focus-order.html
 	// https://www.w3.org/WAI/WCAG21/Understanding/keyboard.html
@@ -42,8 +53,16 @@
 	};
 
 	const handleKeyDown = (event: KeyboardEvent) => {
-		if (event.key === 'Escape' && isTopModal() && beforeClose()) {
-			show = false;
+		if (
+			(event.key === 'Escape' ||
+				($settings?.keyboardShortcuts !== false &&
+					matchKeybinding(event) === Shortcut.CLOSE_MODAL)) &&
+			!(
+				event.target instanceof Element && event.target.closest('[role="menu"], [role="listbox"]')
+			) &&
+			isTopModal()
+		) {
+			requestClose();
 		}
 	};
 
@@ -58,22 +77,25 @@
 		return modals.length && modals[modals.length - 1] === modalElement;
 	};
 
-	let handleOutsidePointerDown: ((event: PointerEvent) => void) | null = null;
+	let handleOutsidePointerDown: ((event: Event) => void) | null = null;
 	let handleModalFocusIn: (() => void) | null = null;
 	const cleanupModal = (): void => {
 		const element = portalElement;
 		if (!element) return;
 		focusTrap?.deactivate();
 		focusTrap = null;
-		if (handleOutsidePointerDown)
+		if (handleOutsidePointerDown) {
 			document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+			window.removeEventListener('focusin', handleOutsidePointerDown, true);
+		}
 		if (handleModalFocusIn) element.removeEventListener('focusin', handleModalFocusIn);
 		window.removeEventListener('keydown', handleKeyDown);
 		handleOutsidePointerDown = null;
 		handleModalFocusIn = null;
 		if (element.parentNode === document.body) document.body.removeChild(element);
 		portalElement = null;
-		if (!document.getElementsByClassName('modal').length) document.body.style.overflow = 'unset';
+		releaseBodyScroll?.();
+		releaseBodyScroll = null;
 	};
 
 	$: if (show && modalElement) {
@@ -94,17 +116,35 @@
 			});
 			focusTrap.activate();
 			// Portaled dropdowns temporarily release the trap; returning focus restores it.
-			handleOutsidePointerDown = (event: PointerEvent): void => {
-				if (event.target instanceof Node && !portalElement?.contains(event.target))
-					focusTrap?.pause();
+			handleOutsidePointerDown = (e: Event): void => {
+				if (
+					focusTrap &&
+					portalElement &&
+					e.target instanceof Node &&
+					!portalElement.contains(e.target) &&
+					(e.type === 'pointerdown' ||
+						(e.target instanceof Element &&
+							e.target.closest('[role="menu"], [role="listbox"], [role="combobox"]')))
+				) {
+					focusTrap.pause();
+				} else if (
+					focusTrap &&
+					portalElement &&
+					e.target instanceof Element &&
+					portalElement.compareDocumentPosition(e.target) & Node.DOCUMENT_POSITION_PRECEDING &&
+					!e.target.closest('[data-sonner-toast]')
+				) {
+					focusTrap.unpause();
+				}
 			};
 			handleModalFocusIn = (): void => {
 				focusTrap?.unpause();
 			};
 			document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+			window.addEventListener('focusin', handleOutsidePointerDown, true);
 			modalElement.addEventListener('focusin', handleModalFocusIn);
 			window.addEventListener('keydown', handleKeyDown);
-			document.body.style.overflow = 'hidden';
+			releaseBodyScroll = lockBodyScroll(document.body);
 		}
 	} else {
 		cleanupModal();
@@ -124,7 +164,7 @@
 		style="scrollbar-gutter: stable;"
 		in:fade={{ duration: 10 }}
 		on:mousedown={(event) => {
-			if (event.target === event.currentTarget && beforeClose()) show = false;
+			if (event.target === event.currentTarget) requestClose();
 		}}
 	>
 		<div

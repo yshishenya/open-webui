@@ -1,10 +1,10 @@
 import { WEBUI_API_BASE_URL } from '$lib/constants';
-import type { SessionUser } from '$lib/stores';
+import type { SigninResult } from './mfa';
 
 export type VerifyEmailResponse = {
 	success: boolean;
 	message: string;
-	session: SessionUser & { token: string };
+	session: SigninResult;
 	user?: {
 		id: string;
 		email: string;

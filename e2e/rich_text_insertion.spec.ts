@@ -40,7 +40,7 @@ test('compiled plain input preserves pasted ranges and multiline prompt commands
 		({ token }) => {
 			localStorage.setItem('token', token);
 			localStorage.setItem('locale', 'en-US');
-			localStorage.setItem('settings', JSON.stringify({ version: '0.11.0', richTextInput: false }));
+			localStorage.setItem('settings', JSON.stringify({ version: '0.12.5', richTextInput: false }));
 			localStorage.setItem('airis.analytics.consent.v1', 'denied');
 		},
 		{ token: admin.token }

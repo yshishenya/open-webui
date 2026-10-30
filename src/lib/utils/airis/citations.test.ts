@@ -5,6 +5,10 @@ import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
 import { groupCitations, type Citation } from './citations';
+const utilitySource = ts.createSourceFile('utils.ts', readFileSync('src/lib/utils/index.ts', 'utf8'), ts.ScriptTarget.Latest);
+const urlCheck = utilitySource.statements.filter(ts.isVariableStatement).flatMap(s => [...s.declarationList.declarations]).find(d => d.name.getText(utilitySource) === 'isValidHttpUrl');
+if (!urlCheck?.initializer) throw new Error('Missing URL validator');
+const isValidHttpUrl = runInNewContext(ts.transpileModule(`(${urlCheck.initializer.getText(utilitySource)})`, {compilerOptions: {target: ts.ScriptTarget.ES2022}}).outputText, {URL}) as (url: string) => boolean;
 
 const script = (path: string): string => {
 	const source = readFileSync(`src/lib/components/${path}`, 'utf8');
@@ -42,6 +46,7 @@ const setup = (input: unknown) => {
 		{
 			input,
 			groupCitations,
+			isValidHttpUrl,
 			getContext: () => ({}),
 			console: { log: () => {} },
 			embed,
@@ -155,6 +160,7 @@ it('an embedded citation keeps the original query, hash and full source identifi
 			'\nreturn getSrcUrl(input.url, input.chatId, input.messageId, input.sourceId);',
 		{
 			input: value,
+			getContext: () => ({}),
 			URL,
 			window: { location: { href: 'https://chat.airis.you/c/chat' } }
 		}

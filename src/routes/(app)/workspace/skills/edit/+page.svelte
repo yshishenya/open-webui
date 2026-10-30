@@ -19,7 +19,7 @@
 
 	$: skillId = $page.url.searchParams.get('id');
 
-	const onSubmit = async (_skill: SkillForm): Promise<void> => {
+	const onSubmit = async (_skill: SkillForm): Promise<import('$lib/apis/skills').SkillRecord | null | undefined> => {
 		if (!skillId) return;
 		const updatedSkill = await updateSkillById(localStorage.token, skillId, _skill).catch(
 			(error) => {
@@ -33,16 +33,9 @@
 			await getSkills(localStorage.token)
 				.then((items) => skills.set(items))
 				.catch(() => toast.error($i18n.t('Could not load skills. Try again.')));
-			skill = {
-				id: updatedSkill.id,
-				name: updatedSkill.name,
-				description: updatedSkill.description,
-				content: updatedSkill.content,
-				meta: updatedSkill.meta,
-				is_active: updatedSkill.is_active,
-				access_grants: updatedSkill?.access_grants === undefined ? [] : updatedSkill?.access_grants
-			};
+			skill = updatedSkill;
 		}
+		return updatedSkill;
 	};
 
 	onMount(async () => {
@@ -54,15 +47,7 @@
 
 			if (_skill) {
 				disabled = !(_skill.write_access ?? false);
-				skill = {
-					id: _skill.id,
-					name: _skill.name,
-					description: _skill.description,
-					content: _skill.content,
-					meta: _skill.meta,
-					is_active: _skill.is_active,
-					access_grants: _skill?.access_grants === undefined ? [] : _skill?.access_grants
-				};
+				skill = _skill;
 			} else {
 				goto('/workspace/skills');
 			}

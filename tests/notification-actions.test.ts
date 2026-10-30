@@ -31,6 +31,7 @@ async function withToast(
 		close = vi.fn();
 	const component = mount(NotificationToast, {
 		target,
+		context: new Map([['i18n', writable({ t: (text: string) => text })]]),
 		props: { title: '', content, onClick },
 		events: { closeToast: close }
 	});

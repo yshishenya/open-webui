@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LockClosed from '$lib/components/icons/LockClosed.svelte';
 	import { getContext } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
@@ -15,8 +16,9 @@
 	import Pin from '$lib/components/icons/Pin.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 
-	import { config, user as currentUser, settings } from '$lib/stores';
+	import { config, user as currentUser, pinnedModels, visibleControls } from '$lib/stores';
 	import Link from '$lib/components/icons/Link.svelte';
+	import { resolveLocalizedModelName } from '$lib/utils/localizedContent';
 
 	const i18n = getContext<Readable<I18n>>('i18n');
 
@@ -29,9 +31,10 @@
 	export let copyLinkHandler: () => void | Promise<void>;
 
 	export let hideHandler: () => void | Promise<void>;
-	export let pinModelHandler: (modelId: string) => void | Promise<void>;
+	export let pinModelHandler: Function;
 	export let deleteHandler: () => void | Promise<void>;
-	export let onClose: () => void | Promise<void>;
+	export let accessHandler: (() => void) | null = null;
+	export let onClose: Function;
 
 	export let writeAccess: boolean = true;
 
@@ -53,6 +56,11 @@
 >
 	<Tooltip content={$i18n.t('More')}>
 		<button
+			type="button"
+			class="focus-ring rounded-lg"
+			aria-label={`${$i18n.t('More')}: ${resolveLocalizedModelName(model, $i18n.language)}`}
+			aria-haspopup="menu"
+			aria-expanded={show}
 			on:click={(e) => {
 				e.stopPropagation();
 				show = !show;
@@ -63,20 +71,32 @@
 	</Tooltip>
 
 	<div slot="content">
-		<DropdownMenu className="min-w-[170px]">
+		<DropdownMenu className="min-w-[10.625rem]">
 			{#if writeAccess}
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					on:click={() => runAndClose(editHandler)}
 				>
 					<Pencil />
 					<div class="flex items-center">{$i18n.t('Edit')}</div>
 				</button>
 			{/if}
+			{#if accessHandler && writeAccess}
+				<button
+					type="button"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => {
+						runAndClose(() => accessHandler?.());
+					}}
+				>
+					<LockClosed className="size-3.5" />
+					<div class="flex items-center">{$i18n.t('Access')}</div>
+				</button>
+			{/if}
 
 			{#if writeAccess}
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					on:click={() => runAndClose(hideHandler)}
 				>
 					{#if model?.meta?.hidden ?? false}
@@ -126,28 +146,30 @@
 				</button>
 			{/if}
 
-			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
-				on:click={() => runAndClose(() => pinModelHandler(model?.id))}
-			>
-				{#if ($settings?.pinnedModels ?? []).includes(model?.id)}
-					<PinSlash />
-				{:else}
-					<Pin />
-				{/if}
-
-				<div class="flex items-center">
-					{#if ($settings?.pinnedModels ?? []).includes(model?.id)}
-						{$i18n.t('Hide from Sidebar')}
+			{#if $visibleControls['models.pin']}
+				<button
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => runAndClose(() => pinModelHandler(model?.id))}
+				>
+					{#if $pinnedModels.includes(model?.id)}
+						<PinSlash />
 					{:else}
-						{$i18n.t('Keep in Sidebar')}
+						<Pin />
 					{/if}
-				</div>
-			</button>
+
+					<div class="flex items-center">
+						{#if $pinnedModels.includes(model?.id)}
+							{$i18n.t('Hide from Sidebar')}
+						{:else}
+							{$i18n.t('Keep in Sidebar')}
+						{/if}
+					</div>
+				</button>
+			{/if}
 
 			{#if writeAccess}
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					on:click={() => runAndClose(cloneHandler)}
 				>
 					<DocumentDuplicate />
@@ -161,7 +183,7 @@
 			{/if}
 
 			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 				on:click={() => runAndClose(copyLinkHandler)}
 			>
 				<Link />
@@ -171,7 +193,7 @@
 
 			{#if writeAccess && ($currentUser?.role === 'admin' || $currentUser?.permissions?.workspace?.models_export)}
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					on:click={() => runAndClose(exportHandler)}
 				>
 					<Download />
@@ -182,7 +204,7 @@
 
 			{#if writeAccess && $config?.features.enable_community_sharing}
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					on:click={() => runAndClose(shareHandler)}
 				>
 					<Share />
@@ -194,7 +216,7 @@
 				<hr class="border-gray-50/30 dark:border-gray-800/30 my-1" />
 
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					on:click={() => runAndClose(deleteHandler)}
 				>
 					<GarbageBin />

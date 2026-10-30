@@ -103,6 +103,8 @@ function modal() {
 		name: 'Custom',
 		id: 'custom',
 		profileImageUrl: '/avatar',
+		originalMeta: {},
+		translations: {},
 		description: 'Keep this',
 		modelIds: ['base'],
 		filterMode: 'include',

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import WorkspaceAccessModal from './common/WorkspaceAccessModal.svelte';
+	let accessModal: WorkspaceAccessModal;
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	dayjs.extend(relativeTime);
@@ -11,7 +13,7 @@
 
 	const i18n = getContext<Writable<i18nType>>('i18n');
 
-	import { WEBUI_NAME, user, workspaceActions } from '$lib/stores';
+	import { WEBUI_NAME, user, workspaceActions, workspaceCounts } from '$lib/stores';
 	import {
 		deleteKnowledgeById,
 		searchKnowledgeBases,
@@ -31,6 +33,8 @@
 	import Search from '../icons/Search.svelte';
 	import Spinner from '../common/Spinner.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
+	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
+	import ProfileImage from '$lib/components/chat/Messages/ProfileImage.svelte';
 	import XMark from '../icons/XMark.svelte';
 	import ViewSelector from './common/ViewSelector.svelte';
 	import TagSelector from './common/TagSelector.svelte';
@@ -49,13 +53,14 @@
 	let page = 1;
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
+	let searchController: AbortController;
 	let viewOption = '';
 	let sourceOption = '';
 	let sortKey = 'updated_at';
 	let sortDirection = 'desc';
 
 	let items: KnowledgeListItem[] | null = null;
-	let total: number | null | undefined = null;
+	let total: number | null = null;
 
 	let allItemsLoaded = false;
 	let itemsLoading = false;
@@ -73,6 +78,8 @@
 	}
 
 	const handleSearchInput = () => {
+		searchController?.abort();
+		itemsLoading = true;
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
 			init();
@@ -80,6 +87,7 @@
 	};
 
 	onDestroy(() => {
+		searchController?.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 
@@ -124,6 +132,11 @@
 	};
 
 	const getItemsPage = async () => {
+		clearTimeout(searchDebounceTimer);
+		searchController?.abort();
+		searchController = new AbortController();
+		const { signal } = searchController;
+
 		itemsLoading = true;
 		const res = await searchKnowledgeBases(
 			localStorage.token,
@@ -132,14 +145,18 @@
 			page,
 			sourceOption,
 			sortKey,
-			sortDirection
+			sortDirection,
+			signal
 		).catch(() => {
 			return [] as [] & { total?: never; items?: never };
 		});
 
+		if (signal.aborted) return;
+
 		if (res) {
 			console.log(res);
-			total = res.total;
+			total = res.total ?? null;
+			workspaceCounts.update((counts) => ({ ...counts, knowledge: total }));
 			const pageItems: KnowledgeListItem[] = res.items ?? [];
 
 			if ((pageItems ?? []).length === 0) {
@@ -258,6 +275,11 @@
 		viewOption = localStorage?.workspaceViewOption || '';
 		sourceOption = localStorage?.workspaceKnowledgeSourceOption || '';
 		loaded = true;
+		await tick();
+
+		if (items === null && !itemsLoading) {
+			await init();
+		}
 
 		if (showCreateOnMount) {
 			showCreateModal = true;
@@ -265,11 +287,18 @@
 	});
 </script>
 
+<WorkspaceAccessModal bind:this={accessModal} resourceType="knowledge" onUpdated={init} />
+
 <svelte:head>
+	<!-- LICENSE covers this Open WebUI browser-title identifier.
+	Do not alter, remove, obscure, or replace it except as LICENSE permits:
+	https://docs.openwebui.com/license. -->
 	<title>
 		{$i18n.t('Knowledge')} / {$WEBUI_NAME}
 	</title>
 </svelte:head>
+
+<h1 class="sr-only">{$i18n.t('Knowledge')}</h1>
 
 {#if loaded}
 	<DeleteConfirmDialog
@@ -279,7 +308,7 @@
 		}}
 	/>
 
-	<Modal bind:show={showCreateModal} size="md">
+	<Modal bind:show={showCreateModal} size="md" ariaLabel={$i18n.t('Create a knowledge base')}>
 		<CreateKnowledgeBase
 			modal={true}
 			onBack={() => {
@@ -401,18 +430,10 @@
 							{@const metaPreview = getKnowledgeMetaPreview(item)}
 							<div
 								class="group flex min-h-8 w-full cursor-pointer items-center gap-2 overflow-hidden rounded-xl px-2 py-1 text-left"
-								role="button"
-								tabindex="0"
+								role="presentation"
 								on:click={(e) => {
 									if (shouldIgnoreRowClick(e.target)) return;
 									openKnowledge(item);
-								}}
-								on:keydown={(e) => {
-									if (e.currentTarget !== e.target) return;
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
-										openKnowledge(item);
-									}
 								}}
 							>
 								<div class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -424,11 +445,18 @@
 													className="min-w-0"
 													placement="top-start"
 												>
-													<div
-														class="truncate text-[13px] leading-5 text-gray-800 group-hover:underline dark:text-gray-200"
-													>
-														{item.name}
-													</div>
+													{#if !item?.meta?.document}
+														<a
+															href={`/workspace/knowledge/${item.id}`}
+															class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
+															>{item.name}</a
+														>
+													{:else}
+														<span
+															class="block truncate text-[0.8125rem] leading-5 text-gray-800 group-hover:underline dark:text-gray-200"
+															>{item.name}</span
+														>
+													{/if}
 												</Tooltip>
 
 												{#if item?.meta?.source === 'external'}
@@ -443,11 +471,17 @@
 													<Badge type="muted" content={$i18n.t('Read Only')} />
 												{/if}
 
-												<Tooltip content={dayjs(item.updated_at * 1000).format('LLLL')}>
+												<Tooltip
+													content={dayjs(item.updated_at * 1000)
+														.locale($i18n.language)
+														.format('LLLL')}
+												>
 													<div
-														class="shrink-0 truncate text-[11px] leading-5 text-gray-400 dark:text-gray-600"
+														class="shrink-0 truncate text-[0.6875rem] leading-5 text-gray-400 dark:text-gray-600"
 													>
-														{dayjs(item.updated_at * 1000).fromNow()}
+														{dayjs(item.updated_at * 1000)
+															.locale($i18n.language)
+															.fromNow()}
 													</div>
 												</Tooltip>
 											</div>
@@ -466,24 +500,32 @@
 								</div>
 
 								<div
-									class="hidden max-w-44 shrink-0 self-center truncate text-right text-[11px] leading-5 text-gray-500 dark:text-gray-500 md:block"
+									class="hidden max-w-44 shrink-0 self-center truncate text-right text-[0.6875rem] leading-5 text-gray-500 dark:text-gray-500 md:block"
 								>
-									<Tooltip
-										content={item?.user?.email ?? $i18n.t('Deleted User')}
-										className="min-w-0"
-										placement="top-start"
-									>
-										<div class="truncate">
-											{capitalizeFirstLetter(
-												item?.user?.name ?? item?.user?.email ?? $i18n.t('Deleted User')
-											)}
-										</div>
-									</Tooltip>
+									<ProfilePreview user={item?.user ?? null} side="left">
+										<span class="flex max-w-44 items-center gap-1.75">
+											<ProfileImage
+												src={item?.user?.id
+													? `/api/v1/users/${item.user.id}/profile/image`
+													: '/user.png'}
+												className="size-4 shrink-0 rounded-full!"
+											/>
+											<span class="min-w-0 max-w-24 truncate">
+												{capitalizeFirstLetter(
+													item?.user?.name ?? item?.user?.email ?? $i18n.t('Deleted User')
+												)}
+											</span>
+										</span>
+									</ProfilePreview>
 								</div>
 
 								{#if item?.write_access || $user?.role === 'admin'}
 									<div class="ml-2 flex shrink-0 flex-row items-center self-center">
 										<ItemMenu
+											accessHandler={$user?.permissions?.sharing?.knowledge ||
+											$user?.role === 'admin'
+												? () => accessModal.open(item.id)
+												: null}
 											onExport={$user?.role === 'admin'
 												? () => {
 														exportHandler(item);

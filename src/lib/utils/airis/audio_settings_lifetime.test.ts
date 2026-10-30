@@ -380,6 +380,7 @@ it('cancels the model editor voice request and discards its late result', async 
 	const fetchVoices = vi.fn(() => late.promise);
 	let destroy = (): void => {};
 	const context = {
+		clearBackgroundPreview: () => {},
 		AbortController,
 		voices: [] as { id: string; name: string }[],
 		localStorage: { token: 'fixture' },

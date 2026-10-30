@@ -49,14 +49,12 @@ export const updateConfig = (
 ): Promise<ImageConfig> =>
 	requestJSON(`${IMAGES_API_BASE_URL}/config/update`, token, config, signal, 'Image request');
 
-export const verifyConfigUrl = (token = '', signal?: AbortSignal): Promise<boolean> =>
-	requestJSON(
-		`${IMAGES_API_BASE_URL}/config/url/verify`,
-		token,
-		undefined,
-		signal,
-		'Image request'
-	);
+export const verifyConnection = (
+	token = '',
+	connection: { engine: string; url: string; key?: string | null },
+	signal?: AbortSignal
+): Promise<boolean> =>
+	requestJSON(`${IMAGES_API_BASE_URL}/verify`, token, connection, signal, 'Image request');
 
 export const getImageGenerationConfig = async (token: string = '') => {
 	let error = null;
@@ -187,14 +185,12 @@ export const imageEdits = async (
 			...(token && { authorization: `Bearer ${token}` })
 		},
 		body: JSON.stringify({
-			form_data: {
-				image: images,
-				prompt,
-				...(model && { model }),
-				...(size && { size }),
-				...(n && { n }),
-				...(background && { background })
-			}
+			image: images,
+			prompt,
+			...(model && { model }),
+			...(size && { size }),
+			...(n && { n }),
+			...(background && { background })
 		})
 	})
 		.then(async (res) => {

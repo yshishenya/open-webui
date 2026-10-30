@@ -39,5 +39,6 @@ export PYTHONPATH="$REPO_ROOT/backend${PYTHONPATH:+:$PYTHONPATH}"
 python -m uvicorn open_webui.main:app \
 	--port "$PORT" \
 	--host "$HOST" \
-	--forwarded-allow-ips '*' \
+	--forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-*}" \
+	--ws-per-message-deflate "${UVICORN_WS_PER_MESSAGE_DEFLATE:-true}" \
 	--reload

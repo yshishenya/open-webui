@@ -8,6 +8,7 @@ import { mount, tick, unmount } from 'svelte';
 import { writable } from 'svelte/store';
 import type { ModelConfig } from '$lib/apis';
 import Knowledge from '$lib/components/workspace/Models/Knowledge.svelte';
+import { installModelEditorProjection } from './fixtures/model-editor-actual';
 
 vi.hoisted(() => Object.assign(globalThis, { APP_VERSION: 'test', APP_BUILD_HASH: 'test' }));
 vi.mock('$lib/apis/notes', () => ({ searchNotes: async () => ({ items: [] }) }));
@@ -33,7 +34,7 @@ const javascript = (code: string): string =>
 
 it('submits actual metadata without deleting null/primitive knowledge or duplicating extracted text', async () => {
 	const info: ModelConfig = { id: '', name: '', meta: { description: '  ' }, params: {} };
-	const onSubmit = vi.fn();
+	const onSubmit = vi.fn().mockResolvedValue(true);
 	const error = vi.fn();
 	const sandbox = {
 		info,
@@ -72,24 +73,27 @@ it('submits actual metadata without deleting null/primitive knowledge or duplica
 		toast: { error },
 		$i18n: { t: (text: string) => text }
 	};
+	installModelEditorProjection(sandbox);
 	const run = runInNewContext(
-		javascript(
-			`${declaration('toModelKnowledgeReference')}\n${declaration('submitHandler')}\nsubmitHandler`
-		),
+		javascript(`${declaration('submitHandler')}\nsubmitHandler`),
 		sandbox
 	) as () => Promise<void>;
 	await run();
 	expect(onSubmit).toHaveBeenCalledOnce();
 	expect(error).not.toHaveBeenCalled();
-	expect(info.meta.knowledge).toEqual([
+	expect(sandbox.info.meta.knowledge).toEqual([
 		null,
 		'legacy',
 		0,
 		false,
 		{ id: 'k', name: 'Knowledge', context: 'full' }
 	]);
-	expect(info.meta.description).toBeNull();
-	expect(info.params).toEqual({ system: 'Instructions', stop: ['end', 'done'], temperature: 0 });
+	expect(sandbox.info.meta.description).toBeNull();
+	expect(sandbox.info.params).toEqual({
+		system: 'Instructions',
+		stop: ['end', 'done'],
+		temperature: 0
+	});
 	expect(sandbox.loading).toBe(false);
 	sandbox.knowledge.push({ status: 'uploading' });
 	await run();
@@ -148,6 +152,18 @@ it('keeps actual profile upload animation, centered crop and original image with
 });
 
 it('mounts the real knowledge widget with arbitrary values and removes the correct object row', async () => {
+	Object.defineProperty(Element.prototype, 'animate', {
+		configurable: true,
+		value: () => ({ finished: Promise.resolve(), cancel: () => {} })
+	});
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe(): void {}
+			unobserve(): void {}
+			disconnect(): void {}
+		}
+	);
 	const i18n = createInstance();
 	await i18n.init({ lng: 'en', resources: {}, initImmediate: false });
 	const target = document.createElement('div');
@@ -168,12 +184,15 @@ it('mounts the real knowledge widget with arbitrary values and removes the corre
 	try {
 		await tick();
 		expect(target.textContent).toContain('Knowledge');
-		expect(target.querySelectorAll('[aria-label="Remove File"]')).toHaveLength(1);
-		target.querySelector<HTMLButtonElement>('[aria-label="Remove File"]')?.click();
+		target.querySelector<HTMLButtonElement>('button[aria-expanded]')?.click();
+		await tick();
+		expect(document.querySelectorAll('[aria-label="Remove File"]')).toHaveLength(1);
+		document.querySelector<HTMLButtonElement>('[aria-label="Remove File"]')?.click();
 		await tick();
 		expect(selected).toEqual([null, false, 'legacy']);
 	} finally {
 		await unmount(component);
 		target.remove();
+		vi.unstubAllGlobals();
 	}
 });

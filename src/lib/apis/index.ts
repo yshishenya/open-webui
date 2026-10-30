@@ -7,6 +7,9 @@ import type {
 } from '$lib/utils/airis/frontend-contracts';
 import { parseToolSpec, type ToolServerSpec } from '$lib/utils/airis/tool_connection_import';
 import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
+import { get } from 'svelte/store';
+import { config } from '$lib/stores';
+import { normalizeTags } from '$lib/utils/tags';
 import { getOpenAIModelsDirect } from './openai';
 import type {
 	Model,
@@ -142,8 +145,8 @@ export const getModels = async (
 					}
 				}
 
-				const tags = apiConfig.tags;
-				if (tags) {
+				const tags = normalizeTags(apiConfig.tags);
+				if (tags.length > 0) {
 					for (const model of models) {
 						model.tags = tags;
 					}
@@ -370,10 +373,11 @@ export const stopTasksByChatId = async (token: string, chat_id: string) => {
 	return res;
 };
 
-export const getTaskIdsByChatId = async (token: string, chat_id: string) => {
+export const getTaskIdsByChatId = async (token: string, chat_id: string, signal?: AbortSignal) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_BASE_URL}/api/tasks/chat/${encodeURIComponent(chat_id)}`, {
+		signal,
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
@@ -386,6 +390,7 @@ export const getTaskIdsByChatId = async (token: string, chat_id: string) => {
 			return res.json();
 		})
 		.catch((err) => {
+			if (signal?.aborted) return null;
 			console.error(err);
 			if ('detail' in err) {
 				error = err.detail;
@@ -407,8 +412,9 @@ export const getToolServerData = async (
 	url: string,
 	headers: Record<string, string> = {},
 	signal?: AbortSignal
-): Promise<ToolServerSpec> =>
-	requestModelConnection(
+): Promise<ToolServerSpec> => {
+	if (!get(config)?.features?.enable_tool_servers) throw new Error('Tool servers are disabled');
+	return requestModelConnection(
 		url,
 		{
 			method: 'GET',
@@ -428,8 +434,10 @@ export const getToolServerData = async (
 			return parseToolSpec(JSON.stringify(await response.json()));
 		}
 	);
+};
 
 export const getToolServersData = async (servers: (Partial<ToolServerConnection> | null)[]) => {
+	if (!get(config)?.features?.enable_tool_servers) return [];
 	return (
 		await Promise.all(
 			servers
@@ -507,7 +515,12 @@ export const getToolServersData = async (servers: (Partial<ToolServerConnection>
 	).filter((server): server is NonNullable<typeof server> => server !== null);
 };
 
-export { executeToolServer } from '$lib/utils/airis/tool_execution';
+import { executeToolServer as executeAirisToolServer } from '$lib/utils/airis/tool_execution';
+export const executeToolServer: typeof executeAirisToolServer = async (...args) => {
+	if (!get(config)?.features?.enable_tool_servers)
+		return [{ error: 'Tool servers are disabled' }, null];
+	return executeAirisToolServer(...args);
+};
 
 export const getTaskConfig = async (token: string = '') => {
 	let error = null;
@@ -753,7 +766,7 @@ export const generateEmoji = async (
 		throw error;
 	}
 
-	const response = res?.choices[0]?.message?.content.replace(/["']/g, '') ?? null;
+	const response = res?.choices[0]?.message?.content?.replace(/["']/g, '') ?? null;
 
 	if (response) {
 		if (/\p{Extended_Pictographic}/u.test(response)) {
@@ -1550,6 +1563,11 @@ export interface ModelConfig {
 }
 
 export interface ModelMeta {
+	voice?: { voice?: string | null };
+	voice_avatar?: import('$lib/utils/voice-avatar').VoiceAvatarConfig | null;
+	background_image_url?: string | null;
+	i18n?: Record<string, Record<string, unknown>>;
+	read_only?: boolean;
 	tags?: ModelTag[] | null;
 	tts?: { voice?: string | null } | null;
 	user?: { community?: boolean; username?: string; name?: string } | null;
@@ -1575,8 +1593,17 @@ export interface ModelMeta {
 	lead_magnet?: boolean;
 }
 
+export interface ModelControl {
+	display?: 'menu' | 'slider';
+	label: string;
+	description?: string;
+	default?: string | null;
+	options: Record<string, { label: string; params?: Record<string, unknown> }>;
+}
+
 export type ModelParams = Record<string, unknown> &
-	Omit<GenerationParams, 'stop'> & {
+	Omit<GenerationParams, 'stop' | 'model_controls'> & {
+		model_controls?: Record<string, ModelControl>;
 		system?: string | null;
 		stop?: string | string[] | null;
 	};

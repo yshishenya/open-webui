@@ -51,6 +51,8 @@ export const parseToolConnectionImport = (text: string): ToolServerConnection =>
 		)
 	)
 		throw new Error('Please select a valid JSON file');
+	if (data.forward_cookies !== undefined && typeof data.forward_cookies !== 'boolean')
+		throw new Error('Please select a valid JSON file');
 	if (data.headers !== undefined) parseConnectionHeaders(JSON.stringify(data.headers));
 	if (data.spec_type === 'json') parseToolSpec(String(data.spec ?? ''));
 	if (data.info != null) {

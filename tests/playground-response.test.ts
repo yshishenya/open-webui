@@ -105,7 +105,8 @@ it.each(paths)('%s keeps streamed content and one original request', async (path
 			{ role: 'system', content: 'Инструкция' },
 			{ role: 'user', content: 'Задача' }
 		]);
-		expect(body.temperature).toBe(0);
+		expect(body.params).toMatchObject({ temperature: 0 });
+		expect(body.params).not.toHaveProperty('seed');
 		expect(body.seed).toBeUndefined();
 		expect(s.context.messages.at(-1)?.content).toBe('Ответ');
 	} else expect(s.context.text).toBe('Начало: Ответ');

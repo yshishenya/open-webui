@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { v4 as uuidv4 } from 'uuid';
+	const settingId = `connection-${uuidv4()}`;
 	import { getContext } from 'svelte';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
@@ -57,7 +59,9 @@
 	onSubmit={submitHandler}
 />
 
-<div class="flex w-full items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+<div
+	class="group/setting-row flex w-full items-center gap-3 text-xs text-gray-600 dark:text-gray-400"
+>
 	<Tooltip className="w-full relative" content={''} placement="top-start">
 		<div class="flex w-full">
 			<div
@@ -65,19 +69,31 @@
 					? 'opacity-50'
 					: ''}"
 			>
-				<Tooltip content={connection?.type === 'mcp' ? $i18n.t('MCP') : $i18n.t('OpenAPI')}>
+				<Tooltip
+					content={connection?.type === 'mcp'
+						? $i18n.t('settings.admin.integrations.mcp.label')
+						: direct
+							? $i18n.t('settings.personal.tools.openApi.label')
+							: $i18n.t('settings.admin.integrations.openApi.label')}
+				>
 					<WrenchAlt />
 				</Tooltip>
 
 				{#if connection?.info?.name}
-					<div class="w-full bg-transparent capitalize outline-hidden">
+					<label
+						for={`${settingId}-control`}
+						class="w-full bg-transparent capitalize outline-hidden text-gray-600 dark:text-gray-400 transition-colors duration-150 group-hover/setting-row:text-gray-900 group-focus-within/setting-row:text-gray-900 dark:group-hover/setting-row:text-white dark:group-focus-within/setting-row:text-white group-has-[button[id$=-control]:enabled]/setting-row:cursor-pointer group-has-[button[id$=-control]:disabled]/setting-row:cursor-not-allowed"
+					>
 						{connection?.info?.name ?? connection?.url}
 						<span class="text-gray-500">{connection?.info?.id ?? ''}</span>
-					</div>
+					</label>
 				{:else}
-					<div>
+					<label
+						for={`${settingId}-control`}
+						class="text-gray-600 dark:text-gray-400 transition-colors duration-150 group-hover/setting-row:text-gray-900 group-focus-within/setting-row:text-gray-900 dark:group-hover/setting-row:text-white dark:group-focus-within/setting-row:text-white group-has-[button[id$=-control]:enabled]/setting-row:cursor-pointer group-has-[button[id$=-control]:disabled]/setting-row:cursor-not-allowed"
+					>
 						{connection?.url}
-					</div>
+					</label>
 				{/if}
 			</div>
 		</div>
@@ -100,6 +116,7 @@
 			content={(connection?.config?.enable ?? true) ? $i18n.t('Enabled') : $i18n.t('Disabled')}
 		>
 			<Switch
+				id={`${settingId}-control`}
 				state={connection?.config?.enable ?? true}
 				disabled={saving}
 				on:change={toggleHandler}

@@ -29,7 +29,7 @@ export const test = base.extend<{ account: Account }>({
 		page.on('pageerror', (error) => errors.push(error.message));
 		await page.addInitScript(() => {
 			localStorage.setItem('locale', 'en-US');
-			localStorage.setItem('settings', JSON.stringify({ version: '0.11.0' }));
+			localStorage.setItem('settings', JSON.stringify({ version: '0.12.5' }));
 			localStorage.setItem('airis.analytics.consent.v1', 'denied');
 		});
 		await page.goto('/health');

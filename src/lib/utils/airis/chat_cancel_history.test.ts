@@ -60,6 +60,17 @@ function fixture(mode: Mode, delayed = false) {
 	});
 	const context = {
 		...historyUtils,
+		chat: { user_id: 'owner' },
+		$user: { id: 'owner' },
+		eventTarget: { dispatchEvent: vi.fn() },
+		CustomEvent: class { constructor(public type: string) {} },
+		cancelBrowserInteractions: vi.fn(),
+		bridge: undefined,
+		browserInteractions: [],
+		bridgeCancellations: new Map(),
+		clearContextCompaction: vi.fn(),
+		queueMicrotask,
+		reconcileCompletedTaskIds: vi.fn(),
 		history: historyFixture(mode),
 		$chatId: 'chat',
 		taskIds: ['task'] as string[] | null,
@@ -254,6 +265,7 @@ it.each(['rejected', 'empty', 'false', 'success'] as const)(
 it('client-only stop aborts its own controller and preserves server history', async () => {
 	const f = fixture('valid');
 	f.context.taskIds = null;
+	f.context.$chatId = '';
 	const controller = f.context.generationController;
 	await f.stop(false);
 	expect(controller.signal.aborted).toBe(true);

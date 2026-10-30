@@ -17,6 +17,9 @@ class _FakeOpenAIResponse:
     async def json(self) -> dict[str, str]:
         return {'text': 'hello from test'}
 
+    async def read(self) -> bytes:
+        return b'{"text":"hello from test"}'
+
 
 class _FakeSession:
     def __init__(self) -> None:

@@ -94,6 +94,7 @@ it('the actual Sidebar loader retains owned and shared folders on failure and ca
 	const folders = { owned, shared };
 	const context = {
 		$config: { features: {} },
+		$i18n: { t: (value: string) => value },
 		localStorage: { token: 'fixture' },
 		folders,
 		_folders: { set: vi.fn() },
@@ -106,6 +107,7 @@ it('the actual Sidebar loader retains owned and shared folders on failure and ca
 		getSharedFolders: vi
 			.fn()
 			.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+			.mockRejectedValueOnce(new TypeError('Shared retry failed'))
 			.mockResolvedValue([]),
 		toast: { error: vi.fn() }
 	};
@@ -119,7 +121,8 @@ it('the actual Sidebar loader retains owned and shared folders on failure and ca
 	expect(context.folders).toBe(folders);
 	expect(context._folders.set).not.toHaveBeenCalled();
 	await load();
-	expect(context.folders).toMatchObject({ owned, shared: { ...shared, shared: true } });
+	expect(context.folders).toBe(folders);
+	expect(context._folders.set).not.toHaveBeenCalled();
 	expect(context.sharedFolders).toEqual([shared]);
 	await load();
 	expect(context.sharedFolders).toEqual([]);
@@ -136,25 +139,40 @@ it.each(['AtCommands', 'Knowledge'])(
 			.split('<script lang="ts">')[1]
 			.split('</script>')[0];
 		const ast = ts.createSourceFile('commands.ts', source, ts.ScriptTarget.Latest);
-		const declaration = ast.statements
-			.filter(ts.isVariableStatement)
-			.flatMap((statement) => [...statement.declarationList.declarations])
-			.find((node) => node.name.getText(ast) === 'getFolderItems');
-		if (!declaration?.initializer) throw new Error('Suggestion loader missing');
+		const computation = ast.statements
+			.filter(ts.isLabeledStatement)
+			.map((node) => node.statement)
+			.find(
+				(node) =>
+					ts.isExpressionStatement(node) &&
+					ts.isBinaryExpression(node.expression) &&
+					node.expression.left.getText(ast) === 'folderItems'
+			);
+		if (!computation) throw new Error('Suggestion folders computation missing');
 		const context = {
-			$folders: null,
-			folderItems: [],
+			$folders: null as { id: string; name: string }[] | null,
+			folderItems: [] as { id: string; name: string }[],
 			query: 'folder',
 			$i18n: { t: () => 'Folder' }
 		};
-		const load = runInNewContext(
-			ts.transpileModule(`(${declaration.initializer.getText(ast)})`, {
-				compilerOptions: { target: ts.ScriptTarget.ES2022 }
-			}).outputText,
-			context
-		) as () => void | Promise<void>;
-		await load();
+		const load = (): void => {
+			runInNewContext(
+				ts.transpileModule(computation.getText(ast), {
+					compilerOptions: { target: ts.ScriptTarget.ES2022 }
+				}).outputText,
+				context
+			);
+		};
+		load();
 		expect(context.folderItems).toEqual([]);
 		expect(context.$folders).toBeNull();
+		context.$folders = [
+			{ id: 'match', name: 'Folder' },
+			{ id: 'other', name: 'Other' }
+		];
+		load();
+		expect(context.folderItems).toEqual([
+			{ id: 'match', name: 'Folder', type: 'folder', description: 'Folder', title: 'Folder' }
+		]);
 	}
 );

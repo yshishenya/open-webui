@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type {
 		ContextUsage,
-		SavedChat,
 		FrontendConfig,
 		RichTextContent,
 		CommandSelection,
 		CommandUpload
 	} from '$lib/utils/airis/frontend-contracts';
+	import type { ComposerDraft } from '$lib/utils/airis/chat_draft';
 	import { getAttachmentSource } from '$lib/utils/airis/attachment_source';
 	import type {
 		ChatAttachment,
@@ -15,12 +15,18 @@
 	} from '$lib/utils/airis/chat_history';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
-	import type { MentionOptions } from '@tiptap/extension-mention';
+	import type { Editor, Range } from '@tiptap/core';
+	import type { SuggestionOptions } from '@tiptap/suggestion';
 	import type { Settings } from '$lib/stores';
+	import type { TerminalContext } from '$lib/types';
+	import { resolveLocalizedFunction } from '$lib/utils/localizedContent';
+	import { functions as localizedFunctions } from '$lib/stores';
 	import DOMPurify from 'dompurify';
 	import { toast } from 'svelte-sonner';
 
 	import { marked } from 'marked';
+	import { DOMParser, type Node as ProseMirrorNode } from 'prosemirror-model';
+	import { Selection } from 'prosemirror-state';
 	import { v4 as uuidv4 } from 'uuid';
 	import dayjs from '$lib/dayjs';
 	import duration from 'dayjs/plugin/duration';
@@ -29,7 +35,7 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	import { onMount, onDestroy, tick, getContext, createEventDispatcher } from 'svelte';
+	import { onMount, onDestroy, tick, getContext, createEventDispatcher, type ComponentProps } from 'svelte';
 
 	import { createPicker } from '$lib/utils/google-drive-picker';
 	import { pickAndDownloadFile } from '$lib/utils/onedrive-file-picker';
@@ -46,17 +52,22 @@
 		showCallOverlay,
 		tools,
 		skills,
+		terminalSkills,
 		toolServers,
 		terminalServers,
 		user as _user,
 		showControls,
+		showSettings,
+		showFileNavDir,
 		selectedTerminalId,
 		TTSWorker,
-		temporaryChatEnabled
+		temporaryChatEnabled,
+		visibleControls
 	} from '$lib/stores';
 
 	import {
 		convertHeicToJpeg,
+		isHeicImage,
 		compressImage,
 		createMessagesList,
 		extractContentFromFile,
@@ -66,11 +77,15 @@
 		getCurrentDateTime,
 		getFormattedDate,
 		getFormattedTime,
+		getUsageTokenCount,
 		getUserPosition,
 		getUserTimezone,
-		getWeekday
+		getWeekday,
+		isRasterImageContentType
 	} from '$lib/utils';
 	import { uploadFile } from '$lib/apis/files';
+	import { getCwd, uploadNewFileToTerminal } from '$lib/apis/terminal';
+	import { isSavedChatId } from '$lib/utils/chatId';
 	import { generateAutoCompletion } from '$lib/apis';
 	import { getChatById } from '$lib/apis/chats';
 	import { getFolderById } from '$lib/apis/folders';
@@ -78,14 +93,15 @@
 	import { getSessionUser } from '$lib/apis/auths';
 
 	import { WEBUI_API_BASE_URL, PASTED_TEXT_CHARACTER_LIMIT } from '$lib/constants';
-	import { initiateOAuthRedirect } from '$lib/apis/configs';
 	import { matchKeybinding, Shortcut } from '$lib/shortcuts';
+	import { resolveLocalizedModelName } from '$lib/utils/localizedContent';
 
 	import { getSuggestionRenderer } from '../common/RichTextInput/suggestions';
 
 	import InputMenu from './MessageInput/InputMenu.svelte';
 	import VoiceRecording from './MessageInput/VoiceRecording.svelte';
 	import ModelSelector from './ModelSelector.svelte';
+	import ModelControls from './MessageInput/ModelControls.svelte';
 
 	import ToolServersModal from './ToolServersModal.svelte';
 	import SkillsModal from './SkillsModal.svelte';
@@ -94,12 +110,12 @@
 	import Tooltip from '../common/Tooltip.svelte';
 	import FileItem from '../common/FileItem.svelte';
 	import Image from '../common/Image.svelte';
-	import Spinner from '../common/Spinner.svelte';
 
 	import XMark from '../icons/XMark.svelte';
 	import GlobeAlt from '../icons/GlobeAlt.svelte';
 	import Photo from '../icons/Photo.svelte';
 	import Wrench from '../icons/Wrench.svelte';
+	import ArrowUpLeft from '../icons/ArrowUpLeft.svelte';
 	import Cube from '../icons/Cube.svelte';
 	import Sparkles from '../icons/Sparkles.svelte';
 	import Mic from '../icons/Mic.svelte';
@@ -114,17 +130,36 @@
 
 	import CommandSuggestionList from './MessageInput/CommandSuggestionList.svelte';
 	import Knobs from '../icons/Knobs.svelte';
+	import CodeBrackets from '../icons/CodeBrackets.svelte';
 	import ValvesModal from '../workspace/common/ValvesModal.svelte';
+	import AskUserCard from './AskUserCard.svelte';
+	import { goto } from '$app/navigation';
 	import InputModal from '../common/InputModal.svelte';
+	import Skeleton from './Messages/Skeleton.svelte';
 	import Expand from '../icons/Expand.svelte';
 	import QueuedMessageItem from './MessageInput/QueuedMessageItem.svelte';
 	import TaskList from './Messages/ResponseMessage/TaskList.svelte';
 
 	const i18n = getContext<Writable<I18n>>('i18n');
+	type AskUserPrompt = {
+		id?: string;
+		show: boolean;
+		questions: ComponentProps<typeof AskUserCard>['questions'];
+		allowOther: boolean;
+		timeoutMs: number | null;
+		onConfirm: (value: { answers?: Record<string, unknown> }) => void;
+		onCancel: () => void;
+	};
 
 	export let onUpload: (event: { type: string; data: unknown }) => void | Promise<void> = () => {};
 	export let onChange: (draft: Record<string, unknown>) => void | Promise<void> = () => {};
 	export let onWebSearchToggle: (enabled: boolean) => void = () => {};
+	export let typingUsers: { id: string; name: string }[] = [];
+
+	const handleTypingInput = (event: Event) => {
+		const input = event.target as HTMLElement;
+		if (input.isContentEditable) dispatch('typing', Boolean(input.textContent?.trim()));
+	};
 
 	export let createMessagePair: (prompt: string) => void | Promise<void>;
 	export let stopResponse: (processQueue?: boolean) => void | Promise<void>;
@@ -132,15 +167,19 @@
 	export let statusHandler: () => void = () => {};
 	export let forkHandler: (messageId?: string | null) => void | Promise<void> = () => {};
 	export let chatId = '';
-	export let contextUsage: ContextUsage | null = null;
+	export let terminalContext: TerminalContext | null = null;
+	export let contextUsage: import('$lib/utils/airis/frontend-contracts').ContextUsage | null = null;
 	export let contextCompactionEnabled = false;
+	export let embedded = false;
+	export let callActive = false;
+	export let callEnabled = true;
 
 	export let autoScroll = false;
 	export let generating = false;
-	export let uploadPending = false;
 
 	export let atSelectedModel: Model | undefined = undefined;
 	export let selectedModels: string[];
+	export let onModelSelect: (models: string[]) => void = () => {};
 
 	let selectedModelIds: string[] = [];
 	$: selectedModelIds = atSelectedModel !== undefined ? [atSelectedModel.id] : selectedModels;
@@ -152,11 +191,33 @@
 
 	export let history: ChatHistory;
 	export let taskIds: string[] | null = null;
+	export let askUser: AskUserPrompt = {
+		show: false,
+		questions: [],
+		allowOther: true,
+		timeoutMs: null,
+		onConfirm: () => {},
+		onCancel: () => {}
+	};
 
 	$: isActive =
-		(taskIds && taskIds.length > 0) ||
-		(history.currentId && history.messages[history.currentId]?.done != true) ||
-		generating;
+		!askUser?.show &&
+		((taskIds && taskIds.length > 0) ||
+			(history.currentId && history.messages[history.currentId]?.done != true) ||
+			generating);
+	$: hasChatContent = history?.currentId
+		? createMessagesList(history, history.currentId).some(
+				(message) =>
+					!!message?.content || !!message?.tool_calls || !!message?.files || !!message?.models
+			)
+		: false;
+	$: canToggleTemporary =
+		!embedded &&
+		!chatId &&
+		($_user?.role === 'admin' ||
+			($_user?.role === 'user' &&
+				($_user?.permissions?.chat?.temporary ?? true) &&
+				!($_user?.permissions?.chat?.temporary_enforced ?? false)));
 
 	export let prompt = '';
 	export let files: ChatAttachment[] = [];
@@ -168,18 +229,25 @@
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
 	export let codeInterpreterEnabled = false;
+	export let toolApprovalMode = 'full';
+	export let onToolApprovalModeChange: (mode: string) => void = () => {};
 
-	export let pendingOAuthTools: (Parameters<typeof initiateOAuthRedirect>[0] & { name: string })[] =
-		[];
+	export let pendingOAuthTools: {
+		id: string;
+		name?: string;
+		serverId: string;
+		authType?: string | null;
+	}[] = [];
+	export let oauthRedirectHandler: (tool: Parameters<NonNullable<ComponentProps<typeof IntegrationsMenu>['oauthRedirectHandler']>>[0], draft?: ComposerDraft) => void | Promise<void> = () => {};
 
 	let showTerminalMenu = false;
 
-	export let messageQueue: { id: string; prompt: string; files: Record<string, unknown>[] }[] = [];
+	export let messageQueue: { id: string; prompt: string; files: ChatAttachment[]; error?: string }[] = [];
 	export let onQueueSendNow: (id: string) => void = () => {};
 	export let onQueueEdit: (id: string) => void = () => {};
 	export let onQueueDelete: (id: string) => void = () => {};
-
-	export let chatTasks: NonNullable<SavedChat['tasks']> = [];
+	export let onUpdate: (data?: { file?: ChatAttachment }) => void = () => {};
+	export let chatTasks: NonNullable<import('$lib/utils/airis/frontend-contracts').SavedChat['tasks']> = [];
 
 	let inputContent: RichTextContent | null = null;
 
@@ -201,10 +269,12 @@
 		integrationsMenuCloseOnOutsideClick = true;
 	}
 
-	$: onChange({
+	let chatInputDraft: ComposerDraft;
+	// Approval mode is persisted in chat parameters and user settings, not input drafts.
+	$: chatInputDraft = {
 		prompt,
 		files: files
-			.filter((file) => file.type !== 'image')
+			.filter((file) => file.type !== 'image' && !(file.file instanceof File))
 			.map((file) => {
 				return {
 					...file,
@@ -218,7 +288,9 @@
 		imageGenerationEnabled,
 		webSearchEnabled,
 		codeInterpreterEnabled
-	});
+	};
+
+	$: onChange(chatInputDraft);
 
 	const inputVariableHandler = async (text: string): Promise<string | null> => {
 		inputVariablesModalCancelCallback();
@@ -276,7 +348,7 @@
 				}
 			}
 
-			text = text.replaceAll('{{CLIPBOARD}}', clipboardText.replaceAll('\r\n', '\n'));
+			text = text.replaceAll('{{CLIPBOARD}}', () => clipboardText.replaceAll('\r\n', '\n'));
 		}
 
 		if (text.includes('{{USER_LOCATION}}')) {
@@ -379,11 +451,22 @@
 
 		if (chatInput) {
 			chatInputElement?.replaceVariables(variables);
-			chatInputElement?.focus();
+			focus();
 		}
 	};
 
-	export const setText = async (text?: string, cb?: (text: string) => void): Promise<boolean> => {
+	export const focus = (options: Parameters<HTMLElement['focus']>[0] = {}) => {
+		chatInputElement?.focus(options);
+	};
+
+	export const setText = (text: string = '') => {
+		chatInputElement?.setText(text);
+		if (!$showCallOverlay) {
+			focus();
+		}
+	};
+
+	export const setTextHandler = async (text?: string, cb?: (text: string) => void): Promise<boolean> => {
 		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
 
@@ -392,10 +475,7 @@
 				text = await textVariableHandler(text || '');
 			}
 
-			chatInputElement?.setText(text);
-			if (!$showCallOverlay) {
-				chatInputElement?.focus();
-			}
+			setText(text);
 
 			if (text !== '') {
 				if ((await inputVariableHandler(text)) === null) return false;
@@ -411,7 +491,7 @@
 	export const showStatus = async () => {
 		showStatusPanel = true;
 		await tick();
-		document.getElementById('chat-input')?.focus();
+		focus({ preventScroll: true });
 	};
 
 	const formatTokenCount = (value: number) => {
@@ -442,7 +522,11 @@
 			let next = total + 4 + estimateTokens(message.content);
 			next += estimateTokens(message.output);
 			next += estimateTokens(message.tool_calls);
-			next += estimateTokens(message.files);
+			if (message.files?.length) {
+				next += estimateTokens(
+					JSON.stringify(message.files).replace(/data:[\w/+.;=%-]*;base64,[A-Za-z0-9+/=]*/g, '')
+				);
+			}
 			return next;
 		}, 0);
 
@@ -472,13 +556,10 @@
 
 		for (let idx = activeMessages.length - 1; idx >= 0; idx -= 1) {
 			const usage = activeMessages[idx]?.usage ?? activeMessages[idx]?.info?.usage;
-			const inputTokens = usage?.input_tokens ?? usage?.prompt_tokens;
-			if (inputTokens) {
+			const usageTokens = getUsageTokenCount(usage);
+			if (usageTokens) {
 				hasUsageCheckpoint = true;
-				estimatedTokens =
-					Number(inputTokens || 0) +
-					Number(usage?.output_tokens ?? usage?.completion_tokens ?? 0) +
-					estimateMessagesTokens(activeMessages.slice(idx + 1));
+				estimatedTokens = usageTokens + estimateMessagesTokens(activeMessages.slice(idx + 1));
 				break;
 			}
 		}
@@ -538,6 +619,32 @@
 		chatInputElement?.replaceCommandWithText(text);
 	};
 
+	const temporaryHandler = async () => {
+		if (!canToggleTemporary) return;
+
+		if (($settings?.temporaryChatByDefault ?? false) && $temporaryChatEnabled) {
+			await temporaryChatEnabled.set(null);
+		} else {
+			await temporaryChatEnabled.set(!$temporaryChatEnabled);
+		}
+
+		if (location.pathname !== '/') {
+			await goto('/');
+		}
+
+		if ($temporaryChatEnabled) {
+			window.history.replaceState(window.history.state, '', '?temporary-chat=true');
+		} else {
+			window.history.replaceState(window.history.state, '', location.pathname);
+		}
+	};
+
+	const createSkillHandler = async () => {
+		prompt = '/skills:create';
+		await tick();
+		dispatch('submit', prompt);
+	};
+
 	const insertTextAtCursor = async (text: string): Promise<void> => {
 		inputVariablesModalCancelCallback();
 		const chatInput = document.getElementById('chat-input');
@@ -562,7 +669,7 @@
 
 		await tick();
 		if (chatInput) {
-			chatInput.focus();
+			focus({ preventScroll: true });
 			chatInput.dispatchEvent(new Event('input'));
 
 			const words = extractCurlyBraceWords(prompt);
@@ -575,11 +682,66 @@
 		}
 	};
 
+	const replaceSlashRangeWithPrompt = async (editor: Editor, range: Range, text: string) => {
+		text = await textVariableHandler(text);
+
+		const { state, view } = editor;
+		let tr = state.tr;
+
+		if ($settings?.insertPromptAsRichText ?? false) {
+			const htmlContent = DOMPurify.sanitize(
+				marked
+					.parse(text, {
+						breaks: true,
+						gfm: true
+					})
+					.trim()
+			);
+			const tempDiv = document.createElement('div');
+			tempDiv.innerHTML = htmlContent;
+			const fragment = DOMParser.fromSchema(state.schema).parse(tempDiv);
+			const nodesToInsert: ProseMirrorNode[] = [];
+
+			fragment.content.forEach((node) => {
+				if (node.type.name === 'paragraph') {
+					nodesToInsert.push(...node.content.content);
+				} else {
+					nodesToInsert.push(node);
+				}
+			});
+
+			tr = tr.replaceWith(range.from, range.to, nodesToInsert);
+			const newPos = range.from + nodesToInsert.reduce((sum, node) => sum + node.nodeSize, 0);
+			tr = tr.setSelection(Selection.near(tr.doc.resolve(newPos)));
+		} else {
+			const nodes: ProseMirrorNode[] = [];
+			text.split('\n').forEach((line, index) => {
+				if (index > 0) nodes.push(state.schema.nodes.hardBreak.create());
+				if (line) nodes.push(state.schema.text(line));
+			});
+			tr = tr.replaceWith(range.from, range.to, nodes);
+			const newPos = range.from + nodes.reduce((sum, node) => sum + node.nodeSize, 0);
+			tr = tr.setSelection(Selection.near(tr.doc.resolve(newPos)));
+		}
+
+		view.dispatch(tr);
+		// Suggestion clicks blur the editor; sync the native cursor before DOM focus.
+		view.focus();
+
+		await tick();
+		await inputVariableHandler(text);
+		await tick();
+		focus({ preventScroll: true });
+	};
+
 	let command = '';
 	export let showCommands = false;
 	$: showCommands =
 		['/', '#', '@', '$', ':'].includes(command?.charAt(0)) || '\\#' === command?.slice(0, 2);
-	let suggestions: MentionOptions['suggestions'] | null = null;
+	type SuggestionItem = { id: string | null; label?: string | null; type?: string; content?: string };
+	type ComposerSuggestion = Partial<SuggestionOptions<unknown, SuggestionItem>> & { char: string };
+	let suggestions: ComposerSuggestion[] | null = null;
+	$: atSelectedModelName = resolveLocalizedModelName(atSelectedModel, $i18n.language);
 
 	let showTools = false;
 	let showSkills = false;
@@ -613,6 +775,7 @@
 		return false;
 	}
 
+	let modelSelector: ModelSelector | undefined;
 	let chatInputElement: RichTextInput | undefined;
 
 	let filesInputElement: HTMLInputElement;
@@ -620,6 +783,45 @@
 	let inputFiles: FileList | null = null;
 
 	let showInputModal = false;
+	let showComparison = false;
+	let comparisonLoading = false;
+	let ComparisonModal: typeof import('../common/DiffEditorModal.svelte').default | null = null;
+	// Preserve the previous comparison description in the translation catalogs.
+	// $i18n.t('Uses the left working copy as your prompt.');
+	let comparisonTarget: {
+		chatId: string;
+		input: RichTextInput;
+		content: string;
+	} | null = null;
+
+	const openComparison = async () => {
+		if (comparisonLoading) return;
+		comparisonLoading = true;
+		const target = { chatId, input: chatInputElement };
+		try {
+			ComparisonModal = (await import('../common/DiffEditorModal.svelte')).default;
+			if (!target.input || target.chatId !== chatId || target.input !== chatInputElement) return;
+			comparisonTarget = { chatId, input: target.input, content: prompt };
+			showComparison = true;
+		} catch {
+			toast.error($i18n.t('Could not open comparison. Please try again.'));
+		} finally {
+			comparisonLoading = false;
+		}
+	};
+
+	const applyComparisonToPrompt = (text: string) => {
+		if (
+			!chatInputElement ||
+			comparisonTarget?.chatId !== chatId ||
+			comparisonTarget?.input !== chatInputElement ||
+			comparisonTarget?.content !== prompt
+		)
+			throw new Error($i18n.t('The prompt has changed. Reopen the comparison before applying.'));
+		// The editor's literal setter preserves mentions without expanding prompt variables.
+		if (text !== comparisonTarget.content) chatInputElement.setText(text);
+		void tick().then(() => focus());
+	};
 
 	export let dragged = false;
 	export let dropzoneId = 'chat-pane';
@@ -633,7 +835,8 @@
 		| 'web_search'
 		| 'image_generation'
 		| 'code_interpreter'
-		| 'terminal';
+		| 'terminal'
+		| 'builtin_tools';
 	type ModelCapabilitiesById = Record<string, Partial<Record<ModelCapability, boolean>>>;
 
 	let modelCapabilitiesById: ModelCapabilitiesById = {};
@@ -656,6 +859,12 @@
 		'file_upload',
 		modelCapabilitiesById
 	);
+
+	let fileUploadEnabled: boolean = true;
+	$: fileUploadEnabled =
+		(getFilesystemUploadTerminal($selectedTerminalId, $terminalServers, $settings) ||
+			fileUploadCapableModels.length === selectedModelIds.length) &&
+		Boolean($_user?.role === 'admin' || $_user?.permissions?.chat?.file_upload);
 
 	let webSearchCapableModels = [];
 	$: webSearchCapableModels = getCapableModelIds(
@@ -684,6 +893,23 @@
 		'terminal',
 		modelCapabilitiesById
 	);
+	$: hasDirectToolServerAccess =
+		$config?.features?.enable_direct_integrations &&
+		($_user?.role === 'admin' || ($_user?.permissions?.features?.direct_tool_servers ?? true));
+	$: showTerminalSelector =
+		$config?.features?.enable_tool_servers &&
+		terminalCapableModels.length > 0 &&
+		(($terminalServers ?? []).some((t) => t.id) ||
+			(hasDirectToolServerAccess &&
+				(($terminalServers ?? []).some((t) => !t.id) ||
+					($settings?.terminalServers ?? []).some((s) => s.url))));
+
+	let canCreateSkill: boolean = false;
+	$: canCreateSkill = selectedModelIds.every(
+		(id) =>
+			(modelCapabilitiesById[id]?.builtin_tools ?? true) &&
+			($models.find((model) => model.id === id)?.info?.meta?.builtinTools?.skills ?? true)
+	);
 
 	let toggleFilters = [];
 	$: toggleFilters =
@@ -697,7 +923,9 @@
 	$: showToolsButton = ($tools ?? []).length > 0 || ($toolServers ?? []).length > 0;
 
 	let showSkillsButton = false;
-	$: showSkillsButton = ($skills ?? []).some((skill) => skill.is_active);
+	$: showSkillsButton =
+		($skills ?? []).some((skill) => skill.is_active) ||
+		($terminalSkills ?? []).some((skill) => skill.is_active);
 
 	let showWebSearchButton = false;
 	$: showWebSearchButton =
@@ -717,6 +945,26 @@
 		selectedModelIds.length === codeInterpreterCapableModels.length &&
 		($config?.features?.enable_code_interpreter ?? false) &&
 		($_user?.role === 'admin' || ($_user?.permissions?.features?.code_interpreter ?? false));
+
+	let showCallButton = false;
+	$: showCallButton =
+		($_user?.role === 'admin' || ($_user?.permissions?.chat?.call ?? true)) &&
+		(callActive ||
+			$config?.audio?.realtime?.enabled ||
+			($config?.audio?.stt?.engine !== 'web' &&
+				($_user?.role === 'admin' || ($_user?.permissions?.chat?.stt ?? true))));
+
+	$: if (webSearchCapableModels.length < selectedModelIds.length) webSearchEnabled = false;
+	$: if (imageGenerationCapableModels.length < selectedModelIds.length)
+		imageGenerationEnabled = false;
+	$: if (codeInterpreterCapableModels.length < selectedModelIds.length)
+		codeInterpreterEnabled = false;
+	$: {
+		const filterIds = selectedFilterIds.filter((id) =>
+			toggleFilters.some((filter: { id: string }) => filter.id === id)
+		);
+		if (filterIds.length !== selectedFilterIds.length) selectedFilterIds = filterIds;
+	}
 
 	// Disable code interpreter when terminal is active (mutually exclusive)
 	$: if ($selectedTerminalId && codeInterpreterEnabled) {
@@ -776,17 +1024,100 @@
 		}
 	};
 
-	const uploadFileHandler = async (
-		file: File,
-		process = true,
-		itemData: Partial<ChatAttachment> = {}
-	): Promise<null | void> => {
+	type UploadTerminal = {
+		id?: string; url: string; key?: string; enabled?: boolean;
+		config?: { chat_uploads?: string };
+		contexts?: Record<string, false | { context_id?: string }>;
+	};
+	const getFilesystemUploadTerminal = (
+		selectedId = $selectedTerminalId,
+		servers: UploadTerminal[] | null = $terminalServers,
+		settingsValue: Settings = $settings
+	): UploadTerminal | null => {
+		if (!selectedId) return null;
+
+		const systemTerminal = (servers ?? []).find(
+			(t: UploadTerminal) => t.id && t.id === selectedId && t.config?.chat_uploads === 'filesystem'
+		);
+		if (systemTerminal) return systemTerminal;
+
+		return (
+			(settingsValue?.terminalServers ?? []).find(
+				(t: UploadTerminal) => t.url === selectedId && t.enabled && t.config?.chat_uploads === 'filesystem'
+			) ?? null
+		);
+	};
+
+	const uploadTerminalFile = async (fileItem: ChatAttachment, sessionId: string | null) => {
+		fileItem.status = 'uploading';
+		fileItem.error = '';
+		files = files;
+		try {
+			const terminal = getFilesystemUploadTerminal(fileItem.terminal_id);
+			if (!terminal) throw new Error('The attached file’s terminal is unavailable.');
+			if (fileItem.session_id && fileItem.session_id !== sessionId)
+				throw new Error('Attached files must belong to this chat.');
+			if (terminal.contexts?.chat && terminal.contexts.chat.context_id === 'chat_id' && !isSavedChatId(sessionId))
+				throw new Error('A saved chat is required for this terminal');
+
+			const cwd =
+				(terminalContext?.terminalId === fileItem.terminal_id
+					? terminalContext?.currentDirectory
+					: null) || (await getCwd(terminal.url, terminal.key ?? '', sessionId || undefined))?.cwd;
+			if (!cwd) throw new Error($i18n.t('Could not determine the upload folder.'));
+			const uploadedFile = await uploadNewFileToTerminal(
+				terminal.url,
+				terminal.key ?? '',
+				cwd,
+				fileItem.file as File,
+				sessionId || undefined
+			);
+			if (!uploadedFile) throw new Error($i18n.t('Failed to upload file.'));
+
+			fileItem.status = 'uploaded';
+			fileItem.session_id = sessionId;
+			fileItem.name = uploadedFile.path.split('/').pop() || fileItem.name;
+			fileItem.id = uploadedFile.path;
+			fileItem.path = uploadedFile.path;
+			fileItem.url = uploadedFile.path;
+			fileItem.size = uploadedFile.size ?? fileItem.size;
+			fileItem.file = uploadedFile;
+			showFileNavDir.set(uploadedFile.path);
+		} catch (error) {
+			fileItem.status = 'error';
+			fileItem.error = `${error}`;
+			toast.error(String(fileItem.error));
+			return false;
+		} finally {
+			files = files;
+		}
+		return true;
+	};
+
+	export const uploadPendingFiles = async (sessionId: string) => {
+		if (!sessionId) return false;
+		for (const fileItem of files.filter(
+			(item) => item.status === 'pending' && item.file instanceof File
+		)) {
+			if (chatId !== sessionId) return false;
+			if (!(await uploadTerminalFile(fileItem, sessionId))) {
+				fileItem.status = 'pending';
+				files = files;
+				return false;
+			}
+		}
+		return !files.some((item) => item.status === 'pending' && item.file instanceof File);
+	};
+
+	const uploadFileHandler = async (file: File, process = true, itemData: Partial<ChatAttachment> = {}) => {
 		if ($_user?.role !== 'admin' && !($_user?.permissions?.chat?.file_upload ?? true)) {
 			toast.error($i18n.t('You do not have permission to upload files.'));
 			return null;
 		}
 
-		if (fileUploadCapableModels.length !== selectedModelIds.length) {
+		const filesystemUploadTerminal = getFilesystemUploadTerminal();
+
+		if (!filesystemUploadTerminal && fileUploadCapableModels.length !== selectedModelIds.length) {
 			toast.error($i18n.t('Model(s) do not support file upload'));
 			return null;
 		}
@@ -815,6 +1146,24 @@
 		}
 
 		files = [...files, fileItem];
+
+		if (filesystemUploadTerminal) {
+			fileItem.type = 'filesystem';
+			fileItem.file = file;
+			fileItem.terminal_id = $selectedTerminalId ?? undefined;
+			fileItem.session_id = chatId || null;
+			if (!chatId && filesystemUploadTerminal.contexts?.chat && filesystemUploadTerminal.contexts.chat.context_id === 'chat_id') {
+				fileItem.status = 'pending';
+				files = files;
+				return;
+			}
+
+			if (!(await uploadTerminalFile(fileItem, fileItem.session_id))) {
+				files = files.filter((item) => item?.itemId !== tempItemId);
+			}
+			onUpdate({ file: fileItem });
+			return;
+		}
 
 		if (!$temporaryChatEnabled) {
 			try {
@@ -854,11 +1203,17 @@
 
 					files = files;
 				} else {
+					fileItem.status = 'error';
+					fileItem.error = $i18n.t('Failed to upload file.');
 					files = files.filter((item) => item?.itemId !== tempItemId);
 				}
 			} catch (e) {
+				fileItem.status = 'error';
+				fileItem.error = `${e}`;
 				toast.error(`${e}`);
 				files = files.filter((item) => item?.itemId !== tempItemId);
+			} finally {
+				onUpdate({ file: fileItem });
 			}
 		} else {
 			// If temporary chat is enabled, we just add the file to the list without uploading it.
@@ -871,8 +1226,11 @@
 			});
 
 			if (content === null) {
+				fileItem.status = 'error';
+				fileItem.error = $i18n.t('Failed to extract content from the file.');
 				toast.error($i18n.t('Failed to extract content from the file.'));
 				files = files.filter((item) => item?.itemId !== tempItemId);
+				onUpdate({ file: fileItem });
 				return null;
 			} else {
 				console.log('Extracted content from file:', {
@@ -887,6 +1245,7 @@
 				fileItem.id = uuidv4(); // Temporary ID for the file
 
 				files = files;
+				onUpdate({ file: fileItem });
 			}
 		}
 	};
@@ -930,7 +1289,7 @@
 				return;
 			}
 
-			if (file['type'].startsWith('image/')) {
+			if (isRasterImageContentType(file['type']) || isHeicImage(file)) {
 				if (visionCapableModels.length === 0) {
 					toast.error($i18n.t('Selected model(s) do not support image inputs'));
 					return;
@@ -976,6 +1335,7 @@
 					return imageUrl;
 				};
 
+				const imageFile = isHeicImage(file) ? await convertHeicToJpeg(file) : file;
 				let reader = new FileReader();
 
 				reader.onload = async (event) => {
@@ -994,13 +1354,13 @@
 						];
 					} else {
 						const blob = await (await fetch(imageUrl)).blob();
-						const compressedFile = new File([blob], file.name, { type: file.type });
+						const compressedFile = new File([blob], imageFile.name, { type: imageFile.type });
 
 						uploadFileHandler(compressedFile, false);
 					}
 				};
 
-				reader.readAsDataURL(file['type'] === 'image/heic' ? await convertHeicToJpeg(file) : file);
+				reader.readAsDataURL(imageFile);
 			} else {
 				uploadFileHandler(file);
 			}
@@ -1161,6 +1521,7 @@
 				char: '@',
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
+					fileUploadEnabled: () => fileUploadEnabled,
 					onSelect: (e: CommandSelection) => {
 						const { type, data } = e;
 
@@ -1168,7 +1529,7 @@
 							atSelectedModel = data;
 						}
 
-						document.getElementById('chat-input')?.focus();
+						focus({ preventScroll: true });
 					},
 
 					insertTextHandler: insertTextAtCursor,
@@ -1186,6 +1547,27 @@
 									status: 'processed'
 								}
 							];
+						} else if (type === 'filesystem') {
+							const path = data.path ?? data.url ?? data.id;
+							if (
+								!path ||
+								files.find((f) => f.type === 'filesystem' && (f.path ?? f.url ?? f.id) === path)
+							) {
+								return;
+							}
+							files = [
+								...files,
+								{
+									...data,
+									type: 'filesystem',
+									id: path,
+									path,
+									url: path,
+									name: data.name,
+									size: data.size,
+									status: 'processed'
+								}
+							];
 						} else {
 							if (files.find((f) => f.url === data || f.name === data)) {
 								return;
@@ -1197,17 +1579,63 @@
 			},
 			{
 				char: '/',
+				command: ({ editor, range, props }) => {
+					if (props?.type === 'prompt') {
+						void replaceSlashRangeWithPrompt(editor, range, props.content ?? '');
+						return;
+					}
+
+					if (
+						[
+							'compact',
+							'fork',
+							'status',
+							'model',
+							'compare',
+							'settings',
+							'temporary',
+							'skills:create'
+						].includes(props?.id ?? '')
+					) {
+						editor.chain().focus().deleteRange(range).run();
+						return;
+					}
+
+					editor
+						.chain()
+						.focus()
+						.insertContentAt(range, [
+							{
+								type: 'mention',
+								attrs: { ...props, mentionSuggestionChar: '/' }
+							},
+							{ type: 'text', text: ' ' }
+						])
+						.run();
+				},
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
 					canCompact: () => !!history?.currentId && contextCompactionEnabled,
 					compactDisabled: () => isActive,
 					canStatus: () => !!history?.currentId,
-					canFork: () => !!history?.currentId,
+					canFork: () =>
+						!!history?.currentId &&
+						!$temporaryChatEnabled &&
+						($_user?.role === 'admin' || ($_user?.permissions?.chat?.import ?? true)),
 					forkDisabled: () => isActive,
+					canTemporary: () => canToggleTemporary,
+					hasChatContent: hasChatContent,
+					canCreateSkill: () => canCreateSkill,
+					temporaryEnabled: () => $temporaryChatEnabled === true,
 					contextUsage: () => statusContextUsage,
 					onCompact: compactHandler,
 					onStatus: statusHandler,
 					onFork: forkHandler,
+					onModel: () => modelSelector?.open(),
+					onCompare: openComparison,
+					onSettings: () => showSettings.set(true),
+					onTemporary: temporaryHandler,
+					onCreateSkill: createSkillHandler,
 					onSelect: (e: CommandSelection) => {
 						const { type, data } = e;
 
@@ -1215,7 +1643,7 @@
 							atSelectedModel = data;
 						}
 
-						document.getElementById('chat-input')?.focus();
+						focus({ preventScroll: true });
 					},
 
 					insertTextHandler: insertTextAtCursor,
@@ -1246,6 +1674,7 @@
 				char: '#',
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
+					fileUploadEnabled: () => fileUploadEnabled,
 					onSelect: (e: CommandSelection) => {
 						const { type, data } = e;
 
@@ -1253,7 +1682,7 @@
 							atSelectedModel = data;
 						}
 
-						document.getElementById('chat-input')?.focus();
+						focus({ preventScroll: true });
 					},
 
 					insertTextHandler: insertTextAtCursor,
@@ -1285,7 +1714,7 @@
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
 					onSelect: () => {
-						document.getElementById('chat-input')?.focus();
+						focus({ preventScroll: true });
 					},
 
 					insertTextHandler: insertTextAtCursor,
@@ -1298,13 +1727,16 @@
 				command: ({ editor, range, props }) => {
 					// Convert the Unicode hex codepoint (e.g. "1F44B") to the actual emoji character (👋)
 					const codepoint = props.id;
-					const emoji = String.fromCodePoint(parseInt(codepoint ?? '', 16));
+					const emoji = (codepoint ?? '')
+						.split('-')
+						.map((cp) => String.fromCodePoint(parseInt(cp, 16)))
+						.join('');
 					editor.chain().focus().deleteRange(range).insertContent(emoji).run();
 				},
 				render: getSuggestionRenderer(CommandSuggestionList, {
 					i18n,
 					onSelect: () => {
-						document.getElementById('chat-input')?.focus();
+						focus({ preventScroll: true });
 					},
 
 					insertTextHandler: insertTextAtCursor,
@@ -1315,8 +1747,10 @@
 		loaded = true;
 
 		window.setTimeout(() => {
-			const chatInput = document.getElementById('chat-input');
-			chatInput?.focus();
+			if (!$showCallOverlay) {
+				const chatInput = document.getElementById('chat-input');
+				chatInput?.focus();
+			}
 		}, 0);
 
 		window.addEventListener('keydown', onKeyDown);
@@ -1358,7 +1792,27 @@
 	});
 </script>
 
-<ToolServersModal bind:show={showTools} {selectedToolIds} />
+{#if showComparison && ComparisonModal}
+	<svelte:component
+		this={ComparisonModal}
+		bind:show={showComparison}
+		title={$i18n.t('Compare text')}
+		initialContent={comparisonTarget?.content ?? ''}
+		applyLabel={$i18n.t('Use in prompt')}
+		applyDescription={$i18n.t('Uses the proposed revision as your prompt.')}
+		discardMessage={$i18n.t(
+			'Your comparison changes will be discarded. Your prompt will stay unchanged.'
+		)}
+		onApply={applyComparisonToPrompt}
+	/>
+{/if}
+
+<ToolServersModal
+	bind:show={showTools}
+	{selectedToolIds}
+	onConnect={(id) =>
+		oauthRedirectHandler({ id, serverId: id.split(':').at(-1) ?? id, authType: 'mcp' }, chatInputDraft)}
+/>
 <SkillsModal bind:show={showSkills} {selectedSkillIds} />
 
 <InputVariablesModal
@@ -1383,6 +1837,7 @@
 
 <InputModal
 	bind:show={showInputModal}
+	oninput={handleTypingInput}
 	bind:value={prompt}
 	bind:inputContent
 	onChange={(content) => {
@@ -1391,7 +1846,7 @@
 	}}
 	onClose={async () => {
 		await tick();
-		chatInputElement?.focus();
+		focus();
 	}}
 />
 
@@ -1404,6 +1859,21 @@
 					: 'max-w-[58rem]'} w-full"
 			>
 				<div class="relative">
+					{#if typingUsers.length > 0}
+						<div
+							class="absolute -top-7 inset-x-0 pointer-events-none select-none bg-linear-to-t from-white dark:from-gray-900 to-transparent pb-2.5"
+						>
+							<div class="text-xs px-1 mt-1.5 flex items-center gap-1.5">
+								<Skeleton size="xs" />
+								<div class="min-w-0 truncate">
+									<span class="font-normal text-black dark:text-white">
+										{typingUsers.map((user) => user.name).join(', ')}
+									</span>
+									{typingUsers.length === 1 ? $i18n.t('is typing...') : $i18n.t('are typing...')}
+								</div>
+							</div>
+						</div>
+					{/if}
 					{#if autoScroll === false && history?.currentId}
 						<div
 							class=" absolute -top-12 left-0 right-0 flex justify-center z-30 pointer-events-none"
@@ -1439,7 +1909,7 @@
 			<div
 				class="{($settings?.widescreenMode ?? null)
 					? 'max-w-full'
-					: 'max-w-[58rem]'} px-2.5 mx-auto inset-x-0"
+					: 'max-w-[58rem]'} px-2 mx-auto inset-x-0"
 			>
 				<div class="">
 					<input
@@ -1467,7 +1937,7 @@
 								recording = false;
 
 								await tick();
-								document.getElementById('chat-input')?.focus();
+								focus({ preventScroll: true });
 							}}
 							onConfirm={async (data) => {
 								const { text } = data;
@@ -1477,7 +1947,7 @@
 								await tick();
 								await insertTextAtCursor(`${text}`);
 								await tick();
-								document.getElementById('chat-input')?.focus();
+								focus({ preventScroll: true });
 
 								if ($settings?.speechAutoSend ?? false) {
 									dispatch('submit', prompt);
@@ -1488,16 +1958,36 @@
 					<form
 						class="w-full flex flex-col gap-1.5 {recording ? 'hidden' : ''}"
 						on:submit|preventDefault={() => {
-							// check if selectedModels support image input
 							dispatch('submit', prompt);
 						}}
 					>
 						<button
 							id="generate-message-pair-button"
+							type="button"
 							aria-label={$i18n.t('Generate message pair')}
 							class="hidden"
 							on:click={() => createMessagePair(prompt)}
 						></button>
+
+						{#if askUser?.show}
+							<div class="mx-1">
+								{#key askUser.id}
+									{@const activeAskUser = askUser}
+									<AskUserCard
+										show={askUser.show}
+										questions={askUser.questions}
+										allowOther={askUser.allowOther}
+										timeoutMs={askUser.timeoutMs}
+										on:confirm={(e) => {
+											activeAskUser.onConfirm(e.detail);
+										}}
+										on:cancel={() => {
+											activeAskUser.onCancel();
+										}}
+									/>
+								{/key}
+							</div>
+						{/if}
 
 						<!-- Task list display -->
 						{#if isActive && chatTasks.length > 0}
@@ -1515,6 +2005,7 @@
 									<QueuedMessageItem
 										id={queuedMessage.id}
 										content={queuedMessage.prompt}
+										error={queuedMessage.error ?? ''}
 										files={queuedMessage.files}
 										onSendNow={onQueueSendNow}
 										onEdit={onQueueEdit}
@@ -1528,7 +2019,7 @@
 							<div class="mx-1 rounded-2xl bg-white text-xs dark:bg-gray-900">
 								<div class="flex items-center justify-between px-3 py-1.5">
 									<div class="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
-										<span>Status</span>
+										<span>{$i18n.t('Status')}</span>
 									</div>
 
 									<button
@@ -1538,14 +2029,14 @@
 											showStatusPanel = false;
 										}}
 									>
-										Close
+										{$i18n.t('Close')}
 									</button>
 								</div>
 
 								<div class="space-y-0.5 px-3 pb-2">
 									<div class="rounded-xl py-0.5 text-gray-600 dark:text-gray-400">
 										<div class="flex min-h-4 items-center gap-3">
-											<span class="min-w-0 flex-1 truncate">Context usage</span>
+											<span class="min-w-0 flex-1 truncate">{$i18n.t('Context usage')}</span>
 											<span
 												class="shrink-0 font-mono text-[0.625rem] text-gray-400 dark:text-gray-600"
 											>
@@ -1566,7 +2057,7 @@
 
 									{#if messageQueue.length}
 										<div class="flex min-h-5 items-center gap-3 text-gray-600 dark:text-gray-400">
-											<span class="min-w-0 flex-1 truncate">Queued messages</span>
+											<span class="min-w-0 flex-1 truncate">{$i18n.t('Queued messages')}</span>
 											<span class="font-mono text-[0.625rem] text-gray-400 dark:text-gray-600">
 												{messageQueue.length}
 											</span>
@@ -1575,7 +2066,7 @@
 
 									{#if chatTasks.length}
 										<div class="flex min-h-5 items-center gap-3 text-gray-600 dark:text-gray-400">
-											<span class="min-w-0 flex-1 truncate">Tasks</span>
+											<span class="min-w-0 flex-1 truncate">{$i18n.t('Tasks')}</span>
 											<span class="font-mono text-[0.625rem] text-gray-400 dark:text-gray-600">
 												{chatTasks.length}
 											</span>
@@ -1583,7 +2074,7 @@
 									{/if}
 
 									<div class="flex min-h-5 items-center gap-3 text-gray-600 dark:text-gray-400">
-										<span class="min-w-0 flex-1 truncate">Chat ID</span>
+										<span class="min-w-0 flex-1 truncate">{$i18n.t('Chat ID')}</span>
 										{#if chatId}
 											<button
 												type="button"
@@ -1606,29 +2097,29 @@
 							id="message-input-container"
 							class="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border {$temporaryChatEnabled
 								? 'border-dashed border-gray-100 dark:border-gray-800 hover:border-gray-200 focus-within:border-gray-200 hover:dark:border-gray-700 focus-within:dark:border-gray-700'
-								: ' border-gray-100/30 dark:border-gray-850/30 hover:border-gray-200 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800'}  transition px-0.5 bg-white/5 dark:bg-gray-500/5 backdrop-blur-sm dark:text-gray-100"
-							dir={$settings.chatDirection === 'RTL'
-								? 'rtl'
-								: $settings.chatDirection === 'LTR'
-									? 'ltr'
-									: 'auto'}
+								: ' border-gray-100/50 dark:border-gray-850/50 hover:border-gray-200 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800'} {($settings?.highContrastMode ??
+							false)
+								? 'focus-within:outline focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-blue-500 [&_.ProseMirror:focus-visible]:outline-none!'
+								: ''}  transition px-0.5 bg-white/5 dark:bg-gray-500/5 backdrop-blur-sm dark:text-gray-100"
+							dir={($settings?.chatDirection?.toLowerCase() ?? 'auto') as 'rtl' | 'ltr' | 'auto'}
 						>
 							{#if atSelectedModel !== undefined}
 								<div class="px-2.5 pt-2.5 text-left w-full flex flex-col z-10">
 									<div class="flex items-center justify-between w-full">
-										<div class="pl-[1px] flex items-center gap-2 text-sm dark:text-gray-500">
+										<div class="pl-[0.0625rem] flex items-center gap-2 text-sm dark:text-gray-500">
 											<img
-												alt="model profile"
+												alt={$i18n.t('model profile')}
 												class="size-3.5 max-w-[28px] object-cover rounded-full"
 												src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${atSelectedModel?.id}&lang=${$i18n.language}`}
 											/>
 											<div class="translate-y-[0.5px]">
-												<span class="">{atSelectedModel.name}</span>
+												<span class="">{atSelectedModelName}</span>
 											</div>
 										</div>
 										<div>
 											<button
 												class="flex items-center dark:text-gray-500"
+												aria-label={$i18n.t('Remove Selected Model')}
 												on:click={() => {
 													atSelectedModel = undefined;
 												}}
@@ -1650,7 +2141,7 @@
 											: 'auto'}
 								>
 									{#each files as file, fileIdx}
-										{#if file.type === 'image' || (file?.content_type ?? '').startsWith('image/')}
+										{#if file.type === 'image' || isRasterImageContentType(file?.content_type)}
 											{@const fileUrl = getAttachmentSource(file)}
 											<div class=" relative group">
 												<div class="relative flex items-center">
@@ -1689,7 +2180,7 @@
 														class=" bg-white text-black border border-white rounded-full {($settings?.highContrastMode ??
 														false)
 															? ''
-															: 'outline-hidden focus:outline-hidden group-hover:visible invisible transition'}"
+															: 'hover-reveal transition'}"
 														type="button"
 														aria-label={$i18n.t('Remove file')}
 														on:click={() => {
@@ -1736,7 +2227,20 @@
 								</div>
 							{/if}
 
-							<div class="px-2">
+							<div class="px-2 relative">
+								{#if prompt.split('\n').length > 2}
+									<button
+										type="button"
+										class="absolute top-2.5 right-3 z-20 p-1 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-800/50"
+										aria-label={$i18n.t('Expand input')}
+										on:click={() => {
+											showInputModal = true;
+										}}
+									>
+										<Expand />
+									</button>
+								{/if}
+
 								<div
 									class="ym-hide-content scrollbar-hidden rtl:text-right ltr:text-left bg-transparent dark:text-gray-100 outline-hidden w-full pb-0.5 px-1 resize-none h-fit max-h-96 overflow-auto {files.length ===
 									0
@@ -1745,24 +2249,8 @@
 											: 'pt-2'
 										: ''}"
 									id="chat-input-container"
+									on:input={handleTypingInput}
 								>
-									{#if prompt.split('\n').length > 2}
-										<div class="fixed top-0 right-0 z-20">
-											<div class="mt-2.5 mr-3">
-												<button
-													type="button"
-													class="p-1 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-800/50"
-													aria-label="Expand input"
-													on:click={async () => {
-														showInputModal = true;
-													}}
-												>
-													<Expand />
-												</button>
-											</div>
-										</div>
-									{/if}
-
 									{#if suggestions}
 										{#key $settings?.richTextInput ?? true}
 											{#key $settings?.showFormattingToolbar ?? false}
@@ -1785,6 +2273,11 @@
 													}}
 													richText={$settings?.richTextInput ?? true}
 													messageInput={true}
+													followUpSuggestion={!generating && history.currentId &&
+													history?.messages?.[history?.currentId]?.role === 'assistant' &&
+													history?.messages?.[history?.currentId]?.done
+														? (history.messages[history.currentId].followUps?.[0] ?? '')
+														: ''}
 													showFormattingToolbar={$settings?.showFormattingToolbar ?? false}
 													floatingMenuPlacement={'top-start'}
 													insertPromptAsRichText={$settings?.insertPromptAsRichText ?? false}
@@ -1806,7 +2299,8 @@
 															text,
 															history?.currentId
 																? createMessagesList(history, history.currentId)
-																: undefined
+																: undefined,
+															'general'
 														).catch((error) => {
 															console.log(error);
 
@@ -1865,7 +2359,9 @@
 																// either when Enter is pressed or when Ctrl+Enter is pressed.
 																const enterPressed =
 																	($settings?.ctrlEnterToSend ?? false)
-																		? (e.key === 'Enter' || e.keyCode === 13) && isCtrlPressed
+																		? (e.key === 'Enter' || e.keyCode === 13) &&
+																			isCtrlPressed &&
+																			!e.shiftKey
 																		: (e.key === 'Enter' || e.keyCode === 13) && !e.shiftKey;
 
 																if (enterPressed) {
@@ -1877,7 +2373,10 @@
 															}
 														}
 
-														if (e.key === 'Escape') {
+														if (
+															$settings?.keyboardShortcuts !== false &&
+															matchKeybinding(e) === Shortcut.CLEAR_INPUT_SELECTIONS
+														) {
 															console.log('Escape');
 															atSelectedModel = undefined;
 															selectedToolIds = [];
@@ -1932,11 +2431,21 @@
 							</div>
 
 							<div class=" flex justify-between mt-0.5 mb-2 mx-0.5 max-w-full" dir="ltr">
-								<div class="ml-1 self-end flex items-center flex-1 min-w-0">
+								<div class="ml-1 self-end flex items-center">
 									<InputMenu
+										onCompare={openComparison}
 										bind:files
 										selectedModels={selectedModelIds}
-										{fileUploadCapableModels}
+										fileUploadCapableModels={getFilesystemUploadTerminal(
+											$selectedTerminalId,
+											$terminalServers,
+											$settings
+										)
+											? selectedModelIds
+											: fileUploadCapableModels}
+										{visionCapableModels}
+										{toolApprovalMode}
+										{onToolApprovalModeChange}
 										{screenCaptureHandler}
 										{inputFilesHandler}
 										uploadFilesHandler={() => {
@@ -1997,13 +2506,14 @@
 
 									{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || showSkillsButton || (toggleFilters && toggleFilters.length > 0)}
 										<div
-											class="flex self-center w-[1px] h-4 mx-1 bg-gray-200/50 dark:bg-gray-800/50 shrink-0"
+											class="flex self-center w-[0.0625rem] h-4 mx-1 bg-gray-200/50 dark:bg-gray-800/50 shrink-0"
 										></div>
 									{/if}
 
 									<div class="flex flex-1 items-center min-w-0 overflow-x-auto scrollbar-none">
 										{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || showSkillsButton || (toggleFilters && toggleFilters.length > 0)}
 											<IntegrationsMenu
+												oauthRedirectHandler={(tool: Parameters<NonNullable<ComponentProps<typeof IntegrationsMenu>['oauthRedirectHandler']>>[0]) => oauthRedirectHandler(tool, chatInputDraft)}
 												{toggleFilters}
 												{showWebSearchButton}
 												{showImageGenerationButton}
@@ -2026,271 +2536,293 @@
 												onClose={async () => {
 													await tick();
 
+												if (!$mobile) {
 													const chatInput = document.getElementById('chat-input');
 													chatInput?.focus();
-												}}
+												}
+											}}
+										>
+											<button
+												type="button"
+												id="integration-menu-button"
+												class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-[1.875rem] flex justify-center items-center outline-hidden focus:outline-hidden shrink-0"
+												aria-label={$i18n.t('Integrations')}
 											>
-												<button
-													type="button"
-													id="integration-menu-button"
-													class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-[1.875rem] flex justify-center items-center outline-hidden focus:outline-hidden shrink-0"
-													aria-label={$i18n.t('Integrations')}
-												>
-													<Component className="size-4.5" strokeWidth="1.5" />
-												</button>
-											</IntegrationsMenu>
-										{/if}
-
-										{#if selectedModelIds.length === 1 && $models.find((m) => m.id === selectedModelIds[0])?.has_user_valves}
-											<div class="ml-1 flex gap-1.5 shrink-0">
-												<Tooltip content={$i18n.t('Valves')} placement="top">
-													<button
-														type="button"
-														id="model-valves-button"
-														class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-[1.875rem] flex justify-center items-center outline-hidden focus:outline-hidden"
-														on:click={() => {
-															selectedValvesType = 'function';
-															selectedValvesItemId = selectedModelIds[0]?.split('.')[0];
-															showValvesModal = true;
-														}}
-													>
-														<Knobs className="size-4" strokeWidth="1.5" />
-													</button>
-												</Tooltip>
-											</div>
-										{/if}
-
-										<div class="ml-1 flex gap-1.5 shrink-0">
-											{#if (selectedToolIds ?? []).length > 0}
-												<Tooltip
-													content={$i18n.t('{{COUNT}} Available Tools', {
-														COUNT: (selectedToolIds ?? []).length
-													})}
-												>
-													<button
-														class="translate-y-[0.5px] px-1 flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg self-center transition"
-														aria-label="Available Tools"
-														type="button"
-														on:click={() => {
-															showTools = !showTools;
-														}}
-													>
-														<Wrench className="size-4" strokeWidth="1.75" />
-
-														<span class="text-sm">
-															{(selectedToolIds ?? []).length}
-														</span>
-													</button>
-												</Tooltip>
-											{/if}
-
-											{#if (selectedSkillIds ?? []).length > 0}
-												<Tooltip
-													content={$i18n.t('{{COUNT}} Available Skills', {
-														COUNT: (selectedSkillIds ?? []).length
-													})}
-												>
-													<button
-														class="translate-y-[0.5px] px-1 flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg self-center transition"
-														aria-label="Available Skills"
-														type="button"
-														on:click={() => {
-															showSkills = !showSkills;
-														}}
-													>
-														<Cube className="size-4" strokeWidth="1.75" />
-
-														<span class="text-sm">
-															{(selectedSkillIds ?? []).length}
-														</span>
-													</button>
-												</Tooltip>
-											{/if}
-
-											{#each selectedFilterIds as filterId (filterId)}
-												{@const filter = toggleFilters.find((f) => f.id === filterId)}
-												{#if filter}
-													<Tooltip content={filter?.name} placement="top">
-														<button
-															on:click|preventDefault={() => {
-																if (
-																	filter?.has_user_valves &&
-																	($_user?.role === 'admin' ||
-																		($_user?.permissions?.chat?.valves ?? true))
-																) {
-																	selectedValvesType = 'function';
-																	selectedValvesItemId = filterId;
-																	showValvesModal = true;
-																} else {
-																	selectedFilterIds = selectedFilterIds.filter(
-																		(id) => id !== filterId
-																	);
-																}
-															}}
-															type="button"
-															class="group p-[6px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {selectedFilterIds.includes(
-																filterId
-															)
-																? 'text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
-																: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} capitalize"
-														>
-															{#if filter?.icon}
-																<div class="size-4 items-center flex justify-center">
-																	<img
-																		src={filter.icon}
-																		class="size-3.5 {filter.icon.includes('data:image/svg')
-																			? 'dark:invert-[80%]'
-																			: ''}"
-																		style="fill: currentColor;"
-																		alt={filter.name}
-																	/>
-																</div>
-															{:else}
-																<Sparkles className="size-4" strokeWidth="1.75" />
-															{/if}
-															<!-- svelte-ignore a11y-click-events-have-key-events -->
-															<!-- svelte-ignore a11y-no-static-element-interactions -->
-															<div
-																class="hidden group-hover:block"
-																on:click={(e) => {
-																	e.stopPropagation();
-																	e.preventDefault();
-																	selectedFilterIds = selectedFilterIds.filter(
-																		(id) => id !== filterId
-																	);
-																}}
-															>
-																<XMark className="size-4" strokeWidth="1.75" />
-															</div>
-														</button>
-													</Tooltip>
-												{/if}
-											{/each}
-
-											{#if webSearchEnabled}
-												<Tooltip content={$i18n.t('Web Search')} placement="top">
-													<button
-														on:click|preventDefault={() => (webSearchEnabled = !webSearchEnabled)}
-														type="button"
-														class="group p-[6px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {webSearchEnabled ||
-														($settings?.webSearch ?? false) === 'always'
-															? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
-															: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
-													>
-														<GlobeAlt className="size-4" strokeWidth="1.75" />
-														<div class="hidden group-hover:block">
-															<XMark className="size-4" strokeWidth="1.75" />
-														</div>
-													</button>
-												</Tooltip>
-											{/if}
-
-											{#if imageGenerationEnabled}
-												<Tooltip content={$i18n.t('Image')} placement="top">
-													<button
-														on:click|preventDefault={() =>
-															(imageGenerationEnabled = !imageGenerationEnabled)}
-														type="button"
-														class="group p-[6px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {imageGenerationEnabled
-															? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
-															: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
-													>
-														<Photo className="size-4" strokeWidth="1.75" />
-														<div class="hidden group-hover:block">
-															<XMark className="size-4" strokeWidth="1.75" />
-														</div>
-													</button>
-												</Tooltip>
-											{/if}
-
-											{#if codeInterpreterEnabled}
-												<Tooltip content={$i18n.t('Code Interpreter')} placement="top">
-													<button
-														aria-label={codeInterpreterEnabled
-															? $i18n.t('Disable Code Interpreter')
-															: $i18n.t('Enable Code Interpreter')}
-														aria-pressed={codeInterpreterEnabled}
-														on:click|preventDefault={() =>
-															(codeInterpreterEnabled = !codeInterpreterEnabled)}
-														type="button"
-														class=" group p-[6px] flex gap-1.5 items-center text-sm transition-colors duration-300 max-w-full overflow-hidden {codeInterpreterEnabled
-															? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
-															: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} {($settings?.highContrastMode ??
-														false)
-															? 'm-1'
-															: 'focus:outline-hidden rounded-full'}"
-													>
-														<Terminal className="size-3.5" strokeWidth="2" />
-
-														<div class="hidden group-hover:block">
-															<XMark className="size-4" strokeWidth="1.75" />
-														</div>
-													</button>
-												</Tooltip>
-											{/if}
-
-											{#each pendingOAuthTools as pendingTool (pendingTool.id)}
-												<Tooltip content={$i18n.t('Click to connect')} placement="top">
-													<button
-														on:click|preventDefault={() => {
-															initiateOAuthRedirect(pendingTool);
-														}}
-														type="button"
-														class="group px-2 py-[5px] flex gap-1.5 items-center text-xs rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden
-														text-amber-600 dark:text-amber-400 bg-amber-50 hover:bg-amber-100 dark:bg-amber-400/10 dark:hover:bg-amber-600/10 border border-amber-200/40 dark:border-amber-500/20"
-													>
-														<Wrench className="size-3.5" strokeWidth="1.75" />
-														<span class="truncate">{pendingTool.name}</span>
-													</button>
-												</Tooltip>
-											{/each}
-
-											{#if !history?.currentId || history.messages[history.currentId]?.done == true}
-												<!-- Terminal Server Selector -->
-												{@const hasDirectToolServerAccess =
-													$_user?.role === 'admin' ||
-													($_user?.permissions?.features?.direct_tool_servers ?? true)}
-												{#if terminalCapableModels.length > 0 && (($terminalServers ?? []).some((t) => t.id) || (hasDirectToolServerAccess && (($terminalServers ?? []).some((t) => !t.id) || ($settings?.terminalServers ?? []).some((s) => s.url))))}
-													<TerminalMenu bind:show={showTerminalMenu} />
-												{/if}
-											{/if}
-										</div>
-									</div>
-								</div>
-
-								<div class="self-end flex space-x-1 mr-1 shrink-0 gap-[0.5px]">
-									<div class="flex min-w-0 max-w-[10rem] items-center sm:max-w-[13rem]">
-										<ModelSelector
-											bind:selectedModels
-											showSetDefault={!history?.currentId}
-											placement="auto"
-											align="end"
-											triggerClassName="items-center gap-1.5 rounded-lg pl-2 pr-1.5 py-1 text-[13px] font-normal text-gray-600 transition-colors duration-100 hover:bg-gray-50/40 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/40 dark:hover:text-gray-200"
-										/>
-									</div>
+												<Component className="size-4.5" strokeWidth="1.5" />
+											</button>
+										</IntegrationsMenu>
+									{/if}
 
 									{#if hasChatVariables}
 										<Tooltip content={$i18n.t('Chat Variables')} placement="top">
 											<button
 												type="button"
 												id="chat-variables-button"
-												class="flex size-[1.875rem] shrink-0 items-center justify-center rounded-full bg-transparent text-gray-500 transition-colors hover:text-gray-800 focus:outline-hidden dark:text-gray-400 dark:hover:text-gray-100"
+												class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-[1.875rem] flex justify-center items-center outline-hidden focus:outline-hidden shrink-0"
 												aria-label={$i18n.t('Chat Variables')}
 												on:click={() => {
 													dispatch('chatVariables');
 												}}
 											>
-												<Knobs className="size-4" strokeWidth="1.5" />
+												<CodeBrackets className="size-4.5" strokeWidth="1.5" />
 											</button>
 										</Tooltip>
 									{/if}
+								</div>
 
-									{#if isActive && prompt === '' && files.length === 0}
+								<div class="flex flex-1 items-center min-w-0 overflow-x-auto scrollbar-none">
+									{#if selectedModelIds.length === 1 && $models.find((m) => m.id === selectedModelIds[0])?.has_user_valves && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.valves ?? true))}
+										<div class="ml-1 flex gap-1.5 shrink-0">
+											<Tooltip content={$i18n.t('Valves')} placement="top">
+												<button
+													type="button"
+													id="model-valves-button"
+													aria-label={$i18n.t('Valves')}
+													class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-[1.875rem] flex justify-center items-center outline-hidden focus:outline-hidden"
+													on:click={() => {
+														selectedValvesType = 'function';
+														selectedValvesItemId = selectedModelIds[0]?.split('.')[0];
+														showValvesModal = true;
+													}}
+												>
+													<Knobs className="size-4" strokeWidth="1.5" />
+												</button>
+											</Tooltip>
+										</div>
+									{/if}
+
+									<div class="ml-1 flex gap-1.5 shrink-0">
+										{#if (selectedToolIds ?? []).length > 0 && $visibleControls['chat.selected_tools']}
+											<Tooltip
+												content={$i18n.t('{{COUNT}} Available Tools', {
+													COUNT: (selectedToolIds ?? []).length
+												})}
+											>
+												<button
+													class="translate-y-[0.5px] px-1 flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg self-center transition"
+													aria-label={$i18n.t('Available Tools')}
+													type="button"
+													on:click={() => {
+														showTools = !showTools;
+													}}
+												>
+													<Wrench className="size-4" strokeWidth="1.75" />
+
+													<span class="text-sm">
+														{(selectedToolIds ?? []).length}
+													</span>
+												</button>
+											</Tooltip>
+										{/if}
+
+										{#if (selectedSkillIds ?? []).length > 0 && $visibleControls['chat.selected_skills']}
+											<Tooltip
+												content={$i18n.t('{{COUNT}} Available Skills', {
+													COUNT: (selectedSkillIds ?? []).length
+												})}
+											>
+												<button
+													class="translate-y-[0.5px] px-1 flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg self-center transition"
+													aria-label={$i18n.t('Available Skills')}
+													type="button"
+													on:click={() => {
+														showSkills = !showSkills;
+													}}
+												>
+													<Cube className="size-4" strokeWidth="1.75" />
+
+													<span class="text-sm">
+														{(selectedSkillIds ?? []).length}
+													</span>
+												</button>
+											</Tooltip>
+										{/if}
+
+										{#each selectedFilterIds as filterId (filterId)}
+											{@const filter = toggleFilters.find((f) => f.id === filterId)}
+											{#if filter && $visibleControls['chat.selected_filters']}
+												<Tooltip
+													content={resolveLocalizedFunction(
+														filter,
+														$localizedFunctions,
+														$i18n.language
+													)}
+													placement="top"
+												>
+													<button
+														on:click|preventDefault={() => {
+															if (
+																filter?.has_user_valves &&
+																($_user?.role === 'admin' ||
+																	($_user?.permissions?.chat?.valves ?? true))
+															) {
+																selectedValvesType = 'function';
+																selectedValvesItemId = filterId;
+																showValvesModal = true;
+															} else {
+																selectedFilterIds = selectedFilterIds.filter(
+																	(id) => id !== filterId
+																);
+															}
+														}}
+														type="button"
+														class="group p-[0.375rem] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {selectedFilterIds.includes(
+															filterId
+														)
+															? 'text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
+															: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} capitalize"
+													>
+														{#if filter?.icon}
+															<div class="size-4 items-center flex justify-center">
+																<img
+																	src={filter.icon}
+																	class="size-3.5 {filter.icon.includes('data:image/svg')
+																		? 'dark:invert-[80%]'
+																		: ''}"
+																	style="fill: currentColor;"
+																	alt={resolveLocalizedFunction(
+																		filter,
+																		$localizedFunctions,
+																		$i18n.language
+																	)}
+																/>
+															</div>
+														{:else}
+															<Sparkles className="size-4" strokeWidth="1.75" />
+														{/if}
+														<!-- svelte-ignore a11y-click-events-have-key-events -->
+														<!-- svelte-ignore a11y-no-static-element-interactions -->
+														<div
+															class="hidden group-hover:block"
+															on:click={(e) => {
+																e.stopPropagation();
+																e.preventDefault();
+																selectedFilterIds = selectedFilterIds.filter(
+																	(id) => id !== filterId
+																);
+															}}
+														>
+															<XMark className="size-4" strokeWidth="1.75" />
+														</div>
+													</button>
+												</Tooltip>
+											{/if}
+										{/each}
+
+										{#if webSearchEnabled && showWebSearchButton && $visibleControls['chat.selected_web_search']}
+											<Tooltip content={$i18n.t('Web Search')} placement="top">
+												<button
+													aria-label={$i18n.t('Web Search')}
+													aria-pressed={webSearchEnabled}
+													on:click|preventDefault={() => (webSearchEnabled = !webSearchEnabled)}
+													type="button"
+													class="group p-[0.375rem] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {webSearchEnabled ||
+													($settings?.webSearch ?? false) === 'always'
+														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
+														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
+												>
+													<GlobeAlt className="size-4" strokeWidth="1.75" />
+													<div class="hidden group-hover:block">
+														<XMark className="size-4" strokeWidth="1.75" />
+													</div>
+												</button>
+											</Tooltip>
+										{/if}
+
+										{#if imageGenerationEnabled && showImageGenerationButton && $visibleControls['chat.selected_image_generation']}
+											<Tooltip content={$i18n.t('Image')} placement="top">
+												<button
+													aria-label={$i18n.t('Image')}
+													aria-pressed={imageGenerationEnabled}
+													on:click|preventDefault={() =>
+														(imageGenerationEnabled = !imageGenerationEnabled)}
+													type="button"
+													class="group p-[0.375rem] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {imageGenerationEnabled
+														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
+														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
+												>
+													<Photo className="size-4" strokeWidth="1.75" />
+													<div class="hidden group-hover:block">
+														<XMark className="size-4" strokeWidth="1.75" />
+													</div>
+												</button>
+											</Tooltip>
+										{/if}
+
+										{#if codeInterpreterEnabled && showCodeInterpreterButton && $visibleControls['chat.selected_code_interpreter']}
+											<Tooltip content={$i18n.t('Code Interpreter')} placement="top">
+												<button
+													aria-label={codeInterpreterEnabled
+														? $i18n.t('Disable Code Interpreter')
+														: $i18n.t('Enable Code Interpreter')}
+													aria-pressed={codeInterpreterEnabled}
+													on:click|preventDefault={() =>
+														(codeInterpreterEnabled = !codeInterpreterEnabled)}
+													type="button"
+													class=" group p-[0.375rem] flex gap-1.5 items-center text-sm transition-colors duration-300 max-w-full overflow-hidden {codeInterpreterEnabled
+														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
+														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} {($settings?.highContrastMode ??
+													false)
+														? 'm-1'
+														: 'focus:outline-hidden rounded-full'}"
+												>
+													<Terminal className="size-3.5" strokeWidth="2" />
+
+													<div class="hidden group-hover:block">
+														<XMark className="size-4" strokeWidth="1.75" />
+													</div>
+												</button>
+											</Tooltip>
+										{/if}
+
+										<!-- Terminal Server Selector -->
+										{#if showTerminalSelector}
+											<TerminalMenu
+												bind:show={showTerminalMenu}
+												disabled={generating ||
+													(!!history?.currentId &&
+														history.messages[history.currentId]?.done != true)}
+											/>
+										{/if}
+
+										{#each pendingOAuthTools as pendingTool (pendingTool.id)}
+											<Tooltip content={$i18n.t('Click to connect')} placement="top">
+												<button
+													aria-label={`${$i18n.t('Click to connect')}: ${pendingTool.name}`}
+													on:click|preventDefault={() => {
+														oauthRedirectHandler(pendingTool, chatInputDraft);
+													}}
+													type="button"
+													class="flex h-[1.875rem] min-w-0 max-w-full translate-y-[0.0625rem] items-center self-center gap-1 bg-transparent px-1 text-[0.8125rem] leading-none text-gray-600 transition-colors duration-150 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 dark:text-gray-300 dark:hover:text-gray-100 dark:focus-visible:outline-gray-500"
+												>
+													<span class="truncate">{pendingTool.name}</span>
+													<ArrowUpLeft className="size-3 shrink-0 rotate-90" strokeWidth="1.5" />
+												</button>
+											</Tooltip>
+										{/each}
+									</div>
+								</div>
+
+								<div class="self-end flex space-x-1 mr-1 min-w-0 gap-[0.03125rem]">
+									<div class="flex min-w-0 max-w-[10rem] items-center sm:max-w-[13rem]">
+										<ModelSelector
+											bind:this={modelSelector}
+											bind:selectedModels
+											{onModelSelect}
+											showSetDefault={!history?.currentId}
+											placement="auto"
+											align="end"
+											triggerClassName="items-center gap-1.5 rounded-lg pl-2 pr-1.5 py-1 text-[0.8125rem] font-normal text-gray-600 transition-colors duration-100 hover:bg-gray-50/40 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/40 dark:hover:text-gray-200"
+										/>
+									</div>
+									<ModelControls selectedModels={selectedModelIds} />
+
+									{#if isActive && (history.messages[history.currentId ?? '']?.user_id ?? $_user?.id) === $_user?.id && prompt === '' && files.length === 0}
 										<div class=" flex items-center">
 											<Tooltip content={$i18n.t('Stop')}>
 												<button
 													aria-label={$i18n.t('Stop')}
-													class="bg-white hover:bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-800 transition rounded-full p-[5px]"
+													class="bg-white hover:bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-800 transition rounded-full p-[0.3125rem]"
 													on:click={() => {
 														stopResponse();
 													}}
@@ -2344,28 +2876,41 @@
 																toast.error($i18n.t('Permission denied when accessing microphone'));
 															}
 														}}
-														aria-label="Voice Input"
+														aria-label={$i18n.t('Voice Input')}
 													>
-														<Mic className="size-[18px]" />
+														<Mic className="size-[1.125rem]" />
 													</button>
 												</Tooltip>
 											{/if}
 										{/if}
 
-										{#if prompt === '' && files.length === 0 && ($_user?.role === 'admin' || ($_user?.permissions?.chat?.call ?? true))}
+										{#if callEnabled && !embedded && prompt === '' && files.length === 0 && showCallButton}
 											<div class=" flex items-center">
 												<!-- {$i18n.t('Call')} -->
-												<Tooltip content={$i18n.t('Voice mode')}>
+												<Tooltip
+													content={callActive ? $i18n.t('Call in progress') : $i18n.t('Voice mode')}
+												>
 													<button
-														class=" bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full p-[5px] self-center"
+														class=" bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full p-[0.3125rem] self-center"
+														class:call-active={callActive}
 														type="button"
 														on:click={async () => {
+															if (callActive) {
+																showCallOverlay.set(true);
+																showControls.set(true);
+																return;
+															}
 															if (selectedModels.length > 1) {
 																toast.error($i18n.t('Select only one model to call'));
 
 																return;
 															}
 
+															if ($config?.audio?.realtime?.enabled) {
+																showCallOverlay.set(true);
+																showControls.set(true);
+															return;
+														}
 															if ($config?.audio?.stt?.engine === 'web') {
 																toast.error(
 																	$i18n.t('Call feature is not supported when using Web STT engine')
@@ -2373,6 +2918,7 @@
 
 																return;
 															}
+
 															// check if user has access to getUserMedia
 															try {
 																let stream = await navigator.mediaDevices.getUserMedia({
@@ -2405,7 +2951,9 @@
 																);
 															}
 														}}
-														aria-label={$i18n.t('Voice mode')}
+														aria-label={callActive
+															? $i18n.t('Return to call')
+															: $i18n.t('Voice mode')}
 													>
 														<Voice className="size-5" strokeWidth="2.5" />
 													</button>
@@ -2413,35 +2961,29 @@
 											</div>
 										{:else}
 											<div class=" flex items-center">
-												<Tooltip
-													content={uploadPending
-														? $i18n.t('Waiting for upload...')
-														: $i18n.t('Send message')}
-												>
+												<!-- Preserve the former upload label for i18n extraction: $i18n.t('Waiting for upload...') -->
+												<Tooltip content={$i18n.t('Send message')}>
 													<button
 														id="send-message-button"
-														class="{!(prompt === '' && files.length === 0) || uploadPending
+														aria-label={$i18n.t('Send message')}
+														class="{!(prompt === '' && files.length === 0)
 															? 'bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 '
-															: 'text-white bg-gray-200 dark:text-gray-900 dark:bg-gray-700 disabled'} transition rounded-full p-[5px] self-center"
+															: 'text-white bg-gray-200 dark:text-gray-900 dark:bg-gray-700 disabled'} transition rounded-full p-[0.3125rem] self-center"
 														type="submit"
-														disabled={(prompt === '' && files.length === 0) || uploadPending}
+														disabled={prompt === '' && files.length === 0}
 													>
-														{#if uploadPending}
-															<Spinner className="size-5" />
-														{:else}
-															<svg
-																xmlns="http://www.w3.org/2000/svg"
-																viewBox="0 0 16 16"
-																fill="currentColor"
-																class="size-5"
-															>
-																<path
-																	fill-rule="evenodd"
-																	d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z"
-																	clip-rule="evenodd"
-																/>
-															</svg>
-														{/if}
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															viewBox="0 0 16 16"
+															fill="currentColor"
+															class="size-5"
+														>
+															<path
+																fill-rule="evenodd"
+																d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z"
+																clip-rule="evenodd"
+															/>
+														</svg>
 													</button>
 												</Tooltip>
 											</div>
@@ -2451,13 +2993,14 @@
 							</div>
 						</div>
 
+						</div>
 						{#if $config?.license_metadata?.input_footer}
 							<div class=" text-xs text-gray-500 text-center line-clamp-1 marked">
 								<!-- eslint-disable-next-line svelte/no-at-html-tags -- License footer markup is sanitized at this sink. -->
 								{@html DOMPurify.sanitize(marked($config?.license_metadata?.input_footer))}
 							</div>
 						{:else}
-							<div class="mb-1"></div>
+							<div class="mb-0.5"></div>
 						{/if}
 					</form>
 				</div>
@@ -2465,3 +3008,17 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.call-active {
+		box-shadow:
+			0 0 8px 2px rgb(0 0 0 / 0.25),
+			0 0 20px 4px rgb(0 0 0 / 0.15);
+	}
+
+	:global(.dark) .call-active {
+		box-shadow:
+			0 0 8px 2px rgb(255 255 255 / 0.4),
+			0 0 20px 4px rgb(255 255 255 / 0.25);
+	}
+</style>

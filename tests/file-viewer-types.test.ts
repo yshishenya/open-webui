@@ -20,8 +20,10 @@ const fakes = vi.hoisted(() => ({
 }));
 vi.hoisted(() => Object.assign(globalThis, { APP_VERSION: 'test', APP_BUILD_HASH: 'test' }));
 vi.mock('$lib/apis/files', () => ({
-	searchFiles: fakes.search,
-	getFileCount: fakes.count,
+	searchUserFiles: fakes.search,
+	getUserFileCount: fakes.count,
+	getFileById: vi.fn(async (_token: string, id: string) => ({ id })),
+	getFileBlobById: vi.fn(),
 	deleteFileById: fakes.remove
 }));
 vi.mock('svelte-sonner', () => ({ toast: fakes.toast }));
@@ -49,6 +51,14 @@ beforeAll(async () => {
 });
 beforeEach(() => {
 	vi.clearAllMocks();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe(): void {}
+			unobserve(): void {}
+			disconnect(): void {}
+		}
+	);
 	fakes.preview = null;
 	fakes.sqlLoader.mockImplementation(async (options: { locateFile: (name: string) => string }) => {
 		expect(options.locateFile('sql-wasm.wasm')).toBe('/sql.js/sql-wasm.wasm');
@@ -97,12 +107,17 @@ it('opens files and confirms deletion using separate native controls', async () 
 		await tick();
 		expect(fakes.preview?.show).toBe(true);
 		expect(fakes.preview?.item?.id).toBe('one');
-		const remove = document.querySelector<HTMLButtonElement>('button[aria-label="Delete File"]');
-		expect(remove?.querySelector('svg')?.getAttribute('class')).toContain('size-4');
-		remove?.click();
+		document
+			.querySelector<HTMLButtonElement>('button[aria-label="Actions for Fixture.txt"]')!
+			.click();
+		await tick();
+		const remove = button('Delete');
+		expect(remove.querySelector('svg')).not.toBeNull();
+		remove.click();
 		await tick();
 		expect(fakes.remove).not.toHaveBeenCalled();
-		button('Confirm').click();
+		fakes.search.mockResolvedValueOnce([]);
+		button('Delete').click();
 		await vi.waitFor(() => expect(fakes.remove).toHaveBeenCalledWith('fixture', 'one'));
 		await tick();
 		expect(document.body.textContent).not.toContain('Fixture.txt');
@@ -123,7 +138,8 @@ it('preserves filename sorting, query pattern and Shift deletion', async () => {
 	try {
 		await vi.waitFor(() => expect(document.body.textContent).toContain('Beta.txt'));
 		button('Filename').click();
-		await vi.waitFor(() => expect(fakes.search).toHaveBeenCalledTimes(2));
+		await tick();
+		expect(fakes.search).toHaveBeenCalledTimes(1);
 		await vi.waitFor(() => {
 			const names = Array.from(document.querySelectorAll('button'))
 				.map((b) => b.textContent?.trim())
@@ -139,7 +155,11 @@ it('preserves filename sorting, query pattern and Shift deletion', async () => {
 		);
 		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift' }));
 		await tick();
-		document.querySelector<HTMLButtonElement>('button[aria-label="Delete File"]')?.click();
+		document
+			.querySelector<HTMLButtonElement>('button[aria-label="Actions for Alpha.txt"]')!
+			.click();
+		await tick();
+		button('Delete').dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
 		await vi.waitFor(() => expect(fakes.remove).toHaveBeenCalledWith('fixture', 'one'));
 		expect(fakes.preview?.show).toBe(false);
 		window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' }));

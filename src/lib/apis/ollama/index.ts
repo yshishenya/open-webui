@@ -10,7 +10,7 @@ export type OllamaConfig = {
 };
 export const verifyOllamaConnection = (
 	token: string,
-	connection: { url: string; key?: string },
+	connection: { url: string; key?: string; config?: ModelConnectionConfig },
 	signal?: AbortSignal
 ): Promise<unknown> =>
 	requestModelConnection(

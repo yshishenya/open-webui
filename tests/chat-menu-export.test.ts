@@ -82,7 +82,18 @@ for (const menu of menus) {
 			const save = vi.fn(() => {
 				if (failure === 'save') throw new Error('save failed');
 			});
-			const canvas = { width: 1600, height: 2400 };
+			vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+				top: 0,
+				bottom: 2262,
+				height: 2262,
+				width: 800,
+				left: 0,
+				right: 800,
+				x: 0,
+				y: 0,
+				toJSON: () => ({})
+			});
+			const canvas = { width: 1600, height: 2400, toDataURL: () => 'data:image/jpeg;base64,TEST' };
 			const capture = vi.fn(async (node: HTMLElement) => {
 				expect(document.body.contains(node)).toBe(true);
 				expect(node.textContent).toBe('Вопрос — Ответ');
@@ -104,7 +115,9 @@ for (const menu of menus) {
 				pdf: {
 					default: class {
 						save = save;
-						addImage = vi.fn();
+						addImage = vi.fn(() => {
+							if (failure === 'context') throw new Error('PDF image rejected');
+						});
 						addPage = vi.fn();
 					}
 				},
@@ -125,6 +138,9 @@ for (const menu of menus) {
 					tick: async () => {},
 					requestAnimationFrame: (fn: FrameRequestCallback) => fn(0),
 					document: doc,
+					getComputedStyle: window.getComputedStyle.bind(window),
+					Node,
+					Element,
 					toast,
 					$i18n: { t: (text: string) => text },
 					console: { error: vi.fn() }
@@ -135,9 +151,10 @@ for (const menu of menus) {
 			expect(document.body.children.length).toBe(count);
 			if (failure === 'none') {
 				expect(save).toHaveBeenCalledWith('chat-Разговор.pdf');
-				expect(drawImage).toHaveBeenCalledTimes(2);
+				expect(capture).toHaveBeenCalledTimes(2);
 				expect(toast.error).not.toHaveBeenCalled();
 			} else expect(toast.error).toHaveBeenCalledTimes(1);
+			vi.restoreAllMocks();
 		});
 	}
 }

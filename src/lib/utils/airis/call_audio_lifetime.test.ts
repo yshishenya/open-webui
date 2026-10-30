@@ -129,6 +129,12 @@ const rig = () => {
 	};
 	const context = {
 		$showCallOverlay: true,
+		bridge: undefined,
+		playbackSource: null,
+		playbackAnalyser: null,
+		playbackContext: null,
+		resetAvatarPlayback: vi.fn(),
+		cancelAvatarAnimation: vi.fn(),
 		destroyed: false,
 		audioStream: null as typeof stream | null,
 		mediaRecorder: null as Recorder | null,

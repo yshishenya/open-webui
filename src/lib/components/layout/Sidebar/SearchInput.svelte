@@ -24,7 +24,7 @@
 	let lastWord = '';
 	$: lastWord = value ? value.split(' ').at(-1)! : value;
 
-	let options = [
+	$: options = [
 		{
 			name: 'tag:',
 			description: $i18n.t('search for tags')
@@ -57,7 +57,7 @@
 
 	let filteredItems: { id: string; name: string; type: string }[] = [];
 
-	$: if (lastWord && lastWord !== null) {
+	$: if (lastWord && $i18n) {
 		initItems();
 	}
 

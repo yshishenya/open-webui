@@ -8,11 +8,12 @@ from test.util.mock_user import mock_webui_user
 class TestPrompts(AbstractPostgresTest):
     BASE_PATH = '/api/v1/prompts'
 
-    def test_prompts(self):
+    def test_prompts(self) -> None:
         from open_webui.models.config import Config
 
         permissions = deepcopy(Config.default_value('user.permissions', {}))
         permissions.setdefault('workspace', {})['prompts'] = True
+        permissions.setdefault('sharing', {})['prompts'] = True
         permissions.setdefault('sharing', {})['public_prompts'] = True
         asyncio.run(Config.upsert({'user.permissions': permissions}))
 
@@ -45,6 +46,7 @@ class TestPrompts(AbstractPostgresTest):
                 },
             )
         assert response.status_code == 200
+        assert len(response.json()['access_grants']) == 2
         first_prompt_id = response.json()['id']
         with mock_webui_user(id='3'):
             response = self.fast_api_client.post(
@@ -135,3 +137,27 @@ class TestPrompts(AbstractPostgresTest):
             response = self.fast_api_client.get(self.create_url('/'))
         assert response.status_code == 200
         assert len(response.json()) == 1
+
+    def test_public_prompt_grants_require_prompt_sharing_permission(self) -> None:
+        from open_webui.models.config import Config
+
+        permissions = deepcopy(Config.default_value('user.permissions', {}))
+        permissions.setdefault('workspace', {})['prompts'] = True
+        permissions.setdefault('sharing', {})['public_prompts'] = True
+        permissions['sharing']['prompts'] = False
+        asyncio.run(Config.upsert({'user.permissions': permissions}))
+        with mock_webui_user(id='2'):
+            created = self.fast_api_client.post(
+                self.create_url('/create'),
+                json={
+                    'command': '/private-command',
+                    'name': 'Private prompt',
+                    'content': 'Keep private',
+                    'access_grants': [{'principal_type': 'user', 'principal_id': '*', 'permission': 'read'}],
+                },
+            )
+        assert created.status_code == 200
+        assert created.json()['access_grants'] == []
+        with mock_webui_user(id='3'):
+            visible = self.fast_api_client.get(self.create_url('/'))
+        assert visible.status_code == 200 and visible.json() == []

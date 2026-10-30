@@ -8,7 +8,7 @@ test.describe('Settings', () => {
 		await page.goto('/');
 		const userMenuButton = await getUserMenuTrigger(page);
 		await userMenuButton.first().click();
-		await page.getByRole('button', { name: 'Settings', exact: true }).click();
+		await page.getByRole('menuitem', { name: 'Settings', exact: true }).click();
 		await page.locator('[role="tab"][aria-controls="tab-general"]').waitFor();
 	});
 

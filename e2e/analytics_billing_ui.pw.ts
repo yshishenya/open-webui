@@ -96,11 +96,11 @@ async function setup(page: Page, token = adminToken): Promise<void> {
 		localStorage.setItem('token', token);
 		localStorage.setItem('locale', 'ru-RU');
 		localStorage.setItem('airis.analytics.consent.v1', 'denied');
-		localStorage.setItem('settings', JSON.stringify({ version: '0.11.0' }));
+		localStorage.setItem('settings', JSON.stringify({ version: '0.12.5' }));
 	}, token);
 	await page.route('**/mc.yandex.ru/**', (route) => route.abort());
 	await page.route('**/api/v1/users/user/settings', (route) =>
-		route.fulfill({ json: { ui: { version: '0.11.0' } } })
+		route.fulfill({ json: { ui: { version: '0.12.5' } } })
 	);
 	await page.route('**/api/v1/legal/status', (route) =>
 		route.fulfill({ json: { needs_accept: false, docs: [], accepted: {} } })

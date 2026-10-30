@@ -2,10 +2,11 @@ import type { PermissionSettingsInput } from './permission-types';
 
 /** Stored group dictionaries can be partial, nullable and contain extension fields. */
 export interface GroupData extends Record<string, unknown> {
-	config?: { share?: boolean | string; [key: string]: unknown } | null;
+	config?: { default_models?: string[] | null; share?: boolean | string; [key: string]: unknown } | null;
 }
 
 export interface GroupForm {
+	parent_group_id?: string | null;
 	name: string;
 	description: string;
 	data: GroupData;
@@ -13,6 +14,7 @@ export interface GroupForm {
 }
 
 export interface GroupDetails {
+	parent_group_id?: string | null;
 	id: string;
 	name: string;
 	description: string;

@@ -19,17 +19,22 @@ ARG USE_AUXILIARY_EMBEDDING_MODEL=TaylorAI/bge-micro-v2
 ARG USE_TIKTOKEN_ENCODING_NAME="cl100k_base"
 
 ARG BUILD_HASH=dev-build
+ARG BUILD_CHANNEL=unknown
 # Override at your own risk - non-root configurations are untested
 ARG UID=0
 ARG GID=0
 ARG AIRIS_NODE_IMAGE=node:22-alpine3.20
-ARG AIRIS_PYTHON_IMAGE=python:3.11-slim-bookworm
+ARG AIRIS_PYTHON_IMAGE=python:3.12-slim-trixie
 
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM ${AIRIS_NODE_IMAGE} AS build
 ARG BUILD_HASH
 ARG PUBLIC_YANDEX_METRICA_ID=
 ARG PUBLIC_GA_MEASUREMENT_ID=
+ARG BUILD_CHANNEL
+ARG USE_SLIM
+ARG UID
+ARG GID
 
 # Keep the Vite build within a predictable Node heap while allowing builders
 # with tighter memory limits to override it.
@@ -48,11 +53,16 @@ RUN npm ci --legacy-peer-deps
 
 COPY . .
 ENV APP_BUILD_HASH=${BUILD_HASH}
+ENV APP_BUILD_CHANNEL=${BUILD_CHANNEL}
 ARG AIRIS_VITE_SOURCEMAP=false
 ARG AIRIS_PREPARED_STATIC=false
 RUN if [ "$AIRIS_PREPARED_STATIC" = "true" ]; then \
-    sha256sum -c static/.airis-production.sha256 && AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} npm run build:vite; \
+    npm run crypto:verify && sha256sum -c static/.airis-production.sha256 && AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} npm run build:vite; \
     else AIRIS_VITE_SOURCEMAP=${AIRIS_VITE_SOURCEMAP} npm run build; fi
+RUN if [ "$USE_SLIM" = "true" ]; then find build -type f -name '*.map' -delete; fi
+RUN chown -R $UID:$GID /app/backend && \
+    chgrp -R 0 /app/backend/open_webui/static && \
+    chmod -R g=u /app/backend/open_webui/static
 
 ######## WebUI backend ########
 FROM ${AIRIS_PYTHON_IMAGE} AS base
@@ -137,17 +147,24 @@ RUN echo -n 00000000-0000-0000-0000-000000000000 > $HOME/.cache/chroma/telemetry
 # Make sure the user has access to the app and root directory
 RUN chown -R $UID:$GID /app $HOME
 
-# Install common system dependencies
+# Slim cannot bundle a local model server or GPU runtime.
+RUN if [ "$USE_SLIM" = "true" ] && { [ "$USE_CUDA" = "true" ] || [ "$USE_OLLAMA" = "true" ]; }; then \
+    echo "USE_SLIM cannot be combined with USE_CUDA or USE_OLLAMA" >&2; exit 1; fi
+
+# Keep the slim runtime free of local document/audio processing tools.
+# Git-based tool requirements require the standard image.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    git build-essential pandoc gcc netcat-openbsd curl jq ca-certificates \
-    libmariadb-dev \
-    python3-dev \
-    ffmpeg libsm6 libxext6 zstd \
-    && rm -rf /var/lib/apt/lists/*
+    curl jq ca-certificates \
+    && if [ "$USE_SLIM" != "true" ]; then \
+    apt-get install -y --no-install-recommends \
+    git build-essential pandoc gcc libmariadb-dev ffmpeg libsm6 libxext6; \
+    fi && if [ "$USE_OLLAMA" = "true" ]; then \
+    apt-get install -y --no-install-recommends zstd; \
+    fi && rm -rf /var/lib/apt/lists/*
 
 # install python dependencies
-COPY --chown=$UID:$GID ./backend/requirements.txt ./requirements.txt
+COPY --chown=$UID:$GID ./backend/requirements*.txt ./
 COPY --chown=$UID:$GID ./backend/requirements-production.lock ./requirements-production.lock
 COPY ./airis-build-resources/ /tmp/airis-build-resources/
 
@@ -155,8 +172,11 @@ COPY ./airis-build-resources/ /tmp/airis-build-resources/
 ENV UV_LINK_MODE=copy
 
 RUN set -e; \
-    pip3 install --no-cache-dir uv==0.12.5; \
-    if [ "$USE_CUDA" = "true" ]; then \
+    pip3 install --no-cache-dir uv==0.12.10; \
+    if [ "$USE_SLIM" = "true" ]; then \
+    test "$AIRIS_PRODUCTION_LOCK" = "false"; \
+    uv pip install --system -r requirements-slim.txt --no-cache-dir; \
+    elif [ "$USE_CUDA" = "true" ]; then \
     test "$AIRIS_PRODUCTION_LOCK" = "false"; \
     # If you use CUDA the whisper and embedding model will be downloaded on first use
     # Keep the compatible 2.9.1 trio; torch 2.10.0 aarch64 wheels cause SIGILL on RPi 4 (#21349).
@@ -166,10 +186,9 @@ RUN set -e; \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ.get('AUXILIARY_EMBEDDING_MODEL', 'TaylorAI/bge-micro-v2'), device='cpu')"; \
     python -c "import os; from faster_whisper import WhisperModel; WhisperModel(os.environ['WHISPER_MODEL'], device='cpu', compute_type='int8', download_root=os.environ['WHISPER_MODEL_DIR'])"; \
     python -c "import os; import tiktoken; tiktoken.get_encoding(os.environ['TIKTOKEN_ENCODING_NAME'])"; \
-    python -c "import nltk; nltk.download('punkt_tab')"; \
     else \
     if [ "$AIRIS_PRODUCTION_LOCK" = "true" ]; then \
-    uv pip sync --system --require-hashes requirements-production.lock --no-cache-dir; \
+    uv pip sync --torch-backend=cpu --system --require-hashes requirements-production.lock --no-cache-dir; \
     else \
     pip3 install 'torch==2.9.1' 'torchvision==0.24.1' 'torchaudio==2.9.1' --index-url https://download.pytorch.org/whl/cpu --no-cache-dir; \
     uv pip install --system -r requirements.txt --no-cache-dir; \
@@ -182,11 +201,16 @@ RUN set -e; \
     python -c "import os; from sentence_transformers import SentenceTransformer; SentenceTransformer(os.environ.get('AUXILIARY_EMBEDDING_MODEL', 'TaylorAI/bge-micro-v2'), device='cpu')"; \
     python -c "import os; from faster_whisper import WhisperModel; WhisperModel(os.environ['WHISPER_MODEL'], device='cpu', compute_type='int8', download_root=os.environ['WHISPER_MODEL_DIR'])"; \
     python -c "import os; import tiktoken; tiktoken.get_encoding(os.environ['TIKTOKEN_ENCODING_NAME'])"; \
-    python -c "import nltk; nltk.download('punkt_tab')"; \
     fi; \
     fi; \
     mkdir -p /app/backend/data; chown -R $UID:$GID /app/backend/data/; \
+    if [ -d /app/backend/data/cache ]; then chmod -R a+rX /app/backend/data/cache; fi; \
     rm -rf /var/lib/apt/lists/* /tmp/airis-build-resources;
+
+# Optional: PPTX parsing through unstructured may need spaCy's English model.
+# Keep this out of the default image to avoid the extra image bloat; deployments
+# with read-only site-packages can uncomment it and bake the model in.
+# RUN python -m spacy download en_core_web_sm
 
 # Install Ollama if requested
 RUN if [ "$USE_OLLAMA" = "true" ]; then \
@@ -205,21 +229,10 @@ COPY --chown=$UID:$GID --from=build /app/build /app/build
 COPY --chown=$UID:$GID --from=build /app/CHANGELOG.md /app/CHANGELOG.md
 COPY --chown=$UID:$GID --from=build /app/package.json /app/package.json
 
-# copy backend files
-COPY --chown=$UID:$GID ./backend .
+# copy backend files with the ownership and static permissions prepared above
+COPY --from=build /app/backend .
 RUN if [ "$AIRIS_PRODUCTION_LOCK" = "true" ]; then \
     python -m pip check && python check_native_audio.py; fi
-
-# The backend rewrites its bundled static assets (favicons, splash, manifest,
-# loader.js, ...) under open_webui/static at startup. Make that directory
-# writable by an arbitrary UID -- which under OpenShift's restricted SCC is
-# always a member of GID 0 -- so those writes don't fail with EACCES and crash
-# the boot log with "[Errno 13] Permission denied". `chmod -R g=u` mirrors the
-# owner bits onto the group (the Red Hat arbitrary-UID idiom). This is applied
-# unconditionally because it targets a directory the app writes on every start;
-# the broader, opt-in USE_PERMISSION_HARDENING below covers the rest of /app.
-RUN chgrp -R 0 /app/backend/open_webui/static && \
-    chmod -R g=u /app/backend/open_webui/static
 
 EXPOSE 8080
 
@@ -239,7 +252,7 @@ RUN if [ "$USE_PERMISSION_HARDENING" = "true" ]; then \
 USER $UID:$GID
 
 ARG BUILD_HASH
-ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
+ENV WEBUI_BUILD_HASH=${BUILD_HASH}
 ENV DOCKER=true
 
 CMD [ "bash", "start.sh"]

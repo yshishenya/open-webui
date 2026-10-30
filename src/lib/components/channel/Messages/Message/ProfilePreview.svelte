@@ -11,18 +11,21 @@
 
 <script lang="ts">
 	import { LinkPreview } from 'bits-ui';
-	import { onDestroy, type ComponentProps } from 'svelte';
+	import { getContext, onDestroy, type ComponentProps } from 'svelte';
 	import type { SessionUser } from '$lib/stores';
+	import { user as sessionUser } from '$lib/stores';
 
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 	import UserStatusLinkPreview from './UserStatusLinkPreview.svelte';
 
-	export let user: Pick<SessionUser, 'id'> | null | undefined = null;
+	export let user: Pick<SessionUser, 'id'> & Partial<Pick<SessionUser, 'name'>> | null | undefined = null;
 
+	export let className = '';
 	export let align: ComponentProps<typeof LinkPreview.Content>['align'] = 'center';
 	export let side: ComponentProps<typeof LinkPreview.Content>['side'] = 'right';
 	export let sideOffset = 8;
 
-	let openPreview = false;
+	export let openPreview = false;
 
 	const closeProfilePreview = (): void => {
 		if (openPreview) {
@@ -46,18 +49,25 @@
 	});
 </script>
 
-<LinkPreview.Root openDelay={0} closeDelay={200} bind:open={openPreview}>
-	<LinkPreview.Trigger class="flex items-center">
-		<button
-			type="button"
-			class=" cursor-pointer no-underline! font-normal!"
-			on:click={() => {
-				openPreview = !openPreview;
-			}}
+{#if user?.id && $sessionUser}
+	<LinkPreview.Root openDelay={0} closeDelay={200} bind:open={openPreview}>
+		<LinkPreview.Trigger
+			class="flex shrink-0 items-center cursor-pointer no-underline! font-normal! {className}"
 		>
-			<slot />
-		</button>
-	</LinkPreview.Trigger>
+			{#snippet child({ props })}
+				<button
+					{...props}
+					type="button"
+					aria-label={user.name || $i18n.t('User')}
+					onclick={() => (openPreview = !openPreview)}
+				>
+					<slot />
+				</button>
+			{/snippet}
+		</LinkPreview.Trigger>
 
-	<UserStatusLinkPreview id={user?.id} {openPreview} {side} {align} {sideOffset} />
-</LinkPreview.Root>
+		<UserStatusLinkPreview id={user.id} {openPreview} {side} {align} {sideOffset} />
+	</LinkPreview.Root>
+{:else}
+	<slot />
+{/if}

@@ -30,7 +30,11 @@ export const requestJSON = async <T>(
 		if (!res.ok) {
 			const detail: unknown = await res.json().catch(() => null);
 			controller.signal.throwIfAborted();
-			throw new Error(detail ? getErrorMessage(detail) : `${label} failed (${res.status}).`);
+			const error = new Error(detail ? getErrorMessage(detail) : `${label} failed (${res.status}).`);
+			const payload = detail && typeof detail === 'object' && 'detail' in detail ? detail.detail : detail;
+			if (payload && typeof payload === 'object' && 'code' in payload && typeof payload.code === 'string')
+				Object.assign(error, { code: payload.code });
+			throw error;
 		}
 		const data: T = await res.json();
 		controller.signal.throwIfAborted();

@@ -72,7 +72,7 @@
 		else await getUserList();
 	};
 
-	const sortState = (key: string): 'ascending' | 'descending' | 'none' =>
+	const sortState = (key: string, orderBy: string, direction: string): 'ascending' | 'descending' | 'none' =>
 		orderBy === key ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
 
 	const setSortKey = (key: string): void => {
@@ -174,9 +174,10 @@
 			className="mx-0"
 			banner={{
 				type: 'error',
-				title: 'License Error',
-				content:
+				title: $i18n.t('License Error'),
+				content: $i18n.t(
 					'Exceeded the number of seats in your license. Please contact support to increase the number of seats.'
+				)
 			}}
 		/>
 	</div>
@@ -232,7 +233,11 @@
 		<table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 table-auto max-w-full">
 			<thead class="text-xs text-gray-800 uppercase bg-transparent dark:text-gray-200">
 				<tr class=" border-b-[1.5px] border-gray-50 dark:border-gray-850/30">
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('name')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('name', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -255,7 +260,11 @@
 							{/if}
 						</button>
 					</th>
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('role')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('role', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -278,7 +287,11 @@
 							{/if}
 						</button>
 					</th>
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('email')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('email', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -302,7 +315,11 @@
 						</button>
 					</th>
 
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('last_active_at')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('last_active_at', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -326,7 +343,11 @@
 							{/if}
 						</button>
 					</th>
-					<th scope="col" class="font-normal select-none" aria-sort={sortState('created_at')}>
+					<th
+						scope="col"
+						class="font-normal select-none"
+						aria-sort={sortState('created_at', orderBy, direction)}
+					>
 						<button
 							type="button"
 							class="flex w-full gap-1.5 items-center px-2.5 py-1.5"
@@ -349,7 +370,9 @@
 						</button>
 					</th>
 
-					<th scope="col" class="px-2.5 py-1.5 font-normal text-right"></th>
+					<th scope="col" class="px-2.5 py-1.5 font-normal text-right"
+						><span class="sr-only">{$i18n.t('Actions')}</span></th
+					>
 				</tr>
 			</thead>
 			<tbody class="">
@@ -363,6 +386,7 @@
 										src={`${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`}
 										alt="user"
 										on:error={(e: Event): void => {
+											// LICENSE covers the Open WebUI fallback logo: https://docs.openwebui.com/license.
 											if (e.currentTarget instanceof HTMLImageElement)
 												e.currentTarget.src = '/favicon.png';
 										}}
@@ -398,11 +422,22 @@
 						<td class=" px-3 py-1 max-w-48 truncate"> {user.email} </td>
 
 						<td class=" px-3 py-1">
-							{dayjs(user.last_active_at * 1000).fromNow()}
+							<Tooltip
+								content={new Date(user.last_active_at * 1000).toLocaleString($i18n.language, {
+									dateStyle: 'medium',
+									timeStyle: 'long'
+								})}
+							>
+								{dayjs(user.last_active_at * 1000)
+									.locale($i18n.language)
+									.fromNow()}
+							</Tooltip>
 						</td>
 
 						<td class=" px-3 py-1">
-							{dayjs(user.created_at * 1000).format('LL')}
+							{dayjs(user.created_at * 1000)
+								.locale($i18n.language)
+								.format('LL')}
 						</td>
 
 						<td class="px-3 py-1 text-right">
@@ -483,6 +518,9 @@
 
 {#if !$config?.license_metadata}
 	{#if (total ?? 0) > 50}
+		<!-- LICENSE covers the Open WebUI branding narrative here.
+		Do not alter, remove, obscure, or replace it except as LICENSE permits:
+		https://docs.openwebui.com/license. -->
 		<div class="mt-3 mb-3 pb-1 text-gray-700 dark:text-gray-300">
 			<div class="max-w-3xl text-xs leading-5">
 				<div class="text-gray-900 dark:text-gray-100">
@@ -490,11 +528,17 @@
 				</div>
 				<div class="mt-2 space-y-2">
 					<p>
+						<!-- LICENSE covers this Open WebUI branding copy.
+						Do not alter, remove, obscure, or replace it except as LICENSE permits:
+						https://docs.openwebui.com/license. -->
 						{$i18n.t(
 							'You have more than 50 users, which often means this workspace is supporting organizational use. Airis is free to use as-is, with no restrictions or hidden limits, and we want to keep it that way.'
 						)}
 					</p>
 					<p class="text-gray-500 dark:text-gray-400">
+						<!-- LICENSE covers this Open WebUI branding copy.
+						Do not alter, remove, obscure, or replace it except as LICENSE permits:
+						https://docs.openwebui.com/license. -->
 						{$i18n.t(
 							'By supporting the project through sponsorship or an enterprise license, you help us stay independent, ship new features faster, improve stability, and grow Airis for the long haul.'
 						)}

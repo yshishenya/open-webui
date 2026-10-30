@@ -5,6 +5,7 @@ export type SuggestionPrompt = { id?: string; content: string; title?: string | 
 
 // Catalog builders return metadata alone for defaults/arena and omit preset params.
 export type CatalogModelInfo = Omit<Partial<ModelConfig>, 'meta'> & {
+	user_id?: string;
 	meta?: ModelMeta | null;
 };
 
@@ -38,6 +39,11 @@ export type OllamaModelRecord = {
 };
 
 export type Model = {
+	details?: { parameter_size?: string; quantization_level?: string; family?: string; families?: string[] | null; format?: string; parent_model?: string; [key: string]: unknown };
+	params_string?: string;
+	quantization?: string | { name?: string };
+	size?: number;
+	size_bytes?: number;
 	id: string;
 	name: string;
 	// Direct providers may omit owned_by or supply their own owner name.
@@ -72,9 +78,14 @@ export type DirectProviderModelsResponse =
 	| null;
 
 export type ModelDownload = {
-	urlIdx: string;
-	abortController: AbortController;
-	reader: ReadableStreamDefaultReader<string>;
+	urlIdx?: string;
+	abortController?: AbortController;
+	reader?: ReadableStreamDefaultReader<string>;
+	provider?: string;
+	providerLabel?: string;
+	model?: string;
+	status?: string;
+	progress?: number;
 	done: boolean;
 	cancelled: boolean;
 	pullProgress?: number;

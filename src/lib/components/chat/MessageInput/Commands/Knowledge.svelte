@@ -6,7 +6,7 @@
 
 	import { tick, getContext, onMount, onDestroy } from 'svelte';
 
-	import { folders } from '$lib/stores';
+	import { folders, user } from '$lib/stores';
 	import { getFolders } from '$lib/apis/folders';
 	import { searchKnowledgeBases, searchKnowledgeFiles } from '$lib/apis/knowledge';
 	import { isValidHttpUrl, isYoutubeUrl, decodeString } from '$lib/utils';
@@ -36,12 +36,15 @@
 	export let onSelect: (
 		e: { type: 'knowledge'; data: KnowledgeItem } | { type: 'web'; data: string }
 	) => void = () => {};
+	export let fileUploadEnabled = true;
 
 	let selectedIdx = 0;
 	let items: KnowledgeItem[] = [];
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
 	export let filteredItems: KnowledgeItem[] = [];
+	let webUploadEnabled: boolean = true;
+	$: webUploadEnabled = $user?.role === 'admin' || ($user?.permissions?.chat?.web_upload ?? true);
 	$: filteredItems = [
 		...(query.startsWith('http')
 			? isYoutubeUrl(query)
@@ -55,7 +58,9 @@
 					]
 			: []),
 		...items
-	];
+	].filter((item) =>
+		['youtube', 'web'].includes(item.type) ? webUploadEnabled : fileUploadEnabled
+	);
 
 	$: if (query) {
 		selectedIdx = 0;
@@ -78,7 +83,6 @@
 		}
 	};
 
-	let folderItems: KnowledgeItem[] = [];
 	let knowledgeItems: KnowledgeItem[] = [];
 	let fileItems: KnowledgeItem[] = [];
 
@@ -95,22 +99,19 @@
 		clearTimeout(searchDebounceTimer);
 	});
 
-	const getItems = (): void => {
-		getFolderItems();
+	const getItems = () => {
 		getKnowledgeItems();
 		getKnowledgeFileItems();
 	};
 
-	const getFolderItems = async (): Promise<void> => {
-		folderItems = ($folders ?? [])
-			.map<KnowledgeItem>((folder) => ({
-				...folder,
-				type: 'folder',
-				description: $i18n.t('Folder'),
-				title: folder.name
-			}))
-			.filter((folder) => folder.name.toLowerCase().includes(query.toLowerCase()));
-	};
+	$: folderItems = ($folders ?? [])
+		.map((folder) => ({
+			...folder,
+			type: 'folder' as const,
+			description: $i18n.t('Folder'),
+			title: folder.name
+		}))
+		.filter((folder) => folder.name.toLowerCase().includes(query.toLowerCase()));
 
 	const getKnowledgeItems = async (): Promise<void> => {
 		const res = await searchKnowledgeBases(localStorage.token, query).catch(() => {
@@ -118,7 +119,7 @@
 		});
 
 		if (res) {
-			knowledgeItems = res.items.map<KnowledgeItem>((item) => {
+			knowledgeItems = res.items.map((item: import('$lib/utils/airis/knowledge-types').KnowledgeListItem): KnowledgeItem => {
 				return {
 					...item,
 					type: 'collection'
@@ -133,7 +134,7 @@
 		});
 
 		if (res) {
-			fileItems = res.items.map<KnowledgeItem>((item) => {
+			fileItems = res.items.map((item): KnowledgeItem => {
 				return {
 					...item,
 					type: 'file',
@@ -160,7 +161,7 @@
 {#if filteredItems.length > 0 || query.startsWith('http')}
 	{#each filteredItems as item, idx}
 		{#if idx === 0 || item?.type !== items[idx - 1]?.type}
-			<div class="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400">
+			<div class="px-2 py-1 text-[0.6875rem] text-gray-500 dark:text-gray-400">
 				{#if item?.type === 'folder'}
 					{$i18n.t('Folders')}
 				{:else if item?.type === 'collection'}
@@ -173,7 +174,7 @@
 
 		{#if !['youtube', 'web'].includes(item.type)}
 			<button
-				class="flex h-[1.6875rem] w-full items-center justify-between rounded-xl px-2 text-left text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {idx ===
+				class="flex h-[1.6875rem] w-full items-center justify-between rounded-xl px-2 text-left text-[0.8125rem] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {idx ===
 				selectedIdx
 					? 'bg-gray-50/40 dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button'
 					: ''}"
@@ -220,9 +221,9 @@
 		{/if}
 	{/each}
 
-	{#if isYoutubeUrl(query)}
+	{#if webUploadEnabled && isYoutubeUrl(query)}
 		<button
-			class="flex h-[1.6875rem] w-full items-center rounded-xl bg-gray-50/40 px-2 text-left text-[13px] dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button"
+			class="flex h-[1.6875rem] w-full items-center rounded-xl bg-gray-50/40 px-2 text-left text-[0.8125rem] dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button"
 			type="button"
 			data-selected={selectedIdx === filteredItems.findIndex((i) => i.type === 'youtube')}
 			on:click={() => {
@@ -248,9 +249,9 @@
 				</div>
 			</div>
 		</button>
-	{:else if query.startsWith('http')}
+	{:else if webUploadEnabled && query.startsWith('http')}
 		<button
-			class="flex h-[1.6875rem] w-full items-center rounded-xl bg-gray-50/40 px-2 text-left text-[13px] dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button"
+			class="flex h-[1.6875rem] w-full items-center rounded-xl bg-gray-50/40 px-2 text-left text-[0.8125rem] dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button"
 			type="button"
 			data-selected={selectedIdx === filteredItems.findIndex((i) => i.type === 'web')}
 			on:click={() => {

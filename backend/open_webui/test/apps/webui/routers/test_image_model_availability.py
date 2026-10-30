@@ -3,19 +3,35 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+from uuid import uuid4
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi import HTTPException
+from open_webui.internal.db import get_async_db
+from open_webui.models.auths import Auth
 from open_webui.models.config import Config
 from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
 from open_webui.models.users import Users
+from open_webui.utils.auth import create_token
 from test.util.abstract_integration_test import AbstractPostgresTest
 from test.util.mock_user import mock_webui_user
 
 
 class TestImageModelAvailability(AbstractPostgresTest):
     BASE_PATH = '/api/v1/images'
+
+    def _config_token(self, caller: str) -> str:
+        async def create_account() -> str:
+            user = await Users.insert_new_user(caller, caller, f'{caller}@example.com', role='user')
+            assert user is not None
+            stamp = str(uuid4())
+            async with get_async_db() as db:
+                db.add(Auth(id=caller, email=user.email, password='unused', active=True, session_stamp=stamp))
+                await db.commit()
+            return create_token({'id': caller, 'typ': 'session', 'auth_method': 'password', 'session_stamp': stamp})
+
+        return asyncio.run(create_account())
 
     def setup_method(self) -> None:
         super().setup_method()
@@ -104,8 +120,8 @@ class TestImageModelAvailability(AbstractPostgresTest):
     def test_authenticated_feature_hides_unavailable_model(self, case: str) -> None:
         if case != 'missing':
             self._model(active=case != 'disabled', public=case != 'private')
-        with mock_webui_user(id='caller') as token:
-            response = self.fast_api_client.get('/api/config', headers={'Authorization': f'Bearer {token}'})
+        token = self._config_token('caller')
+        response = self.fast_api_client.get('/api/config', headers={'Authorization': f'Bearer {token}'})
         assert response.status_code == 200
         assert response.json()['features']['enable_image_generation'] is False
 
@@ -177,8 +193,8 @@ class TestImageModelAvailability(AbstractPostgresTest):
     @pytest.mark.parametrize(('public', 'caller'), [(True, 'caller'), (False, 'owner')])
     def test_authenticated_feature_retains_accessible_models(self, public: bool, caller: str) -> None:
         self._model(active=True, public=public)
-        with mock_webui_user(id=caller) as token:
-            response = self.fast_api_client.get('/api/config', headers={'Authorization': f'Bearer {token}'})
+        token = self._config_token(caller)
+        response = self.fast_api_client.get('/api/config', headers={'Authorization': f'Bearer {token}'})
         assert response.status_code == 200
         assert response.json()['features']['enable_image_generation'] is True
 

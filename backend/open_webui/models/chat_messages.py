@@ -1,27 +1,33 @@
+import os
 import time
 from collections import Counter
 from contextlib import nullcontext
 from datetime import datetime, timedelta
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from open_webui.internal.db import Base, get_async_db_context
 from open_webui.models.task_success import SuccessCheckpoint, pending_checkpoints
-from open_webui.utils.response import merge_usage, normalize_usage
+from open_webui.utils.response import normalize_usage
+from open_webui.utils.session_records import normalize_tool_output, recorded_timestamp
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import (
     JSON,
     BigInteger,
     Boolean,
     Column,
+    Float,
     ForeignKey,
     Index,
     Integer,
     Text,
+    case,
     cast,
     delete,
     distinct,
     func,
+    literal,
     select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,9 +37,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 ####################
 
 
-def _normalize_timestamp(timestamp: int) -> float:
+def _normalize_timestamp(timestamp: Optional[int]) -> float:
     """Normalize and validate timestamp. Returns current time if invalid."""
     now = time.time()
+    if timestamp is None:
+        return now
 
     # Convert milliseconds to seconds if needed
     if timestamp > 10_000_000_000:
@@ -83,6 +91,36 @@ def _token_columns(dialect: str):
         func.coalesce(extract('input_tokens'), extract('prompt_tokens')),
         func.coalesce(extract('output_tokens'), extract('completion_tokens')),
     )
+
+
+def _daily_usage_bucket(dialect: str, bucket_offset: int):
+    """Match Python's server-local day and legacy timestamp normalization in SQL."""
+    if dialect not in {'sqlite', 'postgresql'}:
+        return None
+    if dialect == 'postgresql':
+        # The database server/session can use a different timezone from the application.
+        zone = os.environ.get('TZ')
+        if zone is None:
+            localtime = str(Path('/etc/localtime').resolve())
+            if '/zoneinfo/' in localtime:
+                zone = localtime.split('/zoneinfo/', 1)[1]
+            elif time.timezone == 0 and not time.daylight:
+                zone = 'UTC'
+        try:
+            ZoneInfo(zone or '')
+        except (ValueError, ZoneInfoNotFoundError):
+            # Retain Python bucketing when the OS timezone has no portable IANA name.
+            return None
+
+    now = time.time()
+    seconds = case(
+        (ChatMessage.created_at > 10_000_000_000, cast(ChatMessage.created_at, Float) / 1000),
+        else_=ChatMessage.created_at,
+    )
+    timestamp = case((seconds.between(1577836800, now + 86400), seconds), else_=now) + bucket_offset
+    if dialect == 'sqlite':
+        return func.strftime('%Y-%m-%d', timestamp, 'unixepoch', 'localtime')
+    return func.to_char(func.timezone(zone, func.to_timestamp(timestamp)), 'YYYY-MM-DD')
 
 
 def _extract_tool_names(value: Any) -> list[str]:
@@ -175,6 +213,7 @@ class ChatMessage(Base):
         Index('chat_message_chat_parent_idx', 'chat_id', 'parent_id'),
         Index('chat_message_model_created_idx', 'model_id', 'created_at'),
         Index('chat_message_user_created_idx', 'user_id', 'created_at'),
+        Index('chat_message_chat_role_done_idx', 'chat_id', 'role', 'done'),  # unfinished-assistant probe
     )
 
 
@@ -213,80 +252,124 @@ class ChatMessageModel(BaseModel):
 
 
 class ChatMessageTable:
+    @staticmethod
+    def _apply_message_data(message: ChatMessage, data: dict, now: int) -> None:
+        """Overwrite only the fields the payload carries."""
+        if 'role' in data:
+            message.role = data['role']
+        if 'parent_id' in data or 'parentId' in data:
+            message.parent_id = data.get('parent_id') or data.get('parentId')
+        if 'content' in data:
+            message.content = data.get('content')
+        if 'output' in data:
+            message.output = normalize_tool_output(data.get('output'))
+        if 'model_id' in data or 'model' in data:
+            message.model_id = data.get('model_id') or data.get('model')
+        if 'files' in data:
+            message.files = data.get('files')
+        if 'sources' in data:
+            message.sources = data.get('sources')
+        if 'embeds' in data:
+            message.embeds = data.get('embeds')
+        if 'meta' in data:
+            message.meta = data.get('meta')
+        if 'done' in data:
+            message.done = data['done']
+        if 'status_history' in data or 'statusHistory' in data:
+            message.status_history = data.get('status_history') or data.get('statusHistory')
+        if 'error' in data:
+            message.error = data.get('error')
+        if 'context_summary' in data or 'contextSummary' in data:
+            message.context_summary = data.get('context_summary') or data.get('contextSummary')
+
+        usage = get_usage(data)
+        if usage:
+            # The caller saves a cumulative message snapshot; accumulation belongs to the model-call loop.
+            message.usage = usage
+        message.updated_at = now
+
+    @staticmethod
+    def _build_message(composite_id: str, chat_id: str, user_id: str, data: dict, now: int) -> ChatMessage:
+        return ChatMessage(
+            id=composite_id,
+            chat_id=chat_id,
+            user_id=user_id,
+            role=data.get('role', 'user'),
+            parent_id=data.get('parent_id') or data.get('parentId'),
+            content=data.get('content'),
+            output=normalize_tool_output(data.get('output')),
+            model_id=data.get('model_id') or data.get('model'),
+            files=data.get('files'),
+            sources=data.get('sources'),
+            embeds=data.get('embeds'),
+            meta=data.get('meta'),
+            done=data.get('done', True),
+            status_history=data.get('status_history') or data.get('statusHistory'),
+            error=data.get('error'),
+            usage=get_usage(data),
+            context_summary=data.get('context_summary') or data.get('contextSummary'),
+            created_at=(recorded_timestamp(data.get('timestamp')) or 0) if 'timestamp' in data else now,
+            updated_at=now,
+        )
 
     async def upsert_message(
         self,
         message_id: str,
         chat_id: str,
         user_id: str,
-        data: dict,
+        data: dict[str, object],
         db: AsyncSession | None = None,
         *,
         success_checkpoint: SuccessCheckpoint | None = None,
-        commit: bool = True,
+        commit: bool | None = None,
     ) -> ChatMessageModel | None:
-        """Upsert a message; commit=False flushes into the caller's explicit session."""
-        if not commit and db is None:
+        """Use the caller's transaction when a session is supplied."""
+        should_commit = db is None if commit is None else commit
+        if not should_commit and db is None:
             raise ValueError('An explicit session is required for an uncommitted message write')
-        async with get_async_db_context(db) if commit else nullcontext(db) as db:
+        async with nullcontext(db) if db is not None else get_async_db_context() as session:
             now = int(time.time())
-            timestamp = data.get('timestamp', now)
-
-            # Use composite ID: {chat_id}-{message_id}
             composite_id = f'{chat_id}-{message_id}'
-
-            existing = (
-                await db.scalar(select(ChatMessage).where(ChatMessage.id == composite_id).with_for_update())
+            message = (
+                await session.scalar(select(ChatMessage).where(ChatMessage.id == composite_id).with_for_update())
                 if success_checkpoint is not None
-                else await db.get(ChatMessage, composite_id)
+                else await session.get(ChatMessage, composite_id)
             )
-            if existing:
-                # Update existing
-                for key in ('role', 'content', 'output', 'files', 'sources', 'embeds', 'meta', 'done', 'error'):
-                    if key in data:
-                        setattr(existing, key, data[key])
-                for key in ('parent_id', 'model_id', 'status_history', 'context_summary'):
-                    alias = self.DB_TO_JSON_KEY_MAP[key]
-                    if key in data or alias in data:
-                        setattr(existing, key, data.get(key) or data.get(alias))
-                # Extract and normalize usage
-                usage = get_usage(data)
-                if usage:
-                    existing_usage = normalize_usage(existing.usage or {}) if existing.usage else {}
-                    existing.usage = existing_usage if usage == existing_usage else merge_usage(existing_usage, usage)
-                existing.updated_at = now
-                existing.success_checkpoints = pending_checkpoints(existing.success_checkpoints, success_checkpoint)
-                await (db.commit if commit else db.flush)()
-                return ChatMessageModel.model_validate(existing)
+            if message:
+                self._apply_message_data(message, data, now)
             else:
-                # Insert new
-                # Extract and normalize usage
-                usage = get_usage(data)
-                message = ChatMessage(
-                    id=composite_id,
-                    success_checkpoints=pending_checkpoints(None, success_checkpoint),
-                    chat_id=chat_id,
-                    user_id=user_id,
-                    role=data.get('role', 'user'),
-                    parent_id=data.get('parent_id') or data.get('parentId'),
-                    content=data.get('content'),
-                    output=data.get('output'),
-                    model_id=data.get('model_id') or data.get('model'),
-                    files=data.get('files'),
-                    sources=data.get('sources'),
-                    embeds=data.get('embeds'),
-                    meta=data.get('meta'),
-                    done=data.get('done', True),
-                    status_history=data.get('status_history') or data.get('statusHistory'),
-                    error=data.get('error'),
-                    usage=usage,
-                    context_summary=data.get('context_summary') or data.get('contextSummary'),
-                    created_at=timestamp,
-                    updated_at=now,
+                message = self._build_message(composite_id, chat_id, user_id, data, now)
+                session.add(message)
+            message.success_checkpoints = pending_checkpoints(message.success_checkpoints, success_checkpoint)
+            await (session.commit if should_commit else session.flush)()
+            return ChatMessageModel.model_validate(message)
+
+    async def upsert_messages(
+        self, chat_id: str, user_id: str, messages: dict[str, dict], db: AsyncSession | None = None
+    ) -> None:
+        """Backfill missing rows without overwriting newer message data."""
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        if not messages:
+            return
+        async with get_async_db_context(db) as db:
+            insert = sqlite_insert if db.bind.dialect.name == 'sqlite' else pg_insert
+            rows = [
+                self._build_message(
+                    f'{chat_id}-{mid}',
+                    chat_id,
+                    data.get('user_id') or user_id,
+                    {**data, 'timestamp': data.get('timestamp')},
+                    int(time.time()),
                 )
-                db.add(message)
-                await (db.commit if commit else db.flush)()
-                return ChatMessageModel.model_validate(message)
+                for mid, data in messages.items()
+            ]
+            await db.execute(
+                insert(ChatMessage).on_conflict_do_nothing(index_elements=['id']),
+                [{column.name: getattr(row, column.name) for column in ChatMessage.__table__.columns} for row in rows],
+            )
+            await db.commit()
 
     async def get_message_by_id(self, id: str, db: AsyncSession | None = None) -> ChatMessageModel | None:
         async with get_async_db_context(db) as db:
@@ -325,7 +408,7 @@ class ChatMessageTable:
         'created_at': 'timestamp',
     }
     # DB-internal columns excluded from the reconstructed message dict.
-    EXCLUDED_COLUMNS = frozenset({'id', 'chat_id', 'user_id', 'updated_at'})
+    EXCLUDED_COLUMNS = frozenset({'id', 'chat_id', 'updated_at', 'success_checkpoints'})
 
     async def get_messages_map_by_chat_id(self, chat_id: str, db: AsyncSession | None = None) -> dict | None:
         """Build a {message_id: message_dict} map from chat_message rows.
@@ -474,16 +557,50 @@ class ChatMessageTable:
         """Delete specific ``chat_message`` rows by their original message IDs."""
         if not message_ids:
             return True
-        async with get_async_db_context(db) as db:
-            await db.execute(
+        async with nullcontext(db) if db is not None else get_async_db_context() as session:
+            await session.execute(
                 delete(ChatMessage)
                 .where(ChatMessage.chat_id == chat_id)
                 .where(ChatMessage.id.in_({f'{chat_id}-{mid}' for mid in message_ids}))
             )
-            await db.commit()
+            if db is None:
+                await session.commit()
+            else:
+                await session.flush()
             return True
 
     # Analytics methods
+    async def get_analytics_summary(
+        self,
+        start_date: Optional[int] = None,
+        end_date: Optional[int] = None,
+        group_id: Optional[str] = None,
+        db: Optional[AsyncSession] = None,
+    ) -> dict[str, int]:
+        """Return dashboard totals without materializing every model, user, and chat group."""
+        async with get_async_db_context(db) as db:
+            from open_webui.models.groups import group_user_memberships
+
+            stmt = select(
+                func.count(ChatMessage.model_id).label('total_messages'),
+                func.count(distinct(ChatMessage.chat_id)).label('total_chats'),
+                func.count(distinct(ChatMessage.model_id)).label('total_models'),
+                # GROUP BY user_id included the anonymous/null group in the old summary.
+                (
+                    func.count(distinct(ChatMessage.user_id))
+                    + case((func.count() > func.count(ChatMessage.user_id), 1), else_=0)
+                ).label('total_users'),
+            ).where(ChatMessage.role == 'assistant')
+            if start_date:
+                stmt = stmt.where(ChatMessage.created_at >= start_date)
+            if end_date:
+                stmt = stmt.where(ChatMessage.created_at <= end_date)
+            if group_id:
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
+                stmt = stmt.where(ChatMessage.user_id.in_(group_users))
+
+            return dict((await db.execute(stmt)).mappings().one())
+
     async def get_message_count_by_model(
         self,
         start_date: int | None = None,
@@ -492,7 +609,7 @@ class ChatMessageTable:
         db: AsyncSession | None = None,
     ) -> dict[str, int]:
         async with get_async_db_context(db) as db:
-            from open_webui.models.groups import GroupMember
+            from open_webui.models.groups import group_user_memberships
 
             stmt = select(ChatMessage.model_id, func.count(ChatMessage.id).label('count')).filter(
                 ChatMessage.role == 'assistant',
@@ -504,7 +621,7 @@ class ChatMessageTable:
             if end_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
-                group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.model_id)
@@ -514,19 +631,20 @@ class ChatMessageTable:
             result = await db.execute(stmt)
             return {row.model_id: row.count for row in result.all()}
 
-    async def get_unique_counts_by_model(
+    async def get_model_analytics(
         self,
         start_date: int | None = None,
         end_date: int | None = None,
         group_id: str | None = None,
         db: AsyncSession | None = None,
     ) -> dict[str, dict]:
-        """Count distinct users and chats per model."""
+        """Count messages, distinct users, and chats per model in one pass."""
         async with get_async_db_context(db) as db:
-            from open_webui.models.groups import GroupMember
+            from open_webui.models.groups import group_user_memberships
 
             stmt = select(
                 ChatMessage.model_id,
+                func.count(ChatMessage.id).label('count'),
                 func.count(distinct(ChatMessage.user_id)).label('unique_users'),
                 func.count(distinct(ChatMessage.chat_id)).label('unique_chats'),
             ).filter(
@@ -539,7 +657,7 @@ class ChatMessageTable:
             if end_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
-                group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.model_id)
@@ -549,6 +667,7 @@ class ChatMessageTable:
             result = await db.execute(stmt)
             return {
                 row.model_id: {
+                    'count': row.count,
                     'unique_users': row.unique_users,
                     'unique_chats': row.unique_chats,
                 }
@@ -564,7 +683,7 @@ class ChatMessageTable:
     ) -> dict[str, dict]:
         """Aggregate token usage by model using database-level aggregation."""
         async with get_async_db_context(db) as db:
-            from open_webui.models.groups import GroupMember
+            from open_webui.models.groups import group_user_memberships
 
             # We need the dialect to determine JSON extraction syntax
             # For async sessions, access via get_bind()
@@ -589,7 +708,7 @@ class ChatMessageTable:
             if end_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
-                group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.model_id)
@@ -608,21 +727,25 @@ class ChatMessageTable:
                 for row in result.all()
             }
 
-    async def get_token_usage_by_user(
+    async def get_user_analytics(
         self,
         start_date: int | None = None,
         end_date: int | None = None,
         group_id: str | None = None,
         db: AsyncSession | None = None,
     ) -> dict[str, dict]:
-        """Aggregate token usage by user using database-level aggregation."""
+        """Aggregate all message counts and token usage per user in one pass."""
         async with get_async_db_context(db) as db:
-            from open_webui.models.groups import GroupMember
+            from open_webui.models.groups import group_user_memberships
 
             bind = await db.connection()
             dialect = bind.dialect.name
 
             input_tokens, output_tokens = _token_columns(dialect)
+
+            # The previous token query excluded anonymous users; keep those totals at zero.
+            input_tokens = case((ChatMessage.user_id.isnot(None), input_tokens), else_=0)
+            output_tokens = case((ChatMessage.user_id.isnot(None), output_tokens), else_=0)
 
             stmt = select(
                 ChatMessage.user_id,
@@ -631,8 +754,6 @@ class ChatMessageTable:
                 func.count(ChatMessage.id).label('message_count'),
             ).filter(
                 ChatMessage.role == 'assistant',
-                ChatMessage.user_id.isnot(None),
-                ChatMessage.usage.isnot(None),
             )
 
             if start_date is not None:
@@ -640,7 +761,7 @@ class ChatMessageTable:
             if end_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
-                group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.user_id)
@@ -712,7 +833,7 @@ class ChatMessageTable:
                     day_stmt = day_stmt.filter(ChatMessage.created_at >= start_date)
                 if end_date:
                     day_stmt = day_stmt.filter(ChatMessage.created_at <= end_date)
-                day_result = await db.execute(day_stmt)
+                day_result = await db.execute(day_stmt.where(ChatMessage.created_at > 0))
                 active_days = {_date_key(row.created_at, tz) for row in day_result.all()}
 
             input_total = int(token_result.input_tokens or 0)
@@ -738,7 +859,7 @@ class ChatMessageTable:
             result = await db.execute(
                 select(func.min(ChatMessage.created_at)).filter(
                     ChatMessage.user_id == user_id,
-                    ChatMessage.created_at.isnot(None),
+                    ChatMessage.created_at > 0,
                 )
             )
             value = result.scalar()
@@ -772,7 +893,7 @@ class ChatMessageTable:
                 ChatMessage.created_at <= end_date,
             )
 
-            result = await db.execute(stmt)
+            result = await db.execute(stmt.where(ChatMessage.created_at > 0))
             daily: dict[str, dict] = {}
             for row in result.all():
                 date = _date_key(row.created_at, tz)
@@ -799,7 +920,7 @@ class ChatMessageTable:
             end_dt = datetime.fromtimestamp(_normalize_timestamp(end_date), tz=tz).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
-            while current <= end_dt:
+            while current < end_dt:
                 date = current.strftime('%Y-%m-%d')
                 daily.setdefault(
                     date,
@@ -894,7 +1015,7 @@ class ChatMessageTable:
         db: AsyncSession | None = None,
     ) -> dict[str, int]:
         async with get_async_db_context(db) as db:
-            from open_webui.models.groups import GroupMember
+            from open_webui.models.groups import group_user_memberships
 
             stmt = select(ChatMessage.user_id, func.count(ChatMessage.id).label('count')).filter(
                 ChatMessage.role == 'assistant',
@@ -905,7 +1026,7 @@ class ChatMessageTable:
             if end_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
-                group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.user_id)
@@ -923,7 +1044,7 @@ class ChatMessageTable:
         db: AsyncSession | None = None,
     ) -> dict[str, int]:
         async with get_async_db_context(db) as db:
-            from open_webui.models.groups import GroupMember
+            from open_webui.models.groups import group_user_memberships
 
             stmt = select(ChatMessage.chat_id, func.count(ChatMessage.id).label('count')).filter(
                 ChatMessage.role == 'assistant',
@@ -934,7 +1055,7 @@ class ChatMessageTable:
             if end_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at < end_date)
             if group_id:
-                group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
                 stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             stmt = stmt.group_by(ChatMessage.chat_id)
@@ -951,50 +1072,7 @@ class ChatMessageTable:
         group_id: str | None = None,
         db: AsyncSession | None = None,
     ) -> dict[str, dict[str, int]]:
-        """Get message counts grouped by day and model."""
-        async with get_async_db_context(db) as db:
-            import datetime as dt
-
-            from open_webui.models.groups import GroupMember
-
-            stmt = select(ChatMessage.created_at, ChatMessage.model_id).filter(
-                ChatMessage.role == 'assistant',
-                ChatMessage.model_id.isnot(None),
-            )
-
-            if start_date is not None:
-                stmt = stmt.filter(ChatMessage.created_at >= start_date)
-            if end_date is not None:
-                stmt = stmt.filter(ChatMessage.created_at < end_date)
-            if group_id:
-                group_users = select(GroupMember.user_id).filter(GroupMember.group_id == group_id).scalar_subquery()
-                stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
-
-            from open_webui.utils.airis.analytics_usage_reporting import visible_messages
-
-            stmt = visible_messages(stmt)
-            result = await db.execute(stmt)
-            results = result.all()
-
-            # Group by date -> model -> count
-            daily_counts: dict[str, dict[str, int]] = {}
-            for timestamp, model_id in results:
-                date_str = dt.datetime.fromtimestamp(_normalize_timestamp(timestamp), dt.UTC).strftime('%Y-%m-%d')
-                if date_str not in daily_counts:
-                    daily_counts[date_str] = {}
-                daily_counts[date_str][model_id] = daily_counts[date_str].get(model_id, 0) + 1
-
-            # Fill in missing days
-            if start_date and end_date:
-                current = dt.datetime.fromtimestamp(_normalize_timestamp(start_date), dt.UTC)
-                end_dt = dt.datetime.fromtimestamp(_normalize_timestamp(end_date), dt.UTC)
-                while current < end_dt:
-                    date_str = current.strftime('%Y-%m-%d')
-                    if date_str not in daily_counts:
-                        daily_counts[date_str] = {}
-                    current += dt.timedelta(days=1)
-
-            return daily_counts
+        return await self.get_usage_over_time_by_model(start_date, end_date, group_id, db)
 
     async def get_hourly_message_counts_by_model(
         self,
@@ -1003,11 +1081,45 @@ class ChatMessageTable:
         db: AsyncSession | None = None,
         group_id: str | None = None,
     ) -> dict[str, dict[str, int]]:
-        """Get message counts grouped by hour and model."""
-        async with get_async_db_context(db) as db:
-            import datetime as dt
+        return await self.get_usage_over_time_by_model(start_date, end_date, group_id, db, granularity='hourly')
 
-            stmt = select(ChatMessage.created_at, ChatMessage.model_id).filter(
+    async def get_usage_over_time_by_model(
+        self,
+        start_date: Optional[int] = None,
+        end_date: Optional[int] = None,
+        group_id: Optional[str] = None,
+        db: Optional[AsyncSession] = None,
+        granularity: str = 'daily',
+        metric: str = 'messages',
+        bucket_offset: int = 0,
+    ) -> dict[str, dict[str, int]]:
+        """Get message counts or total tokens grouped by time bucket and model."""
+        bucket_minutes = {'10m': 10, 'hourly': 60, '3h': 180, '6h': 360, 'daily': 1440}[granularity]
+        date_format = '%Y-%m-%d' if granularity == 'daily' else '%Y-%m-%d %H:%M'
+        step = timedelta(minutes=bucket_minutes)
+
+        def bucket_start(timestamp):
+            # Shift comparison events before bucketing so partial intervals align exactly.
+            date = datetime.fromtimestamp(_normalize_timestamp(timestamp) + bucket_offset)
+            minutes = date.hour * 60 + date.minute
+            minutes = minutes // bucket_minutes * bucket_minutes
+            return date.replace(hour=minutes // 60, minute=minutes % 60, second=0, microsecond=0)
+
+        async with get_async_db_context(db) as db:
+            from open_webui.models.groups import group_user_memberships
+
+            bind = await db.connection()
+            day = _daily_usage_bucket(bind.dialect.name, bucket_offset) if granularity == 'daily' else None
+            value = literal(1)
+            if metric == 'tokens':
+                input_tokens, output_tokens = _token_columns(bind.dialect.name)
+                value = func.coalesce(input_tokens, 0) + func.coalesce(output_tokens, 0)
+
+            stmt = select(
+                day if day is not None else ChatMessage.created_at,
+                ChatMessage.model_id,
+                func.sum(value) if day is not None else value,
+            ).filter(
                 ChatMessage.role == 'assistant',
                 ChatMessage.model_id.isnot(None),
             )
@@ -1016,41 +1128,30 @@ class ChatMessageTable:
                 stmt = stmt.filter(ChatMessage.created_at >= start_date)
             if end_date is not None:
                 stmt = stmt.filter(ChatMessage.created_at < end_date)
-
             if group_id:
-                from open_webui.models.groups import GroupMember
-
-                stmt = stmt.where(
-                    ChatMessage.user_id.in_(select(GroupMember.user_id).where(GroupMember.group_id == group_id))
-                )
+                group_users = select(group_user_memberships([group_id], True).c.user_id).scalar_subquery()
+                stmt = stmt.filter(ChatMessage.user_id.in_(group_users))
 
             from open_webui.utils.airis.analytics_usage_reporting import visible_messages
 
             stmt = visible_messages(stmt)
-            result = await db.execute(stmt)
-            results = result.all()
+            if day is not None:
+                stmt = stmt.group_by(day, ChatMessage.model_id)
+            result = await db.execute(stmt.where(ChatMessage.created_at > 0))
+            counts: dict[str, dict[str, int]] = {}
+            for timestamp, model_id, value in result.all():
+                date_str = timestamp if day is not None else bucket_start(timestamp).strftime(date_format)
+                bucket = counts.setdefault(date_str, {})
+                bucket[model_id] = bucket.get(model_id, 0) + int(value)
 
-            # Group by hour -> model -> count
-            hourly_counts: dict[str, dict[str, int]] = {}
-            for timestamp, model_id in results:
-                hour_str = dt.datetime.fromtimestamp(_normalize_timestamp(timestamp), dt.UTC).strftime('%Y-%m-%d %H:00')
-                if hour_str not in hourly_counts:
-                    hourly_counts[hour_str] = {}
-                hourly_counts[hour_str][model_id] = hourly_counts[hour_str].get(model_id, 0) + 1
-
-            # Fill in missing hours
             if start_date and end_date:
-                current = dt.datetime.fromtimestamp(_normalize_timestamp(start_date), dt.UTC).replace(
-                    minute=0, second=0, microsecond=0
-                )
-                end_dt = dt.datetime.fromtimestamp(_normalize_timestamp(end_date), dt.UTC)
+                current = bucket_start(start_date)
+                end_dt = datetime.fromtimestamp(_normalize_timestamp(end_date) + bucket_offset)
                 while current < end_dt:
-                    hour_str = current.strftime('%Y-%m-%d %H:00')
-                    if hour_str not in hourly_counts:
-                        hourly_counts[hour_str] = {}
-                    current += dt.timedelta(hours=1)
+                    counts.setdefault(current.strftime(date_format), {})
+                    current += step
 
-            return hourly_counts
+            return counts
 
 
 ChatMessages = ChatMessageTable()

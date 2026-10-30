@@ -64,7 +64,9 @@ function fixture(mode: 'reject' | 'null' | 'success' | 'delayed', initial: strin
 		onDestroy: (cb: () => void): void => {
 			destroy = cb;
 		},
-		tick: async (): Promise<void> => {},
+		tick: async (): Promise<void> => {
+			if (responseMode === 'delayed') await pending;
+		},
 		toast: { error: vi.fn() },
 		$i18n: { t: (key: string): string => key },
 		getContext: (): null => null,
@@ -107,12 +109,21 @@ function fixture(mode: 'reject' | 'null' | 'success' | 'delayed', initial: strin
 			}
 		}
 	};
+	Object.defineProperties(context, {
+		$pinnedModels: { get: () => context.$settings.pinnedModels },
+		$visiblePinnedModels: {
+			get: () =>
+				context.$settings.pinnedModels.filter((id) =>
+					context.$models.some((model) => model.id === id && !model.info?.meta?.hidden)
+				)
+		}
+	});
 	runInNewContext(
 		ts.transpileModule(
 			code +
 				'\n;unpin = (modelId: string) => (' +
 				unpinExpression +
-				');readPins = () => pinnedModels;',
+				');readPins = () => $pinnedModels;',
 			{
 				compilerOptions: { target: ts.ScriptTarget.ES2022 }
 			}
@@ -139,17 +150,18 @@ function fixture(mode: 'reject' | 'null' | 'success' | 'delayed', initial: strin
 }
 
 it.each(['reject', 'null', 'success'] as const)(
-	'initialization settles %s settings response and owns cleanup',
+	'initialization does not write settings in %s mode and owns Sortable cleanup',
 	async (mode) => {
 		const f = fixture(mode);
 		await expect(f.mount()).resolves.toBeUndefined();
 		expect(f.context.$settings).toEqual({
-			pinnedModels: ['alpha', 'beta'],
+			pinnedModels: [],
 			untouched: 'preserved'
 		});
-		expect(f.subscriptions.size).toBe(1);
+		expect(f.subscriptions.size).toBe(0);
 		expect(f.instances.size).toBe(1);
-		expect(f.context.toast.error).toHaveBeenCalledTimes(mode === 'success' ? 0 : 1);
+		expect(f.context.toast.error).not.toHaveBeenCalled();
+		expect(f.context.updateUserSettings).not.toHaveBeenCalled();
 		f.destroy();
 		expect(f.subscriptions.size).toBe(0);
 		expect(f.instances.size).toBe(0);
@@ -207,7 +219,7 @@ it.each(['reject', 'null', 'success'] as const)(
 		await expect(f.unpin('alpha')).resolves.toBeUndefined();
 		expect(f.context.$settings).toEqual({ pinnedModels: ['beta'], untouched: 'preserved' });
 		expect(f.context.updateUserSettings).toHaveBeenLastCalledWith('local-fixture', {
-			ui: { pinnedModels: ['beta'], untouched: 'preserved' }
+			ui: { pinnedModels: ['beta'] }
 		});
 		expect(f.context.toast.error).toHaveBeenCalledTimes(mode === 'success' ? 0 : 1);
 		f.destroy();
@@ -215,15 +227,16 @@ it.each(['reject', 'null', 'success'] as const)(
 );
 
 it.each(['reject', 'null', 'success'] as const)(
-	'stale and hidden cleanup settles %s and remains subscribed',
+	'retains unavailable and hidden pins in %s mode and reflects later settings',
 	async (mode) => {
 		const f = fixture(mode, ['alpha', 'missing', 'hidden', 'beta']);
 		await expect(f.mount()).resolves.toBeUndefined();
-		expect(f.context.$settings.pinnedModels).toEqual(['alpha', 'beta']);
-		expect(f.context.toast.error).toHaveBeenCalledTimes(mode === 'success' ? 0 : 1);
+		expect(f.context.$settings.pinnedModels).toEqual(['alpha', 'missing', 'hidden', 'beta']);
+		expect(f.context.toast.error).not.toHaveBeenCalled();
+		expect(f.context.updateUserSettings).not.toHaveBeenCalled();
 		f.context.settings.set({ pinnedModels: ['beta'], untouched: 'changed elsewhere' });
 		expect(f.context.readPins()).toEqual(['beta']);
-		expect(f.subscriptions.size).toBe(1);
+		expect(f.subscriptions.size).toBe(0);
 		expect(f.instances.size).toBe(1);
 		f.destroy();
 		expect(f.subscriptions.size).toBe(0);
@@ -238,7 +251,7 @@ it('successful retry sends exact latest ordering after a failed save', async () 
 	f.setMode('success');
 	await f.drag('beta', 1);
 	expect(f.context.updateUserSettings).toHaveBeenLastCalledWith('local-fixture', {
-		ui: { pinnedModels: ['alpha', 'beta'], untouched: 'preserved' }
+		ui: { pinnedModels: ['alpha', 'beta'] }
 	});
 	expect(f.context.toast.error).toHaveBeenCalledTimes(1);
 	f.destroy();
@@ -254,4 +267,15 @@ it('late rejected initialization after destroy emits no error or resource', asyn
 	expect(f.context.toast.error).not.toHaveBeenCalled();
 	expect(f.subscriptions.size).toBe(0);
 	expect(f.instances.size).toBe(0);
+});
+
+it('reorders visible pins while preserving hidden and unavailable model references', async () => {
+	const f = fixture('success', ['alpha', 'missing', 'hidden', 'beta']);
+	await f.mount();
+	await f.drag('alpha', 1);
+	expect(f.context.$settings.pinnedModels).toEqual(['beta', 'alpha', 'missing', 'hidden']);
+	expect(f.context.updateUserSettings).toHaveBeenLastCalledWith('local-fixture', {
+		ui: { pinnedModels: ['beta', 'alpha', 'missing', 'hidden'] }
+	});
+	f.destroy();
 });

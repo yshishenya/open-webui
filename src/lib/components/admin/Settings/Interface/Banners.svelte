@@ -1,22 +1,19 @@
 <script lang="ts">
 	import Switch from '$lib/components/common/Switch.svelte';
-	import Textarea from '$lib/components/common/Textarea.svelte';
+	import LocalizedField from '$lib/components/common/LocalizedField.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EllipsisVertical from '$lib/components/icons/EllipsisVertical.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Sortable from 'sortablejs';
-	import { getContext, onDestroy } from 'svelte';
+	import { getContext } from 'svelte';
 	import type { Banner } from '$lib/types';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
 	const i18n = getContext('i18n');
 
 	export let banners: Banner[] = [];
+	export let locale = '';
 
-	let sortable: Sortable | null = null;
-	let bannerListElement: HTMLDivElement | null = null;
-
-	const positionChangeHandler = (): void => {
-		if (!bannerListElement) return;
+	const positionChangeHandler = (bannerListElement: HTMLElement) => {
 		const bannerIdOrder = Array.from(bannerListElement.children).map((child) =>
 			child.id.replace('banner-item-', '')
 		);
@@ -28,66 +25,76 @@
 		});
 	};
 
-	$: if (banners && bannerListElement) {
-		init();
-	}
-
-	const init = (): void => {
-		if (sortable) {
-			sortable.destroy();
-		}
-
-		if (bannerListElement) {
-			sortable = new Sortable(bannerListElement, {
-				animation: 150,
-				handle: '.item-handle',
-				onUpdate: async () => {
-					positionChangeHandler();
-				}
-			});
-		}
+	const init = (node: HTMLElement) => {
+		const sortable = new Sortable(node, {
+			animation: 150,
+			handle: '.item-handle',
+			onUpdate: () => positionChangeHandler(node)
+		});
+		return { destroy: () => sortable.destroy() };
 	};
-	onDestroy(() => sortable?.destroy());
 </script>
 
-<div class=" flex flex-col gap-3 {banners?.length > 0 ? 'mt-2' : ''}" bind:this={bannerListElement}>
+<div class="flex flex-col gap-1.5" use:init>
 	{#each banners as banner, bannerIdx (banner.id)}
-		<div class=" flex justify-between items-start -ml-1" id="banner-item-{banner.id}">
-			<EllipsisVertical className="size-4 cursor-move item-handle" />
-
-			<div class="flex flex-row flex-1 gap-2 items-start">
-				<SettingsSelect bind:value={banner.type} required selectClassName="capitalize">
+		<div
+			class="flex items-start gap-1 rounded-lg border border-gray-100/40 bg-transparent px-2 py-1 transition focus-within:border-blue-400 dark:border-gray-850/50 dark:focus-within:border-blue-500"
+			id="banner-item-{banner.id}"
+		>
+			<Tooltip content={$i18n.t('Reorder')}>
+				<div
+					class="item-handle flex h-6 w-3 shrink-0 cursor-move items-center justify-center text-gray-400 dark:text-gray-600"
+				>
+					<EllipsisVertical className="size-3.5" />
+				</div>
+			</Tooltip>
+			<div class="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-2">
+				<SettingsSelect
+					bind:value={banner.type}
+					required
+					ariaLabel={$i18n.t('Type')}
+					className="w-24 max-w-full shrink-0"
+					selectClassName="!h-6 !border-transparent !bg-transparent !ps-1 capitalize dark:!bg-transparent"
+				>
 					<option value="" disabled hidden class="text-gray-900">{$i18n.t('Type')}</option>
 					<option value="info" class="text-gray-900">{$i18n.t('Info')}</option>
 					<option value="warning" class="text-gray-900">{$i18n.t('Warning')}</option>
 					<option value="error" class="text-gray-900">{$i18n.t('Error')}</option>
 					<option value="success" class="text-gray-900">{$i18n.t('Success')}</option>
 				</SettingsSelect>
-
-				<Textarea
-					className="mr-2 text-xs w-full border border-gray-100/50 !bg-gray-50/40 outline-hidden dark:border-white/[0.04] dark:!bg-white/[0.03] dark:text-gray-300 resize-none"
-					placeholder={$i18n.t('Content')}
-					bind:value={banner.content}
-					maxSize={100}
-				/>
-
-				<div class="relative -left-2">
-					<Tooltip content={$i18n.t('Remember Dismissal')} className="flex h-fit items-center">
-						<Switch bind:state={banner.dismissible} />
-					</Tooltip>
+				<div class="w-full min-w-0 flex-1 sm:pt-0.5">
+					<LocalizedField
+						className="block min-h-5 max-h-40 w-full resize-none bg-transparent text-[0.8125rem] leading-5 text-gray-700 outline-hidden placeholder:text-gray-300 dark:text-gray-200 dark:placeholder:text-gray-700 [field-sizing:content]"
+						placeholder={$i18n.t('Content')}
+						bind:value={banner.content}
+						bind:translations={banner.i18n}
+						{locale}
+						field="content"
+						multiline
+						rows={1}
+					/>
 				</div>
 			</div>
-
-			<button
-				class="pr-3"
-				type="button"
-				on:click={() => {
-					banners.splice(bannerIdx, 1);
-					banners = banners;
-				}}
-			>
-				<XMark className={'size-4'} />
-			</button>
+			<div class="flex h-6 shrink-0 items-center px-1">
+				<Switch
+					bind:state={banner.dismissible}
+					ariaLabel={$i18n.t('Remember Dismissal')}
+					tooltip={true}
+				/>
+			</div>
+			<Tooltip content={$i18n.t('Delete')}>
+				<button
+					class="flex size-6 shrink-0 items-center justify-center text-gray-400 opacity-70 transition hover:text-gray-700 hover:opacity-100 dark:text-gray-600 dark:hover:text-gray-300"
+					type="button"
+					aria-label={$i18n.t('Delete')}
+					on:click={() => {
+						banners.splice(bannerIdx, 1);
+						banners = banners;
+					}}
+				>
+					<XMark className="size-3.5" />
+				</button>
+			</Tooltip>
 		</div>
 	{/each}
 </div>

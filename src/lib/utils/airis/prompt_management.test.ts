@@ -79,6 +79,8 @@ const editor = () => {
 	const save = vi.fn<unknown[], Promise<typeof prompt | null>>(async () => ({ ...prompt }));
 	const history = vi.fn<unknown[], Promise<(typeof entry)[]>>(async () => [{ ...entry }]);
 	const context = {
+		structuredClone,
+		workspaceCounts: { update: vi.fn() },
 		AbortController,
 		Error,
 		DOMException,
@@ -86,6 +88,7 @@ const editor = () => {
 		clearTimeout,
 		dayjs: Object.assign(() => ({ format: () => '' }), { extend: () => undefined }),
 		localizedFormat: {},
+		beforeNavigate: () => {},
 		getContext: () => ({}),
 		$i18n: { t: (s: string) => s },
 		$user: {},
@@ -95,6 +98,7 @@ const editor = () => {
 		copyToClipboard: async () => true,
 		toast: { error: (s: string) => errors.push(s), success: (s: string) => successes.push(s) },
 		getPromptHistory: history,
+		getPromptHistoryEntry: vi.fn(async () => ({ ...entry })),
 		getPromptTags: vi.fn(async () => []),
 		updatePromptMetadata: save,
 		setProductionPromptVersion: save,
@@ -109,11 +113,12 @@ const editor = () => {
 		ts.transpileModule(
 			code +
 				`
+  let readOnly=false;let historical=false;let selectedVersionId='live';
   prompt=${JSON.stringify(prompt)};edit=true;onSubmit=async()=>false;
-  ({submit:submitHandler,history:loadHistory,production:setAsProduction,remove:handleDeleteHistory,
+  ({submit:submitHandler,history:loadHistory,production:async e=>{selectedHistoryEntry=e;await setAsProduction();},remove:handleDeleteHistory,
     metadata:debouncedSaveMetadata,access:saveAccess,setGrants:v=>accessGrants=v,setName:v=>name=v,name:()=>name,setContent:v=>content=v,
-    setSubmit:v=>onSubmit=v,open:()=>{showEditModal=true;commitMessage='Draft';},
-    state:()=>({loading,showEditModal,commitMessage,history,selectedHistoryEntry,prompt}),
+    setSubmit:v=>onSubmit=v,open:()=>{commitMessage='Draft';},
+    state:()=>({loading,commitMessage,history,selectedHistoryEntry,prompt}),
     seed:()=>{history=[${JSON.stringify(entry)}];selectedHistoryEntry=history[0];}})
  `,
 			{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
@@ -166,7 +171,7 @@ it('editor keeps the modal and message on refused submit', async () => {
 	await r.mount();
 	r.open();
 	await r.submit();
-	expect(r.state()).toMatchObject({ loading: false, showEditModal: true, commitMessage: 'Draft' });
+	expect(r.state()).toMatchObject({ loading: false, commitMessage: 'Draft' });
 });
 it('editor prevents a repeated submit', async () => {
 	const r = editor();
@@ -347,6 +352,8 @@ const manager = () => {
 	);
 	const remove = vi.fn<unknown[], Promise<boolean>>(async () => true);
 	const context = {
+		structuredClone,
+		workspaceCounts: { update: vi.fn() },
 		FileReader: class {
 			onload!: (e: { target: { result: string } }) => Promise<void> | void;
 			readAsText(file: { text: () => Promise<string> }): void {
@@ -364,6 +371,7 @@ const manager = () => {
 		dayjs: { extend: () => undefined },
 		relativeTime: {},
 		fileSaver: { saveAs: vi.fn() },
+		beforeNavigate: () => {},
 		getContext: () => ({}),
 		$i18n: {
 			t: (s: string, v?: { count: number }) => (v ? s.replace('{{count}}', String(v.count)) : s)
@@ -537,7 +545,7 @@ it('manager returns explicit acceptance to the editor', async () => {
 	const r = manager();
 	r.createApi.mockResolvedValueOnce(null);
 	expect(await r.create(prompt)).toBe(false);
-	expect(await r.create(prompt)).toBe(true);
+	expect(await r.create(prompt)).toEqual(prompt);
 });
 it('prompt import preserves absent/null/empty/populated grants and legacy title', () => {
 	for (const grants of [

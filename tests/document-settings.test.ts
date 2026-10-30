@@ -126,7 +126,7 @@ function bannerHandlers() {
 		.map((s) => s.getText(tree));
 	const destroyInstance = vi.fn();
 	let destroyHook: (() => void) | undefined;
-	const Sortable = vi.fn(function () {
+	const Sortable = vi.fn<[object, { onUpdate: () => void }], { destroy: () => void }>(function () {
 		return { destroy: destroyInstance };
 	});
 	const context = {
@@ -143,18 +143,20 @@ function bannerHandlers() {
 			compilerOptions: { target: ts.ScriptTarget.ES2022 }
 		}).outputText,
 		context
-	) as () => void;
+	) as (node: object) => { destroy: () => void };
 	return { context, init, destroy: () => destroyHook?.(), destroyInstance };
 }
-it('releases the banner sorter when the component is destroyed', () => {
-	const { init, destroy, destroyInstance } = bannerHandlers();
-	init();
-	destroy();
+it('releases the banner sorter when its list action is destroyed', () => {
+	const { init, destroyInstance, context } = bannerHandlers();
+	const action = init(context.bannerListElement);
+	action.destroy();
 	expect(destroyInstance).toHaveBeenCalledOnce();
 });
-it('releases the previous sorter before replacing it', () => {
-	const { init, destroyInstance } = bannerHandlers();
-	init();
-	init();
-	expect(destroyInstance).toHaveBeenCalledOnce();
+it('uses the current rendered children when the action reports a reorder', () => {
+	const { init, context } = bannerHandlers();
+	const action = init(context.bannerListElement);
+	const options = context.Sortable.mock.calls[0][1];
+	options.onUpdate();
+	expect(context.banners.map((banner) => banner.id)).toEqual(['b', 'a']);
+	action.destroy();
 });

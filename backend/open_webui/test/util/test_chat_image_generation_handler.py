@@ -7,6 +7,20 @@ from _pytest.monkeypatch import MonkeyPatch
 from fastapi import HTTPException, status
 
 
+@pytest.fixture(autouse=True)
+def image_handler_dependencies(monkeypatch: MonkeyPatch) -> None:
+    from unittest.mock import AsyncMock
+
+    from open_webui.utils import middleware
+
+    monkeypatch.setattr(
+        middleware.Config,
+        'get',
+        AsyncMock(side_effect=lambda key: key == 'image_generation.enable'),
+    )
+    monkeypatch.setattr(middleware, 'upload_files_to_terminal', AsyncMock())
+
+
 def _build_request() -> SimpleNamespace:
     config = SimpleNamespace(
         ENABLE_IMAGE_EDIT=False,
@@ -160,7 +174,9 @@ async def test_chat_image_events_and_errors(monkeypatch: MonkeyPatch, edit: bool
     monkeypatch.setattr(middleware, 'image_edits', provider if edit else unused)
     monkeypatch.setattr(middleware, 'image_generations', unused if edit else provider)
     monkeypatch.setattr(
-        middleware.Config, 'get', AsyncMock(side_effect=lambda key: key == 'images.edit.enable' and edit)
+        middleware.Config,
+        'get',
+        AsyncMock(side_effect=lambda key: key == 'image_generation.enable' or (key == 'images.edit.enable' and edit)),
     )
     user = UserModel(
         id='fixture', email='fixture@example.invalid', name='Fixture', created_at=0, updated_at=0, last_active_at=0
@@ -195,7 +211,10 @@ async def test_chat_image_events_and_errors(monkeypatch: MonkeyPatch, edit: bool
                     }
                 ),
             ]
-            assert ('has been edited and created' if edit else 'has been created by the system successfully') in context
+            assert (
+                'The edited images are shown in chat.' if edit else 'The generated images are shown in chat.'
+            ) in context
+            assert 'image-1' in context and 'image-2' in context
         else:
             assert events.await_args_list == [
                 call(
@@ -256,7 +275,9 @@ async def test_chat_image_prompt_contract(monkeypatch: MonkeyPatch, response: ob
     monkeypatch.setattr(middleware, 'generate_image_prompt', generate)
     monkeypatch.setattr(middleware, 'image_generations', provider)
     monkeypatch.setattr(
-        middleware.Config, 'get', AsyncMock(side_effect=lambda key: key == 'image_generation.prompt.enable')
+        middleware.Config,
+        'get',
+        AsyncMock(side_effect=lambda key: key in {'image_generation.enable', 'image_generation.prompt.enable'}),
     )
     user = UserModel(
         id='fixture', email='fixture@example.invalid', name='Fixture', created_at=0, updated_at=0, last_active_at=0
@@ -321,14 +342,14 @@ async def test_chat_image_saved_history(monkeypatch: MonkeyPatch) -> None:
     get_chat = AsyncMock(return_value=chat)
     provider = AsyncMock(return_value=[])
     events = AsyncMock()
-    monkeypatch.setattr(middleware.Chats, 'get_chat_by_id_and_user_id', get_chat)
+    monkeypatch.setattr(middleware.Chats, 'get_accessible_chat_by_id', get_chat)
     monkeypatch.setattr(middleware, 'image_generations', provider)
-    monkeypatch.setattr(middleware.Config, 'get', AsyncMock(return_value=False))
+    monkeypatch.setattr(middleware.Config, 'get', AsyncMock(side_effect=lambda key: key == 'image_generation.enable'))
     form = {'model': 'fixture', 'messages': [{'role': 'user', 'content': 'payload prompt'}]}
     extra = {'__metadata__': {'chat_id': 'saved-fixture'}, '__event_emitter__': events}
     result = await middleware.chat_image_generation_handler(Request({'type': 'http'}), form, extra, user)
     assert result is form
-    get_chat.assert_awaited_once_with('saved-fixture', user.id)
+    get_chat.assert_awaited_once_with('saved-fixture', user, permission='write')
     assert provider.call_args.kwargs['form_data'].prompt == 'saved prompt'
     assert events.await_args_list[0] == call(
         {'type': 'status', 'data': {'description': 'Creating image', 'done': False}}

@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { onDestroy, getContext } from 'svelte';
 
+	import { toast } from 'svelte-sonner';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
+	import { WEBUI_BASE_URL } from '$lib/constants';
+	import { settings } from '$lib/stores';
+	import { matchKeybinding, Shortcut } from '$lib/shortcuts';
 	import PanzoomContainer from '$lib/components/common/PanzoomContainer.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 
@@ -15,8 +19,11 @@
 
 	let previewElement: HTMLDivElement | null = null;
 
-	const handleKeyDown = (event: KeyboardEvent): void => {
-		if (event.key === 'Escape') {
+	const handleKeyDown = (event: KeyboardEvent) => {
+		if (
+			event.key === 'Escape' ||
+			($settings?.keyboardShortcuts !== false && matchKeybinding(event) === Shortcut.CLOSE_MODAL)
+		) {
 			console.log('Escape');
 			show = false;
 		}
@@ -53,6 +60,7 @@
 		<div class=" absolute left-0 w-full flex justify-between select-none z-20">
 			<div>
 				<button
+					aria-label={$i18n.t('Close')}
 					class=" p-5"
 					on:pointerdown={(e) => {
 						e.stopImmediatePropagation();
@@ -118,8 +126,21 @@
 							src.startsWith('https://')
 						) {
 							// Handle remote URLs
-							fetch(src)
-								.then((response) => response.blob())
+							const backendOrigin = new URL(WEBUI_BASE_URL || '/', window.location.origin).origin;
+							const isBackendUrl = new URL(src, window.location.origin).origin === backendOrigin;
+
+							fetch(
+								src,
+								isBackendUrl && localStorage.token
+									? { headers: { Authorization: `Bearer ${localStorage.token}` } }
+									: undefined
+							)
+								.then((response) => {
+									if (!response.ok) {
+										throw new Error(`Failed to download image: ${response.status}`);
+									}
+									return response.blob();
+								})
 								.then((blob) => {
 									// detect the MIME type from the blob
 									const mimeType = blob.type || 'image/png';
@@ -138,6 +159,7 @@
 								})
 								.catch((error) => {
 									console.error('Error downloading remote image:', error);
+									toast.error($i18n.t('Failed to download image'));
 								});
 							return;
 						}

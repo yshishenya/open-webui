@@ -159,7 +159,7 @@ it('both task checkboxes preserve their actual callback payload', () => {
 	expect(r.handlers).toHaveLength(3);
 	for (const handler of r.handlers.slice(0, 2)) handler({ target: input, currentTarget: input });
 	expect(r.task.mock.calls.map(([value]) => value)).toEqual(
-		Array(2).fill({ id: 'fixture', token, item, tokenIdx: 2, itemIdx: 0, checked: true })
+		Array(2).fill({ id: 'fixture', token, item, tokenIdx: 2, itemIdx: 0, input, checked: true })
 	);
 });
 it.each(['MarkdownTokens', 'MarkdownInlineTokens', 'HTMLToken'])(

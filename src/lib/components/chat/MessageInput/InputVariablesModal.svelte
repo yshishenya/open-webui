@@ -12,11 +12,40 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import MapSelector from '$lib/components/common/Valves/MapSelector.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
+
+	// Only these prompt-defined attributes may reach DOM inputs.
+	const ALLOWED_INPUT_ATTRIBUTES = new Set([
+		'aria-describedby',
+		'aria-description',
+		'aria-label',
+		'aria-labelledby',
+		'autocapitalize',
+		'autocomplete',
+		'autocorrect',
+		'dir',
+		'disabled',
+		'enterkeyhint',
+		'inputmode',
+		'lang',
+		'max',
+		'maxlength',
+		'min',
+		'minlength',
+		'multiple',
+		'pattern',
+		'placeholder',
+		'readonly',
+		'required',
+		'size',
+		'spellcheck',
+		'step',
+		'title'
+	]);
 
 	export let show = false;
-	export let variables: Record<string, Record<string, unknown> | null> = {};
-	export let title = $i18n.t('Input Variables');
+	export let variables = {};
+	export let title: string | undefined = undefined;
 
 	export let onSave: (values: Record<string, unknown>) => void = () => {};
 	export let onCancel: () => void = () => {};
@@ -95,7 +124,7 @@
 	<div>
 		<div class=" flex justify-between dark:text-gray-300 px-4 pt-3 pb-1">
 			<div class=" text-sm font-medium self-center">
-				{title}
+				{title ?? $i18n.t('Input Variables')}
 			</div>
 			<button
 				aria-label={$i18n.t('Close')}
@@ -120,7 +149,12 @@
 						{#if !loading}
 							<div class="flex flex-col gap-1">
 								{#each Object.keys(fields) as variable, idx}
-									{@const { type, ...variableAttributes } = fields[variable] ?? {}}
+									{@const type = fields[variable]?.type ?? 'text'}
+									{@const variableAttributes = Object.fromEntries(
+										Object.entries(fields[variable] ?? {}).filter(([name]) =>
+											ALLOWED_INPUT_ATTRIBUTES.has(name)
+										)
+									)}
 
 									<div class=" py-0.5 w-full justify-between">
 										<div class="flex w-full justify-between mb-1.5">
@@ -395,7 +429,7 @@
 
 					<div class="flex justify-end pt-3 text-sm font-normal">
 						<button
-							class="px-3.5 py-1.5 text-sm font-normal bg-white hover:bg-gray-100 text-black dark:bg-black dark:text-white dark:hover:bg-gray-900 transition rounded-full"
+							class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-normal transition disabled:opacity-60 bg-white hover:bg-gray-100 text-black dark:bg-black dark:text-white dark:hover:bg-gray-900"
 							type="button"
 							on:click={() => {
 								show = false;
@@ -405,7 +439,7 @@
 						</button>
 
 						<button
-							class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full"
+							class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
 							type="submit"
 						>
 							{$i18n.t('Save')}

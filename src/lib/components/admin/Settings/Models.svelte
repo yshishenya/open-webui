@@ -5,15 +5,23 @@
 	const { saveAs } = fileSaver;
 
 	import { onMount, onDestroy, getContext, tick, type ComponentProps } from 'svelte';
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
-	import { config, models as _models, settings, showSettings, user } from '$lib/stores';
+	import {
+		config,
+		models as _models,
+		pinnedModels,
+		settings,
+		showSettings,
+		user
+	} from '$lib/stores';
 	import {
 		createNewModel,
 		deleteAllModels,
-		getBaseModelTags,
-		getBaseModels,
+		deleteModelById,
+		getAllModels,
 		getModelById,
+		exportModels,
 		toggleModelById,
 		updateModelById,
 		updateModelAccessGrants,
@@ -66,8 +74,10 @@
 	type ModelListItem = { id: string; name?: string };
 	type ModelMutation = ModelListItem & {
 		base_model_id?: string | null;
+		preset?: boolean;
+		info?: Model['info'];
 		is_active?: boolean;
-		meta?: ModelMeta & Record<string, unknown>;
+		meta?: ModelMeta;
 		access_grants?: ModelAccessGrants | null;
 	};
 
@@ -91,21 +101,24 @@
 	let defaultModelIdSet = new Set<string>();
 	let defaultPinnedModelIdSet = new Set<string>();
 
-	let workspaceModels: ModelListItem[] = [];
-	let baseModels: Model[] = [];
+	let savedModels: ModelListItem[] = [];
+	let allModels: ModelListItem[] = [];
+	let availableModelIds = new Set<string>();
 
 	let filteredModels: AdminModel[] = [];
 	let selectedModelId: string | null = null;
 
 	let showManageModal = false;
 	let showResetModal = false;
+	let showDeleteModal = false;
+	let modelToDelete: ModelListItem | null = null;
 	let savingModelOrder = false;
 	let savingModelsSettings = false;
 	let modelOrderDirty = false;
 	let modelDefaultsPanel: ModelDefaultsPanel | null = null;
 	let modelDefaultsDirty = false;
 
-	let viewOption = ''; // '' = All, 'enabled', 'disabled', 'visible', 'hidden'
+	let viewOption = 'available';
 	let tags: string[] = [];
 	let selectedTag = '';
 
@@ -123,7 +136,16 @@
 	const isSharedModel = (model: Pick<ModelMutation, 'access_grants'>): boolean =>
 		(model?.access_grants ?? []).length > 0 && !isPublicModel(model);
 
-	const modelAccessLabel = (model: Pick<ModelMutation, 'access_grants'>): string => {
+	const isPresetModel = (model: ModelMutation) =>
+		!!(model?.preset || model?.base_model_id || model?.info?.base_model_id);
+	const canResetModel = (model: ModelListItem | null) =>
+		!!model && !isPresetModel(model) && availableModelIds.has(model.id);
+	const modelTags = (model: ModelMutation): string[] =>
+		(model?.meta?.tags ?? [])
+			.map((tag: string | { name: string }) => (typeof tag === 'string' ? tag : tag?.name))
+			.filter(Boolean);
+
+	const modelAccessLabel = (model: ModelMutation): string => {
 		if (isPublicModel(model)) {
 			return $i18n.t('Public');
 		}
@@ -150,8 +172,13 @@
 		const modelOrder = new Map(modelOrderList.map((id, idx) => [id, idx]));
 
 		filteredModels = models
+			.filter((m) => !selectedTag || modelTags(m).includes(selectedTag))
 			.filter((m) => searchValue === '' || m.name.toLowerCase().includes(searchValue.toLowerCase()))
 			.filter((m) => {
+				if (viewOption === 'available') return availableModelIds.has(m.id) || isPresetModel(m);
+				if (viewOption === 'unavailable') return !availableModelIds.has(m.id) && !isPresetModel(m);
+				if (viewOption === 'base') return !isPresetModel(m);
+				if (viewOption === 'workspace') return isPresetModel(m);
 				if (viewOption === 'enabled') return m?.is_active ?? true;
 				if (viewOption === 'disabled') return !(m?.is_active ?? true);
 				if (viewOption === 'visible') return !(m?.meta?.hidden ?? false);
@@ -175,9 +202,6 @@
 	}
 
 	let searchValue = '';
-	let canReorderModels = false;
-
-	$: canReorderModels = searchValue === '' && viewOption === '' && selectedTag === '';
 
 	const enableAllHandler = async (): Promise<void> => {
 		const modelsToEnable = filteredModels.filter((m: ModelMutation) => !(m.is_active ?? true));
@@ -240,7 +264,14 @@
 	};
 
 	const downloadModels = async (models: ModelListItem[]): Promise<void> => {
-		models = await Promise.all(models.map(getFullModel));
+		try {
+			const exported = [];
+			for (const model of models) exported.push(await getPortableModel(model));
+			models = exported;
+		} catch (error: unknown) {
+			toast.error(error instanceof Error ? error.message : String(error));
+			return;
+		}
 		let blob = new Blob([JSON.stringify(models)], {
 			type: 'application/json'
 		});
@@ -257,39 +288,47 @@
 			.split(',')
 			.filter((id) => id);
 
-		tags = await getBaseModelTags(localStorage.token);
+		savedModels = await getAllModels(localStorage.token);
+		tags = [...new Set(savedModels.flatMap(modelTags))].sort();
 		if (selectedTag && !tags.includes(selectedTag)) {
 			selectedTag = '';
 		}
 
-		workspaceModels = await getBaseModels(localStorage.token, selectedTag);
-		baseModels = await getModels(localStorage.token, null, true);
-		const workspaceModelIds = new Set<string>(workspaceModels.map((wm: ModelListItem) => wm.id));
+		allModels = await getModels(localStorage.token);
 
-		models = baseModels
-			.filter((m: ModelListItem) => !selectedTag || workspaceModelIds.has(m.id))
-			.map((m: Model) => {
-				const workspaceModel = workspaceModels.find((wm: ModelListItem) => wm.id === m.id);
+		const providerModels = await getModels(localStorage.token, null, true);
+		const allModelIds = new Set<string>(allModels.map((model: ModelListItem) => model.id));
+		allModels = [
+			...allModels,
+			...providerModels.filter((model: ModelListItem) => !allModelIds.has(model.id))
+		];
+		availableModelIds = new Set(allModels.map((model) => model.id));
+		allModels.push(...savedModels.filter((model) => !availableModelIds.has(model.id)));
 
-				if (workspaceModel) {
-					return {
-						...m,
-						...workspaceModel
-					};
-				} else {
-					return {
-						...m,
-						id: m.id,
-						name: m.name,
+		const nextModels: AdminModel[] = allModels.map((m: ModelListItem) => {
+			const savedModel = savedModels.find((model: ModelListItem) => model.id === m.id);
 
-						is_active: true
-					};
-				}
-			});
+			if (savedModel) {
+				return {
+					...m,
+					...savedModel,
+					name: savedModel.name || m.name || m.id
+				};
+			} else {
+				return {
+					...m,
+					id: m.id,
+					name: m.name || m.id,
 
+					is_active: true
+				};
+			}
+		});
+
+		models = nextModels;
 		modelOrderList = [
-			...modelOrderList.filter((id) => models!.some((model) => model.id === id)),
-			...models
+			...modelOrderList.filter((id) => nextModels.some((model) => model.id === id)),
+			...nextModels
 				.map((model) => model.id)
 				.filter((id) => !modelOrderList.includes(id))
 				.sort((a, b) => a.localeCompare(b))
@@ -425,15 +464,16 @@
 		const target = parent.children[oldIndex < newIndex ? oldIndex : oldIndex + 1];
 		parent.insertBefore(item, target);
 
-		const updatedModels = [...filteredModels];
-		const [movedModel] = updatedModels.splice(oldIndex, 1);
-		updatedModels.splice(newIndex, 0, movedModel);
+		// Anchor on the visible neighbor so filtered-out models keep their place
+		const movedModelId = filteredModels[oldIndex].id;
+		const anchorModelId = filteredModels[newIndex].id;
+		const reorderedIds = [
+			...new Set([...modelOrderList, ...models.map((model) => model.id)])
+		].filter((id) => id !== movedModelId);
+		const anchorIndex = reorderedIds.indexOf(anchorModelId);
+		reorderedIds.splice(oldIndex < newIndex ? anchorIndex + 1 : anchorIndex, 0, movedModelId);
 
-		const orderedIds = updatedModels.map((model) => model.id);
-		const orderedSet = new Set(orderedIds);
-
-		models = [...updatedModels, ...models.filter((model) => !orderedSet.has(model.id))];
-		modelOrderList = models.map((model) => model.id);
+		modelOrderList = reorderedIds;
 		modelOrderDirty = true;
 	};
 
@@ -443,7 +483,7 @@
 			sortable = null;
 		}
 
-		if (modelListElement && filteredModels.length > 0 && canReorderModels) {
+		if (modelListElement && filteredModels.length > 0) {
 			sortable = new Sortable(modelListElement, {
 				animation: 150,
 				handle: '.model-item-handle',
@@ -463,25 +503,29 @@
 		overrides: Partial<ModelMutation> = {},
 		showToast = true
 	): Promise<void> => {
-		model = { ...model, base_model_id: null, ...overrides };
-		const res = workspaceModels.some((m) => m.id === model.id)
-			? await updateModelById(localStorage.token, model.id, model)
-			: await createNewModel(localStorage.token, {
-					meta: {},
-					params: {},
-					access_grants: [],
-					...model
-				});
+		model = { ...model, ...(isPresetModel(model) ? {} : { base_model_id: null }), ...overrides };
+		const res =
+			savedModels.some((m) => m.id === model.id) || isPresetModel(model)
+				? await updateModelById(localStorage.token, model.id, {
+						...savedModels.find((m) => m.id === model.id),
+						...model
+					})
+				: await createNewModel(localStorage.token, {
+						meta: {},
+						params: {},
+						access_grants: [],
+						...model
+					});
 		if (!res) throw new Error($i18n.t('Something went wrong :/'));
-		if (!workspaceModels.some((m) => m.id === model.id)) {
-			workspaceModels = [...workspaceModels, res];
+		if (!savedModels.some((m) => m.id === model.id)) {
+			savedModels = [...savedModels, res];
 		}
 		if (showToast) toast.success($i18n.t('Model updated successfully'));
 	};
 
 	const toggleModelHandler = async (model: ModelMutation): Promise<void> => {
 		try {
-			if (!workspaceModels.some((m) => m.id === model.id)) {
+			if (!savedModels.some((m) => m.id === model.id) && !isPresetModel(model)) {
 				await upsertModelHandler(
 					{ id: model.id, name: model.name, is_active: model.is_active },
 					{},
@@ -504,6 +548,29 @@
 				$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
 			)
 		);
+	};
+
+	const deleteModelHandler = async (model: ModelListItem) => {
+		try {
+			// Read fresh records: visibility and access changes can create saved settings.
+			const savedModels = await getAllModels(localStorage.token);
+			if (savedModels.some((savedModel: ModelListItem) => savedModel.id === model.id)) {
+				const res = await deleteModelById(localStorage.token, model.id);
+				if (!res) {
+					toast.error($i18n.t('Failed to delete model'));
+					return;
+				}
+			}
+
+			toast.success(
+				canResetModel(model)
+					? $i18n.t('Model reset successfully')
+					: $i18n.t('Deleted {{name}}', { name: model.name })
+			);
+			await init();
+		} catch (error) {
+			toast.error(String(error));
+		}
 	};
 
 	const hideModelHandler = async (model: AdminModel): Promise<void> => {
@@ -560,6 +627,9 @@
 		).catch(() => null);
 
 		if (res) {
+			if (!savedModels.find((m: ModelListItem) => m.id === model.id)) {
+				savedModels = [...savedModels, res];
+			}
 			models =
 				models?.map((m) =>
 					m.id === model.id ? { ...m, access_grants: res.access_grants ?? nextAccessGrants } : m
@@ -589,16 +659,31 @@
 		}
 	};
 
-	const getFullModel = async (model: ModelListItem): Promise<ModelListItem> =>
-		workspaceModels.some((workspaceModel) => workspaceModel.id === model.id)
+	const getFullModel = async (model: ModelMutation) =>
+		savedModels.some((savedModel) => savedModel.id === model.id) || isPresetModel(model)
 			? ((await getModelById(localStorage.token, model.id).catch(() => null)) ?? model)
 			: model;
 
-	const cloneHandler = async (model: ModelListItem): Promise<void> => {
+	const getPortableModel = async (model: ModelMutation) =>
+		isPresetModel(model)
+			? (await exportModels(localStorage.token, [model.id]))[0]
+			: getFullModel(model);
+
+	const openModelHandler = async (model: ModelMutation) => {
+		if (isPresetModel(model)) {
+			showSettings.set(false);
+			await goto(`/workspace/models/edit?id=${encodeURIComponent(model.id)}`);
+			return;
+		}
+
+		selectedModelId = model.id;
+	};
+
+	const cloneHandler = async (model: ModelMutation): Promise<void> => {
 		model = await getFullModel(model);
 		sessionStorage.model = JSON.stringify({
 			...model,
-			base_model_id: model.id,
+			...(isPresetModel(model) ? {} : { base_model_id: model.id }),
 			id: `${model.id}-clone`,
 			name: `${model.name} (Clone)`
 		});
@@ -607,7 +692,12 @@
 	};
 
 	const exportModelHandler = async (model: ModelListItem): Promise<void> => {
-		model = await getFullModel(model);
+		try {
+			model = await getPortableModel(model);
+		} catch (error: unknown) {
+			toast.error(error instanceof Error ? error.message : String(error));
+			return;
+		}
 		let blob = new Blob([JSON.stringify([model])], {
 			type: 'application/json'
 		});
@@ -615,16 +705,13 @@
 	};
 
 	const pinModelHandler = async (modelId: string): Promise<void> => {
-		let pinnedModels = $settings?.pinnedModels ?? [];
-
-		if (pinnedModels.includes(modelId)) {
-			pinnedModels = pinnedModels.filter((id) => id !== modelId);
-		} else {
-			pinnedModels = [...new Set([...pinnedModels, modelId])];
-		}
-
-		settings.set({ ...$settings, pinnedModels: pinnedModels });
-		await updateUserSettings(localStorage.token, { ui: $settings });
+		settings.set({
+			...$settings,
+			pinnedModels: $pinnedModels.includes(modelId)
+				? $pinnedModels.filter((id) => id !== modelId)
+				: [...$pinnedModels, modelId]
+		});
+		await updateUserSettings(localStorage.token, { ui: { pinnedModels: $settings.pinnedModels } });
 	};
 
 	onMount((): (() => void) => {
@@ -675,6 +762,22 @@
 </script>
 
 <ConfirmDialog
+	title={canResetModel(modelToDelete) ? $i18n.t('Reset') : $i18n.t('Delete')}
+	message={canResetModel(modelToDelete)
+		? $i18n.t(
+				'This will reset the saved settings for this base model to their defaults. The model will remain available.'
+			)
+		: $i18n.t('Are you sure you want to delete **{{modelName}}**?', {
+				modelName: modelToDelete?.name
+			})}
+	confirmLabel={canResetModel(modelToDelete) ? $i18n.t('Reset') : $i18n.t('Delete')}
+	bind:show={showDeleteModal}
+	onConfirm={async () => {
+		if (modelToDelete) await deleteModelHandler(modelToDelete);
+	}}
+/>
+
+<ConfirmDialog
 	title={$i18n.t('Reset All Models')}
 	message={$i18n.t('This will delete all models including custom models and cannot be undone.')}
 	bind:show={showResetModal}
@@ -692,9 +795,9 @@
 {#if models !== null}
 	{#if selectedModelId === null}
 		<div class="flex h-full min-h-0 flex-col text-sm">
-			<div class="mb-2 flex items-center justify-between">
+			<div class="mb-0.5 flex items-center justify-between">
 				<h2 class="text-sm font-medium text-gray-900 dark:text-white">
-					{$i18n.t('Models')}
+					{$i18n.t('settings.admin.models.title')}
 					<span class="ml-2 font-normal text-gray-500 dark:text-gray-500">
 						{filteredModels.length}
 					</span>
@@ -803,17 +906,14 @@
 									items={tags.map((tag) => {
 										return { value: tag, label: tag };
 									})}
-									onChange={async () => {
-										await init();
-									}}
 								/>
 							{/if}
 						</div>
 
-						<Dropdown align="end">
+						<Dropdown closeOnSelect align="end">
 							<Tooltip content={$i18n.t('Actions')}>
 								<button
-									class="flex h-8 items-center gap-1.5 rounded-xl bg-transparent px-1.5 text-[13px] font-normal text-gray-700 transition hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-100"
+									class="flex h-8 items-center gap-1.5 rounded-xl bg-transparent px-1.5 text-[0.8125rem] font-normal text-gray-700 transition hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-100"
 									type="button"
 								>
 									<span>{$i18n.t('Actions')}</span>
@@ -822,10 +922,10 @@
 							</Tooltip>
 
 							<div slot="content">
-								<DropdownMenu className="w-[170px] shadow-sm">
+								<DropdownMenu className="min-w-[10.625rem] shadow-sm">
 									{#if $user?.role === 'admin'}
 										<button
-											class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] disabled:pointer-events-none disabled:opacity-40 hover:text-gray-900 dark:hover:text-gray-100"
+											class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] disabled:pointer-events-none disabled:opacity-40 hover:text-gray-900 dark:hover:text-gray-100"
 											type="button"
 											disabled={modelsImportInProgress}
 											on:click={() => {
@@ -833,89 +933,109 @@
 											}}
 										>
 											<DocumentArrowUp className="size-3.5" />
-											<div class="flex items-center">{$i18n.t('Import')}</div>
+											<div class="flex items-center">
+												{$i18n.t('settings.admin.models.importModels.label')}
+											</div>
 										</button>
 
 										<button
-											class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+											class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 											type="button"
 											on:click={() => {
-												downloadModels(models ?? []);
+												downloadModels(
+													(models ?? []).filter(
+														(model) => !selectedTag || modelTags(model).includes(selectedTag)
+													)
+												);
 											}}
 										>
 											<Download className="size-3.5" />
-											<div class="flex items-center">{$i18n.t('Export')}</div>
+											<div class="flex items-center">
+												{$i18n.t('settings.admin.models.exportModels.label')}
+											</div>
 										</button>
 									{/if}
 
 									<button
-										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 										type="button"
 										on:click={() => {
 											showManageModal = true;
 										}}
 									>
 										<Wrench className="size-3.5" />
-										<div class="flex items-center">{$i18n.t('Manage')}</div>
+										<div class="flex items-center">
+											{$i18n.t('settings.admin.models.manageModels.label')}
+										</div>
 									</button>
 
 									<button
-										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 										type="button"
 										on:click={() => {
 											showResetModal = true;
 										}}
 									>
 										<GarbageBin className="size-3.5" />
-										<div class="flex items-center">{$i18n.t('Reset')}</div>
+										<div class="flex items-center">
+											{$i18n.t('settings.admin.models.resetModels.label')}
+										</div>
 									</button>
 
 									<hr class="mx-1 my-0.5 border-gray-100 dark:border-gray-800" />
 
 									<button
-										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 										type="button"
 										on:click={() => {
 											enableAllHandler();
 										}}
 									>
 										<CheckCircle className="size-3.5" />
-										<div class="flex items-center">{$i18n.t('Enable All')}</div>
+										<div class="flex items-center">
+											{$i18n.t('settings.admin.models.enableAllModels.label')}
+										</div>
 									</button>
 
 									<button
-										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 										type="button"
 										on:click={() => {
 											disableAllHandler();
 										}}
 									>
 										<Minus className="size-3.5" />
-										<div class="flex items-center">{$i18n.t('Disable All')}</div>
+										<div class="flex items-center">
+											{$i18n.t('settings.admin.models.disableAllModels.label')}
+										</div>
 									</button>
 
 									<hr class="mx-1 my-0.5 border-gray-100 dark:border-gray-800" />
 
 									<button
-										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 										type="button"
 										on:click={() => {
 											showAllHandler();
 										}}
 									>
 										<Eye className="size-3.5" />
-										<div class="flex items-center">{$i18n.t('Show All')}</div>
+										<div class="flex items-center">
+											{$i18n.t('settings.admin.models.showAllModels.label')}
+										</div>
 									</button>
 
 									<button
-										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+										class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 										type="button"
 										on:click={() => {
 											hideAllHandler();
 										}}
 									>
 										<EyeSlash className="size-3.5" />
-										<div class="flex items-center">{$i18n.t('Hide All')}</div>
+										<div class="flex items-center">
+											{$i18n.t('settings.admin.models.hideAllModels.label')}
+										</div>
 									</button>
 								</DropdownMenu>
 							</div>
@@ -933,23 +1053,15 @@
 					{#if filteredModels.length > 0}
 						{#each filteredModels as model, modelIdx (`${model.id}-${modelIdx}`)}
 							<div
-								class="flex cursor-pointer transition w-full px-2 py-1 rounded-xl hover:bg-gray-50/70 dark:hover:bg-gray-850/50 {model
+								class="group/setting-row flex cursor-pointer transition w-full px-2 py-1 rounded-xl hover:bg-gray-50/70 dark:hover:bg-gray-850/50 {model
 									?.meta?.hidden
 									? 'opacity-50 dark:opacity-50'
 									: ''}"
 								id="model-item-{model.id}"
 							>
 								<div class="self-center pr-1 -ml-1 text-gray-400 dark:text-gray-600">
-									<Tooltip
-										content={canReorderModels
-											? $i18n.t('Drag to reorder')
-											: $i18n.t('Clear filters to reorder')}
-									>
-										<EllipsisVertical
-											className="size-4 {canReorderModels
-												? 'cursor-move model-item-handle'
-												: 'opacity-40'}"
-										/>
+									<Tooltip content={$i18n.t('Drag to reorder')}>
+										<EllipsisVertical className="size-4 cursor-move model-item-handle" />
 									</Tooltip>
 								</div>
 
@@ -957,11 +1069,11 @@
 									class="flex group/item gap-2.5 w-full min-w-0 flex-1 text-left cursor-pointer"
 									type="button"
 									on:click={() => {
-										selectedModelId = model.id;
+										openModelHandler(model);
 									}}
 								>
 									<div class="self-center">
-										<div class="flex bg-white rounded-xl">
+										<div class="flex rounded-xl">
 											<div
 												class="{(model?.is_active ?? true)
 													? ''
@@ -969,7 +1081,7 @@
 											>
 												<img
 													src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}`}
-													alt="modelfile profile"
+													alt={$i18n.t('modelfile profile')}
 													class=" rounded-xl size-7 object-cover"
 													loading="lazy"
 													decoding="async"
@@ -994,16 +1106,20 @@
 														? `${model?.ollama?.digest} **(${model?.ollama?.modified_at})**`
 														: model.id
 											)}
+											allowHTML={true}
 											className="min-w-0 flex-1"
 											placement="top-start"
 										>
 											<div
-												class="flex min-w-0 items-center gap-1.5 text-[13px] font-normal leading-4"
+												class="flex min-w-0 items-center gap-1.5 text-[0.8125rem] font-normal leading-4"
 											>
-												<span class="min-w-0 truncate">{model.name}</span>
+												<span
+													class="min-w-0 truncate text-gray-600 dark:text-gray-400 transition-colors duration-150 group-hover/setting-row:text-gray-900 group-focus-within/setting-row:text-gray-900 dark:group-hover/setting-row:text-white dark:group-focus-within/setting-row:text-white"
+													>{model.name}</span
+												>
 
 												<span
-													class="shrink-0 text-[11px] font-normal leading-4 {modelAccessClass(
+													class="shrink-0 text-[0.6875rem] font-normal leading-4 {modelAccessClass(
 														model
 													)}"
 												>
@@ -1012,7 +1128,7 @@
 
 												{#if defaultModelIdSet.has(model.id)}
 													<span
-														class="shrink-0 text-[11px] font-normal leading-4 text-gray-500 dark:text-gray-400"
+														class="shrink-0 text-[0.6875rem] font-normal leading-4 text-gray-500 dark:text-gray-400"
 													>
 														{$i18n.t('Selected')}
 													</span>
@@ -1020,7 +1136,7 @@
 
 												{#if defaultPinnedModelIdSet.has(model.id)}
 													<span
-														class="shrink-0 text-[11px] font-normal leading-4 text-gray-500 dark:text-gray-400"
+														class="shrink-0 text-[0.6875rem] font-normal leading-4 text-gray-500 dark:text-gray-400"
 													>
 														{$i18n.t('Pinned')}
 													</span>
@@ -1126,7 +1242,7 @@
 										type="button"
 										aria-label={$i18n.t('Edit')}
 										on:click={() => {
-											selectedModelId = model.id;
+											openModelHandler(model);
 										}}
 									>
 										<svg
@@ -1147,6 +1263,11 @@
 
 									<ModelMenu
 										{model}
+										deleteLabel={canResetModel(model) ? $i18n.t('Reset') : $i18n.t('Delete')}
+										deleteHandler={() => {
+											modelToDelete = model;
+											showDeleteModal = true;
+										}}
 										exportHandler={() => {
 											exportModelHandler(model);
 										}}
@@ -1178,6 +1299,7 @@
 										<button
 											class="self-center w-fit text-sm p-1.5 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
 											type="button"
+											aria-label={$i18n.t('More Options')}
 										>
 											<EllipsisHorizontal className="size-3.5" />
 										</button>
@@ -1191,6 +1313,7 @@
 										>
 											<Switch
 												bind:state={model.is_active}
+												ariaLabel={$i18n.t('Enabled')}
 												on:change={async () => {
 													toggleModelHandler(model);
 												}}
@@ -1217,7 +1340,7 @@
 
 				<div class="flex justify-end pt-6 text-sm font-normal">
 					<button
-						class="flex items-center gap-2 px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full disabled:cursor-not-allowed disabled:opacity-40"
+						class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:cursor-not-allowed"
 						type="button"
 						disabled={(!modelOrderDirty && !modelDefaultsDirty) ||
 							savingModelOrder ||
@@ -1229,7 +1352,7 @@
 						{$i18n.t('Save')}
 						{#if savingModelOrder || savingModelsSettings}
 							<span class="shrink-0">
-								<Spinner />
+								<Spinner className="size-3" />
 							</span>
 						{/if}
 					</button>
@@ -1238,13 +1361,21 @@
 		</div>
 	{:else}
 		<ModelEditor
+			admin
 			edit
 			model={models.find((m) => m.id === selectedModelId)}
+			providerModel={allModels.find((m) => m.id === selectedModelId)}
 			preset={false}
-			onSubmit={async (model) => {
+			onAccessUpdate={(model: ModelMutation) => {
+				savedModels = [...savedModels.filter((m) => m.id !== model.id), model];
+			}}
+			onSubmit={async (
+				model: Parameters<NonNullable<ComponentProps<ModelEditor>['onSubmit']>>[0]
+			) => {
 				await upsertModelHandler(model);
 				selectedModelId = null;
-				await init();
+				await init().catch((error) => toast.error(`${error}`));
+				return true;
 			}}
 			onBack={async () => {
 				selectedModelId = null;

@@ -1,6 +1,6 @@
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi import FastAPI, HTTPException, Request
@@ -14,6 +14,7 @@ def payload(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     model = {'id': 'fixture', 'owned_by': 'openai', 'info': {'meta': {}}}
     app = FastAPI()
     app.state.MODELS = {'fixture': model}
+    app.state.redis = None
     request = Request({'type': 'http', 'app': app})
     user = UserModel(
         id='fixture-user',
@@ -26,7 +27,7 @@ def payload(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     )
     form = {'model': 'fixture', 'messages': [{'role': 'user', 'content': 'question'}]}
     metadata = {'chat_id': 'local:fixture', 'message_id': 'answer', 'params': {'function_calling': 'native'}}
-    config = {}
+    config = {'web.search.enable': True}
     mocks = {}
     for name, value in [
         ('get_event_emitter', AsyncMock()),
@@ -64,7 +65,7 @@ def payload(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
         side_effect=lambda request, user, messages, *args: (messages, None, 0)
     )
     mocks['apply_source_context_to_messages'] = AsyncMock(side_effect=lambda request, messages, *args: messages)
-    mocks['add_file_context'] = AsyncMock(side_effect=lambda messages, *args: messages)
+    mocks['add_file_context'] = Mock(side_effect=lambda messages, *args: messages)
     for name in [
         'apply_system_prompt_to_body',
         'process_filter_functions',
@@ -82,14 +83,22 @@ def payload(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
         (middleware.Folders, 'get_folder_by_id', None),
         (middleware.Notes, 'get_note_by_id', None),
         (middleware.AccessGrants, 'has_access', False),
-        (Skills, 'get_skills_by_user_id', []),
+        (Skills, 'get_skills', []),
     ]:
         mocks[name] = AsyncMock(return_value=value)
         monkeypatch.setattr(obj, name, mocks[name])
     monkeypatch.setattr(
         middleware.Config, 'get', AsyncMock(side_effect=lambda key, default=None: config.get(key, default))
     )
-    monkeypatch.setattr(middleware, 'ENABLE_PLUGINS', False)
+    monkeypatch.setattr(
+        middleware.Config, 'get_many', AsyncMock(side_effect=lambda *keys: {key: config.get(key) for key in keys})
+    )
+    monkeypatch.setattr(middleware, 'ENABLE_FUNCTIONS', False)
+    monkeypatch.setattr(middleware, 'ENABLE_TOOL_SERVERS', True)
+    import open_webui.utils.terminals as terminals
+
+    monkeypatch.setattr(terminals, 'get_terminal_agents_md', AsyncMock(return_value=None))
+    monkeypatch.setattr(terminals, 'get_terminal_json', AsyncMock(return_value=None))
     return {
         'request': request,
         'form_data': form,
@@ -102,7 +111,9 @@ def payload(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     }
 
 
-async def _run(payload: dict[str, object]) -> tuple[dict[str, object], dict[str, object], list[dict[str, object]]]:
+async def _run(
+    payload: dict[str, object],
+) -> tuple[dict[str, object], dict[str, object], list[dict[str, object]], bool]:
     return await middleware.process_chat_payload(
         **{key: payload[key] for key in ['request', 'form_data', 'user', 'metadata', 'model']}
     )
@@ -133,12 +144,12 @@ async def test_payload_entry(payload: dict[str, object], case: str) -> None:
         form['model'] = 'arena'
     if case == 'regenerate':
         form['regeneration_prompt'] = 'try again'
-    result, meta, events = await _run(payload)
+    result, meta, events, _ = await _run(payload)
     assert result is form and meta is metadata and events == []
     assert form['model'] == 'fixture' and 'features' not in form and 'params' not in form
     assert meta['chat_id'] == ('' if case == 'missing-chat-id' else 'local:fixture')
     assert 'selected_model_id' in meta if case.startswith('arena') else 'selected_model_id' not in meta
-    assert meta['user_prompt'] == ('try again' if case == 'regenerate' else 'question')
+    assert meta['base_user_prompt'] == ('try again' if case == 'regenerate' else 'question')
 
 
 @pytest.mark.asyncio
@@ -172,7 +183,7 @@ async def test_payload_history(payload: dict[str, object], case: str) -> None:
         with pytest.raises(asyncio.CancelledError):
             await _run(payload)
         return
-    result, _, _ = await _run(payload)
+    result, _, _, _ = await _run(payload)
     assert mocks['load_messages_from_db'].await_args.args == ('saved-fixture', 'user')
     assert mocks['compact_messages_for_request'].await_count == 1
     assert 'stored question' in str(result['messages'])
@@ -198,7 +209,7 @@ async def test_payload_feature_permissions(payload: dict[str, object], feature: 
     payload['form_data']['features'] = {feature: True}
     payload['metadata']['params']['function_calling'] = mode
     payload['mocks']['has_permission'].return_value = allowed
-    result, meta, _ = await _run(payload)
+    result, meta, _, _ = await _run(payload)
     name = 'chat_web_search_handler' if feature == 'web_search' else 'chat_image_generation_handler'
     assert payload['mocks'][name].await_count == (1 if mode == 'legacy' and allowed else 0)
     assert payload['mocks']['has_permission'].await_args.args[1] == 'features.' + feature
@@ -219,9 +230,10 @@ async def test_payload_code_context(payload: dict[str, object], mode: str, engin
             'task.voice.prompt.enable': True,
             'task.voice.prompt_template': 'voice prompt',
             'memories.system_context.enable': True,
+            'memories.enable': True,
         }
     )
-    result, _, _ = await _run(payload)
+    result, _, _, _ = await _run(payload)
     assert payload['mocks']['add_memory_context'].await_count == 1
     assert 'voice prompt' in str(result['messages'])
     assert (
@@ -257,7 +269,7 @@ async def test_payload_context(payload: dict[str, object], case: str) -> None:
             body,
             {'sources': [source, {'document': ['ignored']}]},
         )
-    result, _, events = await _run(payload)
+    result, _, events, _ = await _run(payload)
     assert result is form
     assert mocks['apply_system_prompt_to_body'].await_count == (1 if case in {'folder-legacy', 'folder-native'} else 0)
     assert meta.get('folder_knowledge') == ([{'id': 'owner-file'}] if case == 'folder-native' else None)
@@ -286,10 +298,10 @@ async def test_payload_tools(payload: dict[str, object], case: str) -> None:
     form, meta, mocks = payload['form_data'], payload['metadata'], payload['mocks']
     spec = {'name': 'fixture_tool', 'description': 'Fixture', 'parameters': {'type': 'object', 'properties': {}}}
     tool = {'spec': spec, 'callable': AsyncMock(), 'direct': False}
-    client = SimpleNamespace(call_tool=AsyncMock(return_value='tool result'))
+    client = SimpleNamespace(call_tool=AsyncMock(return_value='tool result'), instructions=None)
     if case in {'db', 'collision'}:
         form['tool_ids'] = ['db-tool']
-        payload['monkeypatch'].setattr(middleware, 'ENABLE_PLUGINS', True)
+        payload['monkeypatch'].setattr(middleware, 'ENABLE_FUNCTIONS', True)
         mocks['get_tools'].return_value = {'fixture_tool': tool}
     if case.startswith('mcp'):
         form['tool_ids'] = ['server:mcp:server']
@@ -297,6 +309,7 @@ async def test_payload_tools(payload: dict[str, object], case: str) -> None:
         mocks['connect_mcp_server'].side_effect = RuntimeError('local failure') if case == 'mcp-error' else None
     if case.startswith('terminal'):
         form['terminal_id'] = 'terminal'
+        payload['config']['terminal_server.connections'] = [{'id': 'terminal'}]
         mocks['get_terminal_tools'].return_value = (
             ({'fixture_tool': tool}, 'terminal context') if case == 'terminal-prompt' else {'fixture_tool': tool}
         )
@@ -311,7 +324,7 @@ async def test_payload_tools(payload: dict[str, object], case: str) -> None:
             await _run(payload)
         assert exc.value.status_code == 503
         return
-    result, _, _ = await _run(payload)
+    result, _, _, _ = await _run(payload)
     assert 'tool_ids' not in result and 'terminal_id' not in result
     assert bool(meta.get('tools')) == (case not in {'explicit-empty', 'explicit-tool', 'mcp-denied', 'mcp-error'})
     if case == 'mcp':
@@ -326,7 +339,7 @@ async def test_payload_tools(payload: dict[str, object], case: str) -> None:
 @pytest.mark.parametrize('tools', [[], [{'type': 'function', 'function': {'name': 'fixture'}}]])
 async def test_payload_explicit_tools(payload: dict[str, object], tools: list[dict[str, object]]) -> None:
     payload['form_data']['tools'] = tools
-    result, meta, _ = await _run(payload)
+    result, meta, _, _ = await _run(payload)
     assert result['tools'] is tools
     assert 'tools' not in meta
     assert payload['mocks']['get_builtin_tools'].await_count == payload['mocks']['get_tools'].await_count == 0
@@ -339,7 +352,7 @@ async def test_payload_skills_and_notes(payload: dict[str, object], case: str) -
     if case.startswith('note'):
         meta['chat_id'] = 'saved-fixture'
         mocks['get_chat_by_id'].return_value = SimpleNamespace(
-            meta={'internal': True, 'type': 'note', 'note_id': 'note'}
+            user_id='fixture-user', meta={'internal': True, 'type': 'note', 'note_id': 'note'}
         )
         mocks['get_note_by_id'].return_value = SimpleNamespace(
             id='note',
@@ -348,23 +361,25 @@ async def test_payload_skills_and_notes(payload: dict[str, object], case: str) -
         )
     else:
         form['skill_ids'] = ['skill']
+        payload['config']['skills.lazy_loading.enable'] = case == 'selected'
         meta['session_id'] = 'session'
         form['messages'][0]['content'] = '<$skill|>' if case == 'mentioned' else 'question'
         meta['params']['function_calling'] = 'legacy' if case == 'legacy' else 'native'
-        mocks['get_skills_by_user_id'].return_value = [
+        mocks['get_skills'].return_value = [
             SkillModel(
                 id='skill',
                 user_id='fixture-user',
                 name='Skill',
                 content='skill body',
+                data={'files': [{'path': 'SKILL.md', 'content': 'skill body'}]},
                 meta={},
                 is_active=case != 'inactive',
                 created_at=0,
                 updated_at=0,
             )
         ]
-    result, _, _ = await _run(payload)
+    result, _, _, _ = await _run(payload)
     assert bool(meta['files']) == (case == 'note-owner')
     assert ('skill body' in str(result['messages'])) == (case in {'mentioned', 'legacy'})
     assert ('<available_skills>' in str(result['messages'])) == (case == 'selected')
-    assert meta['user_prompt'] == ('Skill' if case == 'mentioned' else 'question')
+    assert meta['base_user_prompt'] == ('Skill' if case == 'mentioned' else 'question')

@@ -12,9 +12,9 @@
 	import Loader from '$lib/components/common/Loader.svelte';
 	import SearchInput from './SearchInput.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
-	type NoteSelection = NoteListItem & { type: string; name: string; description: string };
+	type NoteSelection = NoteListItem & { type: string; name: string; description?: string };
 	export let onSelect: (item: NoteSelection) => void = () => {};
 
 	let loaded = false;
@@ -63,7 +63,7 @@
 	const getItemsPage = async (activeRequestId = requestId) => {
 		itemsLoading = true;
 		const res = query.trim()
-			? await searchNotes(localStorage.token, query.trim(), null, null, null, page).catch(
+			? await searchNotes(localStorage.token, query.trim(), null, 'read', null, page).catch(
 					() => null
 				)
 			: await getNoteList(localStorage.token, page).catch(() => {
@@ -85,8 +85,7 @@
 				return {
 					...note,
 					type: 'note',
-					name: note.title,
-					description: dayjs(note.updated_at / 1000000).fromNow()
+					name: note.title
 				};
 			})
 		];
@@ -124,7 +123,7 @@
 				<div class="flex flex-col gap-0.5">
 					{#each items as item, idx}
 						<button
-							class=" h-[1.6875rem] px-2 rounded-xl w-full text-left flex justify-between items-center text-[13px] font-normal {idx ===
+							class=" h-[1.6875rem] px-2 rounded-xl w-full text-left flex justify-between items-center text-[0.8125rem] font-normal {idx ===
 							selectedIdx
 								? ' bg-gray-50/40 dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button'
 								: ''}"
@@ -148,7 +147,9 @@
 								</Tooltip>
 
 								<Tooltip
-									content={item.description || decodeString(item?.name)}
+									content={dayjs(item.updated_at / 1000000)
+										.locale($i18n.language)
+										.fromNow()}
 									placement="top-start"
 								>
 									<div class="line-clamp-1 flex-1">

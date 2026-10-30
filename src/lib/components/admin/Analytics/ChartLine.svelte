@@ -115,11 +115,11 @@
 	{#if hovered}
 		{@const total = Object.values(hovered.models || {}).reduce((a, b) => a + b, 0)}
 		<div
-			class="pointer-events-none absolute top-1 text-[11px]"
-			style="left:{Math.min(Math.max((mouseX / w) * 100, 8), 92)}%"
+			class="pointer-events-none absolute top-1 w-56 max-w-full text-[0.6875rem]"
+			style="left:clamp(0px, calc({(mouseX / w) * 100}% - 7rem), max(0px, calc(100% - 14rem)))"
 		>
 			<div
-				class="min-w-[140px] -translate-x-1/2 rounded border border-gray-100 bg-white px-2.5 py-1.5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+				class="rounded border border-gray-100 bg-white px-2.5 py-1.5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
 			>
 				<div class="mb-1.5 text-[10px] text-gray-400">
 					{dateLabel(hovered.date, true)} · UTC

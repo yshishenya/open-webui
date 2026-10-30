@@ -35,6 +35,7 @@ vi.mock('$lib/apis', () => ({
 	getVersionUpdates: vi.fn()
 }));
 const saved = {
+	ENABLE_APPS: true,
 	ENABLE_COMMUNITY_SHARING: false,
 	ENABLE_MESSAGE_RATING: false,
 	ENABLE_FOLDERS: false,
@@ -50,7 +51,12 @@ const saved = {
 	ENABLE_USER_STATUS: false,
 	RESPONSE_WATERMARK: 'Keep',
 	WEBUI_URL: 'https://chat.example.test',
-	retained: 'Other setting'
+	retained: 'Other setting',
+	ENABLE_SKILL_LAZY_LOADING: true,
+	SKILL_CONTENT_MAX_CHARS: null,
+	SKILL_PREVIEW_MAX_CHARS: null,
+	DEFAULT_INTERFACE_SETTINGS: {},
+	I18N: {}
 };
 vi.mock('$lib/apis/auths', () => ({
 	getAdminConfig: vi.fn(async () => ({ ...saved })),
@@ -59,7 +65,15 @@ vi.mock('$lib/apis/auths', () => ({
 vi.mock('$lib/apis/configs', () => ({ setBanners: vi.fn(async () => []) }));
 const html =
 	'<p><em>Document</em><a href="https://example.test">Link</a></p><table><tbody><tr><td>A</td></tr></tbody></table><script>bad()</script><img src=x onerror="bad()"><a href="javascript:bad()">Unsafe</a>';
-vi.mock('mammoth', () => ({ convertToHtml: vi.fn(async () => ({ value: html })) }));
+vi.mock('docx-preview', () => ({
+	renderAsync: vi.fn(async () => {
+		throw new Error('Fixture requests sanitized fallback');
+	})
+}));
+vi.mock('mammoth', () => ({
+	images: { imgElement: vi.fn() },
+	convertToHtml: vi.fn(async () => ({ value: html }))
+}));
 vi.mock('xlsx', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('xlsx')>();
 	return {
@@ -82,6 +96,14 @@ vi.mock('xlsx', async (importOriginal) => {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe(): void {}
+			unobserve(): void {}
+			disconnect(): void {}
+		}
+	);
 	config.update((current) => ({ ...current!, license_metadata: null }));
 	vi.spyOn(window, 'open').mockReturnValue(null);
 	if (!Element.prototype.animate)
@@ -125,7 +147,14 @@ it.each(['xlsx', 'docx'])('keeps sanitized %s previews and sheet selection', asy
 		)!;
 		button.click();
 		await tick();
-		const preview = document.querySelector('.office-preview')!;
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector(extension === 'docx' ? '.docx-fallback' : '.office-preview')
+			).not.toBeNull()
+		);
+		const preview = document.querySelector(
+			extension === 'docx' ? '.docx-fallback' : '.office-preview'
+		)!;
 		if (extension === 'xlsx') {
 			await vi.waitFor(() => expect(preview.textContent).toContain('First'));
 			expect(preview.textContent).toContain('<script>bad()</script>');
@@ -166,14 +195,14 @@ it.each([
 	});
 	try {
 		await tick();
-		const button = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
-			(b) => b.textContent?.trim() === 'File'
-		)!;
-		expect(button?.type).toBe('button');
-		expect(button?.tabIndex).toBe(0);
-		button.click();
-		if (url) expect(window.open).toHaveBeenCalledWith(url, '_blank');
-		else expect(window.open).not.toHaveBeenCalled();
+		const link = [...document.querySelectorAll<HTMLAnchorElement>('a')].find(
+			(anchor) => anchor.textContent?.trim() === 'File'
+		);
+		expect(link?.tabIndex).toBe(0);
+		expect(link?.target).toBe('_blank');
+		expect(link?.rel).toContain('noreferrer');
+		if (url) expect(link?.getAttribute('href')).toBe(url);
+		else expect(link?.hasAttribute('href')).toBe(false);
 	} finally {
 		await unmount(component);
 		target.remove();

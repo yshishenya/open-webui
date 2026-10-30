@@ -1,9 +1,9 @@
 import asyncio
 
 import pytest
-from open_webui.retrieval.loaders.youtube import YoutubeLoader
+from open_webui.retrieval.loaders.youtube import YoutubeLoader, YoutubeTranscriptError
 from requests import Response, Session
-from youtube_transcript_api import NoTranscriptFound, TranscriptList, YouTubeRequestFailed, YouTubeTranscriptApi
+from youtube_transcript_api import TranscriptList, YouTubeRequestFailed, YouTubeTranscriptApi
 
 
 def test_native_transcript_selection_and_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -84,15 +84,16 @@ def test_native_transcript_selection_and_fallback(monkeypatch: pytest.MonkeyPatc
         assert listed[-1] == video
 
     available = tracks([('de', False, xml('Deutsch'))])
-    with pytest.raises(NoTranscriptFound) as missing:
+    with pytest.raises(YoutubeTranscriptError) as missing:
         YoutubeLoader(source, language='ru').load()
-    assert str(missing.value) == str(NoTranscriptFound(video, ['ru', 'en'], list(available)))
+    assert str(missing.value) == f'No transcript found for the YouTube video {video} in these languages: ru, en.'
     assert requested == []
 
     available = tracks([('ru', False, xml('manual')), ('en', False, xml('fallback'))])
     status = 403
-    with pytest.raises(YouTubeRequestFailed):
+    with pytest.raises(YoutubeTranscriptError) as failed:
         YoutubeLoader(source, language='ru').load()
+    assert isinstance(failed.value.__cause__, YouTubeRequestFailed)
     assert requested == ['https://transcripts.invalid/ru/False']
     status = 200
 
@@ -112,4 +113,7 @@ def test_native_transcript_selection_and_fallback(monkeypatch: pytest.MonkeyPatc
         raise RuntimeError('list unavailable')
 
     monkeypatch.setattr(YouTubeTranscriptApi, 'list', fail_list)
-    assert loader.load() == []
+    with pytest.raises(YoutubeTranscriptError) as unavailable:
+        loader.load()
+    assert isinstance(unavailable.value.__cause__, RuntimeError)
+    assert str(unavailable.value.__cause__) == 'list unavailable'

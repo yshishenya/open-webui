@@ -22,6 +22,7 @@
 	import ModelDeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import SettingsSelect from '$lib/components/common/SettingsSelect.svelte';
+	import ExperimentalBadge from '$lib/components/common/ExperimentalBadge.svelte';
 
 	let modelUploadInputElement: HTMLInputElement;
 	let showModelDeleteConfirm = false;
@@ -442,9 +443,9 @@
 		if (!download || download.cancelled) return;
 		download.cancelled = true;
 		MODEL_DOWNLOAD_POOL.set({ ...$MODEL_DOWNLOAD_POOL });
-		download.abortController.abort();
+		download.abortController?.abort();
 		try {
-			await download.reader.cancel();
+			await download.reader?.cancel();
 			await deleteModel(localStorage.token, model, download.urlIdx);
 			toast.success($i18n.t('{{model}} download has been canceled', { model }));
 		} catch (error) {
@@ -537,7 +538,7 @@
 						</div>
 
 						<div>
-							<Tooltip content="Update All Models" placement="top">
+							<Tooltip content={$i18n.t('Update All Models')} placement="top">
 								<button
 									class="flex gap-2 items-center bg-transparent rounded-lg transition"
 									aria-label={$i18n.t('Update All Models')}
@@ -640,7 +641,10 @@
 
 					{#if updateModelId}
 						<div class="text-xs flex justify-between items-center">
-							<div>Updating "{updateModelId}" {updateProgress ? `(${updateProgress}%)` : ''}</div>
+							<div>
+								{$i18n.t('Updating "{{modelId}}"', { modelId: updateModelId })}
+								{updateProgress ? `(${updateProgress}%)` : ''}
+							</div>
 
 							<Tooltip content={$i18n.t('Cancel')}>
 								<button
@@ -853,7 +857,7 @@
 
 				<div class="pt-1">
 					<div class="flex justify-between items-center text-xs">
-						<div class=" text-sm font-normal">{$i18n.t('Experimental')}</div>
+						<div class="text-sm font-normal"><ExperimentalBadge /></div>
 						<button
 							class=" text-xs font-normal text-gray-500"
 							type="button"

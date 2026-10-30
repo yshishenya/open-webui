@@ -15,7 +15,6 @@ from fastapi import (
     Request,
     Response,
 )
-from fastapi.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials
 from open_webui.internal.db import get_async_db_context
 from open_webui.models.analytics import (
@@ -34,19 +33,18 @@ from open_webui.utils.airis.analytics import (
 from open_webui.utils.airis.data_retention import ANALYTICS_RETENTION_SECONDS, retained_touch
 from open_webui.utils.auth import bearer_security, get_current_user
 from open_webui.utils.rate_limit import RateLimiter
-from open_webui.utils.redis import get_redis_client
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
-_limiter = RateLimiter(redis_client=get_redis_client(), limit=120, window=60)
+_limiter = RateLimiter(limit=120, window=60)
 
 
 async def limit_ingestion(request: Request) -> None:
     host = request.client.host if request.client else 'unknown'
     key = hashlib.sha256(host.encode()).hexdigest()
-    if await run_in_threadpool(_limiter.is_limited, f'analytics:{key}'):
+    if await _limiter.is_limited(request.app.state.redis, f'analytics:{key}'):
         raise HTTPException(429, 'Too many analytics requests')
 
 

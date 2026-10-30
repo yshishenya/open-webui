@@ -9,6 +9,8 @@
 	import type { i18n as I18n } from 'i18next';
 	import { getErrorMessage } from '$lib/utils/airis/error_message';
 
+	import { COMMUNITY_ORIGINS } from '$lib/constants';
+
 	import Modal from '$lib/components/common/Modal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
@@ -32,7 +34,7 @@
 	let sharingRequestId: string | number | null = null;
 	let operation = 0;
 	const allowedOrigin = (origin: string | null): boolean =>
-		origin !== null && [window.location.origin, 'http://localhost:9999'].includes(origin);
+		origin !== null && [window.location.origin, ...COMMUNITY_ORIGINS].includes(origin);
 	const revokeSharing = (): void => {
 		operation += 1;
 		sharingOpener = null;
@@ -407,7 +409,7 @@
 
 				<div class="flex justify-end">
 					<button
-						class="flex items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100"
+						class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
 						on:click={closeModal}
 					>
 						{$i18n.t('Done')}
@@ -423,7 +425,7 @@
 
 				<div class="flex justify-end">
 					<button
-						class="flex items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100"
+						class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
 						on:click={() => {
 							error = false;
 							errorMessage = '';
@@ -450,10 +452,16 @@
 
 			<div class="px-5 pt-2 pb-5">
 				<div class="text-sm text-gray-500 dark:text-gray-400">
-					{$i18n.t('Do you want to sync your usage stats with Airis Community?')}
+					<!-- LICENSE covers this Open WebUI Community wordmark.
+					Do not alter, remove, obscure, or replace it except as LICENSE permits:
+					https://docs.openwebui.com/license. -->
+					{$i18n.t('Do you want to sync your usage stats with Open WebUI Community?')}
 				</div>
 
 				<div class="mt-2 text-xs text-gray-500">
+					<!-- LICENSE covers this Open WebUI wordmark.
+					Do not alter, remove, obscure, or replace it except as LICENSE permits:
+					https://docs.openwebui.com/license. -->
 					{$i18n.t(
 						'Participate in community leaderboards and evaluations! Syncing aggregated usage stats helps drive research and improvements to Airis. Your privacy is paramount: no message content is ever shared.'
 					)}
@@ -464,7 +472,10 @@
 						{$i18n.t('What is shared:')}
 					</div>
 					<ul class="list-disc list-inside space-y-0.5 ml-1 mb-2">
-						<li>{$i18n.t('Airis version')}</li>
+						<!-- LICENSE covers this Open WebUI wordmark.
+						Do not alter, remove, obscure, or replace it except as LICENSE permits:
+						https://docs.openwebui.com/license. -->
+						<li>{$i18n.t('Open WebUI version')}</li>
 						<li>{$i18n.t('Model names and usage frequency')}</li>
 						<li>{$i18n.t('Message counts and response timestamps')}</li>
 						<li>{$i18n.t('Content lengths (character counts only)')}</li>
@@ -546,7 +557,7 @@
 					</div>
 
 					<button
-						class="rounded-full bg-gray-100 px-4 py-2 text-sm font-normal text-gray-600 transition hover:bg-gray-200 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+						class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-normal transition disabled:opacity-60 bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
 						on:click={() => {
 							if (syncing) {
 								cancelOperation();
@@ -559,7 +570,7 @@
 					</button>
 
 					<button
-						class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition-colors rounded-full"
+						class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
 						on:click={syncStats}
 						disabled={syncing}
 					>

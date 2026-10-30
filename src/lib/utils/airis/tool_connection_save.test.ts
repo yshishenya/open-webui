@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'svelte/compiler';
 import ts from 'typescript';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
 	getToolServerConnections,
 	setToolServerConnections,
@@ -12,7 +12,33 @@ import {
 import { parseToolConnectionImport, parseToolSpec } from './tool_connection_import';
 import { getToolServerData, getToolServersData } from '$lib/apis';
 import { parseConnectionHeaders } from './model_connection_request';
-vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '/api', WEBUI_BASE_URL: '' }));
+import { config } from '$lib/stores';
+beforeEach(() => {
+	config.set({
+		status: true,
+		name: 'AIRIS',
+		version: 'test',
+		default_locale: 'en',
+		oauth: { providers: {} },
+		telegram: { enabled: false, bot_username: '' },
+		features: {
+			auth: true,
+			auth_trusted_header: false,
+			enable_signup: false,
+			enable_signup_password_confirmation: false,
+			enable_login_form: true,
+			enable_ldap: false,
+			enable_websocket: false,
+			enable_billing_subscriptions: false,
+			enable_tool_servers: true
+		}
+	});
+});
+vi.mock('$lib/constants', () => ({
+	APP_NAME: 'AIRIS',
+	WEBUI_API_BASE_URL: '/api',
+	WEBUI_BASE_URL: ''
+}));
 const modalPath = 'src/lib/components/AddToolServerModal.svelte';
 const userPath = 'src/lib/components/chat/Settings/Integrations.svelte';
 const adminPath = 'src/lib/components/admin/Settings/Integrations.svelte';
@@ -50,6 +76,7 @@ const run = <T>(path: string, expose: string, extra: Record<string, unknown> = {
 	const mounts: (() => unknown)[] = [];
 	const destroy: (() => void)[] = [];
 	const context = {
+		uuidv4: () => 'isolated-row-id',
 		fileSaver: { saveAs: vi.fn() },
 		Blob,
 		AbortController,
@@ -84,6 +111,7 @@ const run = <T>(path: string, expose: string, extra: Record<string, unknown> = {
 		toolServers: { set: vi.fn() },
 		terminalServers: { set: vi.fn() },
 		setToolServerConnections: vi.fn(async () => ({ TOOL_SERVER_CONNECTIONS: [] })),
+		getConnectionsConfig: vi.fn(async () => ({})),
 		getToolServerConnections: vi.fn(async () => ({ TOOL_SERVER_CONNECTIONS: [] })),
 		getTerminalServerConnections: vi.fn(async () => ({ TERMINAL_SERVER_CONNECTIONS: [] })),
 		...extra
@@ -383,6 +411,7 @@ it.each([userPath, adminPath])(
 	'edit and delete preserve saved state on refusal in %s',
 	async (path) => {
 		const r = parent(path, {
+			getConnectionsConfig: vi.fn(async () => ({})),
 			getToolServerConnections: vi.fn(async () => ({ TOOL_SERVER_CONNECTIONS: [fixture()] })),
 			saveSettings: vi.fn(async () => {
 				throw new Error('fixture');

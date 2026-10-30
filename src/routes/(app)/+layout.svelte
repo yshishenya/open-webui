@@ -11,8 +11,10 @@
 	import { page } from '$app/stores';
 	import { fade } from 'svelte/transition';
 
-	import { getModels, getToolServersData, getVersionUpdates } from '$lib/apis';
+	import { getBackendConfig, getModels, getToolServersData, getVersionUpdates } from '$lib/apis';
 	import { getTools } from '$lib/apis/tools';
+	import { getSkills } from '$lib/apis/skills';
+	import { getSessionUser } from '$lib/apis/auths';
 	import { getBanners } from '$lib/apis/configs';
 	import { getTerminalServers } from '$lib/apis/terminal';
 	import { getUserSettings } from '$lib/apis/users';
@@ -22,31 +24,12 @@
 		LegalApiError,
 		type LegalStatusResponse
 	} from '$lib/apis/legal';
-	import { setTextScale } from '$lib/utils/text-scale';
+	import { setAppFontFamily, setTextScale } from '$lib/utils/text-scale';
 
-	import { WEBUI_VERSION, WEBUI_API_BASE_URL } from '$lib/constants';
+	import { WEBUI_VERSION, WEBUI_API_BASE_URL, WEBUI_BUILD_CHANNEL } from '$lib/constants';
 	import { compareVersion } from '$lib/utils';
 
-	import {
-		config,
-		user,
-		settings,
-		models,
-		tools,
-		banners,
-		showSettings,
-		showChangelog,
-		temporaryChatEnabled,
-		toolServers,
-		terminalServers,
-		selectedTerminalId,
-		showSearch,
-		showSidebar,
-		showControls,
-		mobile,
-		chatId,
-		chats
-	} from '$lib/stores';
+	import { config, user, settings, models, tools, skills, socket, banners, showSettings, showChangelog, temporaryChatEnabled, toolServers, terminalServers, selectedTerminalId, showSearch, showSidebar, showControls, mobile, chatId, chats } from '$lib/stores';
 
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import SettingsModal from '$lib/components/chat/SettingsModal.svelte';
@@ -56,6 +39,7 @@
 	import UpdateInfoToast from '$lib/components/layout/UpdateInfoToast.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import { loadKeybindings, matchKeybinding, Shortcut } from '$lib/shortcuts';
+	import { canUseTemporaryChats } from '$lib/utils/settings-access';
 
 	const i18n = getContext<Readable<I18n>>('i18n');
 
@@ -75,6 +59,7 @@
 	let legalGateOpen = false;
 
 	type EnabledTerminal = {
+		config?: import('$lib/utils/airis/frontend-contracts').TerminalServerConnection['config'];
 		enabled?: boolean;
 		url?: string;
 		auth_type?: string;
@@ -83,7 +68,7 @@
 	};
 	type SettingsWithTerminals = { terminalServers?: EnabledTerminal[] };
 
-	let version: Awaited<ReturnType<typeof getVersionUpdates>> | null = null;
+	let version: { current: string; latest: string | null } | null = null;
 	let handledSettingsUrl = '';
 
 	const clearChatInputStorage = () => {
@@ -121,20 +106,10 @@
 	};
 
 	const setUserSettings = async (cb?: () => Promise<void>) => {
-		let userSettings = await getUserSettings(localStorage.token).catch((error) => {
-			console.error(error);
-			return null;
-		});
-		if (appDestroyed) return;
-
-		if (!userSettings) {
-			try {
-				userSettings = JSON.parse(localStorage.getItem('settings') ?? '{}');
-			} catch (e: unknown) {
-				console.error('Failed to parse settings from localStorage', e);
-				userSettings = {};
-			}
-		}
+		const token = localStorage.token;
+		const userId = $user?.id;
+		const userSettings = await getUserSettings(token);
+		if (appDestroyed || localStorage.token !== token || $user?.id !== userId) return;
 
 		if (userSettings?.ui) {
 			settings.set(userSettings.ui);
@@ -142,6 +117,7 @@
 		loadKeybindings(userSettings?.keybindings);
 
 		setTextScale($settings?.textScale ?? 1);
+		setAppFontFamily($settings?.fontFamily ?? null);
 
 		if (cb) {
 			await cb();
@@ -157,7 +133,14 @@
 	};
 
 	const setToolServers = async () => {
-		let toolServersData = await getToolServersData($settings?.toolServers ?? []);
+		if (!$config?.features?.enable_tool_servers) {
+			toolServers.set([]);
+			terminalServers.set([]);
+			return;
+		}
+		let toolServersData = await getToolServersData(
+			$config?.features?.enable_direct_integrations ? ($settings?.toolServers ?? []) : []
+		);
 		if (appDestroyed) return;
 		toolServersData = toolServersData.filter((data) => {
 			if (!data || data.error) {
@@ -174,9 +157,9 @@
 
 		// Inject enabled terminal servers as always-on tool servers
 		const terminalSettings = $settings as SettingsWithTerminals | null;
-		const enabledTerminals = (terminalSettings?.terminalServers ?? []).filter(
-			(s) => s.enabled || s.url === $selectedTerminalId
-		);
+		const enabledTerminals = (
+			$config?.features?.enable_direct_integrations ? (terminalSettings?.terminalServers ?? []) : []
+		).filter((s) => s.enabled || s.url === $selectedTerminalId);
 
 		// Fetch terminal servers the user has access to (for FileNav + terminal_id)
 		const systemTerminals = await getTerminalServers(localStorage.token);
@@ -194,7 +177,16 @@
 							}))
 						)
 					)
-						.filter((data) => {
+						.map((data, i) =>
+							data
+								? {
+										...data,
+										key: enabledTerminals[i]?.key ?? '',
+										config: enabledTerminals[i]?.config ?? {}
+									}
+								: null
+						)
+						.filter((data): data is NonNullable<typeof data> => {
 							if (appDestroyed) return false;
 							if (!data || data.error) {
 								toast.error(
@@ -206,17 +198,15 @@
 							}
 							return true;
 						})
-						.map((data, i) => ({
-							...data,
-							key: enabledTerminals[i]?.key ?? ''
-						}))
 				: []),
 			// Store with proxy URL and session key for FileNav file browsing
 			...systemTerminals.map((t) => ({
 				id: t.id,
 				url: `${WEBUI_API_BASE_URL}/terminals/${t.id}`,
 				name: t.name,
-				key: localStorage.token
+				key: localStorage.token,
+				contexts: t.contexts ?? {},
+				config: t.config ?? {}
 			}))
 		];
 		if (!appDestroyed) terminalServers.set(terminalData);
@@ -231,6 +221,38 @@
 		const toolsData = await getTools(localStorage.token);
 		if (!appDestroyed) tools.set(toolsData);
 	};
+
+	const refreshAccess = async () => {
+		if (!localStorage.token) return;
+		try {
+			user.set(await getSessionUser(localStorage.token));
+			const results = await Promise.allSettled([
+				getBackendConfig().then((value) => config.set(value)),
+				setModels(),
+				setTools(),
+				setToolServers(),
+				getSkills(localStorage.token).then((value) => skills.set(value))
+			]);
+			for (const result of results) {
+				if (result.status === 'rejected') console.error('Unable to refresh access', result.reason);
+			}
+		} catch (error) {
+			console.error('Unable to refresh permissions', error);
+		}
+	};
+
+	onMount(() => {
+		const socketInstance = $socket;
+		const scheduleAccessRefresh = () => {
+			socketInstance?.off('connect', refreshAccess);
+			socketInstance?.once('connect', refreshAccess);
+		};
+		socketInstance?.on('access:updated', scheduleAccessRefresh);
+		return () => {
+			socketInstance?.off('access:updated', scheduleAccessRefresh);
+			socketInstance?.off('connect', refreshAccess);
+		};
+	});
 
 	const openSettingsFromUrl = async () => {
 		const requestedSettings = $page.url.searchParams.get('settings');
@@ -282,17 +304,25 @@
 	const bootstrapApp = async (): Promise<void> => {
 		if (appDestroyed) return;
 		clearChatInputStorage();
-		await Promise.all([
-			checkLocalDBChats(),
-			setBanners().catch((e) => console.error('Failed to load banners:', e)),
-			setTools().catch((e) => console.error('Failed to load tools:', e)),
-			setUserSettings(async () => {
-				await setModels().catch((e) => console.error('Failed to load models:', e));
-			}).catch((e) => console.error('Failed to load user settings:', e))
-		]);
+		try {
+			await Promise.all([
+				checkLocalDBChats(),
+				setBanners().catch((e) => console.error('Failed to load banners:', e)),
+				setTools().catch((e) => console.error('Failed to load tools:', e)),
+				setUserSettings(async () => {
+					await setModels().catch((e) => console.error('Failed to load models:', e));
+				})
+			]);
+		} catch (e) {
+			console.error('Failed to load user settings:', e);
+			toast.error($i18n.t('Failed to load Interface settings'));
+			return;
+		}
 		if (appDestroyed) return;
 
-		selectedTerminalId.set(localStorage.selectedTerminalId ?? null);
+		selectedTerminalId.set(
+			$config?.features?.enable_tool_servers ? (localStorage.selectedTerminalId ?? null) : null
+		);
 
 		const loadToolServers = setToolServers().catch((e) => {
 			console.error('Failed to load tool servers:', e);
@@ -365,17 +395,16 @@
 					console.log('Shortcut triggered: SHOW_SHORTCUTS');
 					event.preventDefault();
 					showSettings.set('shortcuts');
-				} else if (shortcut === Shortcut.CLOSE_MODAL) {
-					console.log('Shortcut triggered: CLOSE_MODAL');
-					event.preventDefault();
-					showSettings.set(false);
 				} else if (shortcut === Shortcut.OPEN_MODEL_SELECTOR) {
 					console.log('Shortcut triggered: OPEN_MODEL_SELECTOR');
 					event.preventDefault();
-					document.getElementById('model-selector-0-button')?.click();
+					document.getElementById('model-selector-model-button')?.click();
 				} else if (shortcut === Shortcut.NEW_TEMPORARY_CHAT) {
 					console.log('Shortcut triggered: NEW_TEMPORARY_CHAT');
 					event.preventDefault();
+					if (!canUseTemporaryChats({ user: $user, config: null })) {
+						return;
+					}
 					if ($user?.role !== 'admin' && $user?.permissions?.chat?.temporary_enforced) {
 						temporaryChatEnabled.set(true);
 					} else {
@@ -389,6 +418,24 @@
 					console.log('Shortcut triggered: GENERATE_MESSAGE_PAIR');
 					event.preventDefault();
 					document.getElementById('generate-message-pair-button')?.click();
+				} else if (shortcut === Shortcut.ALLOW_TOOL_CALL) {
+					const button = [...document.getElementsByClassName('tool-call-allow-button')]
+						.reverse()
+						.find((el) => !(el as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
+					if (button) {
+						console.log('Shortcut triggered: ALLOW_TOOL_CALL');
+						event.preventDefault();
+						button.click();
+					}
+				} else if (shortcut === Shortcut.DENY_TOOL_CALL) {
+					const button = [...document.getElementsByClassName('tool-call-deny-button')]
+						.reverse()
+						.find((el) => !(el as HTMLButtonElement).disabled) as HTMLButtonElement | undefined;
+					if (button) {
+						console.log('Shortcut triggered: DENY_TOOL_CALL');
+						event.preventDefault();
+						button.click();
+					}
 				} else if (
 					shortcut === Shortcut.REGENERATE_RESPONSE &&
 					document.activeElement?.id === 'chat-input'
@@ -420,7 +467,11 @@
 		}
 
 		// Check for version updates
-		if ($user?.role === 'admin' && $config?.features?.enable_version_update_check) {
+		if (
+			WEBUI_BUILD_CHANNEL === 'main' &&
+			$user?.role === 'admin' &&
+			$config?.features?.enable_version_update_check
+		) {
 			// Check if the user has dismissed the update toast in the last 24 hours
 			if (localStorage.dismissedUpdateToast) {
 				const dismissedUpdateToast = new Date(Number(localStorage.dismissedUpdateToast));
@@ -445,6 +496,7 @@
 		// Persist selectedTerminalId across page loads
 		bootstrapCleanup.push(
 			selectedTerminalId.subscribe((value) => {
+				if (!$config?.features?.enable_tool_servers) return;
 				if (value === null) {
 					delete localStorage.selectedTerminalId;
 				} else {
@@ -545,7 +597,7 @@
 		version = await getVersionUpdates(localStorage.token).catch(() => {
 			return {
 				current: WEBUI_VERSION,
-				latest: WEBUI_VERSION
+				latest: null
 			};
 		});
 	};
@@ -554,10 +606,10 @@
 <SettingsModal bind:show={$showSettings} />
 <ChangelogModal bind:show={$showChangelog} />
 
-{#if version && compareVersion(version.latest, version.current) && ($settings?.showUpdateToast ?? true)}
+{#if WEBUI_BUILD_CHANNEL === 'main' && version?.latest && compareVersion(version.latest, version.current) && ($settings?.showUpdateToast ?? true)}
 	<div class=" absolute bottom-8 right-8 z-50" in:fade={{ duration: 100 }}>
 		<UpdateInfoToast
-			{version}
+			version={{ current: version.current, latest: version.latest }}
 			on:close={() => {
 				localStorage.setItem('dismissedUpdateToast', Date.now().toString());
 				version = null;
@@ -677,22 +729,22 @@
 		overflow: auto;
 
 		/* make space  */
-		margin: 5px 0;
+		margin: 0.3125rem 0;
 		padding: 1.75rem 0 1.75rem 1rem;
-		border-radius: 10px;
+		border-radius: 0.625rem;
 	}
 
 	:global(pre[class*='language-'] button) {
 		position: absolute;
-		top: 5px;
-		right: 5px;
+		top: 0.3125rem;
+		right: 0.3125rem;
 
 		font-size: 0.9rem;
 		padding: 0.15rem;
 		background-color: #828282;
 
 		border: ridge 1px #7b7b7c;
-		border-radius: 5px;
+		border-radius: 0.3125rem;
 		text-shadow: #c4c4c4 0 0 2px;
 	}
 
