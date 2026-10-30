@@ -1336,7 +1336,7 @@
 		});
 
 		rootCleanups.push(unsubscribeQueueUser);
-		initI18n(localStorage?.locale);
+		await initI18n(localStorage?.locale);
 		const isPublicRoute = isPublicMarketingRoute($page.url.pathname);
 		if (isPublicRoute && localStorage.token) {
 			// Hydrate an existing session without delaying the public landing page.

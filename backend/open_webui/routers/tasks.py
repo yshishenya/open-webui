@@ -410,8 +410,10 @@ async def generate_image_prompt(
         )
 
 
-@router.post('/queries/completions')
-async def generate_queries(request: Request, form_data: dict, user=Depends(get_verified_user)):
+@router.post('/queries/completions', response_model=None)
+async def generate_queries(
+    request: Request, form_data: dict, user: UserModel = Depends(get_verified_user)
+) -> dict | Response:
     type = form_data.get('type')
     if type == 'web_search':
         if not await Config.get('task.query.search.enable'):
@@ -470,19 +472,17 @@ async def generate_queries(request: Request, form_data: dict, user=Depends(get_v
     }
 
     # Process the payload through the pipeline
-    try:
-        payload = await process_pipeline_inlet_filter(request, payload, user, models)
-    except Exception as e:
-        raise e
+    payload = await process_pipeline_inlet_filter(request, payload, user, models)
 
     payload = apply_task_model_params(payload, models, task_model_id, task_model_params)
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
+    except Exception:
+        log.exception('Error generating queries')
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={'detail': str(e)},
+            content={'detail': ERROR_MESSAGES.DEFAULT()},
         )
 
 
@@ -563,8 +563,10 @@ async def generate_autocompletion(request: Request, form_data: dict, user=Depend
         )
 
 
-@router.post('/emoji/completions')
-async def generate_emoji(request: Request, form_data: dict, user=Depends(get_verified_user)):
+@router.post('/emoji/completions', response_model=None)
+async def generate_emoji(
+    request: Request, form_data: dict, user: UserModel = Depends(get_verified_user)
+) -> dict | Response:
     if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
         models = {
             **dict(request.app.state.MODELS.items()),
@@ -610,15 +612,18 @@ async def generate_emoji(request: Request, form_data: dict, user=Depends(get_ver
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
+    except Exception:
+        log.exception('Error generating emoji')
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={'detail': str(e)},
+            content={'detail': ERROR_MESSAGES.DEFAULT()},
         )
 
 
-@router.post('/moa/completions')
-async def generate_moa_response(request: Request, form_data: dict, user=Depends(get_verified_user)):
+@router.post('/moa/completions', response_model=None)
+async def generate_moa_response(
+    request: Request, form_data: dict, user: UserModel = Depends(get_verified_user)
+) -> dict | Response:
     if getattr(request.state, 'direct', False) and hasattr(request.state, 'model'):
         models = {
             **dict(request.app.state.MODELS.items()),
@@ -663,8 +668,9 @@ async def generate_moa_response(request: Request, form_data: dict, user=Depends(
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)
-    except Exception as e:
+    except Exception:
+        log.exception('Error generating MoA response')
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={'detail': str(e)},
+            content={'detail': ERROR_MESSAGES.DEFAULT()},
         )

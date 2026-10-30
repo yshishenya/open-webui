@@ -2,7 +2,7 @@
   "spec_id": "airis-upstream-0125-2026-10-30-031",
   "title": "AIRIS Open WebUI v0.12.5 integration and guarded release 20261030",
   "generated": "2026-10-29T21:31:05.622244Z",
-  "last_updated": "2026-10-30T02:23:51.624217Z",
+  "last_updated": "2026-10-30T03:19:57.847222Z",
   "metadata": {
     "template": "simple",
     "complexity": "high",
@@ -107,7 +107,7 @@
       "completed_tasks": 0,
       "metadata": {
         "started_at": "2026-10-29T22:49:48.568070Z",
-        "status_note": "Backend1431passed/13skipped; frontend preflight6 2924passed/261files/types0errors5warnings. Search browser target10 3passed; preceding guide/billing/cursor/capture checks passed. Final commit-image full browser suite pending. User waived169ESLint+450inheritedRuff+11C901; rules unchanged. Fresh production DB28935oldrows upgrade/repeat/restore preserve fields.",
+        "status_note": "Backend9 1447passed/13skipped/600stableSHA. Frontend2926passed/262files/types0errors5warnings after awaited i18n. Black9filesgreen; Ruff461exactapproved. ESLint169comparison finishing. New commit image/browser/CI required; CodeQL distinct gate not waived.",
         "file_path": "playwright.config.ts"
       }
     },
@@ -126,7 +126,7 @@
       "completed_tasks": 0,
       "metadata": {
         "file_path": "meta/memory_bank/specs/work_items/2026-10-30__feature__upstream-v0.12.5-integration.md",
-        "status_note": "Barrier real rehearsal, backup metadata7/7, full60s acceptance deadline review passed. Full isolated executor success/rollback/failclosed ongoing; production unchanged."
+        "status_note": "All real isolated executor scenarios passed: success219.861s,rollback302.297s,corruptbackup failclosed238.979s. Stand cleaned. Production unchanged old59d2healthy/restarts0; exact final image/gates required before preload/prepare/release."
       }
     }
   }

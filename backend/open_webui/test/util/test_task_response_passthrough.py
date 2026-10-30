@@ -29,6 +29,9 @@ def test_task_responses_preserve_provider_payload_and_http_response(
     async def config(key: str, default: object = None) -> object:
         return True if key.endswith('.enable') else 'fixture'
 
+    async def config_many(*keys: str) -> dict[str, object]:
+        return {key: {} if key == 'task.model.params' else 'fixture' for key in keys}
+
     async def render(*args: object, **kwargs: object) -> str:
         return 'fixture'
 
@@ -43,6 +46,7 @@ def test_task_responses_preserve_provider_payload_and_http_response(
         return provided
 
     monkeypatch.setattr(Config, 'get', config)
+    monkeypatch.setattr(Config, 'get_many', config_many)
     for name in ['title_generation_template', 'follow_up_generation_template', 'image_prompt_generation_template']:
         monkeypatch.setattr(tasks, name, render)
     monkeypatch.setattr(tasks, 'process_pipeline_inlet_filter', pipeline)

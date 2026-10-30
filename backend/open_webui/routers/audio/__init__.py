@@ -1738,6 +1738,11 @@ async def transcription(
         )
 
 
+def _is_openai_tts_endpoint(base_url: str) -> bool:
+    parsed = urlsplit(base_url)
+    return parsed.scheme == 'https' and parsed.netloc.lower() in {'api.openai.com', 'api.openai.com:443'}
+
+
 async def get_available_models(request: Request) -> list[dict]:
     """Return the list of available TTS models for the configured engine."""
     available_models = []
@@ -1746,7 +1751,7 @@ async def get_available_models(request: Request) -> list[dict]:
 
     if engine == 'openai':
         base_url = await Config.get('audio.tts.openai.api_base_url')
-        if not base_url.startswith('https://api.openai.com'):
+        if not _is_openai_tts_endpoint(base_url):
             session = await get_session()
             try:
                 async with session.get(
@@ -1816,7 +1821,7 @@ _OPENAI_DEFAULT_VOICES = {
 }
 
 
-async def get_available_voices(request) -> dict:
+async def get_available_voices(request: Request) -> dict:
     """Return ``{voice_id: voice_name}`` for the configured TTS engine."""
     engine = await Config.get('audio.tts.engine')
     _timeout = aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST)
@@ -1829,7 +1834,7 @@ async def get_available_voices(request) -> dict:
 
     if engine == 'openai':
         base_url = await Config.get('audio.tts.openai.api_base_url')
-        if not base_url.startswith('https://api.openai.com'):
+        if not _is_openai_tts_endpoint(base_url):
             try:
                 session = await get_session()
                 async with session.get(

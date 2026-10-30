@@ -6,6 +6,7 @@ import os
 import random
 import re
 import time
+from collections.abc import AsyncIterator
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -1705,8 +1706,8 @@ async def upload_model(
     request: Request,
     file: UploadFile = File(...),
     url_idx: int | None = None,
-    user=Depends(get_admin_user),
-):
+    user: UserModel = Depends(get_admin_user),
+) -> StreamingResponse:
     """Upload a local model file, push it as a blob, and create the model in Ollama."""
     ollama_url, api_config, key = await get_ollama_connection(url_idx if url_idx is not None else 0)
     headers, cookies = await get_headers_and_cookies(request, ollama_url, key, api_config, user=user)
@@ -1722,7 +1723,7 @@ async def upload_model(
         while chunk := await file.read(chunk_size):
             await out_f.write(chunk)
 
-    async def file_process_stream():
+    async def file_process_stream() -> AsyncIterator[str]:
         nonlocal ollama_url
         total_size = os.path.getsize(file_path)
         log.info('Total Model Size: %s', total_size)
@@ -1795,7 +1796,8 @@ async def upload_model(
                 else:
                     raise Exception(f'Failed to create model in Ollama. {resp_text}')
 
-        except Exception as exc:
-            yield f'data: {JSONCodec.dumps({"error": str(exc)})}\n\n'
+        except Exception:
+            log.exception('Error uploading model to Ollama')
+            yield f'data: {JSONCodec.dumps({"error": ERROR_MESSAGES.DEFAULT()})}\n\n'
 
     return StreamingResponse(file_process_stream(), media_type='text/event-stream')

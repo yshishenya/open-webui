@@ -166,7 +166,6 @@ async def generate_chat_completion(  # noqa: C901
     bypass_filter: bool = False,
     bypass_system_prompt: bool = False,
 ):
-    log.debug('generate_chat_completion: %s', form_data)
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 

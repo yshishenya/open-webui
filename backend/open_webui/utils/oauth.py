@@ -654,7 +654,7 @@ async def get_oauth_client_info_with_dynamic_client_registration(
 
 
 async def get_oauth_client_info_with_static_credentials(
-    request,
+    request: Request,
     client_id: str,
     oauth_server_url: str,
     oauth_client_id: str,
@@ -711,9 +711,7 @@ async def get_oauth_client_info_with_static_credentials(
             resource=resource,
         )
 
-        log.info(
-            'Static OAuth client info built for %s using metadata from %s', oauth_client_id, oauth_server_metadata_url
-        )
+        log.info('Static OAuth client info built')
         return oauth_client_info
     except Exception as e:
         log.error(f'Exception building static OAuth client info: {type(e).__name__}')
