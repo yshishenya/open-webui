@@ -22,6 +22,8 @@ it('exchanges the secret in a POST body with cookies and no cache', async () => 
 	});
 	vi.stubGlobal('fetch', fetch);
 	const response = await verifyEmail('synthetic-verification');
+	expect(response.session).not.toHaveProperty('next_step');
+	if (!response.session || !('token' in response.session)) throw new Error('Expected authenticated session');
 	expect(response.session.token).toBe('synthetic-session');
 	const [url, options] = fetch.mock.calls[0];
 	expect(url).not.toContain('synthetic-verification');
@@ -38,6 +40,25 @@ it.each(['?token=synthetic-verification', '#token=synthetic-verification'])(
 		expect(deps.window.history.replaceState).toHaveBeenCalledWith(null, '', '/verify-email');
 		expect(deps.localStorage.token).toBe('synthetic-session');
 		expect(deps.window.location.replace).toHaveBeenCalledWith('/');
+	}
+);
+
+it.each(['enroll', 'verify', 'recover', 'pending'])(
+	'continues the %s sign-in gate without persisting a session',
+	async (nextStep) => {
+		const {callback, deps} = await mountHandler('#token=synthetic-verification', true);
+		deps.localStorage.token = 'previous-session';
+		deps.localStorage.removeItem.mockImplementation(() => { deps.localStorage.token = ''; });
+		deps.verifyEmail.mockResolvedValue({message: 'verified', session: {next_step: nextStep}});
+		await callback();
+		expect(deps.localStorage.removeItem).toHaveBeenCalledWith('token');
+		expect(deps.localStorage.token).toBe('');
+		expect(deps.window.location.replace).toHaveBeenCalledWith(
+			nextStep === 'pending' ? '/auth?pending=1' : '/auth?mfa=1'
+		);
+		expect(deps.window.location.replace).toHaveBeenCalledOnce();
+		expect(deps.toast.success).not.toHaveBeenCalled();
+		expect(deps.toast.error).not.toHaveBeenCalled();
 	}
 );
 
@@ -67,7 +88,7 @@ const mountHandler = async (suffix: string, valid: boolean) => {
 		$page: { url: new URL(`https://test.invalid/verify-email${suffix}`) },
 		URLSearchParams,
 		window: { history: { state: null, replaceState: vi.fn() }, location: { replace: vi.fn() } },
-		localStorage: { token: '' },
+		localStorage: {token: '', removeItem: vi.fn()},
 		verifyEmail: valid
 			? vi.fn().mockResolvedValue({ message: 'verified', session: { token: 'synthetic-session' } })
 			: vi.fn().mockRejectedValue('Invalid or expired verification token'),

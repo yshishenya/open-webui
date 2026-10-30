@@ -19,16 +19,24 @@ const resolve = async (
 	if (!instance) throw new Error('FileNav script missing');
 	const script = source.slice(instance.content.start, instance.content.end);
 	const parsed = ts.createSourceFile('FileNav.ts', script, ts.ScriptTarget.Latest, true);
+	const helper = parsed.statements.filter(ts.isVariableStatement).flatMap(s => [...s.declarationList.declarations]).find(d => d.name.getText(parsed) === 'chatContext');
+	if (!helper?.initializer) throw new Error('FileNav chat context missing');
 	const declaration = parsed.statements
 		.filter(ts.isVariableStatement)
 		.flatMap((statement) => [...statement.declarationList.declarations])
 		.find((node) => ts.isIdentifier(node.name) && node.name.text === 'getTerminal');
 	if (!declaration?.initializer) throw new Error('FileNav resolver missing');
-	const code = ts.transpileModule(`(${declaration.initializer.getText(parsed)})`, {
+	const code = ts.transpileModule(`(() => {const chatContext = ${helper.initializer.getText(parsed)}; return ${declaration.initializer.getText(parsed)};})()`, {
 		compilerOptions: { target: ts.ScriptTarget.ES2022 }
 	}).outputText;
 	const handler = runInNewContext(code, {
 		$terminalServers: stored,
+		chatId: 'saved-chat',
+		isPerChatTerminal: false,
+		terminalChatContextHidden: false,
+		terminalChatContextPending: false,
+		isTemporaryChatId: (id: string) => id.startsWith('local:'),
+		isSavedChatId: (id: string) => !!id && !id.startsWith('local:'),
 		$settings: { terminalServers: configured },
 		$selectedTerminalId: selected,
 		localStorage: { token: 'airis-fixture-session' }

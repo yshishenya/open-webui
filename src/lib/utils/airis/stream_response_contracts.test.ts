@@ -21,6 +21,7 @@ it.each([
 	if (!statement) throw new Error(`Missing API helper ${name}`);
 	const filename = '/stream-contract.ts';
 	const contract = `
+declare const getErrorDetail: (error: unknown) => unknown;
 declare const WEBUI_BASE_URL: string;
 declare const WEBUI_API_BASE_URL: string;
 declare const OLLAMA_API_BASE_URL: string;

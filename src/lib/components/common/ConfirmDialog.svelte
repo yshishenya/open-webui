@@ -5,6 +5,8 @@
 	import type { i18n as I18n } from 'i18next';
 	import type { Readable } from 'svelte/store';
 	import * as FocusTrap from 'focus-trap';
+	import { settings } from '$lib/stores';
+	import { matchKeybinding, Shortcut } from '$lib/shortcuts';
 
 	const i18n = getContext<Readable<I18n>>('i18n');
 	const dispatch = createEventDispatcher();
@@ -18,8 +20,8 @@
 	export let title = '';
 	export let message = '';
 
-	export let cancelLabel = $i18n.t('Cancel');
-	export let confirmLabel = $i18n.t('Confirm');
+	export let cancelLabel: string | undefined = undefined;
+	export let confirmLabel: string | undefined = undefined;
 	export let confirmDisabled = false;
 
 	export let onConfirm: () => unknown = () => {};
@@ -42,13 +44,23 @@
 	let mounted = false;
 
 	let focusTrap: FocusTrap.FocusTrap | null = null;
+	let previousOverflow: string | null = null;
+	const restoreOverflow = () => {
+		if (previousOverflow !== null) {
+			document.body.style.overflow = previousOverflow;
+			previousOverflow = null;
+		}
+	};
 
 	const init = () => {
 		_inputValue = inputValue;
 	};
 
 	const handleKeyDown = (event: KeyboardEvent) => {
-		if (event.key === 'Escape') {
+		if (
+			event.key === 'Escape' ||
+			($settings?.keyboardShortcuts !== false && matchKeybinding(event) === Shortcut.CLOSE_MODAL)
+		) {
 			cancelHandler();
 		}
 
@@ -90,6 +102,7 @@
 			focusTrap.activate();
 
 			window.addEventListener('keydown', handleKeyDown);
+			previousOverflow = document.body.style.overflow;
 			document.body.style.overflow = 'hidden';
 		} else if (modalElement) {
 			focusTrap?.deactivate();
@@ -97,12 +110,13 @@
 			window.removeEventListener('keydown', handleKeyDown);
 			document.body.removeChild(modalElement);
 
-			document.body.style.overflow = 'unset';
+			restoreOverflow();
 		}
 	}
 
 	onDestroy(() => {
 		show = false;
+		restoreOverflow();
 		window.removeEventListener('keydown', handleKeyDown);
 		if (focusTrap) {
 			focusTrap.deactivate();
@@ -118,7 +132,7 @@
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		bind:this={modalElement}
-		class=" fixed top-0 right-0 left-0 bottom-0 bg-black/60 w-full h-screen max-h-[100dvh] flex justify-center z-99999999 overflow-hidden overscroll-contain"
+		class="modal fixed top-0 right-0 left-0 bottom-0 bg-black/60 w-full h-screen max-h-[100dvh] flex justify-center z-99999999 overflow-hidden overscroll-contain"
 		in:fade={{ duration: 10 }}
 		on:mousedown={() => {
 			cancelHandler();
@@ -136,7 +150,7 @@
 			}}
 		>
 			<div class="px-5 py-5 flex flex-col">
-				<div class="text-base font-medium dark:text-gray-200 mb-2.5">
+				<div class="text-sm font-medium dark:text-gray-200 mb-2.5">
 					{#if title !== ''}
 						{title}
 					{:else}
@@ -192,23 +206,23 @@
 
 				<div class="mt-5 flex justify-between gap-1.5">
 					<button
-						class="text-sm bg-gray-100 hover:bg-gray-100/70 text-gray-800 dark:bg-gray-850 dark:hover:bg-gray-850/60 dark:text-white font-normal w-full py-1.5 rounded-full transition"
+						class="flex h-7 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-normal transition disabled:opacity-60 bg-gray-100 hover:bg-gray-100/70 text-gray-800 dark:bg-gray-850 dark:hover:bg-gray-850/60 dark:text-white w-full"
 						on:click={() => {
 							cancelHandler();
 						}}
 						type="button"
 					>
-						{cancelLabel}
+						{cancelLabel ?? $i18n.t('Cancel')}
 					</button>
 					<button
-						class="text-sm bg-gray-900 hover:bg-gray-900/90 text-gray-100 dark:bg-gray-100 dark:hover:bg-gray-100/90 dark:text-gray-800 font-normal w-full py-1.5 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50"
+						class="flex h-7 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white w-full"
 						on:click={() => {
 							confirmHandler();
 						}}
 						disabled={confirmDisabled}
 						type="button"
 					>
-						{confirmLabel}
+						{confirmLabel ?? $i18n.t('Confirm')}
 					</button>
 				</div>
 			</div>

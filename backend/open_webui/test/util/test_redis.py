@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import ANY, Mock, patch, AsyncMock
 import redis
 from open_webui.utils.redis import (
     SentinelRedisProxy,
@@ -199,7 +199,8 @@ class TestSentinelRedisProxy:
         result = get_redis_connection(redis_url=redis_url, redis_sentinels=None, async_mode=False)
 
         assert result == mock_redis
-        mock_from_url.assert_called_once_with(redis_url, decode_responses=True)
+        mock_from_url.assert_called_once_with(redis_url, decode_responses=True, retry=ANY)
+        assert isinstance(mock_from_url.call_args.kwargs['retry'], redis.retry.Retry)
 
     @patch('redis.asyncio.from_url')
     def test_get_redis_connection_without_sentinel_async(self, mock_from_url):
@@ -212,7 +213,8 @@ class TestSentinelRedisProxy:
         result = get_redis_connection(redis_url=redis_url, redis_sentinels=None, async_mode=True)
 
         assert result == mock_redis
-        mock_from_url.assert_called_once_with(redis_url, decode_responses=True)
+        mock_from_url.assert_called_once_with(redis_url, decode_responses=True, retry=ANY)
+        assert isinstance(mock_from_url.call_args.kwargs['retry'], redis.asyncio.retry.Retry)
 
 
 class TestSentinelRedisProxyCommands:

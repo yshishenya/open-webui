@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
 	import { embed, showControls, showEmbeds } from '$lib/stores';
 
 	import FullHeightIframe from '$lib/components/common/FullHeightIframe.svelte';
@@ -6,12 +7,9 @@
 
 	export let overlay = false;
 
-	const getSrcUrl = (
-		url: string,
-		chatId?: string,
-		messageId?: string,
-		sourceId?: string
-	): string => {
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
+
+	const getSrcUrl = (url: string, chatId?: string, messageId?: string, sourceId?: string) => {
 		try {
 			const parsed = new URL(url, window.location.href);
 
@@ -62,7 +60,7 @@
 
 			<button
 				class="self-center pointer-events-auto p-1 rounded-full bg-white dark:bg-gray-850"
-				aria-label="Close embed"
+				aria-label={$i18n.t('Close embed')}
 				on:click={() => {
 					showControls.set(false);
 					showEmbeds.set(false);

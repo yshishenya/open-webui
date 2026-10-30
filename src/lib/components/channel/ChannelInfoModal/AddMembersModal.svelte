@@ -3,8 +3,9 @@
 	import { getContext, onDestroy } from 'svelte';
 	const i18n = getContext('i18n');
 
-	import type { ChannelDetail } from '$lib/utils/airis/channel-types';
-	import { addMembersById } from '$lib/apis/channels';
+	import { addMembersById, inviteAppToChannel } from '$lib/apis/channels';
+	import { getApps, type App } from '$lib/apis/apps';
+	import { config } from '$lib/stores';
 
 	import Modal from '$lib/components/common/Modal.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
@@ -12,7 +13,13 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 
 	export let show = false;
-	export let channel: ChannelDetail | null = null;
+	export let channel: import('$lib/utils/airis/channel-types').ChannelDetail | null = null;
+	export let joinedApps: App[] = [];
+	let apps: App[] = [];
+	let appIds: string[] = [];
+	$: availableApps = apps.filter(
+		(app) => app.is_active && !joinedApps.some((joined) => joined.id === app.id)
+	);
 
 	export let onUpdate: () => void | Promise<void> = () => {};
 
@@ -24,29 +31,61 @@
 
 	const submitHandler = async (): Promise<void> => {
 		if (!show || !channel || loading) return;
-		const id = channel.id,
-			version = ++submissionVersion;
+		const id = channel.id, version = ++submissionVersion;
 		loading = true;
+		let changed = false;
+		const current = (): boolean => channel?.id === id && version === submissionVersion;
 		try {
-			await addMembersById(localStorage.token, id, { user_ids: userIds, group_ids: groupIds });
-			if (!show || channel?.id !== id || version !== submissionVersion) return;
+			if (userIds.length || groupIds.length) {
+				await addMembersById(localStorage.token, id, { user_ids: userIds, group_ids: groupIds });
+				changed = true;
+				if (!current()) return;
+				userIds = [];
+				groupIds = [];
+			}
+			for (const appId of [...appIds]) {
+				if (!current()) return;
+				await inviteAppToChannel(localStorage.token, id, appId);
+				changed = true;
+				if (!current()) return;
+				appIds = appIds.filter((value) => value !== appId);
+			}
+			if (!current()) return;
 			toast.success($i18n.t('Members added successfully'));
 			show = false;
-			await onUpdate();
 		} catch (error) {
-			if (channel?.id === id && version === submissionVersion) toast.error(`${error}`);
+			if (current()) toast.error(String(error));
 		} finally {
-			if (version === submissionVersion) loading = false;
+			if (current()) {
+				loading = false;
+				if (changed) await onUpdate();
+			}
 		}
 	};
+
 	onDestroy(() => {
 		submissionVersion++;
 	});
+
+	let opened = false;
+	$: if (show && !opened) {
+		opened = true;
+		if ($config?.features?.enable_apps && channel?.type !== 'dm') {
+			const version = submissionVersion, channelId = channel?.id;
+			getApps(localStorage.token)
+				.then((value) => { if (show && submissionVersion === version && channel?.id === channelId) apps = value; })
+				.catch((error) => { if (show && submissionVersion === version) toast.error(String(error)); });
+		}
+	} else if (!show) {
+		opened = false;
+		apps = [];
+	}
 
 	const reset = (): void => {
 		submissionVersion++;
 		userIds = [];
 		groupIds = [];
+		appIds = [];
 		loading = false;
 	};
 
@@ -65,6 +104,7 @@
 					</div>
 				</div>
 				<button
+					aria-label={$i18n.t('Close')}
 					class="self-center rounded-lg p-1 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
 					on:click={() => {
 						show = false;
@@ -84,22 +124,27 @@
 						}}
 					>
 						<div class="flex flex-col w-full h-full pb-2">
-							<MemberSelector bind:userIds bind:groupIds includeGroups={true} />
+							<MemberSelector
+								bind:userIds
+								bind:groupIds
+								bind:appIds
+								apps={availableApps}
+								includeGroups={channel.type === 'group'}
+								includeUsers={channel.type === 'group'}
+							/>
 						</div>
 
 						<div class="flex justify-end pt-3 text-sm font-normal gap-1.5">
 							<button
-								class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-950 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full flex flex-row space-x-1 items-center {loading
-									? ' cursor-not-allowed'
-									: ''}"
+								class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:cursor-not-allowed"
 								type="submit"
-								disabled={loading}
+								disabled={loading || !(userIds.length || groupIds.length || appIds.length)}
 							>
 								{$i18n.t('Add')}
 
 								{#if loading}
-									<div class="ml-2 self-center">
-										<Spinner />
+									<div class="shrink-0">
+										<Spinner className="size-3" />
 									</div>
 								{/if}
 							</button>

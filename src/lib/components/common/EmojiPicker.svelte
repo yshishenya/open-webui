@@ -9,6 +9,7 @@
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import Search from '$lib/components/icons/Search.svelte';
 
 	import emojiGroups from '$lib/emoji-groups.json';
 	import emojiShortCodes from '$lib/emoji-shortcodes.json';
@@ -53,7 +54,7 @@
 		if (saveToken !== localStorage.token) return;
 		saving = true;
 		try {
-			await updateUserSettings(saveToken, { ui: { ...$settings } });
+			await updateUserSettings(saveToken, { ui: { recentEmojis: $settings.recentEmojis } });
 		} catch (error) {
 			if (!destroyed) toast.error(getErrorMessage(error));
 			else console.warn('Recent emoji preferences could not be saved.');
@@ -111,7 +112,7 @@
 			emojis = shortCodes;
 		}
 	}
-	// Flatten emoji groups and group them into rows of 8 for virtual scrolling
+	// Flatten emoji groups and group them into rows of 9 for virtual scrolling
 	$: {
 		flattenedEmojis = [];
 
@@ -128,13 +129,13 @@
 				flattenedEmojis.push(...groupEmojis.map(emojiEntry));
 			}
 		});
-		// Group emojis into rows of 8
+		// Group emojis into rows of 9
 		emojiRows = [];
 		let currentRow: EmojiEntry[] = [];
 		flattenedEmojis.forEach((item) => {
 			if (item.type === 'emoji') {
 				currentRow.push(item);
-				if (currentRow.length === 8) {
+				if (currentRow.length === 9) {
 					emojiRows.push(currentRow);
 					currentRow = [];
 				}
@@ -179,35 +180,38 @@
 
 	<div slot="content">
 		<div
-			class="max-w-full w-72 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-850 rounded-xl z-9999 shadow-lg dark:text-white"
+			class="max-w-full w-84 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-850 rounded-2xl z-9999 shadow-lg dark:text-white"
 		>
-			<div class="mb-0.5 px-3 pt-2 pb-1.5">
+			<div class="flex items-center gap-2 mb-0.5 px-3 pt-2 pb-1.5">
+				<Search className="size-3.5 shrink-0 text-gray-500" />
 				<input
 					type="text"
-					class="w-full text-[13px] bg-transparent outline-hidden"
+					class="min-w-0 flex-1 text-[0.8125rem] bg-transparent outline-hidden"
 					placeholder={$i18n.t('Search all emojis')}
 					bind:value={search}
 				/>
 			</div>
 
 			<!-- Virtualized Emoji List -->
-			<div class="w-full flex justify-start h-96 overflow-y-auto px-2.5 pb-2.5 text-[13px]">
+			<div class="w-full flex justify-start h-96 overflow-y-auto px-2.5 pb-2.5 text-[0.8125rem]">
 				{#if emojiRows.length === 0}
 					<div class="text-center text-xs text-gray-500 dark:text-gray-400">
 						{$i18n.t('No results')}
 					</div>
 				{:else}
-					<div class="w-full flex ml-0.5">
-						<VirtualList items={emojiRows} height="384px" let:item>
+					<div class="w-full h-full">
+						<VirtualList items={emojiRows} height="100%" let:item>
 							<div class="w-full mb-2.5">
 								{#if item.length === 1 && item[0].type === 'group'}
 									<!-- Render group header -->
-									<div class="text-xs font-normal -mb-1 text-gray-500 dark:text-gray-400">
+									<div
+										class="px-0.25 text-[0.6875rem] font-normal -mb-1 text-gray-500 dark:text-gray-400"
+									>
 										{item[0].label}
 									</div>
 								{:else}
 									<!-- Render emojis in a row -->
-									<div class="flex items-center gap-1.5 w-full">
+									<div class="flex items-center gap-1.5 w-full px-0.5">
 										{#each item as emojiItem}
 											{#if emojiItem.type === 'emoji'}
 												<Tooltip

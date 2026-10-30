@@ -42,6 +42,7 @@ it('does not start a frontend-update reload before dirty navigation is accepted'
 			accepted.push(callback);
 		},
 		isPublicMarketingRoute: () => false,
+		mfaManagement: null,
 		updated: { current: true },
 		unregisterServiceWorkers: cleanup,
 		location

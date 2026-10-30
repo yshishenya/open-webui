@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { AudioQueue } from '$lib/utils/audio';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
+beforeEach(() => {
+	vi.stubGlobal('document', new EventTarget());
+});
 const rig = () => {
 	class Audio extends EventTarget {
 		paused = true;
@@ -30,6 +33,7 @@ const rig = () => {
 };
 afterEach((): void => {
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 });
 
 it('releases completed and queued blob URLs on natural end and stop', () => {

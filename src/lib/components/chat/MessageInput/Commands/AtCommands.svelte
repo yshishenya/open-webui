@@ -2,11 +2,25 @@
 	import Fuse from 'fuse.js';
 	import { getContext, onDestroy, onMount, tick } from 'svelte';
 
-	import { folders, models } from '$lib/stores';
+	import {
+		chatId as activeChatId,
+		folders,
+		models,
+		selectedTerminalId,
+		settings,
+		terminalServers,
+		user
+	} from '$lib/stores';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { getFolders } from '$lib/apis/folders';
 	import { searchKnowledgeBases, searchKnowledgeFiles } from '$lib/apis/knowledge';
+	import { searchFiles, filesystemFile } from '$lib/apis/terminal';
 	import { decodeString, isValidHttpUrl, isYoutubeUrl } from '$lib/utils';
+	import {
+		resolveLocalizedModelDescription,
+		resolveLocalizedModelName
+	} from '$lib/utils/localizedContent';
+	import { isTemporaryChatId } from '$lib/utils/chatId';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Database from '$lib/components/icons/Database.svelte';
@@ -30,10 +44,13 @@
 		tags?: string;
 		desc?: string | null;
 	};
+	type FilesystemCommandItem = ReturnType<typeof filesystemFile> & {description: string; filesystem_type: string};
 	type CommandItem =
+		| {type: 'filesystem'; data: FilesystemCommandItem}
 		| { type: KnowledgeCommandItem['type']; data: KnowledgeCommandItem }
 		| { type: 'model'; data: ModelCommandItem };
 	type CommandSelection =
+		| {type: 'filesystem'; data: FilesystemCommandItem}
 		| { type: 'knowledge'; data: KnowledgeCommandItem }
 		| { type: 'web'; data: string }
 		| { type: 'model'; data: ModelCommandItem };
@@ -42,25 +59,26 @@
 
 	export let query = '';
 	export let onSelect: (e: CommandSelection) => void = () => {};
+	export let fileUploadEnabled: boolean = true;
 
 	let selectedIdx = 0;
-	export let filteredItems: { type: string; data: unknown }[] = [];
+	export let filteredItems: CommandItem[] = [];
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
-	let folderItems: KnowledgeCommandItem[] = [];
-	let knowledgeItems: KnowledgeCommandItem[] = [];
-	let fileItems: KnowledgeCommandItem[] = [];
-	let modelItems: ModelCommandItem[] = [];
-	let filteredModels: ModelCommandItem[] = [];
-	let knowledgeResults: KnowledgeCommandItem[] = [];
+	let filesystemItems: (FilesystemCommandItem)[] = [];
+	let knowledgeItems: (KnowledgeCommandItem)[] = [];
+	let fileItems: (KnowledgeCommandItem)[] = [];
+	let modelItems: (ModelCommandItem)[] = [];
+	let filteredModels: (ModelCommandItem)[] = [];
+	let knowledgeResults: (KnowledgeCommandItem | FilesystemCommandItem)[] = [];
 
 	$: modelItems = ($models ?? [])
 		.filter((model) => !model?.info?.meta?.hidden)
 		.map((model) => ({
 			...model,
-			modelName: model?.name,
+			modelName: resolveLocalizedModelName(model, $i18n.language),
 			tags: model?.info?.meta?.tags?.map((tag) => tag.name).join(' '),
-			desc: model?.info?.meta?.description
+			desc: resolveLocalizedModelDescription(model, $i18n.language)
 		}));
 
 	$: fuse = new Fuse(modelItems, {
@@ -69,7 +87,10 @@
 	});
 
 	$: filteredModels = query ? fuse.search(query).map((e) => e.item) : modelItems;
+	let webUploadEnabled: boolean = true;
+	$: webUploadEnabled = $user?.role === 'admin' || ($user?.permissions?.chat?.web_upload ?? true);
 	$: knowledgeResults = [
+		...filesystemItems,
 		...(query.startsWith('http')
 			? isYoutubeUrl(query)
 				? [{ type: 'youtube' as const, name: query, description: query }]
@@ -78,10 +99,14 @@
 		...folderItems,
 		...knowledgeItems,
 		...fileItems
-	];
+	].filter((item) =>
+		['youtube', 'web'].includes(item.type) ? webUploadEnabled : fileUploadEnabled
+	);
 
 	$: filteredItems = [
-		...knowledgeResults.map<CommandItem>((data) => ({ type: data.type, data })),
+		...knowledgeResults.map<CommandItem>((data) =>
+			data.type === 'filesystem' ? { type: 'filesystem', data } : { type: data.type, data }
+		),
 		...filteredModels.map<CommandItem>((data) => ({ type: 'model', data }))
 	];
 
@@ -102,28 +127,80 @@
 		clearTimeout(searchDebounceTimer);
 	});
 
-	const getItems = (): void => {
-		getFolderItems();
+	const getItems = () => {
+		const terminal = getSelectedTerminal();
+		getFilesystemItems(terminal);
 		getKnowledgeItems();
 		getKnowledgeFileItems();
 	};
 
-	const getFolderItems = (): void => {
-		folderItems = ($folders ?? [])
-			.map<KnowledgeCommandItem>((folder) => ({
-				...folder,
-				type: 'folder',
-				description: $i18n.t('Folder'),
-				title: folder.name
-			}))
-			.filter((folder) => folder.name.toLowerCase().includes(query.toLowerCase()));
+	const getFilesystemItems = async (terminal = getSelectedTerminal()) => {
+		if (!terminal) {
+			filesystemItems = [];
+			return;
+		}
+
+		const terminalId = $selectedTerminalId;
+		const sessionId = $activeChatId;
+		const res = await searchFiles(
+			terminal.url,
+			terminal.key,
+			query,
+			'.',
+			20,
+			'any',
+			sessionId || undefined,
+			localStorage.getItem('fileNav:showHidden') === 'true'
+		).catch(() => null);
+
+		if (terminalId !== $selectedTerminalId || sessionId !== $activeChatId) return;
+		filesystemItems = (res?.results ?? []).map((item) => ({
+			...filesystemFile(item, terminalId!, sessionId || null),
+			filesystem_type: item.type,
+			description: item.path
+		}));
 	};
 
-	const getKnowledgeItems = async (): Promise<void> => {
+	const chatContext = (terminal: import('$lib/utils/airis/frontend-contracts').StoredTerminalServer | null | undefined) => terminal?.contexts?.chat ?? {};
+
+	const getSelectedTerminal = (): { url: string; key: string } | null => {
+		if (!$selectedTerminalId) return null;
+
+		const systemTerminal = ($terminalServers ?? []).find(
+			(t) => t.id && t.id === $selectedTerminalId
+		);
+		const systemChatContext = chatContext(systemTerminal);
+		if (systemTerminal) {
+			if (
+				systemChatContext === false ||
+				(isTemporaryChatId($activeChatId) && systemChatContext?.context_id === 'chat_id')
+			) {
+				return null;
+			}
+
+			return { url: systemTerminal.url, key: localStorage.token };
+		}
+
+		const directTerminal = ($settings?.terminalServers ?? []).find(
+			(t) => t.url === $selectedTerminalId && t.enabled
+		);
+		return directTerminal?.url ? { url: directTerminal.url, key: directTerminal.key ?? '' } : null;
+	};
+
+	$: folderItems = ($folders ?? [])
+		.map((folder) => ({
+			...folder,
+			type: 'folder' as const,
+			description: $i18n.t('Folder'),
+			title: folder.name
+		}))
+		.filter((folder) => folder.name.toLowerCase().includes(query.toLowerCase()));
+
+	const getKnowledgeItems = async () => {
 		const res = await searchKnowledgeBases(localStorage.token, query).catch(() => null);
 
 		if (res) {
-			knowledgeItems = res.items.map<KnowledgeCommandItem>((item) => ({
+			knowledgeItems = res.items.map((item: import('$lib/utils/airis/knowledge-types').KnowledgeListItem): KnowledgeCommandItem => ({
 				...item,
 				type: 'collection'
 			}));
@@ -134,7 +211,7 @@
 		const res = await searchKnowledgeFiles(localStorage.token, query).catch(() => null);
 
 		if (res) {
-			fileItems = res.items.map<KnowledgeCommandItem>((item) => ({
+			fileItems = res.items.map((item): KnowledgeCommandItem => ({
 				...item,
 				type: 'file',
 				name: item.filename,
@@ -143,7 +220,12 @@
 		}
 	};
 
-	const selectKnowledgeItem = (item: KnowledgeCommandItem): void => {
+	const selectKnowledgeItem = (item: KnowledgeCommandItem | FilesystemCommandItem): void => {
+		if (item.type === 'filesystem') {
+			onSelect({ type: 'filesystem', data: item });
+			return;
+		}
+
 		if (['youtube', 'web'].includes(item.type)) {
 			if (isValidHttpUrl(query)) {
 				onSelect({ type: 'web', data: query });
@@ -167,7 +249,7 @@
 	};
 
 	export const select = async (): Promise<void> => {
-		const item = filteredItems[selectedIdx] as CommandItem | undefined;
+		const item = filteredItems[selectedIdx];
 		if (!item) return;
 
 		if (item.type === 'model') {
@@ -194,19 +276,21 @@
 	{#each knowledgeResults as item, idx}
 		{@const itemIdx = idx}
 		{#if idx === 0 || item?.type !== knowledgeResults[idx - 1]?.type}
-			<div class="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400">
+			<div class="px-2 py-1 text-[0.6875rem] text-gray-500 dark:text-gray-400">
 				{#if item?.type === 'folder'}
 					{$i18n.t('Folders')}
 				{:else if item?.type === 'collection'}
 					{$i18n.t('Collections')}
 				{:else if item?.type === 'file'}
 					{$i18n.t('Files')}
+				{:else if item?.type === 'filesystem'}
+					{$i18n.t('Filesystem')}
 				{/if}
 			</div>
 		{/if}
 
 		<button
-			class="flex h-[1.6875rem] w-full items-center justify-between rounded-xl px-2 text-left text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {itemIdx ===
+			class="flex h-[1.6875rem] w-full max-w-full items-center justify-between overflow-hidden rounded-xl px-2 text-left text-[0.8125rem] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {itemIdx ===
 			selectedIdx
 				? 'bg-gray-50/40 dark:bg-gray-800/40 dark:text-gray-100 selected-command-option-button'
 				: ''}"
@@ -219,24 +303,29 @@
 			}}
 			data-selected={itemIdx === selectedIdx}
 		>
-			<div class="flex min-w-0 items-center gap-1.5 text-black dark:text-gray-100">
+			<div
+				class="flex w-full min-w-0 items-center gap-1.5 overflow-hidden text-black dark:text-gray-100"
+			>
 				<Tooltip
-					content={item?.legacy
+					className="shrink-0 flex"
+					content={item.type !== 'filesystem' && item.legacy
 						? $i18n.t('Legacy')
-						: item?.type === 'file'
-							? `${item?.collection?.name} > ${$i18n.t('File')}`
-							: item?.type === 'collection'
-								? $i18n.t('Collection')
-								: item?.type === 'youtube'
-									? $i18n.t('YouTube')
-									: item?.type === 'web'
-										? $i18n.t('Web')
-										: ''}
+						: item?.type === 'filesystem'
+							? item?.path
+							: item?.type === 'file'
+								? `${item?.collection?.name} > ${$i18n.t('File')}`
+								: item?.type === 'collection'
+									? $i18n.t('Collection')
+									: item?.type === 'youtube'
+										? $i18n.t('YouTube')
+										: item?.type === 'web'
+											? $i18n.t('Web')
+											: ''}
 					placement="top"
 				>
 					{#if item?.type === 'collection'}
 						<Database className="size-3.5" />
-					{:else if item?.type === 'folder'}
+					{:else if item?.type === 'folder' || item?.filesystem_type === 'directory'}
 						<Folder className="size-3.5" />
 					{:else if item?.type === 'youtube'}
 						<Youtube className="size-3.5" />
@@ -247,8 +336,12 @@
 					{/if}
 				</Tooltip>
 
-				<Tooltip content={`${decodeString(item?.name)}`} placement="top-start">
-					<div class="min-w-0 flex-1 truncate">
+				<Tooltip
+					className="min-w-0 flex-1"
+					content={`${decodeString(item?.name)}`}
+					placement="top-start"
+				>
+					<div class="line-clamp-1 min-w-0 overflow-hidden break-all">
 						{decodeString(item?.name)}
 					</div>
 				</Tooltip>
@@ -258,7 +351,7 @@
 {/if}
 
 {#if filteredModels.length > 0}
-	<div class="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400">
+	<div class="px-2 py-1 text-[0.6875rem] text-gray-500 dark:text-gray-400">
 		{$i18n.t('Models')}
 	</div>
 
@@ -266,7 +359,7 @@
 		{@const itemIdx = knowledgeResults.length + modelIdx}
 		<Tooltip content={model.id} placement="top-start">
 			<button
-				class="flex h-[1.6875rem] w-full items-center rounded-xl px-2 text-left text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {itemIdx ===
+				class="flex h-[1.6875rem] w-full items-center rounded-xl px-2 text-left text-[0.8125rem] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {itemIdx ===
 				selectedIdx
 					? 'bg-gray-50/40 dark:bg-gray-800/40 selected-command-option-button'
 					: ''}"
@@ -283,14 +376,17 @@
 				<div class="flex min-w-0 items-center text-black dark:text-gray-100">
 					<img
 						src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}`}
-						alt={model?.name ?? model.id}
+						alt={resolveLocalizedModelName(model, $i18n.language) ?? model.id}
 						class="mr-2 size-4.5 rounded-full object-cover"
 						on:error={(e) => {
+							// LICENSE covers this Open WebUI fallback logo.
+							// Do not alter, remove, obscure, or replace it except as LICENSE permits:
+							// https://docs.openwebui.com/license.
 							(e.currentTarget as HTMLImageElement).src = '/favicon.png';
 						}}
 					/>
 					<div class="min-w-0 truncate">
-						{model.name}
+						{resolveLocalizedModelName(model, $i18n.language)}
 					</div>
 				</div>
 			</button>

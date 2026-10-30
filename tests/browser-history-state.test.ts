@@ -80,6 +80,7 @@ it.each(['normal', 'embedded', 'temporary'])(
 			$temporaryChatEnabled: mode === 'temporary',
 			embedded: mode === 'embedded',
 			chat: { id: 'prior' },
+			history,
 			localStorage: { token: 'test' },
 			$i18n: { t: (text: string): string => text },
 			selectedModels: ['luna'],

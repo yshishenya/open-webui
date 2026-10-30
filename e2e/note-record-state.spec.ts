@@ -56,7 +56,7 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	try {
-		for (const broken of ['versions', 'json']) {
+		for (const broken of ['legacy-versions', 'legacy-json', 'page-versions', 'page-json']) {
 			let refused = 0;
 			await page.route(`**/api/v1/notes/${note.id}`, async (route) => {
 				if (route.request().method() === 'GET' && refused === 0) {
@@ -65,23 +65,32 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 						headers: { ...route.request().headers(), 'accept-encoding': 'identity' }
 					});
 					const original = await response.json();
-					if (broken === 'versions') original.data.versions = 'broken';
-					else original.data.content.json = { type: 'doc', content: [null] };
+					if (broken === 'legacy-versions') original.data.versions = 'broken';
+					else if (broken === 'legacy-json')
+						original.data.content.json = { type: 'doc', content: [null] };
+					else {
+						const main = original.data.pages.find((item: { id: string }) => item.id === 'main');
+						expect(main).toBeTruthy();
+						if (broken === 'page-versions') main.versions = 'broken';
+						else main.content.json = { type: 'doc', content: [null] };
+					}
 					await route.fulfill({ response, json: original });
 				} else await route.continue();
 			});
 			await page.goto(`/notes/${note.id}`);
 			await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
-			await expect(page.locator('#note-editor input[type="text"]')).toHaveCount(0);
+			await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveCount(0);
 			expect(refused).toBe(1);
 			await page.unroute(`**/api/v1/notes/${note.id}`);
 			await page.getByRole('button', { name: 'Retry', exact: true }).click();
-			await expect(page.locator('#note-editor input[type="text"]')).toHaveValue('Contract fixture');
-			await expect(page.locator('#note-editor [contenteditable="true"]')).toContainText(
-				'Preserved note text'
+			await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
+				'Contract fixture'
 			);
+			await expect(
+				page.getByRole('textbox', { name: 'Write something...', exact: true })
+			).toContainText('Preserved note text');
 		}
-		const title = page.locator('#note-editor input[type="text"]');
+		const title = page.getByRole('textbox', { name: 'Title', exact: true });
 		await title.fill('Retained title');
 		await title.blur();
 		await expect
@@ -92,26 +101,49 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 			.toBe('Retained title');
 		const saved = await request.get(`/api/v1/notes/${note.id}`, { headers });
 		const persisted = await saved.json();
-		expect(persisted.data.content.md).toBe('Preserved note text');
+		const main = persisted.data.pages.find((item: { id: string }) => item.id === 'main');
+		expect(main).toBeTruthy();
+		expect(main.content.md).toBe('Preserved note text');
 		expect(persisted.data.custom).toEqual({ keep: true });
-		expect(persisted.data.versions).toEqual([{ md: 'Earlier version', custom: { keep: true } }]);
+		expect(main.versions).toEqual([{ md: 'Earlier version', custom: { keep: true } }]);
 		await page.reload();
 		await expect(title).toHaveValue('Retained title');
-		await expect(page.locator('#note-editor [contenteditable="true"]')).toContainText(
-			'Preserved note text'
-		);
+		await expect(
+			page.getByRole('textbox', { name: 'Write something...', exact: true })
+		).toContainText('Preserved note text');
+		const current = await request.get(`/api/v1/notes/${note.id}`, { headers });
+		expect(current.ok()).toBe(true);
+		const currentNote = await current.json();
+		const currentMain = currentNote.data.pages.find((item: { id: string }) => item.id === 'main');
+		expect(currentMain).toBeTruthy();
+		expect(currentMain.content.md).toBe('Preserved note text');
 		const remote = await request.post(`/api/v1/notes/${note.id}/update`, {
 			headers,
 			data: {
 				title: 'Retained title',
+				page_id: 'main',
+				page_revision: currentMain.revision,
 				data: { content: { md: 'Remote note text', html: '<p>Remote note text</p>' } },
 				access_grants: []
 			}
 		});
-		expect(remote.ok()).toBe(true);
-		await expect(page.locator('#note-editor [contenteditable="true"]')).toContainText(
-			'Remote note text'
-		);
+		expect(remote.ok(), `Remote note update: ${remote.status()} ${await remote.text()}`).toBe(true);
+		await expect(
+			page.getByRole('textbox', { name: 'Write something...', exact: true })
+		).toContainText('Remote note text');
+		await expect
+			.poll(async () => {
+				const response = await request.get(`/api/v1/notes/${note.id}`, { headers });
+				expect(response.ok()).toBe(true);
+				const saved = await response.json();
+				return saved.data.pages.find((item: { id: string }) => item.id === 'main').content.md;
+			})
+			.toBe('Remote note text');
+		await page.reload();
+		await expect(title).toHaveValue('Retained title');
+		await expect(
+			page.getByRole('textbox', { name: 'Write something...', exact: true })
+		).toContainText('Remote note text');
 		const row = (id: string) => ({
 			id,
 			title: `Recovery ${id}`,
@@ -153,7 +185,7 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 		expect(initialFailures).toBe(1);
 		expect(pages).toEqual([1]);
 		await page.getByRole('button', { name: 'Retry', exact: true }).click();
-		await expect(page.getByRole('button', { name: 'Open note', exact: true })).toHaveCount(40);
+		await expect(page.getByRole('link', { name: /^Recovery (?:first-\d+|next)$/ })).toHaveCount(40);
 		await page.getByText('Loading...', { exact: true }).scrollIntoViewIfNeeded();
 		await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
 		expect(pages.filter((number) => number === 2)).toEqual([2]);
@@ -161,7 +193,7 @@ test('notes preserve sparse content and recover malformed persisted fields', asy
 		await expect(page.getByText('Recovery next', { exact: true })).toBeVisible();
 		expect(failures).toBe(1);
 		expect(pages.filter((number) => number === 2)).toEqual([2, 2]);
-		await expect(page.getByRole('button', { name: 'Open note', exact: true })).toHaveCount(41);
+		await expect(page.getByRole('link', { name: /^Recovery (?:first-\d+|next)$/ })).toHaveCount(41);
 		await expect(page.getByText('Recovery first-0', { exact: true })).toHaveCount(1);
 		expect(errors).toEqual([]);
 	} finally {

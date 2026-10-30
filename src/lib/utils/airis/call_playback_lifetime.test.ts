@@ -74,6 +74,13 @@ const rig = () => {
 	}
 	const context = {
 		AbortController,
+		bridge: undefined,
+		callAudioElement: audio as AudioElement | undefined,
+		resetAvatarPlayback: vi.fn(),
+		cancelAvatarAnimation: vi.fn(),
+		analysePlayback: vi.fn().mockResolvedValue(undefined),
+		avatarSpeaking: false,
+		interrupted: false,
 		HTMLAudioElement: AudioElement,
 		Audio: class extends AudioElement {
 			constructor(url: string) {
@@ -155,7 +162,7 @@ const settled = async (promise: Promise<unknown>): Promise<boolean> => {
 
 it('settles when the shared audio element is absent', async () => {
 	const r = rig();
-	r.context.document.getElementById.mockReturnValue(null);
+	r.context.callAudioElement = undefined;
 	expect(await settled(r.api.playAudio(r.audio))).toBe(true);
 });
 it('settles a rejected play and releases handlers', async () => {

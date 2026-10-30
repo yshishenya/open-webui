@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
+import type { SearchResponse, SearchResult } from '../src/lib/apis/search';
 import {
 	test,
 	state,
@@ -178,7 +179,7 @@ for (const example of ['написать текст', 'разобраться в
 		).toBeVisible();
 		expect((await facts(request, account)).successes).toBe(1);
 		await openSidebar(page);
-		await page.getByRole('link', { name: 'New Chat', exact: true }).click();
+		await page.locator('a#sidebar-new-chat-button').click();
 		await expect(page).toHaveURL(/\/$/);
 		await expect(page.getByLabel(/^(Send a Message|How can I help you today\?)$/)).toHaveText('');
 		expect((await state(request)).calls.length).toBe(providerBefore + 1);
@@ -265,25 +266,56 @@ test('empty chat sidebar and embedded note chat fit their available width withou
 	await expect(sidebar.getByText(rows[0].title, { exact: true })).toHaveCount(1);
 	await expect.poll(() => pages).toEqual([1, 1, 2, 2, 3]);
 	pages = [];
+	const searchRows: SearchResult[] = rows.map((row) => ({
+		id: `chat:${row.id}`,
+		kind: 'chat',
+		title: row.title,
+		context: 'Personal chat',
+		snippet: '',
+		preview: '',
+		url: `/c/${row.id}`,
+		updated_at: row.updated_at,
+		shared: false,
+		pinned: false
+	}));
+	await page.route('**/api/v1/search?*', async (route) => {
+		const n = Number(new URL(route.request().url()).searchParams.get('page'));
+		pages.push(n);
+		const attempts = pages.filter((p) => p === n).length;
+		if ((n === 1 || n === 2) && attempts === 1) {
+			await route.fulfill({ status: 503, json: { detail: 'Local search failure' } });
+		} else {
+			const response: SearchResponse = {
+				items: n === 1 ? [searchRows[0]] : n === 2 ? searchRows : [],
+				has_more: n < 3,
+				scopes: [],
+				kinds: ['chat', 'note']
+			};
+			await route.fulfill({ json: response });
+		}
+	});
 	await page.locator('#sidebar-search-button').click();
-	const modal = page
-		.getByRole('dialog')
-		.filter({ has: page.getByPlaceholder('Search', { exact: true }) });
-	const searchRetry = modal.getByRole('button', { name: 'Retry', exact: true });
+	const modal = page.getByRole('dialog', { name: 'Search workspace', exact: true });
+	await expect(
+		modal.getByRole('combobox', { name: 'Search your workspace', exact: true })
+	).toBeVisible();
+	const searchResults = modal.getByRole('listbox');
+	const searchRetry = modal.getByRole('button', { name: 'Try again', exact: true });
 	await expect(searchRetry).toBeVisible();
 	await page.waitForTimeout(400);
 	expect(pages).toEqual([1]);
 	await searchRetry.click();
-	await expect(modal.getByText(rows[0].title, { exact: true })).toBeVisible();
+	await expect(searchResults.getByText(rows[0].title, { exact: true })).toBeVisible();
 	await expect(searchRetry).toBeVisible();
 	await page.waitForTimeout(400);
 	expect(pages).toEqual([1, 1, 2]);
 	await searchRetry.click();
-	await expect(modal.getByText(rows[1].title, { exact: true })).toBeVisible();
-	await expect(modal.getByText(rows[0].title, { exact: true })).toHaveCount(1);
+	await expect(searchResults.getByText(rows[1].title, { exact: true })).toBeVisible();
+	await expect(searchResults.getByText(rows[0].title, { exact: true })).toHaveCount(1);
 	await expect.poll(() => pages).toEqual([1, 1, 2, 2, 3]);
 	await page.keyboard.press('Escape');
 	await expect(modal).toBeHidden();
+	await page.unroute('**/api/v1/search?*');
 	await page.unroute('**/api/v1/chats/?*');
 	await page.unroute('**/api/v1/chats/recovery-*');
 	if ((page.viewportSize()?.width ?? 1000) < 640) await openSidebar(page);
@@ -380,7 +412,11 @@ test('checkout → exact credit → visible history → one service email, repla
 	const chatURL = page.url();
 	if ((page.viewportSize()?.width ?? 1000) < 640) {
 		await openSidebar(page);
-		await page.getByRole('button', { name: 'User menu', exact: true }).last().click();
+		await page
+			.getByRole('navigation', { name: 'Chat history', exact: true })
+			.getByRole('button')
+			.filter({ has: page.getByRole('img', { name: 'Open User Profile Menu', exact: true }) })
+			.click();
 		await page.getByTestId('user-menu-billing').click();
 	} else {
 		await page.getByRole('link', { name: /^Open wallet:/ }).click();

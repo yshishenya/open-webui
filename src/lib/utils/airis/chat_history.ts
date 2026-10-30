@@ -3,6 +3,9 @@ import type SubagentResultRow from '$lib/components/chat/Messages/SubagentResult
 import type { OutputItem } from '$lib/components/chat/Messages/structuredOutput';
 
 export type ChatAttachment = Record<string, unknown> & {
+	terminal_id?: string;
+	session_id?: string | null;
+	path?: string;
 	type?: string;
 	content_type?: string | null;
 	id?: string | null;
@@ -14,7 +17,7 @@ export type ChatAttachment = Record<string, unknown> & {
 	collection_name?: string | null;
 	context?: string;
 	content?: string;
-	file?: string | (Record<string, unknown> & { data?: Record<string, unknown> | null });
+	file?: File | string | (Record<string, unknown> & { data?: Record<string, unknown> | null });
 };
 
 export type ChatStatus = Record<string, unknown> & {
@@ -47,7 +50,17 @@ export type ChatAnnotation = Record<string, unknown> & {
 	reason?: string | null;
 	comment?: string;
 	tags?: string[];
-	details?: { rating?: number | null };
+	details?: { rating?: number | null } | null;
+};
+
+export type ChatVoiceMetadata = {
+	model?: string;
+	call_id?: string;
+	input_item_id?: string;
+	function_call_id?: string;
+	task_ids?: string[];
+	superseded?: boolean;
+	speech?: {item_id: string; transcript: string; response_id?: string; model?: string; interrupted?: boolean}[];
 };
 
 /** Client history after the existing graph repair boundary. */
@@ -56,8 +69,11 @@ export type ChatHistoryMessage = {
 	parentId: string | null;
 	childrenIds: string[];
 	role: string;
-	user?: string;
-	meta?: ComponentProps<typeof SubagentResultRow>['result'] & { internal?: boolean; type?: string };
+	user?: string | { id?: string; name?: string };
+	user_id?: string;
+	bridgeStopping?: boolean;
+	bridgeCancelled?: boolean;
+	meta?: ComponentProps<typeof SubagentResultRow>['result'] & { internal?: boolean; type?: string; voice?: ChatVoiceMetadata; task_id?: string };
 	content?: string;
 	timestamp?: number;
 	model?: string;
@@ -106,6 +122,7 @@ export type ChatHistoryMessage = {
 	followUps?: string[];
 	favorite?: boolean | null;
 	lastSentence?: string;
+	ttsSentContentPartCount?: number;
 	annotation?: ChatAnnotation;
 	feedbackId?: string;
 };

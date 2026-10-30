@@ -56,7 +56,7 @@ const flush = async () => {
 	await Promise.resolve();
 };
 const interfaceRig = () => {
-	const { code, source } = body('src/lib/components/chat/Settings/Interface.svelte');
+	const { code, source } = body('src/lib/components/common/InterfaceSettings.svelte');
 	const readers: {
 		result: string | ArrayBuffer | null;
 		onload: ((event: { target: { result: string | ArrayBuffer | null } }) => void) | null;
@@ -93,6 +93,11 @@ const interfaceRig = () => {
 		$user: null,
 		saveSettings: vi.fn(async () => {}),
 		setTextScale: vi.fn(),
+		setAppFontFamily: vi.fn(),
+		normalizeAppFontFamily: (value: string) => value,
+		currentSettings: {},
+		externalSettings: false,
+		defaultSettings: {},
 		getUserPosition: vi.fn(async () => 'fixture location'),
 		updateUserInfo: vi.fn(async () => ({})),
 		localStorage: { token: 'fixture' },
@@ -269,6 +274,9 @@ it('serializes partial settings so a later save includes the earlier successful 
 	const p = pending<{ ui: object }>(),
 		context = {
 			$settings: {} as Record<string, unknown>,
+			personalUiSettings: {} as Record<string, unknown>,
+			$config: {},
+			mergeUiSettings: (defaults: object, personal: object) => ({...defaults,...personal}),
 			structuredClone,
 			localStorage: { token: 'fixture' },
 			updateUserSettings: vi.fn(async (token: string, payload: { ui: object }) => {
@@ -294,7 +302,7 @@ it('serializes partial settings so a later save includes the earlier successful 
 		b = api.saveSettings({ responseAutoCopy: true });
 	await flush();
 	expect(context.updateUserSettings).toHaveBeenCalledTimes(1);
-	p.resolve({ ui: {} });
+	p.resolve({ ui: { chatBubble: false } });
 	await Promise.all([a, b]);
 	expect(context.updateUserSettings.mock.calls[1][1].ui).toEqual({
 		chatBubble: false,

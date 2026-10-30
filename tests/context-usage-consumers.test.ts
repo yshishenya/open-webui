@@ -5,6 +5,7 @@ import { expect, it } from 'vitest';
 import type { ContextUsage } from '../src/lib/utils/airis/frontend-contracts';
 
 const chat = readFileSync('src/lib/components/chat/Chat.svelte', 'utf8');
+const utils = `<script lang="ts">${readFileSync('src/lib/utils/index.ts', 'utf8')}</script>`;
 const input = readFileSync('src/lib/components/chat/MessageInput.svelte', 'utf8');
 function declaration(component: string, name: string): string {
 	const script = component.split('<script lang="ts">')[1].split('</script>')[0];
@@ -35,6 +36,8 @@ it('preserves unknown limits, local estimates and known server usage without NaN
 		const estimateTokens = () => 0;
 		const estimateMessagesTokens = () => 12;
 		const createMessagesList = () => [{usage: {input_tokens: 450, output_tokens: 50}}];
+		${declaration(utils, 'toTokenCount')}
+		${declaration(utils, 'getUsageTokenCount')}
 		${declaration(chat, 'getContextUsage')}
 		${declaration(input, 'getLocalContextUsage')}
 		return [getContextUsage(), getLocalContextUsage()];

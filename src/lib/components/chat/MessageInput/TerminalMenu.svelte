@@ -1,8 +1,18 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 
-	import { settings, showSettings, terminalServers, selectedTerminalId, user } from '$lib/stores';
+	import {
+		chatId as activeChatId,
+		config,
+		settings,
+		showControls,
+		showSettings,
+		terminalServers,
+		selectedTerminalId,
+		user
+	} from '$lib/stores';
 	import { getToolServersData } from '$lib/apis';
+	import { isTemporaryChatId } from '$lib/utils/chatId';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -14,9 +24,18 @@
 	const i18n = getContext('i18n');
 
 	export let show = false;
+	export let disabled = false;
 
-	$: systemTerminals = ($terminalServers ?? []).filter((t) => t.id);
-	$: directTerminals = ($settings?.terminalServers ?? []).filter((s) => s.url);
+	const chatContext = (terminal: import('$lib/utils/airis/frontend-contracts').StoredTerminalServer | null | undefined) => terminal?.contexts?.chat ?? {};
+
+	$: systemTerminals = ($terminalServers ?? []).filter((terminal) => {
+		const context = chatContext(terminal);
+		return terminal.id && context !== false &&
+			!(isTemporaryChatId($activeChatId) && context.context_id === 'chat_id');
+	});
+	$: directTerminals = (
+		$config?.features?.enable_direct_integrations ? ($settings?.terminalServers ?? []) : []
+	).filter((s) => s.url);
 
 	const refreshTerminalServersStore = async (servers: typeof directTerminals) => {
 		// Preserve system terminals (those with an `id`) — only refresh direct ones
@@ -34,7 +53,13 @@
 				}))
 			);
 			data = data.filter((d) => d && !d.error);
-			terminalServers.set([...data, ...existingSystemTerminals]);
+			terminalServers.set([
+				...data.map((d) => {
+					const source = activeTerminals.find((terminal) => terminal.url === d.url);
+					return { ...d, key: source?.key ?? '', config: { enable: true } };
+				}),
+				...existingSystemTerminals
+			]);
 		} else {
 			terminalServers.set(existingSystemTerminals);
 		}
@@ -43,6 +68,9 @@
 	const selectDirect = async (terminal: (typeof directTerminals)[0]) => {
 		const newId = $selectedTerminalId === terminal.url ? null : terminal.url;
 		selectedTerminalId.set(newId);
+		if (newId && window.matchMedia('(min-width: 1024px)').matches) {
+			showControls.set($settings?.showFilesOnTerminalSelect ?? true);
+		}
 
 		// Enable the selected direct terminal, disable all others
 		const updatedServers = ($settings?.terminalServers ?? []).map((s) => ({
@@ -63,24 +91,20 @@
 
 	const selectSystem = async (terminal: (typeof systemTerminals)[0] | null): Promise<void> => {
 		if (terminal && !terminal.id) return;
-		selectedTerminalId.set(terminal?.id ?? null);
-
-		// Disable all direct terminals when switching to a system terminal
-		if ($settings?.terminalServers?.some((s) => s.enabled)) {
-			const updatedServers = ($settings.terminalServers ?? []).map((s) => ({
-				...s,
-				enabled: false
+		const newId = terminal?.id ?? null;
+		selectedTerminalId.set(newId);
+		if (newId && window.matchMedia('(min-width: 1024px)').matches) {
+			showControls.set($settings?.showFilesOnTerminalSelect ?? true);
+		}
+		if ($settings?.terminalServers?.some((server) => server.enabled)) {
+			const updatedServers = ($settings.terminalServers ?? []).map((server) => ({
+				...server, enabled: false
 			}));
-			settings.set({
-				...$settings,
-				terminalServers: updatedServers
-			});
+			settings.set({ ...$settings, terminalServers: updatedServers });
 			await refreshTerminalServersStore(updatedServers);
 		}
-
 		show = false;
 	};
-
 	$: selectedSystemTerminal = systemTerminals.find((t) => t.id === $selectedTerminalId);
 	$: selectedDirectTerminal = directTerminals.find((t) => t.url === $selectedTerminalId);
 
@@ -90,9 +114,21 @@
 		selectedDirectTerminal?.name ||
 		selectedDirectTerminal?.url?.replace(/^https?:\/\//, '') ||
 		$i18n.t('Terminal');
+	$: if (disabled && show) show = false;
+
+	$: triggerClass = `flex items-center gap-1.5 translate-y-[1px] text-[0.8125rem] transition rounded-lg ${
+		disabled
+			? 'p-1 cursor-not-allowed opacity-40 text-gray-400 dark:text-gray-600'
+			: `text-gray-600 hover:bg-gray-50/40 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/40 dark:hover:text-gray-200 cursor-pointer ${
+					$selectedTerminalId && selectedLabel ? ' p-1 ' : ' p-1 opacity-50'
+				}`
+	}`;
 </script>
 
 <div class="flex items-center translate-x-0.5">
+	{#if disabled}
+		<button type="button" disabled aria-disabled="true" aria-label={$i18n.t('Choose mode')} class={triggerClass}><Cloud className="size-3.5" /></button>
+	{:else}
 	<Dropdown bind:show align="start">
 		<Tooltip content={$i18n.t('Choose mode')} placement="top">
 			<button
@@ -265,4 +301,5 @@
 			</div>
 		</div>
 	</Dropdown>
+	{/if}
 </div>

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
 import logging
 import re
 import uuid
@@ -14,7 +13,6 @@ from urllib.parse import quote, urlparse
 import aiofiles
 import aiohttp
 from aiocache import cached
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import (
     FileResponse,
@@ -26,24 +24,27 @@ from open_webui.config import (
     CACHE_DIR,
 )
 from open_webui.constants import ERROR_MESSAGES
-from open_webui.events import EVENTS, publish_event, publish_model_provider_request_failed
 from open_webui.env import (
     AIOHTTP_CLIENT_SESSION_SSL,
+    ENABLE_BILLING_WALLET,
     AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST,
     BYPASS_MODEL_ACCESS_CONTROL,
     ENABLE_FORWARD_USER_INFO_HEADERS,
     ENABLE_OPENAI_API_PASSTHROUGH,
-    FORWARD_SESSION_INFO_HEADER_CHAT_ID,
     MODELS_CACHE_TTL,
+    REDIS_KEY_PREFIX,
 )
+from open_webui.events import EVENTS, publish_event, publish_model_provider_request_failed
+from open_webui.internal.db import get_async_session
 from open_webui.models.access_grants import AccessGrants
 from open_webui.models.config import Config
 from open_webui.models.groups import Groups
 from open_webui.models.models import Models
 from open_webui.models.users import UserModel
-from open_webui.utils.access_control import check_model_access, has_permission
-from open_webui.utils.anthropic import get_anthropic_models, is_anthropic_url
+from open_webui.utils.access_control import check_model_access, has_connection_access, has_permission
+from open_webui.utils.anthropic import ANTHROPIC_VERSION, get_anthropic_models, is_anthropic_url
 from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.headers import get_headers_and_cookies, include_user_info_headers
 from open_webui.utils.airis.billing_events import emit_billing_reservation
 from open_webui.utils.billing_integration import (
     TTS_HOLD_REFERENCE,
@@ -57,14 +58,10 @@ from open_webui.utils.billing_integration import (
     track_non_streaming_response,
     track_streaming_response,
 )
-from open_webui.utils.headers import get_custom_headers, include_user_info_headers
 from open_webui.utils.json_codec import JSONCodec
+from open_webui.utils.misc import convert_logit_bias_input_to_json, get_provider_function
 from open_webui.utils.lead_magnet import estimate_tts_seconds
 from open_webui.utils.model_ids import strip_provider_model_prefix
-from open_webui.utils.misc import (
-    convert_logit_bias_input_to_json,
-    stream_chunks_handler,
-)
 from open_webui.utils.payload import (
     apply_model_params_to_body_openai,
     apply_system_prompt_to_body,
@@ -92,14 +89,16 @@ log = logging.getLogger(__name__)
 # response body.  Forwarding them verbatim causes desktop / programmatic
 # clients to attempt decompression of an already-decoded payload, resulting
 # in ZlibError.  See https://github.com/aio-libs/aiohttp/issues/4462.
-_STRIP_PROXY_HEADERS = frozenset({'Content-Encoding', 'Content-Length', 'Transfer-Encoding'})
+# Also drop server and date: uvicorn adds its own and forwarding both duplicates them.
+_STRIP_PROXY_HEADERS = frozenset({'content-encoding', 'content-length', 'transfer-encoding', 'server', 'date'})
 _MODEL_LIST_TIMEOUT = aiohttp.ClientTimeout(total=AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST)
 _UNSUPPORTED_OPENAI_MODEL_KEYWORDS = ('babbage', 'dall-e', 'davinci', 'embedding', 'tts', 'whisper')
+BASE_MODELS_CACHE_KEY = f'{REDIS_KEY_PREFIX}:models:base'
 
 
 def _clean_proxy_headers(raw_headers) -> dict:
-    """Return a copy of *raw_headers* with stale encoding headers removed."""
-    return {k: v for k, v in raw_headers.items() if k not in _STRIP_PROXY_HEADERS}
+    """Return a copy of *raw_headers* without the encoding, server and date headers."""
+    return {k: v for k, v in raw_headers.items() if k.lower() not in _STRIP_PROXY_HEADERS}
 
 
 async def send_get_request(
@@ -120,7 +119,7 @@ async def send_get_request(
                 cookies = None
 
                 if ENABLE_FORWARD_USER_INFO_HEADERS and user:
-                    headers = include_user_info_headers(headers, user)
+                    headers = include_user_info_headers(headers, user, request=request)
 
             async with session.get(
                 url,
@@ -168,87 +167,6 @@ def openai_reasoning_model_handler(payload):
     return payload
 
 
-async def get_headers_and_cookies(  # noqa: C901
-    request: Request,
-    url,
-    key=None,
-    config=None,
-    metadata: dict | None = None,
-    user: UserModel = None,
-):
-    cookies = {}
-    headers = {
-        'Content-Type': 'application/json',
-        **(
-            {
-                'HTTP-Referer': 'https://airis.local/',
-                'X-Title': 'AIris',
-            }
-            if 'openrouter.ai' in url
-            else {}
-        ),
-    }
-
-    if ENABLE_FORWARD_USER_INFO_HEADERS and user:
-        headers = include_user_info_headers(headers, user)
-        if metadata and metadata.get('chat_id'):
-            headers[FORWARD_SESSION_INFO_HEADER_CHAT_ID] = metadata.get('chat_id')
-
-    token = None
-    auth_type = config.get('auth_type')
-
-    if auth_type == 'bearer' or auth_type is None:
-        # Default to bearer if not specified
-        token = f'{key}'
-    elif auth_type == 'none':
-        token = None
-    elif auth_type == 'session':
-        cookies = request.cookies
-        token = request.state.token.credentials
-    elif auth_type == 'system_oauth':
-        cookies = request.cookies
-
-        oauth_token = None
-        try:
-            if request.cookies.get('oauth_session_id', None):
-                oauth_token = await request.app.state.oauth_manager.get_oauth_token(
-                    user.id,
-                    request.cookies.get('oauth_session_id', None),
-                )
-        except Exception as e:
-            log.error(f'Error getting OAuth token: {e}')
-
-        if oauth_token:
-            token = f'{oauth_token.get("access_token", "")}'
-
-    elif auth_type in ('azure_ad', 'microsoft_entra_id'):
-        token = get_microsoft_entra_id_access_token()
-
-    if token:
-        headers['Authorization'] = f'Bearer {token}'
-
-    if config.get('headers') and isinstance(config.get('headers'), dict):
-        custom_headers = await get_custom_headers(config.get('headers'), user, metadata, request=request)
-        headers.update(custom_headers)
-
-    return headers, cookies
-
-
-def get_microsoft_entra_id_access_token():
-    """
-    Get Microsoft Entra ID access token using DefaultAzureCredential for Azure OpenAI.
-    Returns the token string or None if authentication fails.
-    """
-    try:
-        token_provider = get_bearer_token_provider(
-            DefaultAzureCredential(), 'https://cognitiveservices.azure.com/.default'
-        )
-        return token_provider()
-    except Exception as e:
-        log.error(f'Error getting Microsoft Entra ID access token: {e}')
-        return None
-
-
 ##########################################
 #
 # API routes
@@ -259,9 +177,48 @@ router = APIRouter()
 
 LLAMACPP_LOADED_STATES = {'loaded', 'sleeping'}
 LLAMACPP_UNLOADED_STATES = {'loading', 'unloaded'}
+MODEL_MANAGEMENT_ENDPOINTS = {
+    'llama.cpp': {
+        'list': '/models',
+        'download': '/models',
+        'delete': '/models',
+        'load': '/models/load',
+        'unload': '/models/unload',
+        'sse': '/models/sse',
+    },
+    'lmstudio': {
+        'list': '/api/v1/models',
+        'download': '/api/v1/models/download',
+        'download_status': '/api/v1/models/download/status/{job_id}',
+        'load': '/api/v1/models/load',
+        'unload': '/api/v1/models/unload',
+    },
+}
 
 
-def get_llamacpp_model_loaded_state(model: dict, provider: str, manual_model_ids: bool = False) -> bool | None:
+def get_model_management_root_url(url: str, provider: str) -> str:
+    root_url = url.rstrip('/')
+    if provider in ('llama.cpp', 'lmstudio'):
+        for suffix in ('/api/v1', '/api/v0', '/v1'):
+            if root_url.endswith(suffix):
+                return root_url.removesuffix(suffix)
+
+    return root_url
+
+
+def get_provider_model_loaded_state(model: dict, provider: str, manual_model_ids: bool = False) -> bool | None:
+    if provider == 'lmstudio':
+        if model.get('loaded_instances'):
+            return True
+
+        state = model.get('state')
+        if state == 'loaded':
+            return True
+        if state == 'not-loaded':
+            return False
+
+        return None
+
     if provider != 'llama.cpp':
         return None
 
@@ -320,8 +277,116 @@ async def get_openai_connection(idx: int) -> tuple[str, str, dict]:
     return url, key, api_config
 
 
-async def get_anthropic_token_count_target(request: Request, form_data: dict, user: UserModel):
-    """Resolve the upstream LiteLLM connection for an Anthropic token-count request."""
+async def clear_models_cache(request: Request):
+    await get_all_models.cache.clear()
+    redis = getattr(request.app.state, 'redis', None)
+    if redis is not None:
+        await redis.delete(BASE_MODELS_CACHE_KEY)
+    request.app.state.BASE_MODELS = []
+    request.app.state.OPENAI_MODELS = {}
+    models = getattr(request.app.state, 'MODELS', None)
+    if hasattr(models, 'clear'):
+        models.clear()
+    else:
+        request.app.state.MODELS = {}
+
+
+async def get_model_management_connection(url_idx: int) -> tuple[str, str, dict, str]:
+    if not await Config.get('openai.enable'):
+        raise HTTPException(status_code=503, detail='OpenAI API is disabled')
+
+    try:
+        url, key, api_config = await get_openai_connection(url_idx)
+    except IndexError:
+        raise HTTPException(status_code=404, detail='Connection not found')
+
+    provider = api_config.get('provider', '')
+    if provider not in MODEL_MANAGEMENT_ENDPOINTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f'Provider "{provider or "default"}" does not support model management',
+        )
+
+    return get_model_management_root_url(url, provider), key, api_config, provider
+
+
+def get_model_management_path(provider: str, operation: str, path_params: dict | None = None) -> str:
+    try:
+        path = MODEL_MANAGEMENT_ENDPOINTS[provider][operation]
+    except KeyError:
+        raise HTTPException(status_code=400, detail=f'Provider "{provider}" does not support {operation}')
+
+    return path.format(**(path_params or {}))
+
+
+def get_model_management_payload(provider: str, operation: str, payload: dict | None) -> dict | None:
+    if provider == 'lmstudio' and operation == 'unload' and payload:
+        return {'instance_id': payload.get('instance_id') or payload.get('model')}
+
+    return payload
+
+
+async def send_model_management_request(
+    request: Request,
+    url_idx: int,
+    operation: str,
+    method: str = 'GET',
+    payload: dict | None = None,
+    query: dict | None = None,
+    path_params: dict | None = None,
+    stream: bool = False,
+    user: UserModel | None = None,
+):
+    root_url, key, api_config, provider = await get_model_management_connection(url_idx)
+    path = get_model_management_path(provider, operation, path_params=path_params)
+    payload = get_model_management_payload(provider, operation, payload)
+    headers, cookies = await get_headers_and_cookies(request, root_url, key, api_config, user=user)
+
+    response = None
+    streaming = False
+    try:
+        session = await get_session()
+        response = await session.request(
+            method,
+            f'{root_url}{path}',
+            json=payload,
+            params=query,
+            headers=headers,
+            cookies=cookies,
+            ssl=AIOHTTP_CLIENT_SESSION_SSL,
+            timeout=get_client_timeout(stream=stream),
+        )
+
+        if not response.ok:
+            try:
+                error = await response.json(loads=JSONCodec.loads)
+            except Exception:
+                error = await response.text()
+            raise HTTPException(status_code=response.status, detail=error)
+
+        if stream:
+            streaming = True
+            return StreamingResponse(
+                stream_wrapper(response, passthrough=True),
+                status_code=response.status,
+                headers=_clean_proxy_headers(response.headers),
+            )
+
+        try:
+            return await response.json(loads=JSONCodec.loads)
+        except Exception:
+            return {'success': True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=response.status if response else 500, detail=str(e))
+    finally:
+        if not streaming:
+            await cleanup_response(response)
+
+
+async def get_anthropic_request_target(request: Request, form_data: dict, user: UserModel):
+    """Resolve the upstream connection, payload and auth headers for a native Anthropic request."""
     requested_model = form_data.get('model')
     if not requested_model:
         raise HTTPException(status_code=400, detail='model is required')
@@ -349,14 +414,20 @@ async def get_anthropic_token_count_target(request: Request, form_data: dict, us
     payload['model'] = strip_provider_model_prefix(payload['model'], prefix_id)
 
     headers, cookies = await get_headers_and_cookies(request, url, key, api_config, user=user)
+
+    # Anthropic's native endpoints reject bearer auth, the key belongs in x-api-key.
+    if is_anthropic_url(url):
+        headers.setdefault('anthropic-version', ANTHROPIC_VERSION)
+        if api_config.get('auth_type') in (None, 'bearer'):
+            headers.pop('Authorization', None)
+            headers.setdefault('x-api-key', key)
+
     return requested_model, payload, url, key, headers, cookies
 
 
 async def count_anthropic_tokens(request: Request, form_data: dict, user: UserModel) -> int:
     """Forward an Anthropic token-count request through an OpenAI-compatible connection."""
-    requested_model, payload, url, key, headers, cookies = await get_anthropic_token_count_target(
-        request, form_data, user
-    )
+    requested_model, payload, url, key, headers, cookies = await get_anthropic_request_target(request, form_data, user)
     request_url = f'{url.rstrip("/")}/messages/count_tokens'
     response = None
 
@@ -365,7 +436,7 @@ async def count_anthropic_tokens(request: Request, form_data: dict, user: UserMo
         response = await session.request(
             method='POST',
             url=request_url,
-            data=json.dumps(payload),
+            data=JSONCodec.dumps(payload),
             headers=headers,
             cookies=cookies,
             ssl=AIOHTTP_CLIENT_SESSION_SSL,
@@ -437,14 +508,7 @@ async def update_config(request: Request, form_data: OpenAIConfigForm, user=Depe
         }
     )
 
-    await get_all_models.cache.clear()
-    request.app.state.BASE_MODELS = []
-    request.app.state.OPENAI_MODELS = {}
-    models = getattr(request.app.state, 'MODELS', None)
-    if hasattr(models, 'clear'):
-        models.clear()
-    else:
-        request.app.state.MODELS = {}
+    await clear_models_cache(request)
 
     await publish_event(
         request,
@@ -489,8 +553,8 @@ async def speech(request: Request, user=Depends(get_verified_user)):  # noqa: C9
         file_body_path = SPEECH_CACHE_DIR.joinpath(f'{name}.json')
 
         try:
-            payload = json.loads(body.decode('utf-8'))
-        except (UnicodeDecodeError, json.JSONDecodeError):
+            payload = JSONCodec.loads(body.decode('utf-8'))
+        except (UnicodeDecodeError, JSONCodec.JSONDecodeError):
             raise HTTPException(status_code=400, detail='Invalid JSON payload')
 
         if not isinstance(payload, dict):
@@ -576,7 +640,7 @@ async def speech(request: Request, user=Depends(get_verified_user)):  # noqa: C9
                     await f.write(chunk)
 
             async with aiofiles.open(tmp_body_path, 'w') as f:
-                await f.write(json.dumps(payload))
+                await f.write(JSONCodec.dumps(payload))
 
             await asyncio.to_thread(tmp_body_path.replace, file_body_path)
             await asyncio.to_thread(tmp_file_path.replace, file_path)
@@ -610,6 +674,9 @@ async def speech(request: Request, user=Depends(get_verified_user)):  # noqa: C9
                 except Exception:
                     detail = f'External: {e}'
 
+            # LICENSE covers this Open WebUI error identifier.
+            # Do not alter, remove, obscure, or replace it except as LICENSE permits:
+            # https://docs.openwebui.com/license.
             raise HTTPException(
                 status_code=r.status if r else 500,
                 detail=detail if detail else 'Airis: Server Connection Error',
@@ -694,6 +761,8 @@ async def get_all_models_responses(request: Request, user: UserModel) -> list:  
 
                 if prefix_id:
                     model['id'] = f'{prefix_id}.{model.get("id", model.get("name", ""))}'
+                    if model.get('name'):
+                        model['name'] = f'{prefix_id}.{model["name"]}'
 
                 if tags:
                     model['tags'] = tags
@@ -704,7 +773,7 @@ async def get_all_models_responses(request: Request, user: UserModel) -> list:  
                 if provider:
                     model['provider'] = provider
 
-    log.debug(f'get_all_models:responses() {responses}')
+    log.debug('get_all_models:responses() %s', responses)
     return responses
 
 
@@ -712,7 +781,9 @@ async def get_filtered_models(models, user, db=None):
     # Filter models based on user access control
     model_ids = [model['id'] for model in models.get('data', [])]
     model_infos = {model_info.id: model_info for model_info in await Models.get_models_by_ids(model_ids, db=db)}
-    user_group_ids = {group.id for group in await Groups.get_groups_by_member_id(user.id, db=db)}
+    user_group_ids = {
+        group.id for group in await Groups.get_groups_by_member_id(user.id, db=db, include_inherited=True)
+    }
 
     # Batch-fetch accessible resource IDs in a single query instead of N has_access calls
     accessible_model_ids = await AccessGrants.get_accessible_resource_ids(
@@ -760,7 +831,7 @@ async def get_all_models(request: Request, user: UserModel) -> dict[str, list]: 
         return not any(name in model_id for name in _UNSUPPORTED_OPENAI_MODEL_KEYWORDS)
 
     def get_merged_models(model_lists):
-        log.debug(f'merge_models_lists {model_lists}')
+        log.debug('merge_models_lists %s', model_lists)
         models = {}
 
         for idx, model_list in enumerate(model_lists):
@@ -788,7 +859,7 @@ async def get_all_models(request: Request, user: UserModel) -> dict[str, list]: 
                             'urlIdx': idx,
                         }
 
-                        loaded = get_llamacpp_model_loaded_state(
+                        loaded = get_provider_model_loaded_state(
                             model,
                             provider,
                             manual_model_ids=bool(api_config.get('model_ids')),
@@ -801,7 +872,7 @@ async def get_all_models(request: Request, user: UserModel) -> dict[str, list]: 
         return models
 
     models = get_merged_models(map(extract_data, responses))
-    log.debug(f'models: {models}')
+    log.debug('models: %s', models)
 
     request.app.state.OPENAI_MODELS = models
     return {'data': list(models.values())}
@@ -809,7 +880,10 @@ async def get_all_models(request: Request, user: UserModel) -> dict[str, list]: 
 
 @router.get('/models')
 @router.get('/models/{url_idx}')
-async def get_models(request: Request, url_idx: int | None = None, user=Depends(get_verified_user)):  # noqa: C901
+async def get_models(request: Request, url_idx: int | None = None, user=Depends(get_verified_user)):
+    if url_idx is not None and user.role != 'admin':
+        raise HTTPException(status_code=401, detail=ERROR_MESSAGES.ACCESS_PROHIBITED)
+
     if not await Config.get('openai.enable'):
         raise HTTPException(status_code=503, detail='OpenAI API is disabled')
 
@@ -869,7 +943,10 @@ async def get_models(request: Request, url_idx: int | None = None, user=Depends(
             except aiohttp.ClientError as e:
                 # ClientError covers all aiohttp requests issues
                 log.exception(f'Client error: {str(e)}')
-                raise HTTPException(status_code=500, detail='Airis: Server Connection Error')
+                # LICENSE covers this Open WebUI error identifier.
+                # Do not alter, remove, obscure, or replace it except as LICENSE permits:
+                # https://docs.openwebui.com/license.
+                raise HTTPException(status_code=500, detail='Open WebUI: Server Connection Error')
             except Exception as e:
                 log.exception(f'Unexpected error: {e}')
                 error_detail = f'Unexpected error: {str(e)}'
@@ -879,6 +956,121 @@ async def get_models(request: Request, url_idx: int | None = None, user=Depends(
         models['data'] = await get_filtered_models(models, user)
 
     return models
+
+
+class ProviderModelOperationForm(BaseModel):
+    model: str
+    model_config = ConfigDict(extra='allow')
+
+
+@router.get('/models/{url_idx}/catalog')
+async def get_provider_model_catalog(request: Request, url_idx: int, user=Depends(get_admin_user)):
+    return await send_model_management_request(request, url_idx, 'list', user=user)
+
+
+@router.post('/models/{url_idx}/download')
+async def download_provider_model(
+    request: Request,
+    url_idx: int,
+    form_data: ProviderModelOperationForm,
+    user=Depends(get_admin_user),
+):
+    root_url, _, api_config, provider = await get_model_management_connection(url_idx)
+    payload = form_data.model_dump(exclude_none=True)
+    payload['model'] = strip_provider_model_prefix(payload['model'], api_config.get('prefix_id'))
+
+    result = await send_model_management_request(request, url_idx, 'download', 'POST', payload, user=user)
+    await clear_models_cache(request)
+    await publish_event(
+        request,
+        EVENTS.MODEL_PROVIDER_MODEL_CREATED,
+        actor=user,
+        subject_id=payload['model'],
+        data={'provider': provider, 'url_idx': url_idx, 'base_url': root_url},
+    )
+    return result
+
+
+@router.get('/models/{url_idx}/download/status/{job_id}')
+async def get_provider_model_download_status(
+    request: Request,
+    url_idx: int,
+    job_id: str,
+    user=Depends(get_admin_user),
+):
+    return await send_model_management_request(
+        request,
+        url_idx,
+        'download_status',
+        path_params={'job_id': job_id},
+        user=user,
+    )
+
+
+@router.post('/models/{url_idx}/load')
+async def load_provider_model(
+    request: Request,
+    url_idx: int,
+    form_data: ProviderModelOperationForm,
+    user=Depends(get_admin_user),
+):
+    _, _, api_config, _ = await get_model_management_connection(url_idx)
+    payload = form_data.model_dump(exclude_none=True)
+    payload['model'] = strip_provider_model_prefix(payload['model'], api_config.get('prefix_id'))
+
+    result = await send_model_management_request(request, url_idx, 'load', 'POST', payload, user=user)
+    await clear_models_cache(request)
+    return result
+
+
+@router.post('/models/{url_idx}/unload')
+async def unload_provider_model(
+    request: Request,
+    url_idx: int,
+    form_data: ProviderModelOperationForm,
+    user=Depends(get_admin_user),
+):
+    _, _, api_config, _ = await get_model_management_connection(url_idx)
+    payload = form_data.model_dump(exclude_none=True)
+    payload['model'] = strip_provider_model_prefix(payload['model'], api_config.get('prefix_id'))
+
+    result = await send_model_management_request(request, url_idx, 'unload', 'POST', payload, user=user)
+    await clear_models_cache(request)
+    return result
+
+
+@router.get('/models/{url_idx}/sse')
+async def stream_provider_model_events(request: Request, url_idx: int, user=Depends(get_admin_user)):
+    return await send_model_management_request(request, url_idx, 'sse', stream=True, user=user)
+
+
+@router.delete('/models/{url_idx}')
+async def delete_provider_model(
+    request: Request,
+    url_idx: int,
+    model: str,
+    user=Depends(get_admin_user),
+):
+    root_url, _, api_config, provider = await get_model_management_connection(url_idx)
+    actual_model = strip_provider_model_prefix(model, api_config.get('prefix_id'))
+
+    result = await send_model_management_request(
+        request,
+        url_idx,
+        'delete',
+        'DELETE',
+        query={'model': actual_model},
+        user=user,
+    )
+    await clear_models_cache(request)
+    await publish_event(
+        request,
+        EVENTS.MODEL_PROVIDER_MODEL_DELETED,
+        actor=user,
+        subject_id=actual_model,
+        data={'provider': provider, 'url_idx': url_idx, 'base_url': root_url},
+    )
+    return result
 
 
 class ConnectionVerificationForm(BaseModel):
@@ -1011,13 +1203,14 @@ def get_azure_allowed_params(api_version: str) -> set[str]:
         if api_version >= '2024-09-01-preview':
             allowed_params.add('stream_options')
     except ValueError:
-        log.debug(f'Invalid API version {api_version} for Azure OpenAI. Defaulting to allowed parameters.')
+        log.debug('Invalid API version %s for Azure OpenAI. Defaulting to allowed parameters.', api_version)
 
     return allowed_params
 
 
 def is_openai_new_model(model: str) -> bool:
-    model_lower = model.lower()
+    # Amazon Bedrock ids carry a provider prefix, e.g. us.openai.gpt-6-sol
+    model_lower = re.sub(r'^(?:[a-z-]+\.)?openai\.', '', model.lower())
     # o-series models (o1, o3, o4, o5, ...)
     if re.match(r'^o\d+', model_lower):
         return True
@@ -1059,7 +1252,7 @@ def convert_to_azure_payload(url, payload: dict, api_version: str):
         # Remove temperature if not 1 for o-series models
         if 'temperature' in payload and payload['temperature'] != 1:
             log.debug(
-                f'Removing temperature parameter for o-series model {model} as only default value (1) is supported'
+                'Removing temperature parameter for o-series model %s as only default value (1) is supported', model
             )
             del payload['temperature']
 
@@ -1078,23 +1271,23 @@ RESPONSES_ALLOWED_FIELDS: dict[str, set[str]] = {
     'message': {'type', 'role', 'content'},
     'function_call': {'type', 'call_id', 'name', 'arguments', 'id'},
     'function_call_output': {'type', 'call_id', 'output'},
+    'reasoning': {'type', 'id', 'summary', 'encrypted_content', 'content'},
 }
 
 
 def _normalize_stored_item(item: dict) -> dict:
-    """Strip local-only fields from a stored output item before replaying it.
+    """Keep replayable fields for known output item types.
 
-    Airis stores extra bookkeeping fields (``id``, ``status``,
-    ``started_at``, ``ended_at``, ``duration``, ``_tag_type``,
-    ``attributes``, ``summary``, etc.) that the Responses API does
-    not accept.  This helper returns a copy containing only the
-    fields the API understands.
+    Stored items also contain UI bookkeeping and output-only metadata.
+    In particular, Azure rejects ``status`` on reasoning input items.
     """
     item_type = item.get('type', '')
     allowed = RESPONSES_ALLOWED_FIELDS.get(item_type)
     if allowed is None:
-        # Unknown type — pass through as-is (e.g. reasoning, extension items).
+        # Unknown type — pass through as-is for provider extensions.
         return item
+    if item_type == 'function_call':
+        item = {**item, **get_provider_function(item)}
     return {k: v for k, v in item.items() if k in allowed}
 
 
@@ -1180,8 +1373,21 @@ def convert_to_responses_payload(payload: dict) -> dict:  # noqa: C901
                     content_parts.append({'type': text_type, 'text': part.get('text', '')})
                 elif part.get('type') == 'image_url':
                     url_data = part.get('image_url', {})
-                    url = url_data.get('url', '') if isinstance(url_data, dict) else url_data
-                    content_parts.append({'type': 'input_image', 'image_url': url})
+                    if isinstance(url_data, dict):
+                        url = url_data.get('url', '')
+                        detail = url_data.get('detail') or 'auto'
+                    else:
+                        url = url_data if isinstance(url_data, str) else ''
+                        detail = 'auto'
+                    content_parts.append({'type': 'input_image', 'image_url': url, 'detail': detail})
+                elif part.get('type') == 'file':
+                    # OpenAI-compatible proxy path only. Open WebUI attachments are handled
+                    # separately via metadata.files/RAG and must not be converted here.
+                    file = part.get('file')
+                    if isinstance(file, dict):
+                        file_part = {k: file[k] for k in ('file_id', 'file_data', 'filename') if k in file}
+                        if 'file_id' in file_part or 'file_data' in file_part:
+                            content_parts.append({'type': 'input_file', **file_part})
         else:
             content_parts = [{'type': text_type, 'text': str(content)}]
 
@@ -1229,13 +1435,18 @@ def convert_to_responses_payload(payload: dict) -> dict:  # noqa: C901
                         converted_tool['description'] = func['description']
                     if 'parameters' in func:
                         converted_tool['parameters'] = func['parameters']
-                    if 'strict' in func:
-                        converted_tool['strict'] = func['strict']
+                    # Responses defaults strict to true, Chat Completions to false
+                    converted_tool['strict'] = func.get('strict', False)
                 converted_tools.append(converted_tool)
             else:
                 # Already in correct format or unknown format, pass through
                 converted_tools.append(tool)
         responses_payload['tools'] = converted_tools
+
+    # Responses API expects a forced function choice as {"type": "function", "name": ...}
+    tool_choice = responses_payload.get('tool_choice')
+    if isinstance(tool_choice, dict) and isinstance(tool_choice.get('function'), dict):
+        responses_payload['tool_choice'] = {'type': 'function', 'name': tool_choice['function'].get('name', '')}
 
     return responses_payload
 
@@ -1244,17 +1455,32 @@ def convert_responses_result(response: dict) -> dict:
     """
     Convert non-streaming Responses API result to Chat Completions format.
 
-    Extracts text from message output items so all downstream consumers
+    Extracts text and function calls from output items so all downstream consumers
     (frontend tasks, get_content_from_response) work without modification.
     """
     output_items = response.get('output', [])
 
     content = ''
+    tool_calls = []
     for item in output_items:
         if item.get('type') == 'message':
             for part in item.get('content', []):
                 if part.get('type') == 'output_text':
                     content += part.get('text', '')
+        elif item.get('type') == 'function_call':
+            arguments = item.get('arguments', '{}')
+            if not isinstance(arguments, str):
+                arguments = JSONCodec.dumps(arguments)
+            tool_calls.append(
+                {
+                    'id': item.get('call_id', ''),
+                    'type': 'function',
+                    'function': {
+                        'name': item.get('name', ''),
+                        'arguments': arguments,
+                    },
+                }
+            )
 
     return {
         'id': response.get('id', ''),
@@ -1266,8 +1492,9 @@ def convert_responses_result(response: dict) -> dict:
                 'message': {
                     'role': 'assistant',
                     'content': content,
+                    **({'tool_calls': tool_calls} if tool_calls else {}),
                 },
-                'finish_reason': 'stop',
+                'finish_reason': 'tool_calls' if tool_calls else 'stop',
             }
         ],
         'usage': response.get('usage', {}),
@@ -1316,6 +1543,9 @@ async def generate_chat_completion(  # noqa: C901
     if not isinstance(model_id, str) or not model_id:
         raise HTTPException(status_code=400, detail='Model is required')
     lead_magnet_model_id = model_id
+    # keep the model the client asked for when reached from /api/chat/completions
+    if not hasattr(request.state, 'model_id'):
+        request.state.model_id = model_id
     model_info = await Models.get_model_by_id(model_id)
 
     # Check model info and override the payload
@@ -1386,13 +1616,27 @@ async def generate_chat_completion(  # noqa: C901
         logit_bias = convert_logit_bias_input_to_json(payload['logit_bias'])
 
         if logit_bias:
-            payload['logit_bias'] = json.loads(logit_bias)
+            payload['logit_bias'] = JSONCodec.loads(logit_bias)
 
     billing_payload = {**payload}
 
     headers, cookies = await get_headers_and_cookies(request, url, key, api_config, metadata, user=user)
 
     is_responses = api_config.get('api_type') == 'responses'
+
+    # Explicit continuation keeps llama.cpp from echoing the prefill in streamed replies.
+    if (
+        api_config.get('provider') == 'llama.cpp'
+        # These flags apply to Chat Completions, not the Responses API.
+        and not is_responses
+        # The frontend sends this ID when the user clicks Continue.
+        and (metadata or {}).get('assistant_message_id')
+        # Tool follow-ups retain the metadata but must start a new assistant turn.
+        and payload.get('messages')
+        and payload['messages'][-1].get('role') == 'assistant'
+    ):
+        payload['continue_final_message'] = True
+        payload['add_generation_prompt'] = False
 
     if api_config.get('azure') or api_config.get('provider') == 'azure':
         # Only set api-key header if not using Azure Entra ID authentication
@@ -1440,7 +1684,7 @@ async def generate_chat_completion(  # noqa: C901
     if not is_streaming_request:
         payload.pop('stream_options', None)
 
-    payload = json.dumps(payload)
+    payload = JSONCodec.dumps(payload)
 
     billing_context = None
     try:
@@ -1494,6 +1738,7 @@ async def generate_chat_completion(  # noqa: C901
             # read the body and return a proper error response instead of
             # streaming the error back (which hides the error from logs).
             if r.status >= 400:
+                retry_headers = {k: v for k, v in r.headers.items() if k.lower() in ('retry-after', 'retry-after-ms')}
                 error_body = await r.text()
                 await release_billing_hold(billing_context)
                 log.error(
@@ -1502,7 +1747,7 @@ async def generate_chat_completion(  # noqa: C901
                     error_body[:1000],
                 )
                 try:
-                    error_json = json.loads(error_body)
+                    error_json = JSONCodec.loads(error_body)
                     await publish_model_provider_request_failed(
                         request,
                         actor=user,
@@ -1513,8 +1758,8 @@ async def generate_chat_completion(  # noqa: C901
                         requested_model=requested_model,
                         upstream_error=error_json,
                     )
-                    return JSONResponse(status_code=r.status, content=error_json)
-                except json.JSONDecodeError:
+                    return JSONResponse(status_code=r.status, content=error_json, headers=retry_headers)
+                except JSONCodec.JSONDecodeError:
                     await publish_model_provider_request_failed(
                         request,
                         actor=user,
@@ -1528,12 +1773,13 @@ async def generate_chat_completion(  # noqa: C901
                     return JSONResponse(
                         status_code=r.status,
                         content={'error': {'message': error_body, 'code': r.status}},
+                        headers=retry_headers,
                     )
 
             streaming = True
             return StreamingResponse(
                 track_streaming_response(
-                    stream_wrapper(r, content_handler=stream_chunks_handler),
+                    stream_wrapper(r),
                     user_id=user.id,
                     model_id=model_id,
                     chat_id=chat_id,
@@ -1552,6 +1798,7 @@ async def generate_chat_completion(  # noqa: C901
 
             if r.status >= 400:
                 await release_billing_hold(billing_context)
+                retry_headers = {k: v for k, v in r.headers.items() if k.lower() in ('retry-after', 'retry-after-ms')}
                 await publish_model_provider_request_failed(
                     request,
                     actor=user,
@@ -1563,9 +1810,9 @@ async def generate_chat_completion(  # noqa: C901
                     upstream_error=response,
                 )
                 if isinstance(response, (dict, list)):
-                    return JSONResponse(status_code=r.status, content=response)
+                    return JSONResponse(status_code=r.status, content=response, headers=retry_headers)
                 else:
-                    return PlainTextResponse(status_code=r.status, content=response)
+                    return PlainTextResponse(status_code=r.status, content=response, headers=retry_headers)
 
             # Convert Responses API result to simple format
             if is_responses and isinstance(response, dict):
@@ -1611,8 +1858,6 @@ async def embeddings(request: Request, form_data: dict, user):  # noqa: C901
         dict: OpenAI-compatible embeddings response.
     """
     idx = 0
-    # Prepare payload/body
-    body = json.dumps(form_data)
     # Find correct backend url/key based on model
     model_id = form_data.get('model')
     # Check if model is already in app state cache to avoid expensive get_all_models() call
@@ -1624,6 +1869,10 @@ async def embeddings(request: Request, form_data: dict, user):  # noqa: C901
         idx = models[model_id]['urlIdx']
 
     url, key, api_config = await get_openai_connection(idx)
+
+    form_data['model'] = strip_provider_model_prefix(form_data['model'], api_config.get('prefix_id'))
+    # Prepare payload/body
+    body = JSONCodec.dumps(form_data)
 
     r = None
     streaming = False
@@ -1677,6 +1926,7 @@ async def embeddings(request: Request, form_data: dict, user):  # noqa: C901
                 response_data = await r.text()
 
             if r.status >= 400:
+                retry_headers = {k: v for k, v in r.headers.items() if k.lower() in ('retry-after', 'retry-after-ms')}
                 await publish_model_provider_request_failed(
                     request,
                     actor=user,
@@ -1688,9 +1938,9 @@ async def embeddings(request: Request, form_data: dict, user):  # noqa: C901
                     upstream_error=response_data,
                 )
                 if isinstance(response_data, (dict, list)):
-                    return JSONResponse(status_code=r.status, content=response_data)
+                    return JSONResponse(status_code=r.status, content=response_data, headers=retry_headers)
                 else:
-                    return PlainTextResponse(status_code=r.status, content=response_data)
+                    return PlainTextResponse(status_code=r.status, content=response_data, headers=retry_headers)
 
             return response_data
     except Exception as e:
@@ -1734,16 +1984,17 @@ async def responses(  # noqa: C901
     Forward requests to the OpenAI Responses API endpoint.
     Routes to the correct upstream backend based on the model field.
     """
+    if ENABLE_BILLING_WALLET:
+        raise HTTPException(status_code=503, detail={'error': 'billing_protocol_unavailable'})
     payload = form_data.model_dump(exclude_none=True)
     is_streaming_request = bool(payload.get('stream', False))
 
     idx = 0
     model_id = form_data.model
+    request.state.model_id = model_id
 
     # Enforce per-model access control
     await check_model_access(user, await Models.get_model_by_id(model_id), BYPASS_MODEL_ACCESS_CONTROL)
-
-    body = json.dumps(payload)
 
     if model_id:
         models = request.app.state.OPENAI_MODELS
@@ -1754,6 +2005,9 @@ async def responses(  # noqa: C901
             idx = models[model_id]['urlIdx']
 
     url, key, api_config = await get_openai_connection(idx)
+
+    payload['model'] = strip_provider_model_prefix(payload['model'], api_config.get('prefix_id'))
+    body = JSONCodec.dumps(payload)
 
     r = None
     streaming = False
@@ -1804,6 +2058,7 @@ async def responses(  # noqa: C901
                 response_data = await r.text()
 
             if r.status >= 400:
+                retry_headers = {k: v for k, v in r.headers.items() if k.lower() in ('retry-after', 'retry-after-ms')}
                 await publish_model_provider_request_failed(
                     request,
                     actor=user,
@@ -1815,9 +2070,9 @@ async def responses(  # noqa: C901
                     upstream_error=response_data,
                 )
                 if isinstance(response_data, (dict, list)):
-                    return JSONResponse(status_code=r.status, content=response_data)
+                    return JSONResponse(status_code=r.status, content=response_data, headers=retry_headers)
                 else:
-                    return PlainTextResponse(status_code=r.status, content=response_data)
+                    return PlainTextResponse(status_code=r.status, content=response_data, headers=retry_headers)
 
             return response_data
 
@@ -1841,6 +2096,8 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):  
     Disabled by default. Set ENABLE_OPENAI_API_PASSTHROUGH=True to enable.
     """
 
+    if ENABLE_BILLING_WALLET:
+        raise HTTPException(status_code=503, detail={'error': 'billing_protocol_unavailable'})
     if not ENABLE_OPENAI_API_PASSTHROUGH:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -1853,13 +2110,14 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):  
     payload = None
     if body:
         try:
-            payload = json.loads(body)
-        except (json.JSONDecodeError, ValueError):
+            payload = JSONCodec.loads(body)
+        except (JSONCodec.JSONDecodeError, ValueError):
             payload = None
     is_streaming_request = bool(payload.get('stream', False)) if isinstance(payload, dict) else False
 
     idx = 0
     model_id = payload.get('model') if isinstance(payload, dict) else None
+    request.state.model_id = model_id
     if model_id:
         models = request.app.state.OPENAI_MODELS
         if not models or model_id not in models:
@@ -1892,9 +2150,9 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):  
                 api_version = api_config.get('api_version', '2023-03-15-preview')
                 headers['api-version'] = api_version
 
-                payload = json.loads(body)
+                payload = JSONCodec.loads(body)
                 url, payload = convert_to_azure_payload(url, payload, api_version)
-                body = json.dumps(payload).encode()
+                body = JSONCodec.dumps(payload).encode()
 
                 request_url = f'{url}/{path}?api-version={api_version}'
         else:
@@ -1926,6 +2184,7 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):  
                 response_data = await r.text()
 
             if r.status >= 400:
+                retry_headers = {k: v for k, v in r.headers.items() if k.lower() in ('retry-after', 'retry-after-ms')}
                 await publish_model_provider_request_failed(
                     request,
                     actor=user,
@@ -1937,9 +2196,9 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):  
                     upstream_error=response_data,
                 )
                 if isinstance(response_data, (dict, list)):
-                    return JSONResponse(status_code=r.status, content=response_data)
+                    return JSONResponse(status_code=r.status, content=response_data, headers=retry_headers)
                 else:
-                    return PlainTextResponse(status_code=r.status, content=response_data)
+                    return PlainTextResponse(status_code=r.status, content=response_data, headers=retry_headers)
 
             return response_data
 
@@ -1947,6 +2206,9 @@ async def proxy(path: str, request: Request, user=Depends(get_verified_user)):  
         raise
     except Exception as e:
         log.exception(e)
+        # LICENSE covers this Open WebUI error identifier.
+        # Do not alter, remove, obscure, or replace it except as LICENSE permits:
+        # https://docs.openwebui.com/license.
         raise HTTPException(
             status_code=r.status if r else 500,
             detail='Airis: Server Connection Error',

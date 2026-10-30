@@ -284,6 +284,7 @@ it('adding members awaits confirmation and blocks another submit', async () => {
 		submissionVersion: 0,
 		userIds: ['u'],
 		groupIds: ['g'],
+		appIds: [],
 		localStorage: { token: 'fixture' },
 		addMembersById: vi.fn(),
 		onUpdate: vi.fn(),

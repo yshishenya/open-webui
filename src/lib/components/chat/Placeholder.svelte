@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { TerminalContext } from '$lib/types';
 	import type { Writable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
 	import { marked } from 'marked';
@@ -17,8 +18,14 @@
 		temporaryChatEnabled,
 		selectedFolder
 	} from '$lib/stores';
-	import { refreshChatList } from '$lib/stores/chatList';
+	import { refreshChatList, refreshFolderChatLists } from '$lib/stores/chatList';
 	import { sanitizeResponseContent } from '$lib/utils';
+	import {
+		resolveLocalizedModelDescription,
+		resolveLocalizedModelName,
+		resolveLocalizedModelPromptSuggestions,
+		resolveLocalizedPromptSuggestions
+	} from '$lib/utils/localizedContent';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import Suggestions from './Suggestions.svelte';
@@ -34,15 +41,20 @@
 	export let stopResponse: ComponentProps<MessageInput>['stopResponse'];
 
 	export let autoScroll = false;
+	export let callActive = false;
+	export let callEnabled = true;
 
 	export let atSelectedModel: Model | undefined;
 	export let selectedModels: string[];
+	export let onModelSelect: (models: string[]) => void = () => {};
 
-	export let history: ComponentProps<MessageInput>['history'];
+	export let history;
+	export let chatId = '';
 
 	export let prompt = '';
-	export let files: ComponentProps<MessageInput>['files'] = [];
-	export let messageInput: MessageInput | null = null;
+	export let files: import('$lib/utils/airis/chat_history').ChatAttachment[] = [];
+	export let terminalContext: TerminalContext | null = null;
+	export let messageInput: MessageInput | undefined = undefined;
 
 	export let selectedToolIds: string[] = [];
 	export let selectedSkillIds: string[] = [];
@@ -54,31 +66,61 @@
 	export let imageGenerationEnabled = false;
 	export let codeInterpreterEnabled = false;
 	export let webSearchEnabled = false;
+	export let toolApprovalMode = 'full';
+	export let onToolApprovalModeChange: ComponentProps<MessageInput>['onToolApprovalModeChange'] = () => {};
+	export let oauthRedirectHandler: ComponentProps<MessageInput>['oauthRedirectHandler'] = () => {};
 
 	export let onUpload: ComponentProps<MessageInput>['onUpload'] = () => {};
 	export let onSelect: (event: { type: string; data: string }) => void | Promise<void> = () => {};
 	export let onChange: ComponentProps<MessageInput>['onChange'] = () => {};
 	export let onWebSearchToggle: ComponentProps<MessageInput>['onWebSearchToggle'] = () => {};
+	export let onUpdate: ComponentProps<typeof MessageInput>['onUpdate'] = () => {};
+	export let messageQueue: ComponentProps<MessageInput>['messageQueue'] = [];
+	export let onQueueSendNow: (id: string) => void = () => {};
+	export let onQueueEdit: (id: string) => void = () => {};
+	export let onQueueDelete: (id: string) => void = () => {};
+	export let askUser: ComponentProps<MessageInput>['askUser'] = {
+		show: false,
+		questions: [],
+		allowOther: true,
+		timeoutMs: null,
+		onConfirm: () => {},
+		onCancel: () => {}
+	};
 
 	export let dragged = false;
 
-	let models: (Model | undefined)[] = [];
-	let selectedModelIdx = 0;
-
-	$: if (selectedModels.length > 0) {
-		selectedModelIdx = models.length - 1;
-	}
+	let models = [];
+	export let selectedModelIdx = 0;
+	let selectedModel;
+	let selectedModelName = '';
+	let selectedModelDescription = '';
+	let selectedSuggestionPrompts = [];
 
 	$: models = selectedModels.map((id) => $_models.find((m) => m.id === id));
+	$: selectedModel = atSelectedModel ?? models[selectedModelIdx];
+	$: selectedModelName = resolveLocalizedModelName(selectedModel, $i18n.language);
+	$: selectedModelDescription =
+		$config?.license_metadata?.chat_placeholder_description ||
+		resolveLocalizedModelDescription(selectedModel, $i18n.language);
+	$: selectedSuggestionPrompts =
+		resolveLocalizedModelPromptSuggestions(atSelectedModel, $i18n.language) ??
+		resolveLocalizedModelPromptSuggestions(models[selectedModelIdx], $i18n.language) ??
+		resolveLocalizedPromptSuggestions(
+			$config?.default_prompt_suggestions,
+			$config?.default_prompt_suggestions_i18n ?? {},
+			$i18n.language,
+			(key) => $i18n.t(key)
+		);
 
 	// True when viewing a shared folder the current user doesn't own AND lacks write access
 	$: folderReadOnly =
 		$selectedFolder != null &&
 		$selectedFolder.user_id !== $user?.id &&
-		$selectedFolder.permission !== 'write';
+		!$selectedFolder.write_access;
 </script>
 
-<div class="m-auto w-full max-w-[58rem] px-2 @2xl:px-20 translate-y-6 py-24 text-center">
+<div class="m-auto w-full max-w-[58rem] px-1 @2xl:px-20 translate-y-6 py-24 text-center">
 	{#if $temporaryChatEnabled}
 		<Tooltip
 			content={$i18n.t("This chat won't appear in history and your messages will not be saved.")}
@@ -98,10 +140,10 @@
 					folder={$selectedFolder}
 					readOnly={folderReadOnly}
 					onUpdate={async () => {
-						await refreshChatList(localStorage.token);
+						await Promise.all([refreshChatList(localStorage.token), refreshFolderChatLists(null)]);
 					}}
 					onDelete={async (deletedFolder: ComponentProps<FolderTitle>['folder']): Promise<void> => {
-						await refreshChatList(localStorage.token);
+						await Promise.all([refreshChatList(localStorage.token), refreshFolderChatLists(null)]);
 
 						if ($selectedFolder?.id === deletedFolder?.id) selectedFolder.set(null);
 					}}
@@ -119,6 +161,7 @@
 								>
 									<button
 										aria-hidden={models.length <= 1}
+										tabindex={models.length > 1 ? 0 : -1}
 										aria-label={$i18n.t('Get information on {{name}} in the UI', {
 											name: models[modelIdx]?.name
 										})}
@@ -142,38 +185,38 @@
 						</div>
 					</div>
 
-					<div
+					<h2
 						class=" text-2xl @sm:text-2xl line-clamp-1 flex items-center"
 						in:fade={{ duration: 100 }}
 					>
-						{#if models[selectedModelIdx]?.name}
+						{#if selectedModelName}
 							<Tooltip
-								content={models[selectedModelIdx]?.name}
+								as="span"
+								content={selectedModelName}
 								placement="top"
 								className=" flex items-center "
 							>
 								<span class="line-clamp-1">
-									{models[selectedModelIdx]?.name}
+									{selectedModelName}
 								</span>
 							</Tooltip>
 						{:else}
 							{$i18n.t('Hello, {{name}}', { name: $user?.name })}
 						{/if}
-					</div>
+					</h2>
 				</div>
 
 				<div class="flex mt-1 mb-2">
 					<div in:fade={{ duration: 100, delay: 50 }}>
-						{#if models[selectedModelIdx]?.info?.meta?.description ?? null}
+						{#if selectedModelDescription}
 							<Tooltip
 								className=" w-fit"
 								content={DOMPurify.sanitize(
 									marked.parse(
-										sanitizeResponseContent(
-											models[selectedModelIdx]?.info?.meta?.description ?? ''
-										).replaceAll('\n', '<br>')
+										sanitizeResponseContent(selectedModelDescription).replaceAll('\n', '<br>')
 									)
 								)}
+								allowHTML={true}
 								placement="top"
 							>
 								<div
@@ -182,21 +225,18 @@
 									<!-- eslint-disable-next-line svelte/no-at-html-tags -- Model description markup is sanitized at this sink. -->
 									{@html DOMPurify.sanitize(
 										marked.parse(
-											sanitizeResponseContent(
-												models[selectedModelIdx]?.info?.meta?.description ?? ''
-											).replaceAll('\n', '<br>')
+											sanitizeResponseContent(selectedModelDescription).replaceAll('\n', '<br>')
 										)
 									)}
 								</div>
 							</Tooltip>
 
-							{#if models[selectedModelIdx]?.info?.meta?.user}
+							{#if models[selectedModelIdx]?.info?.meta?.user && (!models[selectedModelIdx]?.info?.meta?.user?.community || $config?.features.enable_community_sharing)}
 								<div class="mt-0.5 text-sm font-normal text-gray-400 dark:text-gray-500">
-									By
-									{#if models[selectedModelIdx]?.info?.meta?.user!.community}
+									{$i18n.t('By')}
+									{#if models[selectedModelIdx]?.info?.meta?.user?.community}
 										<a
-											href="#
-												.username}"
+											href={`https://openwebui.com/m/${encodeURIComponent(models[selectedModelIdx]?.info?.meta?.user?.username ?? '')}`}
 											>{models[selectedModelIdx]?.info?.meta?.user!.name
 												? models[selectedModelIdx]?.info?.meta?.user!.name
 												: `@${models[selectedModelIdx]?.info?.meta?.user!.username}`}</a
@@ -214,9 +254,14 @@
 			<div class="text-base font-normal @md:max-w-3xl w-full py-3 {atSelectedModel ? 'mt-2' : ''}">
 				{#if !($selectedFolder && folderReadOnly)}
 					<MessageInput
+						{chatId}
+						{terminalContext}
+						{callActive}
+						{callEnabled}
 						bind:this={messageInput}
 						{history}
 						bind:selectedModels
+						{onModelSelect}
 						bind:files
 						bind:prompt
 						bind:autoScroll
@@ -230,11 +275,20 @@
 						bind:showCommands
 						bind:dragged
 						{pendingOAuthTools}
+						{oauthRedirectHandler}
+						{toolApprovalMode}
+						{onToolApprovalModeChange}
 						{stopResponse}
 						{createMessagePair}
 						placeholder={$i18n.t('How can I help you today?')}
 						{onChange}
 						{onUpload}
+						{onUpdate}
+						{messageQueue}
+						{onQueueSendNow}
+						{onQueueEdit}
+						{onQueueDelete}
+						{askUser}
 						{onWebSearchToggle}
 						on:chatVariables
 						on:submit={(e) => {
@@ -253,14 +307,7 @@
 	{:else}
 		<div class="mx-auto max-w-2xl mt-2" in:fade={{ duration: 200, delay: 200 }}>
 			<div class="mx-5">
-				<Suggestions
-					suggestionPrompts={atSelectedModel?.info?.meta?.suggestion_prompts ??
-						models[selectedModelIdx]?.info?.meta?.suggestion_prompts ??
-						$config?.default_prompt_suggestions ??
-						[]}
-					inputValue={prompt}
-					{onSelect}
-				/>
+				<Suggestions suggestionPrompts={selectedSuggestionPrompts} inputValue={prompt} {onSelect} />
 			</div>
 		</div>
 	{/if}

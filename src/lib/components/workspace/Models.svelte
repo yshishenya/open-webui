@@ -1,27 +1,33 @@
 <script lang="ts">
+	import WorkspaceAccessModal from './common/WorkspaceAccessModal.svelte';
+	let accessModal: WorkspaceAccessModal;
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import { toast } from 'svelte-sonner';
+	import { getErrorMessage } from '$lib/utils/airis/error_message';
 
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext, tick, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
-	const i18n = getContext('i18n');
+	const i18n = getContext<any>('i18n');
 	dayjs.extend(relativeTime);
 
 	import {
 		WEBUI_NAME,
 		config,
 		models as _models,
+		pinnedModels,
 		settings,
 		user,
-		workspaceActions
+		workspaceActions,
+		workspaceCounts
 	} from '$lib/stores';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import {
-		createNewModel,
+		exportModels,
+		importModels,
 		deleteModelById,
 		getModelById,
 		getModelItems as getWorkspaceModels,
@@ -35,13 +41,20 @@
 	import { updateUserSettings } from '$lib/apis/users';
 
 	import { capitalizeFirstLetter, copyToClipboard } from '$lib/utils';
+	import {
+		resolveLocalizedModelDescription,
+		resolveLocalizedModelName
+	} from '$lib/utils/localizedContent';
 
 	import EllipsisHorizontal from '../icons/EllipsisHorizontal.svelte';
+	import ArrowRight from '../icons/ArrowRight.svelte';
 	import CheckCircle from '../icons/CheckCircle.svelte';
 	import Minus from '../icons/Minus.svelte';
 	import ModelMenu from './Models/ModelMenu.svelte';
 	import ModelDeleteConfirmDialog from '../common/ConfirmDialog.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
+	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
+	import ProfileImage from '$lib/components/chat/Messages/ProfileImage.svelte';
 	import GarbageBin from '../icons/GarbageBin.svelte';
 	import Search from '../icons/Search.svelte';
 	import Switch from '../common/Switch.svelte';
@@ -58,6 +71,7 @@
 	import TagSelector from './common/TagSelector.svelte';
 	import Pagination from '../common/Pagination.svelte';
 	import Badge from '$lib/components/common/Badge.svelte';
+	import CommunityDiscover from './common/CommunityDiscover.svelte';
 
 	let shiftKey = false;
 
@@ -70,6 +84,7 @@
 	let showModelDeleteConfirm = false;
 
 	let selectedModel: WorkspaceModel | null = null;
+	let updatingModels: Record<string, boolean> = {};
 
 	let tags: string[] = [];
 	let selectedTag = '';
@@ -86,6 +101,12 @@
 	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let listRequest: object | null = null;
 	const listenerController = new AbortController();
+	let searchController: AbortController;
+
+	onDestroy(() => {
+		clearTimeout(searchDebounceTimer);
+		searchController?.abort();
+	});
 
 	$: if (loaded) {
 		workspaceActions.set([
@@ -104,7 +125,7 @@
 				id: 'models-export',
 				label: $i18n.t('Export JSON'),
 				onClick: async () => {
-					await downloadModels(models);
+					await downloadModels();
 				},
 				visible: $user?.role === 'admin' || $user?.permissions?.workspace?.models_export
 			}
@@ -141,6 +162,43 @@
 		return target instanceof Element && !!target.closest('button, a, input, [role="menu"]');
 	};
 
+	const confirmDeleteModel = (model: any) => {
+		selectedModel = model;
+		showModelDeleteConfirm = true;
+	};
+
+	const toggleModelHandler = async (model: any) => {
+		if (updatingModels[model.id]) return;
+		const previousState = !model.is_active;
+		updatingModels = { ...updatingModels, [model.id]: true };
+
+		try {
+			const updatedModel = await toggleModelById(localStorage.token, model.id);
+			model.is_active = updatedModel.is_active;
+			models = models;
+		} catch (error: any) {
+			model.is_active = previousState;
+			models = models;
+			toast.error(`${error?.detail ?? error}`);
+			return;
+		} finally {
+			updatingModels = { ...updatingModels, [model.id]: false };
+		}
+
+		try {
+			_models.set(
+				await getModels(
+					localStorage.token,
+					$config?.features?.enable_direct_connections
+						? ($settings?.directConnections ?? null)
+						: null
+				)
+			);
+		} catch (error: any) {
+			toast.error(`${error?.detail ?? error}`);
+		}
+	};
+
 	const getModelList = async () => {
 		if (!loaded) return;
 		const request = { query, viewOption, selectedTag, sortKey, sortDirection, page };
@@ -155,6 +213,11 @@
 			request.sortDirection === sortDirection &&
 			request.page === page;
 
+		clearTimeout(searchDebounceTimer);
+		searchController?.abort();
+		searchController = new AbortController();
+		const { signal } = searchController;
+
 		try {
 			const res = await getWorkspaceModels(
 				localStorage.token,
@@ -163,7 +226,8 @@
 				selectedTag,
 				sortKey,
 				sortDirection,
-				page
+				page,
+				signal
 			).catch((error) => {
 				if (isCurrent()) toast.error(`${error}`);
 				return null;
@@ -172,6 +236,7 @@
 			if (res && isCurrent()) {
 				models = res.items;
 				total = res.total;
+				workspaceCounts.update((counts) => ({ ...counts, models: total }));
 
 				// get tags
 				const nextTags = await getModelTags(localStorage.token).catch((error) => {
@@ -221,7 +286,10 @@
 	};
 
 	const shareModelHandler = async (model: WorkspaceModel) => {
-		toast.success($i18n.t('Redirecting you to Airis Community'));
+		// LICENSE covers this Open WebUI Community wordmark.
+		// Do not alter, remove, obscure, or replace it except as LICENSE permits:
+		// https://docs.openwebui.com/license.
+		toast.success($i18n.t('Redirecting you to Open WebUI Community'));
 
 		const url = window.location.origin;
 		const fullModel = getFullModel(model);
@@ -287,9 +355,16 @@
 		}
 	};
 
-	const downloadModels = async (models: WorkspaceModel[] | null) => {
-		if (!models) return;
-		models = await Promise.all(models.map(getFullModel));
+	const downloadModels = async (models: WorkspaceModel[] | null = null) => {
+		try {
+			models = await exportModels(
+				localStorage.token,
+				models ? models.map((model: { id: string }) => model.id) : undefined
+			);
+		} catch (error: unknown) {
+			toast.error(`${getErrorMessage(error)}`);
+			return;
+		}
 		let blob = new Blob([JSON.stringify(models)], {
 			type: 'application/json'
 		});
@@ -297,7 +372,12 @@
 	};
 
 	const exportModelHandler = async (model: WorkspaceModel) => {
-		model = await getFullModel(model);
+		try {
+			[model] = await exportModels(localStorage.token, [model.id]);
+		} catch (error: any) {
+			toast.error(`${error?.detail ?? error}`);
+			return;
+		}
 		let blob = new Blob([JSON.stringify([model])], {
 			type: 'application/json'
 		});
@@ -305,16 +385,13 @@
 	};
 
 	const pinModelHandler = async (modelId: string) => {
-		let pinnedModels = $settings?.pinnedModels ?? [];
-
-		if (pinnedModels.includes(modelId)) {
-			pinnedModels = pinnedModels.filter((id) => id !== modelId);
-		} else {
-			pinnedModels = [...new Set([...pinnedModels, modelId])];
-		}
-
-		settings.set({ ...$settings, pinnedModels: pinnedModels });
-		await updateUserSettings(localStorage.token, { ui: $settings });
+		settings.set({
+			...$settings,
+			pinnedModels: $pinnedModels.includes(modelId)
+				? $pinnedModels.filter((id) => id !== modelId)
+				: [...$pinnedModels, modelId]
+		});
+		await updateUserSettings(localStorage.token, { ui: { pinnedModels: $settings.pinnedModels } });
 	};
 
 	const fetchAllWorkspaceModels = async () => {
@@ -447,11 +524,18 @@
 	});
 </script>
 
+<WorkspaceAccessModal bind:this={accessModal} resourceType="models" onUpdated={getModelList} />
+
 <svelte:head>
+	<!-- LICENSE covers this Open WebUI browser-title identifier.
+	Do not alter, remove, obscure, or replace it except as LICENSE permits:
+	https://docs.openwebui.com/license. -->
 	<title>
 		{$i18n.t('Models')} / {$WEBUI_NAME}
 	</title>
 </svelte:head>
+
+<h1 class="sr-only">{$i18n.t('Models')}</h1>
 
 {#if loaded}
 	<ModelDeleteConfirmDialog
@@ -493,37 +577,18 @@
 					return;
 				}
 
-				for (const model of savedModels) {
-					if (
-						model.info &&
-						typeof model.info === 'object' &&
-						!Array.isArray(model.info) &&
-						typeof model.id === 'string'
-					) {
-						if ($_models.find((m) => m.id === model.id)) {
-							await updateModelById(localStorage.token, model.id, model.info).catch((error) => {
-								toast.error(`${error}`);
-								return null;
-							});
-						} else {
-							await createNewModel(localStorage.token, model.info).catch((error) => {
-								toast.error(`${error}`);
-								return null;
-							});
-						}
-					} else {
-						if (
-							typeof model.id === 'string' &&
-							model.id &&
-							typeof model.name === 'string' &&
-							model.name
-						) {
-							await createNewModel(localStorage.token, model).catch((error) => {
-								toast.error(`${error}`);
-								return null;
-							});
-						}
-					}
+				if (!Array.isArray(savedModels)) {
+					toast.error($i18n.t('Invalid JSON file'));
+					return;
+				}
+				try {
+					await importModels(
+						localStorage.token,
+						savedModels.map((model) => model.info ?? model)
+					);
+				} catch (error: unknown) {
+					toast.error(`${getErrorMessage(error)}`);
+					return;
 				}
 
 				await _models.set(
@@ -554,6 +619,7 @@
 					placeholder={$i18n.t('Search Models')}
 					maxlength="500"
 					on:input={() => {
+						searchController?.abort();
 						clearTimeout(searchDebounceTimer);
 						searchDebounceTimer = setTimeout(() => {
 							page = 1;
@@ -597,6 +663,7 @@
 						align="end"
 						onChange={async (value) => {
 							localStorage.workspaceViewOption = value;
+							page = 1;
 							await tick();
 						}}
 					/>
@@ -608,6 +675,10 @@
 							items={tags.map((tag) => {
 								return { value: tag, label: tag };
 							})}
+							onChange={async () => {
+								page = 1;
+								await tick();
+							}}
 						/>
 					{/if}
 				</div>
@@ -615,7 +686,7 @@
 				<Dropdown align="end">
 					<Tooltip content={$i18n.t('Actions')}>
 						<button
-							class="flex h-8 min-w-0 max-w-28 items-center gap-1.5 rounded-xl bg-transparent px-1.5 text-[13px] font-normal text-gray-700 transition hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-100"
+							class="flex h-8 min-w-0 max-w-28 items-center gap-1.5 rounded-xl bg-transparent px-1.5 text-[0.8125rem] font-normal text-gray-700 transition hover:text-gray-900 dark:text-gray-200 dark:hover:text-gray-100"
 							type="button"
 						>
 							<span class="min-w-0 truncate">{$i18n.t('Actions')}</span>
@@ -624,9 +695,9 @@
 					</Tooltip>
 
 					<div slot="content">
-						<DropdownMenu className="w-[170px] shadow-sm">
+						<DropdownMenu className="min-w-[10.625rem] shadow-sm">
 							<button
-								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 								type="button"
 								on:click={() => {
 									enableAllHandler();
@@ -637,7 +708,7 @@
 							</button>
 
 							<button
-								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 								type="button"
 								on:click={() => {
 									disableAllHandler();
@@ -650,7 +721,7 @@
 							<hr class="mx-1 my-0.5 border-gray-100 dark:border-gray-800" />
 
 							<button
-								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 								type="button"
 								on:click={() => {
 									showAllHandler();
@@ -661,7 +732,7 @@
 							</button>
 
 							<button
-								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+								class="flex h-[1.6875rem] w-full cursor-pointer select-none items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 								type="button"
 								on:click={() => {
 									hideAllHandler();
@@ -678,6 +749,7 @@
 
 		{#if models !== null}
 			{#if (models ?? []).length !== 0}
+				<!-- Previous labels retained for i18n extraction: {$i18n.t('Sort by')} -->
 				<div class="my-1" id="model-list">
 					<div
 						class="flex w-full items-center gap-2 px-1.5 pb-0.5 text-xs text-gray-400 dark:text-gray-600"
@@ -717,26 +789,19 @@
 
 					<div class="grid gap-y-0.5">
 						{#each models as model (model.id)}
+							{@const localizedModelName = resolveLocalizedModelName(model, $i18n.language)}
 							<div
-								class="group flex min-h-8 w-full items-center gap-2 overflow-hidden rounded-xl px-2 py-1 text-left {model.write_access
+								class="group flex min-h-8 w-full items-center gap-1.5 overflow-hidden rounded-xl px-2 py-0.5 text-left {model.write_access
 									? 'cursor-pointer'
 									: ''} {model?.meta?.hidden ? 'opacity-50 dark:opacity-50' : ''}"
 								id="model-item-{model.id}"
-								role="button"
-								tabindex={model.write_access ? 0 : -1}
+								role="presentation"
 								on:click={(e) => {
 									if (shouldIgnoreRowClick(e.target)) return;
 									openModel(model);
 								}}
-								on:keydown={(e) => {
-									if (e.currentTarget !== e.target) return;
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
-										openModel(model);
-									}
-								}}
 							>
-								<div class="mr-1 shrink-0 self-center">
+								<div class="shrink-0 self-center">
 									<div class="{model.is_active ? '' : 'opacity-50 dark:opacity-50'} bg-transparent">
 										<img
 											src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model.id}&lang=${$i18n.language}`}
@@ -754,28 +819,55 @@
 								<div class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
 									<div class="flex min-w-0 flex-1 flex-col overflow-hidden">
 										<div class="flex min-w-0 items-center gap-2 overflow-hidden">
-											<div class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-												<Tooltip content={model.name} className="min-w-0" placement="top-start">
+											<div class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+												<Tooltip
+													content={localizedModelName}
+													className="min-w-0"
+													placement="top-start"
+												>
+													{#if model.write_access}
+														<a
+															href={`/workspace/models/edit?id=${encodeURIComponent(model.id)}`}
+															class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
+															>{localizedModelName}</a
+														>
+													{:else}
+														<span
+															class="block truncate text-[0.8125rem] leading-5 text-gray-800 dark:text-gray-200"
+															>{localizedModelName}</span
+														>
+													{/if}
+												</Tooltip>
+												<Tooltip
+													content={$i18n.t('Try in chat')}
+													className="-ml-0.5 h-5 w-4 shrink-0"
+													tippyOptions={{ trigger: 'mouseenter focusin' }}
+												>
 													<a
 														href={`/?model=${encodeURIComponent(model.id)}`}
-														class="truncate text-[13px] leading-5 text-gray-800 group-hover:underline dark:text-gray-200"
+														aria-label={`${$i18n.t('Try in chat')}: ${localizedModelName}`}
+														class="focus-ring flex h-5 w-4 items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200"
+														><ArrowRight className="size-3 -rotate-45" strokeWidth="2" /></a
 													>
-														{model.name}
-													</a>
 												</Tooltip>
 
 												<div
-													class="min-w-0 max-w-[40%] shrink-0 truncate text-[11px] leading-5 text-gray-500"
+													class="hidden min-w-0 max-w-[40%] shrink-0 truncate text-[0.6875rem] leading-5 text-gray-500 sm:block"
 												>
 													{model.id}
 												</div>
 
-												<Tooltip content={dayjs(model.updated_at * 1000).format('LLLL')}>
-													<div
-														class="shrink-0 truncate text-[11px] leading-5 text-gray-400 dark:text-gray-600"
+												<Tooltip
+													content={dayjs(model.updated_at * 1000)
+														.locale($i18n.language)
+														.format('LLLL')}
+													className="hidden shrink-0 sm:flex"
+												>
+													<span class="text-[0.6875rem] leading-5 text-gray-400 dark:text-gray-500"
+														>{dayjs(model.updated_at * 1000)
+															.locale($i18n.language)
+															.fromNow()}</span
 													>
-														{dayjs(model.updated_at * 1000).fromNow()}
-													</div>
 												</Tooltip>
 
 												{#if !model.write_access}
@@ -785,7 +877,9 @@
 										</div>
 
 										<Tooltip
-											content={(model?.meta?.description ?? '').trim() ||
+											content={(
+												resolveLocalizedModelDescription(model, $i18n.language) ?? ''
+											).trim() ||
 												model.base_model_id ||
 												$i18n.t('No description')}
 											className="min-w-0"
@@ -794,7 +888,7 @@
 											<div
 												class="truncate text-[0.6875rem] leading-4 text-gray-400 dark:text-gray-600"
 											>
-												{(model?.meta?.description ?? '').trim() ||
+												{(resolveLocalizedModelDescription(model, $i18n.language) ?? '').trim() ||
 													model.base_model_id ||
 													$i18n.t('No description')}
 											</div>
@@ -803,22 +897,26 @@
 								</div>
 
 								<div
-									class="hidden max-w-44 shrink-0 self-center truncate text-right text-[11px] leading-5 text-gray-500 dark:text-gray-500 md:block"
+									class="hidden max-w-44 shrink-0 self-center truncate text-right text-[0.6875rem] leading-5 text-gray-500 dark:text-gray-500 md:block"
 								>
-									<Tooltip
-										content={model?.user?.email ?? $i18n.t('Deleted User')}
-										className="min-w-0"
-										placement="top-start"
-									>
-										<div class="truncate">
-											{capitalizeFirstLetter(
-												model?.user?.name ?? model?.user?.email ?? $i18n.t('Deleted User')
-											)}
-										</div>
-									</Tooltip>
+									<ProfilePreview user={model?.user ?? null} side="left">
+										<span class="flex max-w-44 items-center gap-1.75">
+											<ProfileImage
+												src={model?.user?.id
+													? `/api/v1/users/${model.user.id}/profile/image`
+													: '/user.png'}
+												className="size-4 shrink-0 rounded-full!"
+											/>
+											<span class="min-w-0 max-w-24 truncate">
+												{capitalizeFirstLetter(
+													model?.user?.name ?? model?.user?.email ?? $i18n.t('Deleted User')
+												)}
+											</span>
+										</span>
+									</ProfilePreview>
 								</div>
 
-								<div class="ml-2 flex shrink-0 flex-row items-center self-center">
+								<div class="ml-1 flex shrink-0 flex-row items-center self-center">
 									{#if shiftKey && model.write_access}
 										<Tooltip content={model?.meta?.hidden ? $i18n.t('Show') : $i18n.t('Hide')}>
 											<button
@@ -847,15 +945,20 @@
 												on:click={(e) => {
 													e.preventDefault();
 													e.stopPropagation();
-													deleteModelHandler(model);
+													confirmDeleteModel(model);
 												}}
 											>
 												<GarbageBin className="size-4" />
 											</button>
 										</Tooltip>
 									{:else}
-										<div class="flex shrink-0 flex-row items-center gap-1.5 self-center">
+										<div class="flex shrink-0 flex-row items-center gap-1 self-center">
 											<ModelMenu
+												accessHandler={$user?.permissions?.sharing?.models ||
+												$user?.role === 'admin'
+													? () => accessModal.open(model.id)
+													: null}
+
 												{model}
 												writeAccess={model.write_access ?? false}
 												editHandler={() => {
@@ -880,8 +983,7 @@
 													copyLinkHandler(model);
 												}}
 												deleteHandler={() => {
-													selectedModel = model;
-													showModelDeleteConfirm = true;
+													confirmDeleteModel(model);
 												}}
 												onClose={() => {}}
 											>
@@ -893,32 +995,20 @@
 											</ModelMenu>
 
 											{#if model.write_access}
-												<button
-													class="flex h-6 items-center"
-													type="button"
-													on:click={(e) => {
-														e.stopPropagation();
-														e.preventDefault();
-													}}
+												<Tooltip
+													content={updatingModels[model.id]
+														? $i18n.t('Saving...')
+														: model.is_active
+															? $i18n.t('Enabled')
+															: $i18n.t('Disabled')}
 												>
-													<Tooltip
-														content={model.is_active ? $i18n.t('Enabled') : $i18n.t('Disabled')}
-													>
-														<Switch
-															bind:state={model.is_active}
-															on:change={async () => {
-																toggleModelById(localStorage.token, model.id);
-																_models.set(
-																	await getModels(
-																		localStorage.token,
-																		$config?.features?.enable_direct_connections &&
-																			($settings?.directConnections ?? null)
-																	)
-																);
-															}}
-														/>
-													</Tooltip>
-												</button>
+													<Switch
+														bind:state={model.is_active}
+														disabled={updatingModels[model.id] ?? false}
+														ariaLabel={`${$i18n.t('Enabled')}: ${localizedModelName}`}
+														on:change={() => toggleModelHandler(model)}
+													/>
+												</Tooltip>
 											{/if}
 										</div>
 									{/if}
@@ -947,6 +1037,14 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if $config?.features.enable_community_sharing}
+		<CommunityDiscover
+			href="https://openwebui.com/search?type=model"
+			title={$i18n.t('Discover a model')}
+			description={$i18n.t('Discover, download, and explore model presets')}
+		/>
+	{/if}
 {:else}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />

@@ -5,6 +5,7 @@
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import type { Model } from '$lib/stores';
+	import { resolveLocalizedModelName } from '$lib/utils/localizedContent';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import PinSlash from './icons/PinSlash.svelte';
@@ -15,12 +16,13 @@
 	export let onUnpin: (() => void | Promise<void>) | null = null;
 
 	let mouseOver = false;
+	$: localizedModelName = resolveLocalizedModelName(model, $i18n.language);
 </script>
 
 {#if model}
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		class=" flex justify-center text-gray-800 dark:text-gray-200 cursor-grab relative group"
+		role="listitem"
 		data-id={model?.id}
 		on:mouseenter={() => {
 			mouseOver = true;
@@ -30,7 +32,7 @@
 		}}
 	>
 		<a
-			class="grow flex items-center space-x-2 rounded-xl px-2 py-[7px] group-hover:bg-gray-100 dark:group-hover:bg-gray-900 transition"
+			class="grow flex items-center space-x-2 rounded-xl px-2 py-[0.4375rem] group-hover:bg-gray-100 dark:group-hover:bg-gray-900 transition"
 			href="/?model={model?.id}"
 			on:click={onClick}
 			draggable="false"
@@ -41,14 +43,16 @@
 					class=" size-4 rounded-full"
 					alt="logo"
 					on:error={(e: Event): void => {
+						// LICENSE covers this Open WebUI fallback logo.
+						// https://docs.openwebui.com/license.
 						if (e.currentTarget instanceof HTMLImageElement) e.currentTarget.src = '/favicon.png';
 					}}
 				/>
 			</div>
 
 			<div class="flex self-center translate-y-[0.5px]">
-				<div class=" self-center text-[13px] leading-5 line-clamp-1">
-					{model?.name ?? model.id}
+				<div class=" self-center text-[0.8125rem] leading-5 line-clamp-1">
+					{localizedModelName}
 				</div>
 			</div>
 		</a>

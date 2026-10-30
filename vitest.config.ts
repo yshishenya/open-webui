@@ -7,6 +7,11 @@ const libPath = fileURLToPath(new URL('./src/lib', import.meta.url));
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	define: {
+		APP_VERSION: JSON.stringify('0.12.5-test'),
+		APP_BUILD_HASH: JSON.stringify('test'),
+		APP_BUILD_CHANNEL: JSON.stringify('test')
+	},
 	resolve: {
 		conditions: ['browser'],
 		alias: {

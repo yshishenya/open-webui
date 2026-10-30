@@ -31,12 +31,10 @@
 	let editName = '';
 	let editInput: HTMLInputElement;
 	let dragOver = false;
-	let showDropdown = false;
 
 	const startRename = () => {
 		editName = directory.name;
 		editing = true;
-		showDropdown = false;
 		setTimeout(() => editInput?.select(), 0);
 	};
 
@@ -143,9 +141,15 @@
 
 		<div class="flex items-center gap-2 shrink-0">
 			{#if directory.updated_at}
-				<Tooltip content={dayjs(directory.updated_at * 1000).format('LLLL')}>
+				<Tooltip
+					content={dayjs(directory.updated_at * 1000)
+						.locale($i18n.language)
+						.format('LLLL')}
+				>
 					<div class="text-xs text-gray-400">
-						{dayjs(directory.updated_at * 1000).fromNow()}
+						{dayjs(directory.updated_at * 1000)
+							.locale($i18n.language)
+							.fromNow()}
 					</div>
 				</Tooltip>
 			{/if}
@@ -154,7 +158,7 @@
 
 	{#if writeAccess}
 		<div class="flex items-center">
-			<Dropdown bind:show={showDropdown} align="end" sideOffset={4}>
+			<Dropdown closeOnSelect align="end" sideOffset={4}>
 				<button
 					class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-850 transition"
 					type="button"
@@ -163,7 +167,7 @@
 				</button>
 
 				<div slot="content">
-					<DropdownMenu className="min-w-[140px] z-[9999999]">
+					<DropdownMenu className="min-w-[8.75rem] z-[9999999]">
 						<button
 							type="button"
 							class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-xs transition hover:text-gray-900 dark:hover:text-gray-100"

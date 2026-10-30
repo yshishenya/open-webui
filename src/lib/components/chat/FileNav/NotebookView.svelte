@@ -20,6 +20,7 @@
 	export let filePath: string = '';
 	export let baseUrl: string = '';
 	export let apiKey: string = '';
+	export let readOnly = false;
 
 	interface NotebookCell {
 		cell_type: 'markdown' | 'code' | 'raw';
@@ -98,6 +99,7 @@
 	let editedSources: Record<number, string> = {};
 
 	const startEditing = (index: number) => {
+		if (readOnly) return;
 		editingCell[index] = true;
 		editedSources[index] = toStr(cells[index].source);
 		editingCell = editingCell;
@@ -119,7 +121,7 @@
 	let runAllActive = false;
 
 	const startSession = async (): Promise<boolean> => {
-		if (!baseUrl || !apiKey || !filePath) return false;
+		if (readOnly || !baseUrl || !apiKey || !filePath) return false;
 		kernelStarting = true;
 		kernelError = null;
 
@@ -146,7 +148,7 @@
 	};
 
 	const runCell = async (index: number) => {
-		if (runningCell !== null) return;
+		if (readOnly || runningCell !== null) return;
 		if (!kernelReady && !(await startSession())) return;
 
 		runningCell = index;
@@ -184,7 +186,7 @@
 	};
 
 	const runAll = async () => {
-		if (runAllActive) return;
+		if (readOnly || runAllActive) return;
 		runAllActive = true;
 		for (let i = 0; i < cells.length; i++) {
 			if (cells[i].cell_type === 'code') {
@@ -207,7 +209,7 @@
 
 <div class="notebook-view">
 	<!-- Toolbar -->
-	{#if baseUrl && apiKey && filePath}
+	{#if !readOnly && baseUrl && apiKey && filePath}
 		<div class="nb-toolbar flex items-center gap-1 px-2 py-0.5">
 			<button
 				class="nb-btn text-[0.6rem]"
@@ -292,12 +294,12 @@
 					<div class="nb-cell-gutter">
 						{#if runningCell === i}
 							<div class="nb-cell-label"><Spinner className="size-3" /></div>
-						{:else if baseUrl && apiKey && filePath}
+						{:else if !readOnly && baseUrl && apiKey && filePath}
 							<button
 								class="nb-run-btn"
 								on:click={() => runCell(i)}
 								disabled={runningCell !== null}
-								title="Run cell (⌘+Enter)"
+								title={$i18n.t('Run cell (⌘+Enter)')}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -591,7 +593,7 @@
 	.nb-output-html :global(td),
 	.nb-output-html :global(th) {
 		border: 1px solid rgba(128, 128, 128, 0.2);
-		padding: 3px 8px;
+		padding: 0.1875rem 0.5rem;
 		text-align: left;
 	}
 	.nb-output-html :global(th) {

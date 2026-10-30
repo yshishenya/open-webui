@@ -1,9 +1,11 @@
 <script lang="ts">
+	import type { TerminalSkill } from '$lib/apis/terminal';
 	import type { SkillListItem } from '$lib/utils/airis/frontend-contracts';
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
+	import { resolveLocalizedResource } from '$lib/utils/localizedContent';
 	import { getContext } from 'svelte';
-	import { skills } from '$lib/stores';
+	import { skills, terminalSkills } from '$lib/stores';
 
 	import Modal from '../common/Modal.svelte';
 	import Collapsible from '../common/Collapsible.svelte';
@@ -12,9 +14,11 @@
 	export let show = false;
 	export let selectedSkillIds: string[] = [];
 
-	let selectedSkills: SkillListItem[] = [];
+	let selectedSkills: (SkillListItem | TerminalSkill)[] = [];
 
-	$: selectedSkills = ($skills ?? []).filter((skill) => selectedSkillIds.includes(skill.id));
+	$: selectedSkills = [...($skills ?? []), ...($terminalSkills ?? [])].filter((skill) =>
+		selectedSkillIds.includes(skill.id)
+	);
 
 	const i18n = getContext<Readable<I18n>>('i18n');
 </script>
@@ -45,13 +49,16 @@
 						<Collapsible buttonClassName="w-full mb-0.5">
 							<div class="truncate">
 								<div class="text-sm font-normal dark:text-gray-100 text-gray-800 truncate">
-									{skill?.name}
+									{resolveLocalizedResource(skill, $i18n.language)}
 								</div>
 
-								{#if skill?.description}
+								{#if resolveLocalizedResource(skill, $i18n.language, 'description')}
 									<div class="text-xs text-gray-500">
-										{skill?.description}
+										{resolveLocalizedResource(skill, $i18n.language, 'description')}
 									</div>
+								{/if}
+								{#if skill.source === 'terminal'}
+									<div class="text-xs text-gray-500">{$i18n.t('Terminal')}</div>
 								{/if}
 							</div>
 						</Collapsible>

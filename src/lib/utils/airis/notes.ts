@@ -1,3 +1,4 @@
+import type { NotePage } from '$lib/apis/notes';
 import type { Content, JSONContent } from '@tiptap/core';
 import type { SessionUser } from '$lib/stores';
 
@@ -83,7 +84,10 @@ export type NoteRecord = Record<string, unknown> & {
 	created_at: number;
 	updated_at: number;
 	write_access?: boolean;
+	is_pinned?: boolean | null;
 	data: Record<string, unknown> & {
+		pages: NotePage[];
+		pages_revision: number;
 		content: NoteContent;
 		files: NoteFile[];
 		versions?: NoteVersion[] | null;
@@ -93,6 +97,8 @@ export type NoteRecord = Record<string, unknown> & {
 
 // Raw model responses and socket updates may omit content/files; detail normalization is separate.
 export type NoteData = Record<string, unknown> & {
+	pages?: NotePage[];
+	pages_revision?: number;
 	content?: NoteVersion | null;
 	files?: NoteFile[] | null;
 	versions?: NoteVersion[] | null;
@@ -118,7 +124,7 @@ export type NoteListItem = Pick<
 // Search retains owner/grants/model fields, but also truncates content.md.
 export type NoteSearchItem = NoteModelResponse & Pick<NoteListItem, 'user'>;
 export type NoteSearchResponse = { items: NoteSearchItem[]; total: number };
-export type NoteEvent = Pick<NoteModelResponse, 'id'> & Partial<Omit<NoteModelResponse, 'id'>>;
+export type NoteEvent = Pick<NoteModelResponse, 'id'> & Partial<Omit<NoteModelResponse, 'id'>> & { page?: NotePage };
 export type NoteDownloadType = 'txt' | 'md' | 'pdf';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -181,6 +187,34 @@ const isNoteAccessGrant = (value: unknown): value is NoteAccessGrant =>
 	typeof value.principal_id === 'string' &&
 	(value.permission === 'read' || value.permission === 'write');
 
+const normalizePageContent = (value: NoteVersion): NotePage['content'] => ({
+	...value,
+	md: value.md ?? '',
+	html: value.html ?? '',
+	json: value.json ?? null
+});
+
+const normalizePage = (value: unknown): NotePage => {
+	if (!isRecord(value) || typeof value.id !== 'string' || typeof value.title !== 'string' ||
+		(value.parent_id !== undefined && value.parent_id !== null && typeof value.parent_id !== 'string') ||
+		(value.inherit_note_title !== undefined && typeof value.inherit_note_title !== 'boolean') ||
+		!isContent(value.content) || !Array.isArray(value.versions) || !value.versions.every(isContent) ||
+		typeof value.revision !== 'number' || !Number.isInteger(value.revision) || value.revision < 0 ||
+		typeof value.generation !== 'number' || !Number.isInteger(value.generation) || value.generation < 0)
+		throw new Error('Invalid note pages');
+	return {
+		...value,
+		id: value.id,
+		title: value.title,
+		...(value.parent_id === undefined ? {} : {parent_id: value.parent_id}),
+		...(value.inherit_note_title === undefined ? {} : {inherit_note_title: value.inherit_note_title}),
+		content: normalizePageContent(value.content),
+		versions: value.versions.map(normalizePageContent),
+		revision: value.revision,
+		generation: value.generation
+	};
+};
+
 // Missing legacy fields are empty; malformed existing content must not be silently erased.
 export const normalizeNote = (value: unknown): NoteRecord => {
 	if (
@@ -203,6 +237,10 @@ export const normalizeNote = (value: unknown): NoteRecord => {
 	const versions = data.versions;
 	if (versions != null && (!Array.isArray(versions) || !versions.every(isContent)))
 		throw new Error('Invalid note versions');
+	if (data.pages !== undefined && !Array.isArray(data.pages)) throw new Error('Invalid note pages');
+	const pages = Array.isArray(data.pages) ? data.pages.map(normalizePage) : undefined;
+	if (pages && new Set(pages.map((page) => page.id)).size !== pages.length) throw new Error('Invalid note pages');
+	if (data.pages_revision !== undefined && (typeof data.pages_revision !== 'number' || !Number.isInteger(data.pages_revision) || data.pages_revision < 0)) throw new Error('Invalid note pages revision');
 	const files = data.files ?? [];
 	const grants = value.access_grants ?? [];
 	if (
@@ -223,6 +261,8 @@ export const normalizeNote = (value: unknown): NoteRecord => {
 		...(value.write_access === undefined ? {} : { write_access: value.write_access }),
 		data: {
 			...data,
+			pages: pages ?? [{ id: 'main', title: value.title, inherit_note_title: true, content: normalizePageContent(content), versions: (versions ?? []).map(normalizePageContent), revision: 0, generation: 0 }],
+			pages_revision: typeof data.pages_revision === 'number' ? data.pages_revision : 0,
 			...(versions === undefined ? {} : { versions }),
 			content: {
 				...content,

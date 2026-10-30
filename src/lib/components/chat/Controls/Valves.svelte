@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { resolveLocalizedResource } from '$lib/utils/localizedContent';
 	import { toast } from 'svelte-sonner';
 
-	import { functions, tools } from '$lib/stores';
+	import { config, functions, tools } from '$lib/stores';
 	import { createEventDispatcher, getContext, onDestroy } from 'svelte';
 	import type { Writable } from 'svelte/store';
 	import {
@@ -28,11 +29,11 @@
 
 	const dispatch = createEventDispatcher();
 
-	const i18n = getContext<Writable<{ t: (key: string) => string }>>('i18n');
+	const i18n = getContext<Writable<{ t: (key: string) => string; language: string }>>('i18n');
 
 	export let show = false;
 
-	let tab = 'tools';
+	let tab = $config?.features?.enable_tools ? 'tools' : 'functions';
 	let selectedId = '';
 
 	let loading = false;
@@ -177,10 +178,16 @@
 							bind:value={tab}
 							placeholder={$i18n.t('Select')}
 						>
-							<option value="tools" class="bg-gray-100 dark:bg-gray-800">{$i18n.t('Tools')}</option>
-							<option value="functions" class="bg-gray-100 dark:bg-gray-800"
-								>{$i18n.t('Functions')}</option
-							>
+							{#if $config?.features?.enable_tools}
+								<option value="tools" class="bg-gray-100 dark:bg-gray-800"
+									>{$i18n.t('Tools')}</option
+								>
+							{/if}
+							{#if $config?.features?.enable_functions}
+								<option value="functions" class="bg-gray-100 dark:bg-gray-800"
+									>{$i18n.t('Functions')}</option
+								>
+							{/if}
 						</select>
 					</div>
 
@@ -197,7 +204,9 @@
 								{#each ($tools ?? [])
 									.filter((tool) => !tool?.id?.startsWith('server:'))
 									.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')) as tool}
-									<option value={tool.id} class="bg-gray-100 dark:bg-gray-800">{tool.name}</option>
+									<option value={tool.id} class="bg-gray-100 dark:bg-gray-800"
+										>{resolveLocalizedResource(tool, $i18n.language)}</option
+									>
 								{/each}
 							{:else if tab === 'functions'}
 								<option value="" selected disabled class="bg-gray-100 dark:bg-gray-800"
@@ -205,7 +214,9 @@
 								>
 
 								{#each [...($functions ?? [])].sort( (a, b) => (a.name ?? '').localeCompare(b.name ?? '') ) as func}
-									<option value={func.id} class="bg-gray-100 dark:bg-gray-800">{func.name}</option>
+									<option value={func.id} class="bg-gray-100 dark:bg-gray-800"
+										>{resolveLocalizedResource(func, $i18n.language)}</option
+									>
 								{/each}
 							{/if}
 						</select>
@@ -226,7 +237,7 @@
 						>
 					{:else}
 						<fieldset class="chat-control-valves" disabled={saving}>
-							<Valves {valvesSpec} bind:valves on:change={debounceSubmitHandler} />
+							<Valves {valvesSpec} meta={(tab === 'tools' ? $tools : $functions)?.find((item) => item.id === selectedId)?.meta} userValves bind:valves on:change={debounceSubmitHandler} />
 						</fieldset>
 					{/if}
 				</div>

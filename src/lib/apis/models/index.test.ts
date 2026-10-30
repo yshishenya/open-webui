@@ -20,6 +20,10 @@ describe('buildModelMutationPayload', () => {
 		});
 	});
 
+	it('preserves the upstream history commit message', () => {
+		expect(buildModelMutationPayload({ commit_message: 'Reviewed settings' }).commit_message).toBe('Reviewed settings');
+	});
+
 	it('keeps an explicit empty list and removes malformed entries', () => {
 		expect(
 			buildModelMutationPayload({

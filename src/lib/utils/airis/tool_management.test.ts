@@ -48,6 +48,8 @@ const rig = () => {
 		remove = vi.fn(async () => true),
 		get = vi.fn(async () => ({ ...item }));
 	const context = {
+		structuredClone,
+		workspaceCounts: { update: vi.fn() },
 		AbortController,
 		Error,
 		Blob,
@@ -358,19 +360,25 @@ it.each(['refused', 'null', 'accepted'])(
 		const fn = source.match(/onChange=\{(async \(\) => \{[\s\S]*?)\}\n\/>/)![1];
 		const error = vi.fn(),
 			success = vi.fn();
-		const run = runInNewContext(`(${fn})`, {
-			edit: true,
-			id: 'id',
-			accessGrants: [],
-			localStorage: { token: 'token' },
-			$i18n: { t: (s: string) => s },
-			Error,
-			toast: { error, success },
-			updateToolAccessGrants: async () => {
-				if (mode === 'refused') throw Error('refused');
-				return mode === 'null' ? null : {};
+		const run = runInNewContext(
+			ts.transpileModule(`(${fn})`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } })
+				.outputText,
+			{
+				edit: true,
+				structuredClone,
+				id: 'id',
+				accessGrants: [],
+				savedAccessGrants: [],
+				localStorage: { token: 'token' },
+				$i18n: { t: (s: string) => s },
+				Error,
+				toast: { error, success },
+				updateToolAccessGrants: async () => {
+					if (mode === 'refused') throw Error('refused');
+					return mode === 'null' ? null : {};
+				}
 			}
-		}) as () => Promise<void>;
+		) as () => Promise<void>;
 		await run();
 		expect(success).toHaveBeenCalledTimes(mode === 'accepted' ? 1 : 0);
 		expect(error).toHaveBeenCalledTimes(mode === 'accepted' ? 0 : 1);

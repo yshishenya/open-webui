@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
+import { safeLinkUrl } from '$lib/utils';
 
 const script = (file: string): string => {
 	const text = readFileSync(file, 'utf8').split('<script lang="ts">')[1].split('</script>')[0];
@@ -17,7 +18,7 @@ const evaluate = <T>(source: string, context: Record<string, unknown>): T =>
 		ts.transpileModule(source, {
 			compilerOptions: { target: ts.ScriptTarget.ES2022 }
 		}).outputText,
-		context
+		Object.assign(context, { safeLinkUrl })
 	) as T;
 const deferred = <T = object>() => {
 	let resolve!: (value: T) => void;
@@ -147,6 +148,7 @@ it('refreshes the parent list without clearing a newer folder selection', async 
 		selected = vi.fn();
 	const context = {
 		refreshChatList: vi.fn(() => waiting.promise),
+		refreshFolderChatLists: vi.fn(async () => {}),
 		localStorage: { token: 'fixture' },
 		selectedFolder: { set: selected },
 		$selectedFolder: folder('original')

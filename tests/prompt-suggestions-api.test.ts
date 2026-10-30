@@ -8,16 +8,16 @@ afterEach(() => {
 const rows = [{ title: ['Title', 'Subtitle'], content: 'Task' }];
 it('preserves one POST, authorization, array body and server result', async () => {
 	const fetch = vi.fn<[url: string, init: RequestInit], Promise<Response>>(
-		async () => new Response(JSON.stringify(rows))
+		async () => new Response(JSON.stringify({ suggestions: rows, i18n: {} }))
 	);
 	vi.stubGlobal('fetch', fetch);
-	await expect(setDefaultPromptSuggestions('token', rows)).resolves.toEqual(rows);
+	await expect(setDefaultPromptSuggestions('token', rows)).resolves.toEqual({ suggestions: rows, i18n: {} });
 	expect(fetch).toHaveBeenCalledOnce();
 	expect(fetch.mock.calls[0][0]).toBe('/api/v1/configs/suggestions');
 	const init = fetch.mock.calls[0][1];
 	expect(init.method).toBe('POST');
 	expect(new Headers(init.headers).get('Authorization')).toBe('Bearer token');
-	expect(JSON.parse(String(init.body))).toEqual({ suggestions: rows });
+	expect(JSON.parse(String(init.body))).toEqual({ suggestions: rows, i18n: {} });
 });
 it.each(['network', 'HTTP', 'JSON'])(
 	'rejects %s refusal instead of silently resolving null',
@@ -50,7 +50,7 @@ it.each([
 it('accepts an empty server list', async () => {
 	vi.stubGlobal(
 		'fetch',
-		vi.fn(async () => new Response('[]'))
+		vi.fn(async () => new Response('{"suggestions":[],"i18n":{}}'))
 	);
-	await expect(setDefaultPromptSuggestions('token', [])).resolves.toEqual([]);
+	await expect(setDefaultPromptSuggestions('token', [])).resolves.toEqual({ suggestions: [], i18n: {} });
 });

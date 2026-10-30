@@ -5,10 +5,13 @@
 
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
+	import AccessButton from '$lib/components/common/AccessButton.svelte';
+	import FolderShareModal from './FolderShareModal.svelte';
 	import XMark from '../icons/XMark.svelte';
 
 	import { toast } from 'svelte-sonner';
-	import { user, config } from '$lib/stores';
+	import { user, config, models } from '$lib/stores';
+	import ModelSelector from '$lib/components/chat/ModelSelector/Selector.svelte';
 
 	import Textarea from '$lib/components/common/Textarea.svelte';
 	import Knowledge from '$lib/components/workspace/Models/Knowledge.svelte';
@@ -35,12 +38,16 @@
 	let meta: Record<string, unknown> & { background_image_url?: string | null } = {
 		background_image_url: null
 	};
-	let data: Record<string, unknown> = {
+	let data: { description: string; model_ids: string[]; system_prompt: string; files: import('$lib/utils/airis/chat_history').ChatAttachment[] } = {
+		description: '',
+		model_ids: [] as string[],
 		system_prompt: '',
 		files: []
 	};
 
 	let loading = false;
+	let showAccessModal = false;
+	let folder: Awaited<ReturnType<typeof getFolderById>> | null = null;
 
 	const submitHandler = async (): Promise<void> => {
 		if (initializing || loading || !show) return;
@@ -76,7 +83,7 @@
 			const saved = await onSubmit({
 				name,
 				meta,
-				data,
+				data: { description: data.description.trim(), model_ids: data.model_ids, system_prompt: data.system_prompt, files: data.files },
 				parent_id: edit ? undefined : parentId
 			});
 			if (saved !== false && version === loadVersion && show) show = false;
@@ -100,12 +107,13 @@
 		initializing = Boolean(id);
 		try {
 			if (id) {
-				const folder = await getFolderById(localStorage.token, id);
+				const loadedFolder = await getFolderById(localStorage.token, id);
 				if (version !== loadVersion || !show) return;
-				if (!folder) throw new Error($i18n.t('Something went wrong :/'));
+				if (!loadedFolder) throw new Error($i18n.t('Something went wrong :/'));
+				folder = loadedFolder;
 				name = folder.name;
 				meta = folder.meta || { background_image_url: null };
-				data = folder.data || { system_prompt: '', files: [] };
+				data = { description: '', system_prompt: '', files: [], ...folder.data, model_ids: folder.data?.model_ids ?? [] };
 			}
 			initializing = false;
 			await tick();
@@ -125,6 +133,7 @@
 	} else {
 		invalidateLoad();
 	}
+	$: if (!show) showAccessModal = false;
 
 	onDestroy(invalidateLoad);
 
@@ -134,6 +143,8 @@
 			background_image_url: null
 		};
 		data = {
+			description: '',
+			model_ids: [],
 			system_prompt: '',
 			files: []
 		};
@@ -150,14 +161,20 @@
 					{$i18n.t('Create Folder')}
 				{/if}
 			</div>
-			<button
-				class="self-center rounded-lg p-1 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-				on:click={() => {
-					show = false;
-				}}
-			>
-				<XMark className={'size-4'} />
-			</button>
+			<div class="flex items-center gap-1">
+				{#if edit && folder && ($user?.role === 'admin' || (folder.user_id === $user?.id && $user?.permissions?.sharing?.folders))}
+					<AccessButton disabled={loading} on:click={() => (showAccessModal = true)} />
+				{/if}
+				<button
+					aria-label={$i18n.t('Close')}
+					class="self-center rounded-lg p-1 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+					on:click={() => {
+						show = false;
+					}}
+				>
+					<XMark className={'size-4'} />
+				</button>
+			</div>
 		</div>
 
 		<div class="flex flex-col md:flex-row w-full px-4 pb-4 md:space-x-4 dark:text-gray-200">
@@ -191,6 +208,20 @@
 								autocomplete="off"
 							/>
 						</div>
+					</div>
+
+					<div class="my-2">
+						<label for="folder-description" class="mb-1 block text-xs text-gray-500">
+							{$i18n.t('Description')}
+						</label>
+						<Textarea
+							id="folder-description"
+							ariaLabel={$i18n.t('Description')}
+							className="w-full text-sm bg-transparent placeholder:text-gray-300 dark:placeholder:text-gray-700 outline-hidden"
+							placeholder={$i18n.t('Enter description')}
+							maxSize={200}
+							bind:value={data.description}
+						/>
 					</div>
 
 					<input
@@ -263,6 +294,44 @@
 
 					<hr class=" border-gray-50 dark:border-gray-850/30 my-2.5 w-full" />
 
+					<div class="my-1 flex items-center justify-between gap-4">
+						<label
+							for="model-selector-folder-default-button"
+							class="shrink-0 text-xs text-gray-500"
+						>
+							{$i18n.t('Default Model')}
+						</label>
+						<div class="flex min-w-0 max-w-[65%] items-center gap-2">
+							<div class="min-w-0">
+								<ModelSelector
+									id="folder-default"
+									placeholder={$i18n.t('Use default')}
+									items={$models.map((model) => ({
+										value: model.id,
+										label: model.name,
+										model
+									}))}
+									triggerClassName="text-xs"
+									placement="auto"
+									align="end"
+									selectionOnly
+									value={data.model_ids[0] ?? ''}
+									bind:values={data.model_ids}
+								/>
+							</div>
+							{#if data.model_ids.length}
+								<button
+									type="button"
+									aria-label={$i18n.t('Reset')}
+									class="shrink-0 p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
+									on:click={() => (data.model_ids = [])}
+								>
+									<XMark className="size-3" />
+								</button>
+							{/if}
+						</div>
+					</div>
+
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.system_prompt ?? true)}
 						<div class="my-1">
 							<div class="mb-2 text-xs text-gray-500">{$i18n.t('System Prompt')}</div>
@@ -280,7 +349,7 @@
 					{/if}
 
 					<div class="my-2">
-						<Knowledge bind:selectedItems={(data as { files: unknown[] }).files}>
+						<Knowledge bind:selectedItems={data.files}>
 							<div slot="label">
 								<div class="flex w-full justify-between">
 									<div class=" text-xs text-gray-500">
@@ -293,17 +362,15 @@
 
 					<div class="flex justify-end pt-3 text-sm font-normal gap-1.5">
 						<button
-							class="px-3.5 py-1.5 text-sm font-normal bg-black hover:bg-gray-950 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full flex flex-row space-x-1 items-center {loading
-								? ' cursor-not-allowed'
-								: ''}"
+							class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:cursor-not-allowed"
 							type="submit"
 							disabled={initializing || loading}
 						>
 							{$i18n.t('Save')}
 
 							{#if loading}
-								<div class="ml-2 self-center">
-									<Spinner />
+								<div class="shrink-0">
+									<Spinner className="size-3" />
 								</div>
 							{/if}
 						</button>
@@ -313,3 +380,7 @@
 		</div>
 	</div>
 </Modal>
+
+{#if show && edit && folder && ($user?.role === 'admin' || folder.user_id === $user?.id)}
+	<FolderShareModal bind:show={showAccessModal} {folder} />
+{/if}

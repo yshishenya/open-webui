@@ -8,6 +8,7 @@
 		type ValveSpec
 	} from '$lib/utils/airis/userValves';
 	import { getContext } from 'svelte';
+	import { tools, functions } from '$lib/stores';
 
 	import Modal from '../../common/Modal.svelte';
 	import {
@@ -40,6 +41,9 @@
 	export let type = 'tool';
 	export let id: string | null = null;
 	export let userValves = false;
+	export let meta: Record<string, unknown> | null | undefined = null;
+	$: resourceMeta =
+		meta ?? (type === 'tool' ? $tools : $functions)?.find((item) => item.id === id)?.meta ?? {};
 
 	let saving = false;
 	let loading = false;
@@ -207,16 +211,14 @@
 							>
 						{:else}
 							<fieldset disabled={saving} aria-busy={saving}>
-								<Valves {valvesSpec} bind:valves />
+								<Valves {valvesSpec} bind:valves meta={resourceMeta} {userValves} />
 							</fieldset>
 						{/if}
 					</div>
 
 					<div class="flex justify-end pt-2.5 text-sm font-normal">
 						<button
-							class="px-3 py-1.5 text-sm font-normal bg-black hover:bg-gray-950 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full flex items-center gap-2 whitespace-nowrap {saving
-								? ' cursor-not-allowed'
-								: ''}"
+							class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:cursor-not-allowed"
 							type="submit"
 							disabled={saving || loading || loadFailed || !valvesSpec || !id}
 						>
@@ -224,7 +226,7 @@
 
 							{#if saving}
 								<span class="shrink-0">
-									<Spinner />
+									<Spinner className="size-3" />
 								</span>
 							{/if}
 						</button>

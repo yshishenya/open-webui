@@ -92,7 +92,7 @@ const rig = (text = JSON.stringify([wrapped])) => {
 			onDestroy: (fn: () => void) => destroy.push(fn),
 			$i18n: { t: (key: string) => key },
 			importChats: api,
-			refreshChatList: refresh,
+			refreshSidebar: refresh,
 			getAllChats: all,
 			archiveAllChats: archive,
 			deleteAllChats: remove,
@@ -138,15 +138,17 @@ it('imports wrapped and legacy AIRIS data without logging private content', asyn
 		{
 			chat: wrapped.chat,
 			meta: wrapped.meta,
-			pinned: false,
+			pinned: true,
+			archived: false,
+			variables: {},
 			folder_id: 'folder',
 			created_at: 10,
 			updated_at: 20
 		},
-		{ chat: legacy, meta: {}, pinned: false, folder_id: null, created_at: 30, updated_at: null }
+		{ chat: legacy, meta: {}, variables: {}, archived: false, pinned: false, folder_id: null, created_at: 30, updated_at: null }
 	]);
 	expect(r.log.log).not.toHaveBeenCalled();
-	expect(r.refresh).toHaveBeenCalledWith('original-session', { refreshPinned: true });
+	expect(r.refresh).toHaveBeenCalledWith('original-session');
 	expect(r.input.value).toBe('');
 });
 it('handles invalid JSON and outer shapes without starting an import', async () => {
@@ -268,7 +270,7 @@ it('handles export and navigation failures without exporting invalid data or thr
 	expect(r.save.mock.calls[0][0].type).toBe('application/json');
 	await r.actual.archive();
 	expect(r.archive).toHaveBeenCalledWith('original-session');
-	expect(r.refresh).toHaveBeenCalledWith('original-session', { clearPinned: true });
+	expect(r.refresh).toHaveBeenCalledWith('original-session');
 	await r.actual.remove();
 	expect(r.remove).toHaveBeenCalledWith('original-session');
 	expect(r.refresh).toHaveBeenLastCalledWith('original-session');

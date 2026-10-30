@@ -1,0 +1,144 @@
+{
+  "spec_id": "open-webui-0125-compatibility-2026-10-29-454",
+  "title": "Open WebUI v0.12.5 compatibility assessment 20261029",
+  "generated": "2026-10-29T11:54:26.730961Z",
+  "last_updated": "2026-10-29T12:00:29.337844Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "low",
+    "risk_level": "low",
+    "estimated_hours": 8,
+    "security_sensitive": false,
+    "default_category": "investigation",
+    "status": "completed",
+    "activated_date": "2026-10-29T11:54:36.446916Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-29__docs__upstream-v0.12.5-assessment.md",
+    "progress_percentage": 100,
+    "completed_date": "2026-10-29T12:00:29.337609Z"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "Open WebUI v0.12.5 compatibility assessment 20261029",
+      "status": "completed",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 2,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0432\u0435\u0440\u0441\u0438\u0438, \u043f\u0440\u043e\u0431\u043d\u043e\u0435 \u0441\u043b\u0438\u044f\u043d\u0438\u0435 \u0438 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-29T12:00:06.875154Z",
+        "journaled_at": "2026-10-29T12:00:06.876953Z"
+      }
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0440\u0438\u0441\u043a\u043e\u0432 \u0434\u0430\u043d\u043d\u044b\u0445 \u0438 \u0438\u0442\u043e\u0433\u043e\u0432\u0430\u044f \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u044f",
+      "status": "completed",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1"
+      ],
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "needs_journaling": false,
+        "completed_at": "2026-10-29T12:00:07.101681Z",
+        "journaled_at": "2026-10-29T12:00:07.103616Z"
+      }
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u0432\u0435\u0440\u0441\u0438\u0438 \u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043f\u0440\u043e\u0431\u043d\u043e\u0435 \u0441\u043b\u0438\u044f\u043d\u0438\u0435",
+      "status": "completed",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-29T12:00:06.874983Z",
+        "needs_journaling": false,
+        "status_note": "Official tag verified; both trial merges recorded and aborted. 448/447 conflicted paths.",
+        "journaled_at": "2026-10-29T12:00:06.875954Z"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0440\u0438\u0441\u043a\u0438 \u043c\u0438\u0433\u0440\u0430\u0446\u0438\u0439 \u0438 \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442",
+      "status": "completed",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 1,
+      "metadata": {
+        "completed_at": "2026-10-29T12:00:07.101541Z",
+        "needs_journaling": false,
+        "status_note": "Static graph has two heads; dependency/build/auth/billing risks documented. Assessment report saved; integration and deployment out of scope.",
+        "journaled_at": "2026-10-29T12:00:07.102493Z"
+      }
+    }
+  },
+  "journal": [
+    {
+      "timestamp": "2026-10-29T12:00:06.875950Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c \u0432\u0435\u0440\u0441\u0438\u0438 \u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043f\u0440\u043e\u0431\u043d\u043e\u0435 \u0441\u043b\u0438\u044f\u043d\u0438\u0435",
+      "author": "claude-code",
+      "content": "Task task-1-1 marked as completed. \nNote: Official tag verified; both trial merges recorded and aborted. 448/447 conflicted paths.",
+      "metadata": {},
+      "task_id": "task-1-1"
+    },
+    {
+      "timestamp": "2026-10-29T12:00:06.876948Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0432\u0435\u0440\u0441\u0438\u0438, \u043f\u0440\u043e\u0431\u043d\u043e\u0435 \u0441\u043b\u0438\u044f\u043d\u0438\u0435 \u0438 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-1 have been completed.",
+      "metadata": {},
+      "task_id": "phase-1"
+    },
+    {
+      "timestamp": "2026-10-29T12:00:07.102489Z",
+      "entry_type": "status_change",
+      "title": "Task Completed: \u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0440\u0438\u0441\u043a\u0438 \u043c\u0438\u0433\u0440\u0430\u0446\u0438\u0439 \u0438 \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442",
+      "author": "claude-code",
+      "content": "Task task-2-1 marked as completed. \nNote: Static graph has two heads; dependency/build/auth/billing risks documented. Assessment report saved; integration and deployment out of scope.",
+      "metadata": {},
+      "task_id": "task-2-1"
+    },
+    {
+      "timestamp": "2026-10-29T12:00:07.103612Z",
+      "entry_type": "status_change",
+      "title": "Phase Completed: \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0440\u0438\u0441\u043a\u043e\u0432 \u0434\u0430\u043d\u043d\u044b\u0445 \u0438 \u0438\u0442\u043e\u0433\u043e\u0432\u0430\u044f \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u044f",
+      "author": "claude-code",
+      "content": "All child tasks in phase phase-2 have been completed.",
+      "metadata": {},
+      "task_id": "phase-2"
+    }
+  ]
+}

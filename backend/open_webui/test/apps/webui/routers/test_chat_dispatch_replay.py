@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 from open_webui import tasks
 from open_webui.internal import db as native_db
 from open_webui.models.access_grants import AccessGrants
+from open_webui.models.auths import Auths
 from open_webui.models.chats import ChatForm, ChatModel, Chats
 from open_webui.models.models import ModelForm, ModelMeta, ModelParams, Models
 from open_webui.models.notes import NoteForm, Notes
@@ -34,6 +35,15 @@ from starlette.requests import Request
 
 main = importlib.import_module('open_webui.main')
 DispatchAPI = tuple[TestClient, dict[str, str], dict[str, object], list[str]]
+
+
+def _session_token(user_id: str) -> str:
+    """Sign a fixture session against the account's persisted revocation stamp."""
+    auth = asyncio.run(Auths.get_auth_by_id(user_id))
+    assert auth is not None and auth.session_stamp
+    return create_token(
+        {'id': user_id, 'typ': 'session', 'auth_method': 'password', 'session_stamp': auth.session_stamp}
+    )
 
 
 def test_note_chat_creation_replays_the_original_chat(dispatch_api: DispatchAPI) -> None:
@@ -121,10 +131,12 @@ def test_note_chat_operation_requires_auth_access_and_uuid(dispatch_api: Dispatc
     assert client.post(url).status_code == 401
     assert client.post(f'/api/v1/notes/{note.id}/chat?operation_id=broken', headers=headers).status_code == 422
     other = asyncio.run(
-        Users.insert_new_user(str(uuid4()), 'Other reader', f'{uuid4()}@example.invalid', '/user.png', role='user')
+        Auths.insert_new_auth(email=f'{uuid4()}@example.invalid', password='unused', name='Other reader', role='user')
     )
     assert other is not None
-    assert client.post(url, headers={'Authorization': f'Bearer {create_token({"id": other.id})}'}).status_code == 403
+    assert client.post(url, headers={'Authorization': f'Bearer {_session_token(other.id)}'}).status_code == 403
+    stale = create_token({'id': token['id'], 'typ': 'session', 'session_stamp': 'revoked-fixture-stamp'})
+    assert client.post(url, headers={'Authorization': f'Bearer {stale}'}).status_code == 401
     assert client.get(f'/api/v1/notes/{note.id}/chats', headers=headers).json() == []
 
 
@@ -136,7 +148,7 @@ def test_same_note_operation_is_isolated_by_note_and_authorized_actor(dispatch_a
     second = asyncio.run(Notes.insert_new_note(token['id'], NoteForm(title='Second note')))
     assert first is not None and second is not None
     other = asyncio.run(
-        Users.insert_new_user(str(uuid4()), 'Shared reader', f'{uuid4()}@example.invalid', '/user.png', role='user')
+        Auths.insert_new_auth(email=f'{uuid4()}@example.invalid', password='unused', name='Shared reader', role='user')
     )
     assert other is not None
     asyncio.run(
@@ -149,7 +161,7 @@ def test_same_note_operation_is_isolated_by_note_and_authorized_actor(dispatch_a
     second_result = client.post(f'/api/v1/notes/{second.id}/chat?operation_id={operation}', headers=headers)
     shared = client.post(
         f'/api/v1/notes/{first.id}/chat?operation_id={operation}',
-        headers={'Authorization': f'Bearer {create_token({"id": other.id})}'},
+        headers={'Authorization': f'Bearer {_session_token(other.id)}'},
     )
     assert first_result.status_code == second_result.status_code == shared.status_code == 200
     assert len({first_result.json()['id'], second_result.json()['id'], shared.json()['id']}) == 3
@@ -191,6 +203,7 @@ async def test_note_operation_database_failure_is_a_safe_503() -> None:
 
 @pytest.fixture(autouse=True)
 def separate_test_loops(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    native_db.Base.metadata.create_all(bind=native_db.engine)
     # TestClient and asyncio.run use separate loops; don't reuse SQLite thread connections between them.
     engine = create_async_engine(native_db.ASYNC_SQLALCHEMY_DATABASE_URL, poolclass=NullPool)
     monkeypatch.setattr(native_db, 'AsyncSessionLocal', async_sessionmaker(engine, expire_on_commit=False))
@@ -224,8 +237,8 @@ def dispatch_api(monkeypatch: pytest.MonkeyPatch) -> DispatchAPI:
     assert not main.app.dependency_overrides
     user_id, model_id = str(uuid4()), str(uuid4())
     user = asyncio.run(
-        Users.insert_new_user(
-            id=user_id,
+        Auths.insert_new_auth(
+            password='unused',
             name='Dispatch replay acceptance',
             email=f'{user_id}@example.invalid',
             profile_image_url='/user.png',
@@ -233,6 +246,7 @@ def dispatch_api(monkeypatch: pytest.MonkeyPatch) -> DispatchAPI:
         )
     )
     assert user is not None
+    user_id = user.id
     model = asyncio.run(
         Models.insert_new_model(
             ModelForm(id=model_id, name='Dispatch fixture', meta=ModelMeta(), params=ModelParams()),
@@ -272,7 +286,7 @@ def dispatch_api(monkeypatch: pytest.MonkeyPatch) -> DispatchAPI:
             'timestamp': 1791560000,
         },
     }
-    headers = {'Authorization': f'Bearer {create_token({"id": user_id})}'}
+    headers = {'Authorization': f'Bearer {_session_token(user_id)}'}
     client = TestClient(main.app)
     return client, headers, payload, scheduled
 
@@ -367,11 +381,11 @@ def test_other_user_cannot_replay_owners_receipt(dispatch_api: DispatchAPI) -> N
     first = client.post('/api/chat/completions', headers=headers, json=payload)
     assert first.status_code == 200
     other = asyncio.run(
-        Users.insert_new_user(str(uuid4()), 'Other user', f'{uuid4()}@example.invalid', '/user.png', role='user')
+        Auths.insert_new_auth(email=f'{uuid4()}@example.invalid', password='unused', name='Other user', role='user')
     )
     assert other is not None
     result = client.post(
-        '/api/chat/completions', json=payload, headers={'Authorization': f'Bearer {create_token({"id": other.id})}'}
+        '/api/chat/completions', json=payload, headers={'Authorization': f'Bearer {_session_token(other.id)}'}
     )
     assert result.status_code in (400, 403)  # Native model access denial, never the owner's receipt.
     assert result.json() != first.json()
@@ -647,10 +661,10 @@ def test_read_receipt_account_isolation_and_uuid_normalization(dispatch_api: Dis
     url = f"/api/v1/chat/dispatches/{str(payload['operation_id']).upper()}"
     assert client.get(url, headers=headers).json()['receipt'] == first.json()
     other = asyncio.run(
-        Users.insert_new_user(str(uuid4()), 'Lookup other', f'{uuid4()}@example.invalid', '/user.png', role='user')
+        Auths.insert_new_auth(email=f'{uuid4()}@example.invalid', password='unused', name='Lookup other', role='user')
     )
     assert other is not None
-    response = client.get(url, headers={'Authorization': f'Bearer {create_token({"id": other.id})}'})
+    response = client.get(url, headers={'Authorization': f'Bearer {_session_token(other.id)}'})
     assert response.status_code == 200
     assert response.json() == {'state': 'absent', 'receipt': None}
     assert len(scheduled) == 1

@@ -69,7 +69,8 @@ it('repeated sidebar mounts synchronously release all component resources', () =
 		(s) =>
 			ts.isExpressionStatement(s) &&
 			ts.isCallExpression(s.expression) &&
-			s.expression.expression.getText(parsed) === 'onMount'
+			s.expression.expression.getText(parsed) === 'onMount' &&
+			s.expression.arguments[0].getText(parsed).includes('unsubscribeSidebarWidth')
 	);
 	if (!mount || !ts.isExpressionStatement(mount) || !ts.isCallExpression(mount.expression)) {
 		throw new Error('Missing actual sidebar mount');
@@ -109,13 +110,15 @@ it('repeated sidebar mounts synchronously release all component resources', () =
 				onBlur: vi.fn(),
 				chatActiveEventHandler: vi.fn(),
 				refreshChatRows: vi.fn(),
+				initSidebarData: vi.fn(),
+				chatListRequestGeneration: 0,
 				registerFolderRefreshHandler: vi.fn(() => folderCleanup)
 			}) as () => unknown
 		)();
 		// Svelte registers only a synchronous function as component teardown.
 		expect(typeof cleanup).toBe('function');
 		expect(unsubscribers).toHaveLength(4);
-		expect(window.addEventListener).toHaveBeenCalledTimes(6);
+		expect(window.addEventListener).toHaveBeenCalledTimes(4);
 		expect(socket.on).toHaveBeenCalledTimes(2);
 		(cleanup as () => void)();
 		unsubscribers.forEach((stop) => expect(stop).toHaveBeenCalledTimes(1));
@@ -126,7 +129,7 @@ it('repeated sidebar mounts synchronously release all component resources', () =
 });
 
 it('replacement sidebar elements own and release their drop handlers', () => {
-	expect(source.match(/use:sidebarDropZone/g)).toHaveLength(2);
+	expect(source.match(/use:sidebarDropZone/g)).toHaveLength(1);
 	const context = { onDragOver: vi.fn(), onDrop: vi.fn(), onDragLeave: vi.fn(), draggedOver: true };
 	const bind = evaluate(actionSource('sidebarDropZone'), context) as (
 		node: ReturnType<typeof events>
@@ -219,20 +222,15 @@ it('reorders visible pins when a hidden item occupies the middle slot', async ()
 	action.destroy();
 });
 
-it('touch end without a recorded start does not navigate or throw', () => {
-	const declaration = parsed.statements.find(
-		(s) => ts.isFunctionDeclaration(s) && s.name?.text === 'checkDirection'
-	);
-	if (!declaration) throw new Error('Missing actual swipe handler');
+it('closing the mobile sidebar preserves the desktop sidebar', () => {
 	const set = vi.fn();
-	const check = evaluate(declaration.getText(parsed), {
-		touchstart: undefined,
-		touchend: { screenX: 100 },
-		window: { innerWidth: 400 },
-		showSidebar: { set }
-	}) as () => void;
-	expect(() => check()).not.toThrow();
+	const context = { $mobile: false, showSidebar: { set } };
+	const close = evaluate(actionSource('closeMobileSidebar'), context) as () => void;
+	close();
 	expect(set).not.toHaveBeenCalled();
+	context.$mobile = true;
+	close();
+	expect(set).toHaveBeenCalledWith(false);
 });
 
 it.each(['{}', '[null]', '[[]]', 'invalid'])(

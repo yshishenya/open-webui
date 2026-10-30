@@ -60,6 +60,7 @@ type RAGConfigForm = Partial<
 		| 'EXTERNAL_DOCUMENT_LOADER_HEADERS'
 		| 'DOCLING_PARAMS'
 		| 'MINERU_PARAMS'
+		| 'MISTRAL_OCR_PARAMS'
 		| 'MINERU_FILE_EXTENSIONS'
 		| 'FILE_MAX_SIZE'
 		| 'FILE_MAX_COUNT'
@@ -71,6 +72,7 @@ type RAGConfigForm = Partial<
 	MINERU_FILE_EXTENSIONS?: string[];
 	DOCLING_PARAMS?: Record<string, unknown>;
 	MINERU_PARAMS?: Record<string, unknown>;
+	MISTRAL_OCR_PARAMS?: Record<string, unknown>;
 	FILE_MAX_SIZE?: number | '' | null;
 	FILE_MAX_COUNT?: number | '' | null;
 	FILE_IMAGE_COMPRESSION_WIDTH?: number | '' | null;
@@ -212,6 +214,8 @@ type OpenAIConfigForm = {
 	url: string;
 };
 
+type OllamaConfigForm = OpenAIConfigForm;
+
 type AzureOpenAIConfigForm = {
 	key: string;
 	url: string;
@@ -219,9 +223,11 @@ type AzureOpenAIConfigForm = {
 };
 
 type EmbeddingModelUpdateForm = {
+	RAG_EMBEDDING_QUERY_PREFIX?: string;
+	RAG_EMBEDDING_CONTENT_PREFIX?: string;
 	openai_config?: OpenAIConfigForm;
+	ollama_config?: OllamaConfigForm;
 	azure_openai_config?: AzureOpenAIConfigForm;
-	ollama_config?: OpenAIConfigForm;
 	RAG_EMBEDDING_ENGINE: string;
 	RAG_EMBEDDING_MODEL: string;
 	RAG_EMBEDDING_BATCH_SIZE?: number;
@@ -338,6 +344,48 @@ export const processYoutubeVideo = async (token: string, url: string) => {
 		},
 		body: JSON.stringify({
 			url: url
+		})
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err.detail;
+			console.error(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const processUrl = async (
+	token: string,
+	url: string,
+	collection_name: string | null = null,
+	process: boolean = true
+) => {
+	let error = null;
+
+	const searchParams = new URLSearchParams();
+	if (!process) {
+		searchParams.append('process', 'false');
+	}
+
+	const res = await fetch(`${RETRIEVAL_API_BASE_URL}/process/url?${searchParams.toString()}`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({
+			url,
+			collection_name
 		})
 	})
 		.then(async (res) => {

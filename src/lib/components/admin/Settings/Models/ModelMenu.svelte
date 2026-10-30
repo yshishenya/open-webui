@@ -13,10 +13,11 @@
 	import Pin from '$lib/components/icons/Pin.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
+	import GarbageBin from '$lib/components/icons/GarbageBin.svelte';
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
 	import LockClosed from '$lib/components/icons/LockClosed.svelte';
 
-	import { settings } from '$lib/stores';
+	import { pinnedModels } from '$lib/stores';
 	import Link from '$lib/components/icons/Link.svelte';
 
 	const i18n = getContext<Readable<I18n>>('i18n');
@@ -24,6 +25,7 @@
 	type MenuModel = Pick<ModelConfig, 'id'> &
 		Partial<Pick<ModelConfig, 'meta'>> & {
 			is_active?: boolean;
+			owned_by?: string;
 			access_grants?: WorkspaceModel['access_grants'] | null;
 		};
 
@@ -32,6 +34,8 @@
 	export let exportHandler: () => void | Promise<void>;
 	export let hideHandler: () => void | Promise<void>;
 	export let privacyHandler: () => void | Promise<void>;
+	export let deleteHandler: () => void | Promise<void>;
+	export let deleteLabel: string;
 	export let isDefaultSelected = false;
 	export let isDefaultPinned = false;
 	export let defaultSelectedHandler: () => void | Promise<void>;
@@ -68,9 +72,18 @@
 	</Tooltip>
 
 	<div slot="content">
-		<DropdownMenu className="min-w-[170px]">
+		<DropdownMenu className="min-w-[10.625rem]">
 			<button
-				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				type="button"
+				on:click={() => runAndClose(deleteHandler)}
+			>
+				<GarbageBin className="size-3.5" />
+				<div class="flex items-center">{deleteLabel}</div>
+			</button>
+
+			<button
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 				on:click={() => runAndClose(hideHandler)}
 			>
 				{#if model?.meta?.hidden ?? false}
@@ -120,7 +133,7 @@
 			</button>
 
 			<button
-				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 				on:click={() => runAndClose(defaultSelectedHandler)}
 			>
 				<Check className="size-3.5" />
@@ -135,7 +148,7 @@
 			</button>
 
 			<button
-				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 				on:click={() => runAndClose(defaultPinnedHandler)}
 			>
 				{#if isDefaultPinned}
@@ -154,7 +167,7 @@
 			</button>
 
 			<button
-				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 				on:click={() => runAndClose(privacyHandler)}
 			>
 				{#if isPublicModel(model)}
@@ -173,17 +186,17 @@
 			</button>
 
 			<button
-				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 				on:click={() => runAndClose(() => pinModelHandler(model?.id))}
 			>
-				{#if ($settings?.pinnedModels ?? []).includes(model?.id)}
+				{#if $pinnedModels.includes(model?.id)}
 					<PinSlash />
 				{:else}
 					<Pin />
 				{/if}
 
 				<div class="flex items-center">
-					{#if ($settings?.pinnedModels ?? []).includes(model?.id)}
+					{#if $pinnedModels.includes(model?.id)}
 						{$i18n.t('Hide from Sidebar')}
 					{:else}
 						{$i18n.t('Keep in Sidebar')}
@@ -192,7 +205,7 @@
 			</button>
 
 			<button
-				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 				on:click={() => runAndClose(copyLinkHandler)}
 			>
 				<Link />
@@ -200,9 +213,9 @@
 				<div class="flex items-center">{$i18n.t('Copy Link')}</div>
 			</button>
 
-			{#if model?.is_active ?? true}
+			{#if (model?.is_active ?? true) && model?.owned_by !== 'arena'}
 				<button
-					class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+					class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 					on:click={() => runAndClose(cloneHandler)}
 				>
 					<DocumentDuplicate />
@@ -212,7 +225,7 @@
 			{/if}
 
 			<button
-				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[13px] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
+				class="select-none flex w-full gap-2 items-center h-[1.6875rem] px-2 text-[0.8125rem] font-normal cursor-pointer hover:bg-gray-50/40 dark:hover:bg-gray-800/40 rounded-xl"
 				on:click={() => runAndClose(exportHandler)}
 			>
 				<Download />

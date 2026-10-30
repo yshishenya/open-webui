@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { v4 as uuidv4 } from 'uuid';
+	import WorkspaceAccessModal from './common/WorkspaceAccessModal.svelte';
+	let accessModal: WorkspaceAccessModal;
+	import { resolveLocalizedResource } from '$lib/utils/localizedContent';
 	import dayjs from 'dayjs';
 	import relativeTime from 'dayjs/plugin/relativeTime';
 	import { toast } from 'svelte-sonner';
@@ -13,22 +17,29 @@
 	import type { i18n as I18n } from 'i18next';
 	import type { SkillUserItem } from '$lib/apis/skills';
 	import { getErrorMessage } from '$lib/utils/airis/error_message';
-	import { parseSkillImport } from '$lib/utils/airis/skill_import';
 
-	import { WEBUI_NAME, user, skills as _skills, workspaceActions } from '$lib/stores';
+	import {
+		WEBUI_NAME,
+		user,
+		skills as _skills,
+		workspaceActions,
+		workspaceCounts
+	} from '$lib/stores';
 	import { goto } from '$app/navigation';
 	import {
 		getSkills,
-		getSkillById,
 		getSkillItems,
 		exportSkills,
-		createNewSkill,
 		deleteSkillById,
 		toggleSkillById
 	} from '$lib/apis/skills';
-	import { capitalizeFirstLetter, parseFrontmatter, formatSkillName } from '$lib/utils';
+	import { capitalizeFirstLetter } from '$lib/utils';
+
 
 	import Tooltip from '../common/Tooltip.svelte';
+	import ProfilePreview from '$lib/components/channel/Messages/Message/ProfilePreview.svelte';
+	import ProfileImage from '$lib/components/chat/Messages/ProfileImage.svelte';
+
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import EllipsisHorizontal from '../icons/EllipsisHorizontal.svelte';
 	import GarbageBin from '../icons/GarbageBin.svelte';
@@ -39,6 +50,47 @@
 	import Badge from '$lib/components/common/Badge.svelte';
 	import Switch from '../common/Switch.svelte';
 	import SkillMenu from './Skills/SkillMenu.svelte';
+	import CommunityDiscover from './common/CommunityDiscover.svelte';
+	import { config } from '$lib/stores';
+	let stopSkillShare = () => {};
+	const shareHandler = (skill: { id: string }) => {
+		stopSkillShare();
+		const tab = window.open('https://openwebui.com/post?type=skill', '_blank');
+		if (!tab) {
+			toast.error($i18n.t('Please allow popups to share your skill.'));
+			return;
+		}
+		const receiveLoaded = async (event: MessageEvent) => {
+			if (
+				event.origin !== 'https://openwebui.com' ||
+				event.source !== tab ||
+				event.data !== 'loaded'
+			)
+				return;
+			stopSkillShare();
+			try {
+				const exported = JSON.parse(
+					await (await exportSkillBundle(localStorage.token, 'json', [skill.id])).text()
+				);
+				const { id, name, description, files } = Array.isArray(exported) ? exported[0] : exported;
+				const data = JSON.stringify({ id, name, description, files });
+				if (new Blob([data]).size > 15 * 1024 * 1024)
+					throw new Error('Community skill JSON exceeds 15 MiB');
+				tab.postMessage(data, 'https://openwebui.com');
+			} catch (error) {
+				toast.error(skillError(error));
+			}
+		};
+		window.addEventListener('message', receiveLoaded);
+		stopSkillShare = () => window.removeEventListener('message', receiveLoaded);
+	};
+	import SkillImport from './Skills/SkillImport.svelte';
+	import ImportModal from '$lib/components/ImportModal.svelte';
+	import { cloneSkill, exportSkillBundle, loadSkillByUrl, skillError } from '$lib/apis/skills';
+	let showImport = false;
+	let showImportFromLink = false;
+	let bundleFiles: File[] = [];
+	let folderImportInput: HTMLInputElement;
 	import Pagination from '../common/Pagination.svelte';
 	import ChevronDown from '../icons/ChevronDown.svelte';
 	import ChevronUp from '../icons/ChevronUp.svelte';
@@ -46,11 +98,11 @@
 	let shiftKey = false;
 	let loaded = false;
 
-	let importFiles: FileList | null = null;
 	let importInputElement: HTMLInputElement;
 
 	let query = '';
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
+	let searchController = new AbortController();
 
 	let selectedSkill: SkillUserItem | null = null;
 	let showDeleteConfirm = false;
@@ -62,7 +114,6 @@
 	let alive = true;
 	const controller = new AbortController();
 	let listVersion = 0;
-	let importing = false;
 	let pendingIds = new Set<string>();
 
 	let tagsContainerElement: HTMLDivElement;
@@ -82,11 +133,37 @@
 			},
 			{
 				id: 'skills-import',
-				label: $i18n.t('Import JSON'),
+				label: $i18n.t('Import'),
 				onClick: () => {
-					if (!importing) importInputElement?.click();
+					if (alive) importInputElement?.click();
 				},
 				visible: $user?.role === 'admin' || $user?.permissions?.workspace?.skills_import
+			},
+			{
+				id: 'skills-import-url',
+				label: $i18n.t('Import from URL'),
+				onClick: () => {
+					showImportFromLink = true;
+				},
+				visible: $user?.role === 'admin'
+			},
+			{
+				id: 'skills-import-folder',
+				label: $i18n.t('Import folder'),
+				onClick: () => folderImportInput?.click(),
+				visible: $user?.role === 'admin' || $user?.permissions?.workspace?.skills_import
+			},
+			{
+				id: 'skills-export-zip',
+				label: $i18n.t('Export ZIP'),
+				onClick: async () => {
+					try {
+						saveAs(await exportSkillBundle(localStorage.token, 'zip'), 'skills.zip');
+					} catch (error) {
+						toast.error(skillError(error));
+					}
+				},
+				visible: $user?.role === 'admin' || $user?.permissions?.workspace?.skills_export
 			},
 			{
 				id: 'skills-export',
@@ -128,6 +205,7 @@
 			if (alive && version === listVersion) {
 				filteredItems = res.items;
 				total = res.total;
+				workspaceCounts.update((counts) => ({ ...counts, skills: total }));
 			}
 		} catch (error) {
 			if (alive && version === listVersion) {
@@ -149,7 +227,8 @@
 			});
 	};
 
-	const handleSearchInput = (): void => {
+	const handleSearchInput = () => {
+		searchController?.abort();
 		loading = true;
 		clearTimeout(searchDebounceTimer);
 		searchDebounceTimer = setTimeout(() => {
@@ -190,36 +269,31 @@
 	};
 
 	const cloneHandler = async (skill: SkillUserItem): Promise<void> => {
-		const _skill = await getSkillById(localStorage.token, skill.id, controller.signal).catch(
-			(error) => {
-				if (alive) toast.error(getErrorMessage(error));
-				return null;
-			}
-		);
-
-		if (alive && _skill) {
-			sessionStorage.skill = JSON.stringify({
-				..._skill,
-				id: `${_skill.id}_clone`,
-				name: `${_skill.name} (Clone)`
-			});
-			goto('/workspace/skills/create');
+		try {
+			const suffix = uuidv4().slice(0, 7);
+			const result = await cloneSkill(
+				localStorage.token,
+				skill.id,
+				`${skill.name} (${suffix})`,
+				`${skill.id}-${suffix}`
+			);
+			if (!alive) return;
+			await goto(`/workspace/skills/edit?id=${result.id}`);
+		} catch (error) {
+			if (alive) toast.error(skillError(error));
 		}
 	};
 
-	const exportHandler = async (skill: SkillUserItem): Promise<void> => {
-		const _skill = await getSkillById(localStorage.token, skill.id, controller.signal).catch(
-			(error) => {
-				if (alive) toast.error(getErrorMessage(error));
-				return null;
-			}
-		);
-
-		if (alive && _skill) {
-			let blob = new Blob([JSON.stringify([_skill])], {
-				type: 'application/json'
-			});
-			saveAs(blob, `skill-${_skill.id}-export-${Date.now()}.json`);
+	const exportHandler = async (
+		skill: SkillUserItem,
+		format: 'json' | 'zip' | 'skill' = 'json'
+	): Promise<void> => {
+		try {
+			const bundle = await exportSkillBundle(localStorage.token, format, [skill.id]);
+			if (!alive) return;
+			saveAs(bundle, `${skill.id}.${format}`);
+		} catch (error) {
+			if (alive) toast.error(skillError(error));
 		}
 	};
 
@@ -275,59 +349,13 @@
 			pendingIds = new Set([...pendingIds].filter((id) => id !== skill.id));
 		}
 	};
-	const importHandler = async (): Promise<void> => {
-		const file = importFiles?.[0];
-		if (!alive || importing || !file) return;
-		importing = true;
-		let created = 0;
-		try {
-			const text = await file.text();
-			if (!alive) return;
-			if (file.name.split('.').pop()?.toLowerCase() !== 'json') {
-				const fm = parseFrontmatter(text);
-				const fileName = file.name.replace(/\.md$/, '');
-				sessionStorage.skill = JSON.stringify({
-					name: formatSkillName(fm.name || fileName),
-					id: fm.name || '',
-					description: fm.description || '',
-					content: text,
-					is_active: true,
-					access_grants: []
-				});
-				await goto('/workspace/skills/create');
-			} else {
-				for (const skill of parseSkillImport(text)) {
-					if (!alive) return;
-					const result = await createNewSkill(localStorage.token, skill, controller.signal);
-					if (!result) throw new Error($i18n.t('Failed to create skill.'));
-					created++;
-				}
-				if (alive) toast.success($i18n.t('Skill imported successfully'));
-			}
-		} catch (error) {
-			if (alive)
-				toast.error(
-					created
-						? $i18n.t(
-								'Imported {{count}} skills before an error. Check the list before retrying.',
-								{ count: created }
-							) +
-								' ' +
-								getErrorMessage(error)
-						: $i18n.t(getErrorMessage(error))
-				);
-		} finally {
-			if (alive) {
-				importFiles = null;
-				if (importInputElement) importInputElement.value = '';
-				if (created) {
-					if (page !== 1) page = 1;
-					else await loadSkillItems();
-					await refreshSkills();
-				}
-			}
-			importing = false;
-		}
+	const importHandler = (): void => {
+		if (!alive) return;
+		const files = Array.from(importInputElement?.files ?? []);
+		if (!files.length) return;
+		bundleFiles = files;
+		showImport = true;
+		importInputElement.value = '';
 	};
 
 	onMount(() => {
@@ -365,28 +393,71 @@
 	onDestroy(() => {
 		alive = false;
 		controller.abort();
+		stopSkillShare();
+		searchController?.abort();
 		clearTimeout(searchDebounceTimer);
 	});
 </script>
 
+<WorkspaceAccessModal bind:this={accessModal} resourceType="skills" onUpdated={loadSkillItems} />
+
 <svelte:head>
+	<!-- LICENSE covers this Open WebUI browser-title identifier.
+	Do not alter, remove, obscure, or replace it except as LICENSE permits:
+	https://docs.openwebui.com/license. -->
 	<title>
 		{$i18n.t('Skills')} / {$WEBUI_NAME}
 	</title>
 </svelte:head>
+
+<h1 class="sr-only">{$i18n.t('Skills')}</h1>
 
 {#if loaded}
 	{#if loadFailed}<div role="alert">
 			{$i18n.t('Could not load skills. Try again.')}
 			<button type="button" disabled={loading} on:click={loadSkillItems}>{$i18n.t('Retry')}</button>
 		</div>{/if}
+	<ImportModal
+		bind:show={showImportFromLink}
+		loadUrlHandler={async (url, signal) => ({
+			name: 'Skills',
+			content: JSON.stringify(await loadSkillByUrl(localStorage.token, url, signal))
+		})}
+		successMessage={$i18n.t('Skills loaded for preview')}
+		onImport={(source) => {
+			bundleFiles = [new File([source.content], 'skills.json', { type: 'application/json' })];
+			showImport = true;
+		}}
+	/>
+	<SkillImport
+		bind:show={showImport}
+		files={bundleFiles}
+		onImported={async () => {
+			toast.success($i18n.t('Skill imported successfully'));
+			page = 1;
+			await loadSkillItems();
+			_skills.set(await getSkills(localStorage.token));
+		}}
+	/>
 	<input
 		bind:this={importInputElement}
-		bind:files={importFiles}
 		type="file"
-		accept=".md,.json"
+		accept=".md,.json,.zip,.skill"
+		multiple
 		hidden
 		on:change={importHandler}
+	/>
+	<input
+		bind:this={folderImportInput}
+		type="file"
+		webkitdirectory
+		multiple
+		hidden
+		on:change={() => {
+			bundleFiles = Array.from(folderImportInput.files || []);
+			showImport = true;
+			folderImportInput.value = '';
+		}}
 	/>
 
 	<div class="space-y-1">
@@ -490,18 +561,10 @@
 					{#each filteredItems as skill (skill.id)}
 						<div
 							class="group flex min-h-8 w-full cursor-pointer items-center gap-2 overflow-hidden rounded-xl px-2 py-1 text-left"
-							role="button"
-							tabindex="0"
+							role="presentation"
 							on:click={(e) => {
 								if (shouldIgnoreRowClick(e.target)) return;
 								openSkill(skill);
-							}}
-							on:keydown={(e) => {
-								if (e.currentTarget !== e.target) return;
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									openSkill(skill);
-								}
 							}}
 						>
 							<div class="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -509,28 +572,30 @@
 									<div class="flex min-w-0 items-center gap-2 overflow-hidden">
 										<div class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
 											<Tooltip content={skill.id} className="min-w-0" placement="top-start">
-												<div
-													class="truncate text-[13px] leading-5 text-gray-800 group-hover:underline dark:text-gray-200"
+												<a
+													href={`/workspace/skills/edit?id=${encodeURIComponent(skill.id)}`}
+													class="focus-ring block truncate rounded text-[0.8125rem] leading-5 text-gray-800 group-hover:underline focus-visible:underline dark:text-gray-200"
+													>{resolveLocalizedResource(skill, $i18n.language)}</a
 												>
-													{skill.name}
-												</div>
 											</Tooltip>
 
 											<div
-												class="min-w-0 max-w-[40%] shrink-0 truncate text-[11px] leading-5 text-gray-500"
+												class="min-w-0 max-w-[40%] shrink-0 truncate text-[0.6875rem] leading-5 text-gray-500"
 											>
 												/{skill.id}
 											</div>
 
 											<Tooltip
-												content={dayjs((skill.updated_at ?? skill.created_at) * 1000).format(
-													'LLLL'
-												)}
+												content={dayjs((skill.updated_at ?? skill.created_at) * 1000)
+													.locale($i18n.language)
+													.format('LLLL')}
 											>
 												<div
-													class="shrink-0 truncate text-[11px] leading-5 text-gray-400 dark:text-gray-600"
+													class="shrink-0 truncate text-[0.6875rem] leading-5 text-gray-400 dark:text-gray-600"
 												>
-													{dayjs((skill.updated_at ?? skill.created_at) * 1000).fromNow()}
+													{dayjs((skill.updated_at ?? skill.created_at) * 1000)
+														.locale($i18n.language)
+														.fromNow()}
 												</div>
 											</Tooltip>
 
@@ -544,12 +609,16 @@
 										</div>
 									</div>
 
-									{#if skill.description}
-										<Tooltip content={skill.description} className="min-w-0" placement="top-start">
+									{#if resolveLocalizedResource(skill, $i18n.language, 'description')}
+										<Tooltip
+											content={resolveLocalizedResource(skill, $i18n.language, 'description')}
+											className="min-w-0"
+											placement="top-start"
+										>
 											<div
 												class="mt-0.5 truncate text-[0.6875rem] leading-4 text-gray-400 dark:text-gray-600"
 											>
-												{skill.description}
+												{resolveLocalizedResource(skill, $i18n.language, 'description')}
 											</div>
 										</Tooltip>
 									{/if}
@@ -557,19 +626,23 @@
 							</div>
 
 							<div
-								class="hidden max-w-44 shrink-0 self-center truncate text-right text-[11px] leading-5 text-gray-500 dark:text-gray-500 md:block"
+								class="hidden max-w-44 shrink-0 self-center truncate text-right text-[0.6875rem] leading-5 text-gray-500 dark:text-gray-500 md:block"
 							>
-								<Tooltip
-									content={skill?.user?.email ?? $i18n.t('Deleted User')}
-									className="min-w-0"
-									placement="top-start"
-								>
-									<div class="truncate">
-										{capitalizeFirstLetter(
-											skill?.user?.name ?? skill?.user?.email ?? $i18n.t('Deleted User')
-										)}
-									</div>
-								</Tooltip>
+								<ProfilePreview user={skill?.user ?? null} side="left">
+									<span class="flex max-w-44 items-center gap-1.75">
+										<ProfileImage
+											src={skill?.user?.id
+												? `/api/v1/users/${skill.user.id}/profile/image`
+												: '/user.png'}
+											className="size-4 shrink-0 rounded-full!"
+										/>
+										<span class="min-w-0 max-w-24 truncate">
+											{capitalizeFirstLetter(
+												skill?.user?.name ?? skill?.user?.email ?? $i18n.t('Deleted User')
+											)}
+										</span>
+									</span>
+								</ProfilePreview>
 							</div>
 
 							{#if skill.write_access}
@@ -593,6 +666,11 @@
 									{:else}
 										<div class="flex shrink-0 flex-row items-center gap-1.5 self-center">
 											<SkillMenu
+												shareHandler={() => shareHandler(skill)}
+												accessHandler={$user?.permissions?.sharing?.skills ||
+												$user?.role === 'admin'
+													? () => accessModal.open(skill.id)
+													: null}
 												show={openSkillMenuId === skill.id}
 												editHandler={() => {
 													goto(`/workspace/skills/edit?id=${encodeURIComponent(skill.id)}`);
@@ -600,8 +678,8 @@
 												cloneHandler={() => {
 													cloneHandler(skill);
 												}}
-												exportHandler={() => {
-													exportHandler(skill);
+												exportHandler={(format: 'json' | 'zip' | 'skill') => {
+													exportHandler(skill, format);
 												}}
 												deleteHandler={async () => {
 													selectedSkill = skill;
@@ -625,9 +703,9 @@
 												</button>
 											</SkillMenu>
 
-											<button
+											<div
 												class="flex h-6 items-center"
-												type="button"
+												role="presentation"
 												on:click={(e) => {
 													e.stopPropagation();
 													e.preventDefault();
@@ -638,11 +716,12 @@
 												>
 													<Switch
 														state={skill.is_active}
+														ariaLabel={$i18n.t('Enabled')}
 														disabled={pendingIds.has(skill.id)}
 														on:change={() => toggleHandler(skill)}
 													/>
 												</Tooltip>
-											</button>
+											</div>
 										</div>
 									{/if}
 								</div>
@@ -677,9 +756,17 @@
 		}}
 	>
 		<div class=" text-sm text-gray-500 truncate">
-			{$i18n.t('This will delete')} <span class="  font-normal">{selectedSkill?.name ?? ''}</span>.
+			{$i18n.t('This will delete')}
+			<span class="  font-normal">{resolveLocalizedResource(selectedSkill, $i18n.language)}</span>.
 		</div>
 	</DeleteConfirmDialog>
+	{#if $config?.features?.enable_community_sharing}
+		<CommunityDiscover
+			href="https://openwebui.com/search?type=skill"
+			title={$i18n.t('Discover a skill')}
+			description={$i18n.t('Discover, download, and explore community skills')}
+		/>
+	{/if}
 {:else}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner className="size-5" />

@@ -63,6 +63,7 @@ async def database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AsyncIter
 
     for module in [journal, prefs, users, auths, worker, scenarios, routes]:
         monkeypatch.setattr(module, 'get_async_db_context', context)
+    monkeypatch.setattr(auths, 'get_async_db', context)
     monkeypatch.setattr(scenarios, '_account_cursor', (0, ''))
     monkeypatch.setattr(scenarios, '_payment_cursor', (0, ''))
     monkeypatch.setattr(email, 'AIRIS_PRODUCT_EMAILS_ENABLED', True)

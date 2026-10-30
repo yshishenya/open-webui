@@ -82,7 +82,7 @@ describe('AnalyticsModelModal report context', () => {
 		mounted = createClassComponent({
 			component: AnalyticsModelModal,
 			target,
-			context: new Map([['i18n', readable({ t: (key: string) => key })]]),
+			context: new Map([['i18n', readable({ language: 'en', t: (key: string) => key })]]),
 			props: { show: true, model, startDate: 100, endDate: 200, groupId: 'old-group' }
 		});
 		await vi.waitFor(() =>
@@ -99,6 +99,7 @@ describe('AnalyticsModelModal report context', () => {
 			'Использование модели: Same model'
 		);
 		await clickChats();
+		await vi.waitFor(() => expect(api.chats).toHaveBeenCalled());
 		await vi.waitFor(() => expect(document.querySelectorAll('a[href^="/s/"]')).toHaveLength(50));
 		intersect?.();
 		await vi.waitFor(() => expect(document.querySelectorAll('a[href^="/s/"]')).toHaveLength(100));
@@ -146,7 +147,7 @@ describe('AnalyticsModelModal report context', () => {
 			component: AnalyticsModelModal,
 			target,
 			props: { show: true, model: { id: 'demo', name: 'demo' }, startDate: 100, endDate: 200 },
-			context: new Map([['i18n', readable({ t: (text: string) => text })]])
+			context: new Map([['i18n', readable({ language: 'en', t: (text: string) => text })]])
 		});
 		await vi.waitFor(() => expect(api.overview).toHaveBeenCalledOnce());
 		mounted.$set({ startDate: 300, endDate: 400 });

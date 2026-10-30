@@ -72,6 +72,7 @@ export type KnowledgeFile = {
 	hash: string | null;
 	data: { content?: string | null; status?: string; [key: string]: unknown } | null;
 	meta: {
+		data?: { directory_id?: string | null };
 		name?: string | null;
 		content_type?: string | null;
 		collection_name?: string | null;

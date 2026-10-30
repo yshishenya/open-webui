@@ -51,10 +51,16 @@ def test_url_filter_and_private_address_policy(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(utils, 'ENABLE_LOCAL_WEB_FETCH', True)
     resolved.clear()
     assert utils.validate_url('https://public.example/path') is True
-    assert resolved == []
+    # Local fetching relaxes the private-address policy, but resolved IP block entries still apply.
+    assert resolved == ['public.example']
     monkeypatch.setattr(utils, 'WEB_FETCH_FILTER_LIST', ['!public.example'])
     with pytest.raises(ValueError):
         utils.validate_url('https://public.example/path')
+
+    monkeypatch.setattr(utils, 'WEB_FETCH_FILTER_LIST', ['!127.0.0.1'])
+    for addresses in [['127.0.0.1'], ['::ffff:127.0.0.1']]:
+        with pytest.raises(ValueError):
+            utils.validate_url('https://public.example/path')
 
     monkeypatch.setattr(utils, 'ENABLE_LOCAL_WEB_FETCH', False)
     monkeypatch.setattr(utils, 'WEB_FETCH_FILTER_LIST', [])
@@ -77,5 +83,7 @@ def test_url_filter_and_private_address_policy(monkeypatch: pytest.MonkeyPatch) 
         raise socket.gaierror('DNS unavailable')
 
     monkeypatch.setattr(utils, 'resolve_hostname', fail_dns)
-    with pytest.raises(socket.gaierror):
+    with pytest.raises(ValueError):
         utils.validate_url('https://public.example')
+    monkeypatch.setattr(utils, 'ENABLE_LOCAL_WEB_FETCH', True)
+    assert utils.validate_url('https://public.example') is True

@@ -5,7 +5,7 @@
 	import StructuredOutputRenderer from './StructuredOutputRenderer.svelte';
 	import {
 		artifactCode,
-		chatId,
+		chatId as currentChatId,
 		mobile,
 		settings,
 		showArtifacts,
@@ -69,6 +69,8 @@
 	};
 
 	export let id;
+	export let chatId = '';
+	export let messageId = '';
 	export let content;
 	/** @type {import('./structuredOutput').OutputItem[]} */
 	export let output = [];
@@ -86,6 +88,7 @@
 
 	export let editCodeBlock = true;
 	export let topPadding = false;
+	export let allowEmbeds = false;
 
 	/** @type {(event: { raw: string; oldContent: string; newContent: string }) => void} */
 	export let onSave = () => {};
@@ -95,9 +98,12 @@
 	export let onTaskClick = () => {};
 	/** @type {(text: string) => void} */
 	export let onSetInputText = () => {};
+	/** @type {(event: { task_ids?: string[]; task_id?: string } | null | undefined) => void} */
+	export let onToolCallResolved = () => {};
 
 	let contentContainerElement;
 	let floatingButtonsElement;
+	let floatingButtonsRange = null;
 
 	/** @type {string[]} */
 	let sourceIds = [];
@@ -140,11 +146,12 @@
 
 			if (
 				($settings?.detectArtifacts ?? true) &&
+				!compactPreview &&
 				isArtifact &&
 				hasClosingCodeFence(raw) &&
 				!autoOpenedArtifactIds.has(artifactId) &&
 				!$mobile &&
-				$chatId
+				$currentChatId
 			) {
 				autoOpenedArtifactIds.add(artifactId);
 				await tick();
@@ -180,40 +187,41 @@
 			let selection = window.getSelection();
 
 			if (selection.toString().trim().length > 0) {
-				const range = selection.getRangeAt(0);
-				const rect = range.getBoundingClientRect();
-
-				const parentRect = contentContainerElement.getBoundingClientRect();
-
-				// Adjust based on parent rect
-				const top = rect.bottom - parentRect.top;
-				const left = rect.left - parentRect.left;
-
-				if (buttonsContainerElement) {
-					buttonsContainerElement.style.display = 'block';
-
-					// Calculate space available on the right
-					const spaceOnRight = parentRect.width - left;
-					let halfScreenWidth = $mobile ? window.innerWidth / 2 : window.innerWidth / 3;
-
-					if (spaceOnRight < halfScreenWidth) {
-						const right = parentRect.right - rect.right;
-						buttonsContainerElement.style.right = `${right}px`;
-						buttonsContainerElement.style.left = 'auto'; // Reset left
-					} else {
-						// Enough space, position using 'left'
-						buttonsContainerElement.style.left = `${left}px`;
-						buttonsContainerElement.style.right = 'auto'; // Reset right
-					}
-					buttonsContainerElement.style.top = `${top + 5}px`; // +5 to add some spacing
-				}
+				floatingButtonsRange = selection.getRangeAt(0);
+				positionFloatingButtons();
 			} else {
 				closeFloatingButtons();
 			}
 		}, 0);
 	};
 
+	const positionFloatingButtons = () => {
+		const buttonsContainerElement = document.getElementById(`floating-buttons-${id}`);
+		if (!floatingButtonsRange || !buttonsContainerElement) return;
+
+		const rect = floatingButtonsRange.getBoundingClientRect();
+		const parentRect = contentContainerElement.getBoundingClientRect();
+
+		buttonsContainerElement.style.display = 'block';
+
+		// Calculate space available on the right
+		const spaceOnRight = parentRect.right - rect.left;
+		let halfScreenWidth = $mobile ? window.innerWidth / 2 : window.innerWidth / 3;
+
+		if (spaceOnRight < halfScreenWidth) {
+			const right = document.documentElement.clientWidth - rect.right;
+			buttonsContainerElement.style.right = `${right}px`;
+			buttonsContainerElement.style.left = 'auto'; // Reset left
+		} else {
+			// Enough space, position using 'left'
+			buttonsContainerElement.style.left = `${rect.left}px`;
+			buttonsContainerElement.style.right = 'auto'; // Reset right
+		}
+		buttonsContainerElement.style.top = `${rect.bottom + 5}px`; // +5 to add some spacing
+	};
+
 	const closeFloatingButtons = () => {
+		floatingButtonsRange = null;
 		const buttonsContainerElement = document.getElementById(`floating-buttons-${id}`);
 		if (buttonsContainerElement) {
 			buttonsContainerElement.style.display = 'none';
@@ -268,16 +276,21 @@
 	});
 </script>
 
+<svelte:window on:scroll|capture={positionFloatingButtons} on:resize={positionFloatingButtons} />
+
 <div bind:this={contentContainerElement}>
 	{#if output?.length}
 		<StructuredOutputRenderer
 			{id}
+			{chatId}
+			{messageId}
 			{output}
 			{model}
 			{save}
 			{preview}
 			{compactPreview}
 			{done}
+			{allowEmbeds}
 			{editCodeBlock}
 			{topPadding}
 			{sourceIds}
@@ -285,6 +298,7 @@
 			{formatMessageContent}
 			{onSourceClick}
 			{onTaskClick}
+			{onToolCallResolved}
 			{onSave}
 			onUpdate={markdownUpdateHandler}
 			onPreview={previewHandler}
@@ -293,17 +307,21 @@
 		<div class="markdown-prose">
 			<Markdown
 				{id}
+				{chatId}
+				{messageId}
 				content={formatMessageContent(content)}
 				{model}
 				{save}
 				{preview}
 				{compactPreview}
 				{done}
+				{allowEmbeds}
 				{editCodeBlock}
 				{topPadding}
 				{sourceIds}
 				{onSourceClick}
 				{onTaskClick}
+				{onToolCallResolved}
 				{onSave}
 				onUpdate={markdownUpdateHandler}
 				onPreview={previewHandler}
@@ -315,7 +333,18 @@
 		{#if extracted.detailsContent}
 			<!-- Render structural blocks (tool calls, reasoning, etc.) through Markdown -->
 			<div class="markdown-prose">
-				<Markdown {id} content={extracted.detailsContent} {preview} {compactPreview} {done} />
+				<Markdown
+					{id}
+					{chatId}
+					{messageId}
+					content={extracted.detailsContent}
+					{save}
+					{preview}
+					{compactPreview}
+					{done}
+					{allowEmbeds}
+					{onToolCallResolved}
+				/>
 			</div>
 		{/if}
 		{#if extracted.plainContent}

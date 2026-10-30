@@ -1,9 +1,11 @@
 <script lang="ts">
+	import ModelSettingsLabel from './ModelSettingsLabel.svelte';
 	import { getContext, onMount } from 'svelte';
 	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 	import { config, settings, user } from '$lib/stores';
 
 	import KnowledgeSelector from './Knowledge/KnowledgeSelector.svelte';
+	import FileItemModal from '$lib/components/common/FileItemModal.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import ChatBubble from '$lib/components/icons/ChatBubble.svelte';
@@ -17,11 +19,57 @@
 
 	import { toast } from 'svelte-sonner';
 	import { v4 as uuidv4 } from 'uuid';
+	import ChevronRight from '$lib/components/icons/ChevronRight.svelte';
 
 	type KnowledgeDisplayItem = ChatAttachment & { description?: string | null };
-	// This is only the optional display view; saved values remain unknown and unchanged.
-	type KnowledgeDisplayValue = KnowledgeDisplayItem | string | number | boolean | null | undefined;
+	// Preserve legacy/opaque storage values; only validated objects enter the display layer.
 	export let selectedItems: unknown[] = [];
+	const isKnowledgeDisplayItem = (value: unknown): value is KnowledgeDisplayItem => {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+		const fields: Record<string, unknown> = Object.fromEntries(Object.entries(value));
+		const strings = [
+			'terminal_id',
+			'path',
+			'type',
+			'name',
+			'itemId',
+			'status',
+			'context',
+			'content'
+		];
+		const nullableStrings = [
+			'session_id',
+			'content_type',
+			'id',
+			'url',
+			'collection_name',
+			'description'
+		];
+		if (!strings.every((key) => fields[key] === undefined || typeof fields[key] === 'string'))
+			return false;
+		if (!nullableStrings.every((key) => fields[key] == null || typeof fields[key] === 'string'))
+			return false;
+		if (fields.size !== undefined && typeof fields.size !== 'number') return false;
+		const file = fields.file;
+		if (file !== undefined && typeof file !== 'string' && !(file instanceof File)) {
+			if (!file || typeof file !== 'object' || Array.isArray(file)) return false;
+			if (
+				'data' in file &&
+				file.data != null &&
+				(typeof file.data !== 'object' || Array.isArray(file.data))
+			)
+				return false;
+		}
+		return true;
+	};
+	$: displayItems = selectedItems.flatMap((item, index) =>
+		isKnowledgeDisplayItem(item) ? [{ item, index }] : []
+	);
+	$: pickerItems = displayItems.map(({ item }) => item);
+	export let disabled = false;
+	let showPicker = false;
+	let picker: KnowledgeSelector;
+	let valueElement: HTMLElement | null = null;
 	const i18n = getContext('i18n');
 
 	let loaded = false;
@@ -29,11 +77,15 @@
 	let filesInputElement: HTMLInputElement | null = null;
 	let inputFiles: FileList | null = null;
 
-	$: if (selectedItems === null) {
+	let showItemModal = false;
+	let selectedItemIdx: number | null = null;
+
+	$: if (selectedItems == null) {
 		selectedItems = [];
 	}
 
 	const uploadFileHandler = async (file: File, fullContext: boolean = false) => {
+		if (disabled) return null;
 		if ($user?.role !== 'admin' && !($user?.permissions?.chat?.file_upload ?? true)) {
 			toast.error($i18n.t('You do not have permission to upload files.'));
 			return null;
@@ -98,13 +150,13 @@
 				selectedItems = selectedItems;
 			} else {
 				selectedItems = selectedItems.filter(
-					(item) => (item as ChatAttachment | null)?.itemId !== tempItemId
+					(item) => !isKnowledgeDisplayItem(item) || item.itemId !== tempItemId
 				);
 			}
 		} catch (e) {
 			toast.error(`${e}`);
 			selectedItems = selectedItems.filter(
-				(item) => (item as ChatAttachment | null)?.itemId !== tempItemId
+				(item) => !isKnowledgeDisplayItem(item) || item.itemId !== tempItemId
 			);
 		}
 	};
@@ -149,6 +201,10 @@
 	});
 </script>
 
+{#if showItemModal && selectedItemIdx !== null && selectedItems[selectedItemIdx]}
+	<FileItemModal bind:show={showItemModal} bind:item={selectedItems[selectedItemIdx]} edit={true} />
+{/if}
+
 <input
 	bind:this={filesInputElement}
 	bind:files={inputFiles}
@@ -167,125 +223,160 @@
 	}}
 />
 
-<div>
-	<div class="mb-2">
-		<div class="flex w-full items-center gap-2 mb-1">
-			<div class="min-w-0">
-				<slot name="label">
-					<div class=" self-center text-xs text-gray-500">
-						{$i18n.t('Knowledge')}
-					</div>
-				</slot>
-			</div>
-
-			{#if loaded}
-				<div class="flex shrink-0 items-center gap-2">
-					<div class="min-w-0">
-						<KnowledgeSelector
-							on:select={(e) => {
-								const item = e.detail;
-
-								if (!selectedItems.find((k) => (k as ChatAttachment | null)?.id === item.id)) {
-									selectedItems = [
-										...selectedItems,
-										{
-											...item
-										}
-									];
-								}
-							}}
-						>
-							<div
-								class="flex min-w-0 items-center bg-transparent text-xs text-gray-500 outline-hidden hover:underline dark:text-gray-400"
-							>
-								<span class="truncate">{$i18n.t('Select Knowledge')}</span>
-							</div>
-						</KnowledgeSelector>
-					</div>
-
-					{#if $user?.role === 'admin' || $user?.permissions?.chat?.file_upload}
-						<button
-							class="self-center bg-transparent text-xs text-gray-500 hover:underline dark:text-gray-400"
-							type="button"
-							aria-label={$i18n.t('Upload Files')}
-							on:click={() => {
-								filesInputElement?.click();
-							}}
-						>
-							{$i18n.t('Upload')}
-						</button>
-					{/if}
-				</div>
-			{/if}
-		</div>
-	</div>
-
-	<div class="flex flex-col mb-1">
-		{#if selectedItems?.length > 0}
-			<div class=" flex flex-wrap items-center gap-1.5 mb-2.5">
-				{#each selectedItems as KnowledgeDisplayValue[] as file, fileIdx}
-					{#if file !== null && typeof file === 'object'}
-						<Tooltip content={file.description || file.name || file.id}>
-							<div
-								class="flex max-w-56 items-center gap-1.5 py-0.5 pr-2 text-xs text-gray-700 dark:text-gray-200"
-							>
-								<div class="shrink-0 text-gray-500 dark:text-gray-400">
-									{#if file.status === 'uploading'}
-										<Spinner className="size-3.5" />
-									{:else if file.type === 'collection'}
-										<Database className="size-3.5" />
-									{:else if file.type === 'note'}
-										<PageEdit className="size-3.5" />
-									{:else if file.type === 'chat'}
-										<ChatBubble className="size-3.5" />
-									{:else if file.type === 'folder'}
-										<Folder className="size-3.5" />
-									{:else}
-										<DocumentPage className="size-3.5" />
-									{/if}
-								</div>
-
-								<div class="min-w-0 truncate">
-									{file.name || file.id}
-								</div>
-
-								{#if file.status === 'uploading'}
-									<div class="shrink-0 text-gray-400 dark:text-gray-500">
-										{$i18n.t('Uploading')}
-									</div>
-								{/if}
-
-								<button
-									type="button"
-									class="flex size-4 shrink-0 items-center justify-center text-gray-400 dark:text-gray-500"
-									aria-label={$i18n.t('Remove File')}
-									on:click={() => {
-										selectedItems = selectedItems.filter((_, idx) => idx !== fileIdx);
-									}}
+{#if loaded}
+	<!-- Previous labels retained for i18n extraction:
+	{$i18n.t('Select Knowledge')}
+	{$i18n.t('To attach knowledge base here, add them to the "Knowledge" workspace first.')}
+	-->
+	<KnowledgeSelector
+		bind:this={picker}
+		anchorElement={valueElement}
+		bind:show={showPicker}
+		selectedItems={pickerItems}
+		{disabled}
+		on:select={(e) => {
+			if (
+				!disabled &&
+				!pickerItems.some((item) => item.id === e.detail.id && item.type === e.detail.type)
+			) {
+				selectedItems = [...selectedItems, e.detail];
+			}
+		}}
+	>
+		<button
+			type="button"
+			{disabled}
+			aria-expanded={showPicker}
+			class="grid w-full grid-cols-[7rem_minmax(0,1fr)_auto] items-center gap-2 rounded-md px-1 py-1.5 text-left text-xs font-normal disabled:cursor-default sm:grid-cols-[8rem_minmax(0,1fr)_auto]"
+		>
+			<span class="text-gray-600 dark:text-gray-400"
+				><slot name="label"
+					><ModelSettingsLabel
+						label={$i18n.t('Knowledge')}
+						description={$i18n.t(
+							'Attach knowledge bases, notes, or files for this model to reference in chats.'
+						)}
+					/></slot
+				></span
+			>
+			<span
+				bind:this={valueElement}
+				class="flex min-w-0 items-center gap-1 text-gray-900 dark:text-gray-100"
+			>
+				<span class="min-w-0 truncate"
+					>{pickerItems
+						.slice(0, 3)
+						.map((item) => item.name || item.id)
+						.join(', ') || $i18n.t('None')}</span
+				>
+				{#if selectedItems.length > 3}<span class="shrink-0 text-gray-500"
+						>+{selectedItems.length - 3}</span
+					>{/if}
+				{#if pickerItems.some((item) => item.status === 'uploading')}<Spinner
+						className="size-3.5 shrink-0"
+					/>{/if}
+			</span>
+			<ChevronRight className="size-3 text-gray-400" />
+		</button>
+		<div slot="selected">
+			<div class="flex flex-col pb-1">
+				{#if selectedItems?.length > 0}
+					<div class="flex flex-col">
+						{#each displayItems as { item: file, index: fileIdx }}
+							<Tooltip content={file.description || file.name || file.id}>
+								<div
+									class="flex min-h-7 w-full items-center gap-2 rounded-xl px-2 py-1 text-xs font-normal text-gray-900 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
 								>
-									<XMark className="size-3" />
-								</button>
-							</div>
-						</Tooltip>
-					{/if}
-				{/each}
+									<button
+										{disabled}
+										type="button"
+										class="flex min-w-0 flex-1 items-center gap-2 text-left"
+										aria-label={$i18n.t('Edit')}
+										on:click={() => {
+											selectedItemIdx = fileIdx;
+											showPicker = false;
+											showItemModal = true;
+										}}
+									>
+										<div class="shrink-0 text-gray-500 dark:text-gray-400">
+											{#if file.status === 'uploading'}
+												<Spinner className="size-3.5" />
+											{:else if file.type === 'collection'}
+												<Database className="size-3.5" />
+											{:else if file.type === 'note'}
+												<PageEdit className="size-3.5" />
+											{:else if file.type === 'chat'}
+												<ChatBubble className="size-3.5" />
+											{:else if file.type === 'folder'}
+												<Folder className="size-3.5" />
+											{:else}
+												<DocumentPage className="size-3.5" />
+											{/if}
+										</div>
 
+										<div class="min-w-0 truncate">
+											{file.name || file.id}
+										</div>
+									</button>
+
+									{#if file.status === 'uploading'}
+										<div class="shrink-0 text-gray-400 dark:text-gray-500">
+											{$i18n.t('Uploading')}
+										</div>
+									{/if}
+
+									<button
+										{disabled}
+										type="button"
+										class="flex size-4 shrink-0 items-center justify-center text-gray-400 dark:text-gray-500"
+										aria-label={$i18n.t('Remove File')}
+										on:click={() => {
+											selectedItems = selectedItems.filter((_, idx) => idx !== fileIdx);
+										}}
+									>
+										<XMark className="size-3" />
+									</button>
+								</div>
+							</Tooltip>
+						{/each}
+					</div>
+				{/if}
+
+				<!-- {knowledge} -->
+			</div>
+		</div>
+		<div slot="actions" class="flex w-full items-center gap-3">
+			{#if selectedItems.length}
 				<button
 					type="button"
-					class="py-0.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-					on:click={() => {
-						selectedItems = [];
-					}}
+					{disabled}
+					class="text-left hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => (selectedItems = [])}>{$i18n.t('Clear')}</button
 				>
-					{$i18n.t('Disable all')}
-				</button>
+			{/if}
+			{#if $user?.role === 'admin' || $user?.permissions?.chat?.file_upload}
+				<button
+					type="button"
+					{disabled}
+					class="hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => filesInputElement?.click()}>{$i18n.t('Upload Files')}</button
+				>
+			{/if}
+			<div class="ml-auto flex items-center gap-3">
+				{#if $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge}
+					<a
+						href="/workspace/knowledge"
+						target="_blank"
+						rel="noreferrer"
+						class="hover:text-gray-900 dark:hover:text-gray-100">{$i18n.t('Manage')}</a
+					>
+				{/if}
+				<button
+					type="button"
+					class="hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => picker.close()}>{$i18n.t('Done')}</button
+				>
 			</div>
-		{/if}
-
-		<!-- {knowledge} -->
-	</div>
-
-	<div class=" text-xs dark:text-gray-700">
-		{$i18n.t('To attach knowledge base here, add them to the "Knowledge" workspace first.')}
-	</div>
-</div>
+		</div>
+	</KnowledgeSelector>
+{/if}

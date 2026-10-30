@@ -1,16 +1,10 @@
-import asyncio
-import datetime
 import logging
 import secrets
 import time
 import uuid
 
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from open_webui.config import (
     ENABLE_TELEGRAM_AUTH,
     ENABLE_TELEGRAM_SIGNUP,
@@ -18,29 +12,27 @@ from open_webui.config import (
     TELEGRAM_BOT_TOKEN,
 )
 from open_webui.constants import ERROR_MESSAGES
-from open_webui.env import WEBUI_AUTH_COOKIE_SAME_SITE, WEBUI_AUTH_COOKIE_SECURE
 from open_webui.internal.db import get_async_session
-from open_webui.models.auths import Auths, Token
+from open_webui.models.auths import Auths, SigninResult
 from open_webui.models.config import Config
-from open_webui.models.users import UserProfileImageResponse, Users
-from open_webui.utils.access_control import get_permissions
+from open_webui.models.users import Users
 from open_webui.utils.airis.legal_acceptance import record_legal_acceptances
-from open_webui.utils.auth import create_token, get_password_hash, get_verified_user
+from open_webui.utils.auth import create_signin_response, get_password_hash, get_verified_user
 from open_webui.utils.groups import apply_default_group_assignment
-from open_webui.utils.misc import parse_duration
 from open_webui.utils.rate_limit import RateLimiter
-from open_webui.utils.redis import get_redis_client
 from open_webui.utils.telegram_auth import (
     TelegramAuthError,
     verify_and_extract_telegram_user,
 )
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 log = logging.getLogger(__name__)
 
-telegram_state_rate_limiter = RateLimiter(redis_client=get_redis_client(), limit=60, window=60 * 10)
-telegram_action_rate_limiter = RateLimiter(redis_client=get_redis_client(), limit=5 * 3, window=60 * 3)
+telegram_state_rate_limiter = RateLimiter(limit=60, window=60 * 10)
+telegram_action_rate_limiter = RateLimiter(limit=5 * 3, window=60 * 3)
 
 
 def _get_client_ip(request: Request) -> str:
@@ -68,7 +60,7 @@ async def _enforce_telegram_rate_limit(request: Request, *, action: str) -> None
     client_ip = _get_client_ip(request)
     key = f'telegram:{action}:{client_ip}'
     limiter = telegram_state_rate_limiter if action == 'state' else telegram_action_rate_limiter
-    if await asyncio.to_thread(limiter.is_limited, key):
+    if await limiter.is_limited(request.app.state.redis, key):
         _audit_telegram_auth_event(request, action=action, outcome='rate_limited')
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -103,11 +95,6 @@ class TelegramUnlinkForm(BaseModel):
 
 class TelegramStateResponse(BaseModel):
     state: str
-
-
-class SessionUserResponse(Token, UserProfileImageResponse):
-    expires_at: int | None = None
-    permissions: dict | None = None
 
 
 TELEGRAM_SESSION_STATE_KEY = 'telegram_auth_state'
@@ -158,7 +145,7 @@ async def telegram_auth_state(request: Request):
     return {'state': state}
 
 
-@router.post('/telegram/signin', response_model=SessionUserResponse)
+@router.post('/telegram/signin', response_model=SigninResult)
 async def telegram_signin(
     request: Request,
     response: Response,
@@ -198,25 +185,9 @@ async def telegram_signin(
         )
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='NOT_LINKED')
 
-    expires_delta = parse_duration(str(await Config.get('auth.jwt_expiry') or '4w'))
-    expires_at = None
-    if expires_delta:
-        expires_at = int(time.time()) + int(expires_delta.total_seconds())
-
-    token = create_token(data={'id': user.id}, expires_delta=expires_delta)
-
-    datetime_expires_at = datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None
-
-    response.set_cookie(
-        key='token',
-        value=token,
-        expires=datetime_expires_at,
-        httponly=True,
-        samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
-        secure=WEBUI_AUTH_COOKIE_SECURE,
+    result = await create_signin_response(
+        request, user, db, response, set_cookie=True, source='oauth', provider='telegram'
     )
-
-    user_permissions = await get_permissions(user.id, await Config.get('user.permissions') or {}, db=db)
 
     _audit_telegram_auth_event(
         request,
@@ -226,20 +197,10 @@ async def telegram_signin(
         telegram_id=verified.telegram_id,
     )
 
-    return {
-        'token': token,
-        'token_type': 'Bearer',
-        'expires_at': expires_at,
-        'id': user.id,
-        'email': user.email,
-        'name': user.name,
-        'role': user.role,
-        'profile_image_url': user.profile_image_url,
-        'permissions': user_permissions,
-    }
+    return result
 
 
-@router.post('/telegram/signup', response_model=SessionUserResponse)
+@router.post('/telegram/signup', response_model=SigninResult)
 async def telegram_signup(
     request: Request,
     response: Response,
@@ -339,25 +300,9 @@ async def telegram_signup(
         )
         created_user = True
 
-    expires_delta = parse_duration(str(await Config.get('auth.jwt_expiry') or '4w'))
-    expires_at = None
-    if expires_delta:
-        expires_at = int(time.time()) + int(expires_delta.total_seconds())
-
-    token = create_token(data={'id': user.id}, expires_delta=expires_delta)
-
-    datetime_expires_at = datetime.datetime.fromtimestamp(expires_at, datetime.timezone.utc) if expires_at else None
-
-    response.set_cookie(
-        key='token',
-        value=token,
-        expires=datetime_expires_at,
-        httponly=True,
-        samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
-        secure=WEBUI_AUTH_COOKIE_SECURE,
+    result = await create_signin_response(
+        request, user, db, response, set_cookie=True, source='oauth', provider='telegram'
     )
-
-    user_permissions = await get_permissions(user.id, await Config.get('user.permissions') or {}, db=db)
 
     _audit_telegram_auth_event(
         request,
@@ -367,17 +312,7 @@ async def telegram_signup(
         telegram_id=verified.telegram_id,
     )
 
-    return {
-        'token': token,
-        'token_type': 'Bearer',
-        'expires_at': expires_at,
-        'id': user.id,
-        'email': user.email,
-        'name': user.name,
-        'role': user.role,
-        'profile_image_url': user.profile_image_url,
-        'permissions': user_permissions,
-    }
+    return result
 
 
 @router.post('/telegram/link')

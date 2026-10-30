@@ -1,7 +1,8 @@
-import type { ChatCodeExecution, ChatHistoryMessage, ChatStatus } from './chat_history';
+import type { ChatCodeExecution, ChatHistoryMessage, ChatStatus, ChatVoiceMetadata } from './chat_history';
 import type { SavedChat } from './frontend-contracts';
 
 export type ChatCompletionEvent = {
+	type?: string;
 	id?: string;
 	done?: boolean;
 	choices?: { message?: { content?: string }; delta?: { content?: string } }[];
@@ -13,7 +14,7 @@ export type ChatCompletionEvent = {
 	usage?: ChatHistoryMessage['usage'];
 };
 
-type Confirmation = { title: string; message: string };
+type Confirmation = { title: string; message: string; interaction_id?: string; tool_call?: boolean | Record<string, unknown> };
 type Input = Confirmation & {
 	placeholder: string;
 	value?: string;
@@ -23,14 +24,25 @@ type Input = Confirmation & {
 };
 type Source = Partial<ChatCodeExecution> & { type?: string; [key: string]: unknown };
 type Payloads = {
+	'chat:presence': { users: { id: string; name: string }[] };
+	typing: { typing: boolean };
+	'chat:messages': import('./chat_history').ChatHistory;
+	'chat:access': { active?: boolean };
+	'voice:play_animation': { name?: string; model_id?: string };
+	'request:user_input': Input & { questions?: Record<string, unknown>[] };
+	'request:elicitation': Input & { schema?: Record<string, unknown> };
+	'request:interaction:done': { interaction_id?: string };
+	'response:completion': Record<string, unknown>;
+	'chat:message:voice': { voice: ChatVoiceMetadata };
+
 	'billing:reservation': unknown;
 	'chat:reload': unknown;
 	'chat:list': unknown;
 	status: ChatStatus;
-	context_compaction: ChatStatus;
+	context_compaction: ChatStatus & { checkpoint_message_id?: string; context_summary?: string };
 	'chat:active': { active: boolean };
 	'chat:completion': ChatCompletionEvent;
-	'chat:tasks:cancel': unknown;
+	'chat:tasks:cancel': { output?: ChatHistoryMessage['output'] };
 	'chat:message:delta': { content: string };
 	message: { content: string };
 	'chat:message': { content: string };
@@ -60,6 +72,9 @@ type Payloads = {
 
 /** Existing Socket.IO chat event envelopes emitted by the backend. */
 export type ChatSocketEvent = {
+	shared?: boolean;
+	user_id?: string;
+	user?: { id: string; name: string };
 	chat_id: string;
 	message_id: string;
 	data: { [Kind in keyof Payloads]: { type: Kind; data: Payloads[Kind] } }[keyof Payloads];

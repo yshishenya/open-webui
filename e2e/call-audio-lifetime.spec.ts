@@ -107,6 +107,7 @@ test('call closes pending microphone/wake permission and releases resources afte
 	await end.click();
 	await expect(end).toBeHidden();
 	await page.evaluate(() => window.__airisCallAudio.resume());
+	// The upstream Chat lock and fork CallOverlay lock must both be released.
 	await expect
 		.poll(() =>
 			page.evaluate(() => ({
@@ -116,7 +117,7 @@ test('call closes pending microphone/wake permission and releases resources afte
 				released: window.__airisCallAudio.releasedLocks
 			}))
 		)
-		.toEqual({ live: 0, recorders: 0, contexts: 0, released: 1 });
+		.toEqual({ live: 0, recorders: 0, contexts: 0, released: 2 });
 	await page.evaluate(() => {
 		window.__airisCallAudio.pending = false;
 	});
@@ -140,7 +141,7 @@ test('call closes pending microphone/wake permission and releases resources afte
 				released: window.__airisCallAudio.releasedLocks
 			}))
 		)
-		.toEqual({ live: 0, contexts: 0, released: 2 });
+		.toEqual({ live: 0, contexts: 0, released: 4 });
 	await input.fill('Draft remains usable after ending a call');
 	await expect(input).toContainText('Draft remains usable after ending a call');
 });

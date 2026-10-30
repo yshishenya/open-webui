@@ -6,11 +6,12 @@
 	import type { Model } from '$lib/utils/airis/model-types';
 	import dayjs from '$lib/dayjs';
 
-	import { user } from '$lib/stores';
+	import { user, settings } from '$lib/stores';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
-	import { copyToClipboard, sanitizeResponseContent } from '$lib/utils';
+	import { copyToClipboard, removeFormattings, sanitizeResponseContent } from '$lib/utils';
+	import { resolveLocalizedModelDescription } from '$lib/utils/localizedContent';
 	import ArrowUpTray from '$lib/components/icons/ArrowUpTray.svelte';
 	import Check from '$lib/components/icons/Check.svelte';
 	import ModelItemMenu from './ModelItemMenu.svelte';
@@ -19,7 +20,7 @@
 	import Tag from '$lib/components/icons/Tag.svelte';
 	import SparklesSolid from '$lib/components/icons/SparklesSolid.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
 	export let selectedModelIdx: number = -1;
 	export let item: NonNullable<ComponentProps<typeof Selector>['items']>[number];
@@ -28,12 +29,15 @@
 	export let selectedValues: string[] = [];
 	export let compareEnabled = false;
 
-	export let unloadModelHandler: (modelValue: string) => void = () => {};
+	export let unloadModelHandler: (modelId: string) => void | Promise<void> = () => {};
 	export let pinModelHandler: (modelId: string) => void = () => {};
 	export let deleteModelHandler: (model: Model) => void = () => {};
 	export let selectionOnly = false;
 
 	export let onClick: () => void = () => {};
+	export let onEdit: () => void = () => {};
+
+	$: localizedDescription = resolveLocalizedModelDescription(item.model, $i18n.language);
 
 	const copyLinkHandler = async (model: Model): Promise<void> => {
 		const baseUrl = window.location.origin;
@@ -46,6 +50,8 @@
 		}
 	};
 
+	const formatSize = (size?: number) => (size ? `(${(size / 1024 ** 3).toFixed(1)}GB)` : '');
+
 	let showMenu = false;
 	$: isSelected = compareEnabled ? selectedValues.includes(item.value) : value === item.value;
 </script>
@@ -53,17 +59,31 @@
 <button
 	aria-roledescription="model-item"
 	data-testid="model-item"
+	id="model-option-{index}"
 	role="option"
 	aria-selected={isSelected}
 	aria-label={`${$i18n.t('Select {{modelName}} model', { modelName: item.label })}${
 		item.model?.info?.meta?.lead_magnet ? `, ${$i18n.t('Free access eligible')}` : ''
 	}`}
-	class="group/item flex h-8 w-full cursor-pointer select-none items-center rounded-xl px-2 text-left text-[13px] font-normal text-gray-700 outline-hidden transition-colors duration-75 hover:bg-gray-50/40 dark:text-gray-100 dark:hover:bg-gray-800/40 {index ===
-		selectedModelIdx && !compareEnabled
-		? 'bg-gray-50/70 dark:bg-gray-800/60'
-		: ''} {isSelected ? 'bg-gray-50/70 dark:bg-gray-800/60' : ''}"
+	aria-describedby={localizedDescription ? `model-description-${index}` : undefined}
+	class="focus-ring group/item relative flex h-8 w-full cursor-pointer select-none items-center rounded-xl px-2 text-left text-[0.8125rem] font-normal text-gray-700 outline-hidden transition-colors duration-75 dark:text-gray-100 {($settings?.highContrastMode ??
+	false)
+		? 'hover:bg-gray-200 dark:hover:bg-gray-800'
+		: 'hover:bg-gray-50/40 dark:hover:bg-gray-800/40'} {index === selectedModelIdx &&
+	!compareEnabled
+		? ($settings?.highContrastMode ?? false)
+			? 'bg-gray-200 dark:bg-gray-800'
+			: 'bg-gray-50/70 dark:bg-gray-800/60'
+		: ''} {isSelected
+		? ($settings?.highContrastMode ?? false)
+			? 'bg-gray-200 dark:bg-gray-800'
+			: 'bg-gray-50/70 dark:bg-gray-800/60'
+		: ''}"
 	data-arrow-selected={index === selectedModelIdx}
 	data-value={item.value}
+	on:focus={() => {
+		selectedModelIdx = index;
+	}}
 	on:click={() => {
 		onClick();
 	}}
@@ -140,9 +160,32 @@
 								}`}
 								className="self-end"
 							>
-								<span class="line-clamp-1 text-[11px] font-normal text-gray-500 dark:text-gray-400"
+								<span
+									class="line-clamp-1 text-[0.6875rem] font-normal text-gray-500 dark:text-gray-400"
 									>{item.model.ollama?.details?.parameter_size ?? ''}</span
 								>
+							</Tooltip>
+						</div>
+					{/if}
+				{:else if item.model.provider === 'lmstudio' || item.model.provider === 'llama.cpp'}
+					{@const parameterSize =
+						item.model.params_string ?? item.model.details?.parameter_size ?? ''}
+					{@const quantization =
+						(typeof item.model.quantization === 'string'
+							? item.model.quantization
+							: item.model.quantization?.name) ?? item.model.details?.quantization_level ?? ''}
+					{@const size = item.model.size_bytes ?? item.model.size}
+					{#if parameterSize || quantization || size}
+						<div class="flex items-center translate-y-[0.5px]">
+							<Tooltip
+								content={`${quantization ? `${quantization} ` : ''}${formatSize(size)}`}
+								className="self-end"
+							>
+								<span
+									class="line-clamp-1 text-[0.6875rem] font-normal text-gray-500 dark:text-gray-400"
+								>
+									{parameterSize || quantization || formatSize(size)}
+								</span>
 							</Tooltip>
 						</div>
 					{/if}
@@ -154,7 +197,9 @@
 							content={item.model.ollama?.expires_at &&
 							new Date(item.model.ollama?.expires_at * 1000) > new Date()
 								? `${$i18n.t('Unloads {{FROM_NOW}}', {
-										FROM_NOW: dayjs(item.model.ollama?.expires_at * 1000).fromNow()
+										FROM_NOW: dayjs(item.model.ollama?.expires_at * 1000)
+											.locale($i18n.language)
+											.fromNow()
 									})}`
 								: `${$i18n.t('Loaded')}`}
 							className="self-end"
@@ -234,11 +279,15 @@
 					</Tooltip>
 				{/if}
 
-				{#if item.model?.info?.meta?.description}
+				{#if localizedDescription}
+					<span id={`model-description-${index}`} class="sr-only"
+						>{removeFormattings(localizedDescription)}</span
+					>
 					<Tooltip
 						content={`${marked.parse(
-							sanitizeResponseContent(item.model?.info?.meta?.description).replaceAll('\n', '<br>')
+							sanitizeResponseContent(localizedDescription).replaceAll('\n', '<br>')
 						)}`}
+						allowHTML={true}
 					>
 						<div class=" translate-y-[1px]">
 							<svg
@@ -262,14 +311,20 @@
 		</div>
 	</div>
 
-	<div class="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
+	<div
+		class="ml-auto flex shrink-0 items-center {($settings?.highContrastMode ?? false)
+			? 'gap-0.5'
+			: 'gap-1.5'} pl-2"
+	>
 		{#if !selectionOnly && $user?.role === 'admin' && item.model.loaded}
 			<Tooltip
 				content={`${$i18n.t('Eject')}`}
-				className="flex-shrink-0 group-hover/item:opacity-100 opacity-0 "
+				className="flex-shrink-0 group-hover/item:opacity-100 group-focus-within/item:opacity-100 opacity-0 "
 			>
 				<button
-					class="flex"
+					class="focus-ring flex {($settings?.highContrastMode ?? false)
+						? 'size-6 items-center justify-center rounded-lg'
+						: ''}"
 					aria-label={$i18n.t('Eject model')}
 					on:click={(e) => {
 						e.preventDefault();
@@ -288,13 +343,16 @@
 				model={item.model}
 				{pinModelHandler}
 				{deleteModelHandler}
+				{onEdit}
 				copyLinkHandler={() => {
 					copyLinkHandler(item.model);
 				}}
 			>
 				<button
 					aria-label={`${$i18n.t('More Options')}`}
-					class="flex"
+					class="focus-ring flex {($settings?.highContrastMode ?? false)
+						? 'size-6 items-center justify-center rounded-lg'
+						: ''}"
 					on:click={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
@@ -313,3 +371,10 @@
 		{/if}
 	</div>
 </button>
+
+<style>
+	[data-arrow-selected='true'][aria-selected='false'] {
+		outline: 2px solid var(--color-blue-500);
+		outline-offset: -2px;
+	}
+</style>

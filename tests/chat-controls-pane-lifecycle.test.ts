@@ -4,11 +4,11 @@ import { mount, tick, unmount } from 'svelte';
 import { get, writable } from 'svelte/store';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Harness from './fixtures/ChatControlsPaneHarness.svelte';
-import { selectedTerminalId, showControls, terminalServers } from '../src/lib/stores';
+import { selectedTerminalId, showControls, terminalServers, mobile } from '../src/lib/stores';
 
 // Leave the actual pane, drawer and controls lifecycle mounted; heavy leaf views are unrelated.
 vi.mock('../src/lib/components/chat/Controls/Controls.svelte', () => ({ default: () => {} }));
-vi.mock('../src/lib/components/chat/MessageInput/CallOverlay.svelte', () => ({
+vi.mock('../src/lib/components/chat/MessageInput/CallPanel.svelte', () => ({
 	default: () => {}
 }));
 vi.mock('../src/lib/components/chat/Artifacts.svelte', () => ({ default: () => {} }));
@@ -18,6 +18,8 @@ vi.mock('../src/lib/components/chat/PyodideFileNav.svelte', () => ({ default: ()
 vi.mock('../src/lib/components/chat/Overview.svelte', () => ({ default: () => {} }));
 vi.mock('../src/lib/stores', () => ({
 	showControls: writable(false),
+    mobile: writable(false),
+    showSidebar: writable(false),
 	showCallOverlay: writable(false),
 	showArtifacts: writable(false),
 	showEmbeds: writable(false),
@@ -42,6 +44,7 @@ const settle = async (): Promise<void> => {
 };
 const resize = async (matches: boolean): Promise<void> => {
 	wide = matches;
+    mobile.set(!matches);
 	width = matches ? 1280 : 390;
 	mediaChanged?.({ matches });
 	await settle();
@@ -161,7 +164,7 @@ it.each([true, false])(
 		terminalServers.set([{ id: 'test-terminal', name: 'Test', url: 'http://terminal.local' }]);
 		selectedTerminalId.set('test-terminal');
 		await settle();
-		expect(get(showControls)).toBe(desktop);
+		expect(get(showControls)).toBe(false);
 		showControls.set(false);
 		await settle();
 		await resize(false);

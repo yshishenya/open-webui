@@ -8,6 +8,8 @@
 
 	export let id: string | null | undefined = null;
 	export let openPreview = false;
+	export let resolvedUser: UserInfoResponse | null = null;
+	export let loadingUser = false;
 
 	export let side: ComponentProps<typeof LinkPreview.Content>['side'] = 'top';
 	export let align: ComponentProps<typeof LinkPreview.Content>['align'] = 'start';
@@ -36,7 +38,11 @@
 		}
 	};
 
-	$: if (openPreview && id) {
+	$: if (resolvedUser?.id === id) {
+		pendingRequest = null;
+		user = resolvedUser;
+		requestedUserId = id ?? null;
+	} else if (openPreview && id && !loadingUser) {
 		if (id !== requestedUserId) loadUser(id);
 	} else {
 		pendingRequest = null;
@@ -54,7 +60,7 @@
 {#if user}
 	<LinkPreview.Portal>
 		<LinkPreview.Content
-			class="w-[260px] rounded-2xl border border-gray-100  dark:border-gray-800 z-[9999] bg-white dark:bg-gray-850 dark:text-white shadow-lg transition"
+			class="z-[9999] w-64 max-w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-xl bg-white font-sans text-gray-900 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.55)] ring-1 ring-black/5 dark:bg-gray-850 dark:text-gray-100 dark:ring-white/10"
 			{side}
 			{align}
 			{sideOffset}

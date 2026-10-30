@@ -6,7 +6,7 @@ const openUserMenu = async (page: Page, name: string): Promise<void> => {
 	const userMenuButton = await getUserMenuTrigger(page);
 	await expect(userMenuButton.first()).toBeVisible();
 	await userMenuButton.first().click();
-	await expect(page.getByRole('menu').getByRole('button', { name, exact: true })).toBeVisible();
+	await expect(page.getByRole('menu').getByRole('menuitem', { name, exact: true })).toBeVisible();
 };
 
 test.describe('Registration and Login', () => {

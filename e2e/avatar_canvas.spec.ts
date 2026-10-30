@@ -42,7 +42,7 @@ test('account name update reaches the profile API without Canvas', async ({ page
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	await (await getUserMenuTrigger(page)).first().click();
-	await page.getByRole('button', { name: 'Settings', exact: true }).click();
+	await page.getByRole('menuitem', { name: 'Settings', exact: true }).click();
 	await page.getByRole('tab', { name: 'Account', exact: true }).click();
 	const name = page.getByPlaceholder('Enter your name');
 	await expect(name).toHaveValue('Admin User');

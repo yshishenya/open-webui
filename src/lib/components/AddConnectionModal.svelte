@@ -27,6 +27,7 @@
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Textarea from './common/Textarea.svelte';
+	import { normalizeTags } from '$lib/utils/tags';
 
 	export let onSubmit: ConnectionSave = () => {};
 	export let onDelete: ConnectionDelete = () => {};
@@ -44,16 +45,10 @@
 	let url = '';
 	let key = '';
 	let auth_type = 'bearer';
+	let forwardCookies = false;
 
 	let connectionType = 'external';
 	let provider = '';
-	$: azure =
-		provider === 'azure' ||
-		((url.includes('azure.') || url.includes('cognitive.microsoft.com')) &&
-			!direct &&
-			provider === '' &&
-			!/\/openai\/v1(\/|$)/.test(url));
-
 	let prefixId = '';
 	let enable = true;
 	let apiVersion = '';
@@ -66,6 +61,7 @@
 
 	let modelId = '';
 	let modelIds: string[] = [];
+	let availableModelIds: string[] = [];
 
 	let loading = false;
 	let showDeleteConfirmDialog = false;
@@ -100,15 +96,18 @@
 		try {
 			const parsedHeaders = parseConnectionHeaders(headers);
 			url = url.replace(/\/$/, '');
-			if (useOllama) await verifyOllamaConnection(localStorage.token, { url, key }, request.signal);
+			let result: unknown;
+			if (!useOllama) availableModelIds = [];
+			if (useOllama) result = await verifyOllamaConnection(localStorage.token, { url, key, config: { auth_type, ...(parsedHeaders ? { headers: parsedHeaders } : {}) } }, request.signal);
 			else
-				await verifyOpenAIConnection(
+				result = await verifyOpenAIConnection(
 					localStorage.token,
 					{
 						url,
 						key,
 						config: {
 							auth_type,
+							...(!direct && !ollama ? { forward_cookies: forwardCookies } : {}),
 							...(provider ? { provider } : {}),
 							...(azure ? { azure: true } : {}),
 							api_version: apiVersion,
@@ -119,6 +118,10 @@
 					direct,
 					request.signal
 				);
+			if (!destroyed && show && currentSession === session && !useOllama && !azure) {
+				const records = Array.isArray(result) ? result : result && typeof result === 'object' && 'data' in result ? result.data : undefined;
+				if (Array.isArray(records)) availableModelIds = [...new Set<string>(records.flatMap((record: unknown) => record && typeof record === 'object' && 'id' in record && typeof record.id === 'string' && record.id.trim() ? [record.id] : []))];
+			}
 			if (!destroyed && show && currentSession === session)
 				toast.success($i18n.t('Server connection verified'));
 		} catch (error) {
@@ -130,11 +133,20 @@
 	};
 	const verifyHandler = (): Promise<void> => verifyConnection(ollama);
 
-	const addModelHandler = (): void => {
-		if (modelId) {
-			modelIds = [...modelIds, modelId];
-			modelId = '';
+	const addModelHandler = () => {
+		const newModelId = modelId.trim();
+
+		if (!newModelId) {
+			return;
 		}
+
+		if (modelIds.includes(newModelId)) {
+			toast.error($i18n.t('Model ID is already added'));
+			return;
+		}
+
+		modelIds = [...modelIds, newModelId];
+		modelId = '';
 	};
 
 	const submitHandler = async (): Promise<void> => {
@@ -187,6 +199,7 @@
 					model_ids: modelIds,
 					connection_type: connectionType,
 					auth_type,
+					...(!direct && !ollama ? { forward_cookies: forwardCookies } : {}),
 					headers: parsedHeaders,
 					passthrough_params: parsePassthroughParams(passthroughParams),
 					...(provider ? { provider } : {}),
@@ -230,6 +243,7 @@
 		auth_type = 'bearer';
 		headers = '';
 		enable = true;
+		forwardCookies = false;
 		tags = [];
 		modelIds = [];
 		prefixId = '';
@@ -239,6 +253,8 @@
 		passthroughParams = '';
 		connectionType = ollama ? 'local' : 'external';
 		showAdvanced = false;
+		availableModelIds = [];
+		forwardCookies = connection?.config?.forward_cookies ?? false;
 		if (connection) {
 			url = connection.url;
 			key = connection.key;
@@ -249,12 +265,12 @@
 				: '';
 
 			enable = connection.config?.enable ?? true;
-			tags = [...(connection.config?.tags ?? [])];
+			tags = normalizeTags(connection.config?.tags);
 			prefixId = connection.config?.prefix_id ?? '';
 			passthroughParams = Array.isArray(connection.config?.passthrough_params)
 				? connection.config.passthrough_params.join(', ')
 				: (connection.config?.passthrough_params ?? '');
-			modelIds = [...(connection.config?.model_ids ?? [])];
+			modelIds = [...new Set(connection.config?.model_ids ?? [])];
 
 			if (ollama) {
 				connectionType = connection.config?.connection_type ?? 'local';
@@ -283,6 +299,13 @@
 			loading = false;
 		}
 	};
+	$: azure =
+		provider === 'azure' ||
+		((url.includes('azure.') || url.includes('cognitive.microsoft.com')) &&
+			!direct &&
+			provider === '' &&
+			!/\/openai\/v1(\/|$)/.test(url));
+
 </script>
 
 <Modal size="sm" bind:show>
@@ -516,6 +539,24 @@
 						</div>
 
 						{#if showAdvanced}
+							{#if !direct && !ollama}
+								<div class="flex items-center justify-between gap-3 mt-2">
+									<div>
+										<label for="forward-cookies" class="text-xs text-gray-500">
+											{$i18n.t('Forward cookies')}
+										</label>
+										<p class="text-xs text-gray-500">
+											{$i18n.t('Forward cookies from your Open WebUI request to this server.')}
+										</p>
+									</div>
+									<Switch
+										id="forward-cookies"
+										ariaLabel={$i18n.t('Forward cookies')}
+										bind:state={forwardCookies}
+									/>
+								</div>
+							{/if}
+
 							{#if !direct}
 								<div class="flex gap-2 mt-2">
 									<div class="flex flex-col w-full">
@@ -612,11 +653,12 @@
 										<select
 											id="provider-select"
 											bind:value={provider}
-											class="text-xs text-gray-700 dark:text-gray-300 bg-transparent outline-hidden"
+											class="text-xs text-gray-700 dark:text-gray-300 bg-transparent pr-5 outline-hidden"
 										>
 											<option value="">{$i18n.t('Default')}</option>
 											<option value="azure">{$i18n.t('Azure OpenAI')}</option>
 											<option value="llama.cpp">{$i18n.t('llama.cpp')}</option>
+											<option value="lmstudio">{$i18n.t('LM Studio')}</option>
 											<option value="litellm">{$i18n.t('LiteLLM')}</option>
 										</select>
 									</div>
@@ -713,7 +755,18 @@
 									bind:value={modelId}
 									id="add-model-id-input"
 									placeholder={$i18n.t('Add a model ID')}
+									list={availableModelIds.length ? 'model-id-suggestions' : undefined}
+									on:keydown={(event) => {
+										if (event.key === 'Enter') event.preventDefault();
+									}}
 								/>
+								{#if availableModelIds.length}
+									<datalist id="model-id-suggestions">
+										{#each availableModelIds.filter((id) => !modelIds.includes(id)) as id}
+											<option value={id}></option>
+										{/each}
+									</datalist>
+								{/if}
 
 								<div>
 									<button
@@ -774,9 +827,7 @@
 						</div>
 
 						<button
-							class="px-3.5 py-1.5 text-sm font-medium bg-black hover:bg-gray-900 text-white dark:bg-white dark:text-black dark:hover:bg-gray-100 transition rounded-full flex items-center gap-2 whitespace-nowrap {loading
-								? ' cursor-not-allowed'
-								: ''}"
+							class="flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-2.5 text-xs font-normal text-white transition hover:bg-black disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:cursor-not-allowed"
 							type="submit"
 							disabled={loading}
 						>
@@ -784,7 +835,7 @@
 
 							{#if loading}
 								<span class="shrink-0">
-									<Spinner />
+									<Spinner className="size-3" />
 								</span>
 							{/if}
 						</button>

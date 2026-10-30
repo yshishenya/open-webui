@@ -13,6 +13,7 @@ import type {
 	ChannelMemberList,
 	ChannelMembership
 } from '$lib/utils/airis/channel-types';
+import { getApps, type App } from '$lib/apis/apps';
 
 export type ChannelForm = {
 	type?: string;
@@ -133,7 +134,8 @@ export const getChannelMembersById = async (
 	query?: string,
 	orderBy?: string,
 	direction?: string,
-	page = 1
+	page = 1,
+	signal?: AbortSignal
 ): Promise<ChannelMemberList> => {
 	const searchParams = new URLSearchParams({ page: `${page}` });
 	if (query) searchParams.set('query', query);
@@ -141,7 +143,9 @@ export const getChannelMembersById = async (
 	if (direction) searchParams.set('direction', direction);
 	const result = await requestJSON<ChannelMemberList>(
 		`${WEBUI_API_BASE_URL}/channels/${channel_id}/members?${searchParams}`,
-		token
+		token,
+		undefined,
+		signal
 	);
 	if (
 		!result ||
@@ -173,6 +177,24 @@ export const updateChannelMemberActiveStatusById = async (
 	);
 	if (typeof result !== 'boolean') throw new Error('Invalid channel activity acknowledgement');
 	return result;
+};
+
+export const updateChannelMemberMuteStatusById = async (
+	token: string,
+	channel_id: string,
+	is_channel_muted: boolean
+): Promise<{ is_channel_muted: boolean }> => {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${channel_id}/members/mute`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ is_channel_muted })
+	});
+	if (!res.ok) throw (await res.json()).detail;
+	return res.json();
 };
 
 type UpdateMembersForm = {
@@ -227,13 +249,13 @@ export const removeMembersById = async (
 export const updateChannelById = async (
 	token: string = '',
 	channel_id: string,
-	channel: ChannelForm
+	channel: Omit<ChannelForm, 'access_grants'>
 ): Promise<ChannelModel | null> =>
 	readChannelModel(
 		await requestJSON<ChannelModel | null>(
 			`${WEBUI_API_BASE_URL}/channels/${channel_id}/update`,
 			token,
-			channel
+			{ ...channel, access_grants: undefined }
 		),
 		channel_id
 	);
@@ -335,12 +357,13 @@ export const getChannelThreadMessages = async (
 	channel_id: string,
 	message_id: string,
 	skip: number = 0,
-	limit: number = 50
-): Promise<ChannelListMessage[] | null> => {
+	limit: number = 50,
+	anchor: { around?: string; before?: string } = {}
+) => {
 	let error = null;
 
 	const res = await fetch(
-		`${WEBUI_API_BASE_URL}/channels/${channel_id}/messages/${message_id}/thread?skip=${skip}&limit=${limit}`,
+		`${WEBUI_API_BASE_URL}/channels/${channel_id}/messages/${message_id}/thread?skip=${skip}&limit=${limit}&${new URLSearchParams(anchor)}`,
 		{
 			method: 'GET',
 			headers: {
@@ -715,4 +738,145 @@ export const deleteChannelWebhook = async (
 	);
 	if (typeof result !== 'boolean') throw new Error('Invalid webhook deletion acknowledgement');
 	return result;
+};
+
+export const getChannelAppsById = async (
+	token: string = '',
+	channel_id: string
+): Promise<App[]> => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${encodeURIComponent(channel_id)}/apps`, {
+		method: 'GET',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err?.detail ?? err;
+			console.error(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const getChannelMentionApps = async (token: string, channelId: string): Promise<App[]> => {
+	const [apps, joined] = await Promise.all([getApps(token), getChannelAppsById(token, channelId)]);
+	return apps.filter((app) => app.is_active && joined.some((member) => member.id === app.id));
+};
+
+export const inviteAppToChannel = async (
+	token: string = '',
+	channel_id: string,
+	app_id: string
+) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${encodeURIComponent(channel_id)}/apps`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ app_id })
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err?.detail ?? err;
+			console.error(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const removeAppFromChannel = async (
+	token: string = '',
+	channel_id: string,
+	app_id: string
+) => {
+	let error = null;
+
+	const res = await fetch(
+		`${WEBUI_API_BASE_URL}/channels/${encodeURIComponent(channel_id)}/apps/${encodeURIComponent(app_id)}`,
+		{
+			method: 'DELETE',
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json',
+				authorization: `Bearer ${token}`
+			}
+		}
+	)
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err?.detail ?? err;
+			console.error(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const updateChannelAccessGrants = async (
+	token: string,
+	id: string,
+	accessGrants: {
+		principal_type: 'user' | 'group' | 'anyone';
+		principal_id: string;
+		permission: 'read' | 'write';
+	}[]
+) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/channels/${id}/access/update`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ access_grants: accessGrants })
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err.detail;
+			console.error(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
 };

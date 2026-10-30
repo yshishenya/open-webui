@@ -2,7 +2,7 @@
 	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
 	import { marked } from 'marked';
 
-	import { type AdminDetails, getAdminDetails, userSignOut } from '$lib/apis/auths';
+	import { type AdminDetails, getAdminDetails, getLogoutRedirectUrl, userSignOut } from '$lib/apis/auths';
 	import { onMount, getContext } from 'svelte';
 	import { config } from '$lib/stores';
 
@@ -78,7 +78,7 @@
 								return null;
 							});
 							localStorage.removeItem('token');
-							location.href = res?.redirect_url ?? '/auth';
+							location.href = getLogoutRedirectUrl(res?.redirect_url);
 						}}>{$i18n.t('Sign Out')}</button
 					>
 				</div>

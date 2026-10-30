@@ -5,7 +5,14 @@ import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import { afterEach, expect, it, vi } from 'vitest';
 import { executeToolServer } from '$lib/apis';
-vi.mock('$lib/constants', () => ({ WEBUI_BASE_URL: '' }));
+vi.mock('$app/environment', () => ({ browser: false, dev: false }));
+vi.mock('$lib/stores', async () => ({
+	config: (await import('svelte/store')).writable({ features: { enable_tool_servers: true } })
+}));
+vi.mock('$lib/constants', async (importOriginal) => ({
+	...(await importOriginal<typeof import('$lib/constants')>()),
+	WEBUI_BASE_URL: ''
+}));
 const server = (method = 'post') => ({
 	openapi: {
 		paths: {
@@ -61,6 +68,40 @@ it('passes custom headers, bearer and session while keeping operation parameter 
 	expect(new Headers(options?.headers).get('X-Session-Id')).toBe('chat');
 	expect(options?.body).toBe('{"id":"a/b","q":"x y"}');
 });
+it.each([
+	[{ type: 'object', properties: { content: { type: 'string' } } }, { content: 'saved' }],
+	[
+		{ type: 'object', properties: { q: { type: 'string' }, content: { type: 'string' } } },
+		{ q: 'x y', content: 'saved' }
+	],
+	[
+		{ allOf: [{ type: 'object', properties: { content: { type: 'string' } } }] },
+		{ id: 'a/b', q: 'x y', content: 'saved' }
+	]
+])(
+	'separates declared URL parameters from a JSON body while retaining composed schemas',
+	async (schema, expected) => {
+		const data = server();
+		const operation = data.openapi.paths['/file/{id}'].post;
+		if (!('requestBody' in operation) || !operation.requestBody)
+			throw new Error('Missing fixture operation');
+		Object.assign(operation.requestBody.content, {
+			'application/json': { schema }
+		});
+		const fetcher = vi.fn<[string, RequestInit], Promise<Response>>(async () => new Response('{}'));
+		vi.stubGlobal('fetch', fetcher);
+		await executeToolServer(
+			'fixture',
+			'https://tool.invalid',
+			'write_file',
+			{ id: 'a/b', q: 'x y', content: 'saved' },
+			data
+		);
+		expect(fetcher.mock.calls[0]?.[0]).toBe('https://tool.invalid/file/a%2Fb?q=x+y');
+		expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body))).toEqual(expected);
+	}
+);
+
 it('does not publish or log a raw failed response body', async () => {
 	const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 	vi.stubGlobal(
@@ -126,7 +167,12 @@ const layout = (result: unknown, reject = false) => {
 		(s) =>
 			ts.isVariableStatement(s) &&
 			s.declarationList.declarations.some((d) =>
-				['resolveToolServer', 'executeTool'].includes(d.name.getText(ast))
+				[
+					'resolveToolServer',
+					'isDirectTerminalServer',
+					'terminalFileResult',
+					'executeTool'
+				].includes(d.name.getText(ast))
 			)
 	);
 	const script = statements.map((s) => s.getText(ast)).join('\n');
@@ -143,6 +189,7 @@ const layout = (result: unknown, reject = false) => {
 			compilerOptions: { target: ts.ScriptTarget.ES2022 }
 		}).outputText,
 		{
+			$config: { features: { enable_tool_servers: true } },
 			$settings: {
 				toolServers: [
 					{ url: 'https://tool.invalid', key: 'private-fixture', headers: { 'X-Custom': 'yes' } }

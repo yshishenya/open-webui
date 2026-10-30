@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { expect, it, vi } from 'vitest';
+import { installModelEditorProjection } from './fixtures/model-editor-actual';
 
 function initializer(path: string, name: string): string {
 	const file = ts.createSourceFile(
@@ -54,8 +55,9 @@ function editor(description: string | null | undefined) {
 		system: '',
 		toast: { error: vi.fn(), success: vi.fn() },
 		$i18n: { t: (key: string): string => key },
-		onSubmit: vi.fn().mockResolvedValue(undefined)
+		onSubmit: vi.fn().mockResolvedValue(true)
 	};
+	installModelEditorProjection(context);
 	const submit = run<() => Promise<void>>(
 		initializer('src/lib/components/workspace/Models/ModelEditor.svelte', 'submitHandler'),
 		context

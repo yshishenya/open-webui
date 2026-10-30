@@ -8,6 +8,7 @@ vi.mock('$app/environment', () => ({ browser: false, dev: false }));
 vi.mock('$lib/constants', () => ({ WEBUI_API_BASE_URL: '', WEBUI_BASE_URL: '' }));
 import { getLastMessageId } from '../src/lib/utils/airis/chat_history';
 import { createMessagesList } from '../src/lib/utils';
+import { getOutputText } from '../src/lib/components/chat/Messages/structuredOutput';
 import type {
 	ChatHistory,
 	ChatHistoryMessage,
@@ -62,9 +63,10 @@ const graph = (): ChatHistory => ({
 const setup = (history = graph()) => {
 	let frameId = 0;
 	const frames = new Map<number, () => void>();
-	const element = { scrollTop: 0, scrollHeight: 200, clientHeight: 100, scrollIntoView: vi.fn() };
+	const element = { scrollTop: 0, scrollHeight: 200, clientHeight: 100, scrollIntoView: vi.fn(), scrollTo: vi.fn() };
 	const context = {
 		getLastMessageId,
+		getOutputText,
 		createMessagesList,
 		history,
 		structuredClone,
@@ -81,6 +83,7 @@ const setup = (history = graph()) => {
 		chatId: 'chat',
 		selectedModels: ['test-model'],
 		$temporaryChatEnabled: true,
+		$_user: { id: 'test-user', name: 'Test User' },
 		$settings: { scrollOnBranchChange: false },
 		$i18n: { t: (text: string): string => text },
 		toast: { error: vi.fn() },
@@ -198,7 +201,7 @@ it('shows only the selected ancestry, pages backwards and exposes the full chain
 	expect(context.messagesLoading).toBe(false);
 	await actions.scrollToTop();
 	expect(context.messagesCount).toBeNull();
-	expect(element.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+	expect(element.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
 });
 
 it('retains the existing cycle guard and terminates when a parent is missing', () => {
@@ -273,7 +276,7 @@ it.each([false, true])(
 		context.history.messages.c.output = [{ type: 'reasoning', extension: 'keep' }];
 		await actions.editMessage('c', { output }, submit);
 		const saved = context.history.messages[submit ? 'new' : 'c'];
-		expect(saved.content).toBe('');
+		expect(saved.content).toBe('Changed output');
 		expect(saved.output).toEqual(output);
 		if (submit)
 			expect(context.history.messages.c.output).toEqual([{ type: 'reasoning', extension: 'keep' }]);

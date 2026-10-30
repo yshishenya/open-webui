@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Banner } from '$lib/types';
+	import { resolveLocalizedString } from '$lib/utils/localizedContent';
 	import { onMount, createEventDispatcher, getContext } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { sanitizedHtml } from '$lib/utils/airis/sanitized_html';
@@ -100,7 +101,7 @@
 				</div>
 				<div
 					class="flex-1 text-xs text-gray-700 dark:text-white max-h-60 overflow-y-auto"
-					use:sanitizedHtml={marked.parse((banner?.content ?? '').replace(/\n/g, '<br>'), {
+					use:sanitizedHtml={marked.parse(resolveLocalizedString(banner?.content, banner?.i18n, $i18n.language, 'content').replace(/\n/g, '<br>'), {
 						async: false
 					})}
 				></div>

@@ -8,7 +8,7 @@
 		TTSWorker,
 		type Model
 	} from '$lib/stores';
-	import type { ChatAttachment } from '$lib/utils/airis/chat_history';
+
 	import { onMount, tick, getContext, onDestroy, createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();
@@ -20,19 +20,22 @@
 	import { toast } from 'svelte-sonner';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import Spinner from '$lib/components/common/Spinner.svelte';
 	import VideoInputMenu from './CallOverlay/VideoInputMenu.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import type { BridgeSubmission, RealtimeCall } from '$lib/utils/realtime';
+	import VoiceAvatar from './CallOverlay/VoiceAvatar.svelte';
+	import type { AvatarAnimationCommand } from '$lib/utils/voice-avatar';
 
-	const i18n = getContext('i18n');
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
 
 	export let eventTarget: EventTarget;
-	export let submitPrompt: (prompt: string, options?: { _raw?: boolean }) => Promise<void>;
-	export let stopResponse: () => Promise<void>;
-	export let files: ChatAttachment[];
-	export let chatId: string | null;
-	export let modelId: string | null;
-
-	let wakeLock: Awaited<ReturnType<typeof navigator.wakeLock.request>> | null = null;
+	export let submitPrompt: (prompt: string, options?: {_raw?: boolean}) => void | BridgeSubmission | Promise<void | BridgeSubmission>;
+	export let stopResponse: () => void | Promise<void>;
+	export let files: import('$lib/utils/airis/chat_history').ChatAttachment[];
+	export let chatId;
+	export let modelId;
+	export let bridge: RealtimeCall | undefined = undefined;
 
 	let model: Model | undefined;
 
@@ -57,11 +60,97 @@
 	let callRequest = 0;
 	let startingRecording = false;
 	let pendingTranscriptions = 0;
+	let interrupted = false;
+	let avatarView: VoiceAvatar | undefined;
+	let failedAvatar = '';
+	let readyAvatar = '';
+	let avatarSpeaking = false;
+	let outputLevel = 0;
+	let callAudioElement: HTMLAudioElement;
+	let playbackContext: AudioContext | undefined;
+	let playbackSource: MediaElementAudioSourceNode | undefined;
+	let playbackAnalyser: AnalyserNode | undefined;
+	let playbackFrame = 0;
+	$: avatar = $models.find((m) => m.id === modelId)?.info?.meta?.voice_avatar;
+	$: showAvatar = !!avatar?.file_id && failedAvatar !== avatar.file_id;
+	$: if (camera) {
+		avatarView?.cancelAnimation();
+		readyAvatar = '';
+	}
+
+	const resetAvatarPlayback = () => {
+		cancelAnimationFrame(playbackFrame);
+		playbackFrame = 0;
+		avatarSpeaking = false;
+		outputLevel = 0;
+	};
+	const cancelAvatarAnimation = () => {
+		interrupted = true;
+		avatarView?.cancelAnimation();
+	};
+	const playAvatarAnimation = (event: Event) => {
+		const command = (event as CustomEvent<AvatarAnimationCommand>).detail;
+		if (interrupted || command.messageId !== currentMessageId) {
+			command.result = { status: 'cancelled' };
+		} else if (
+			!destroyed &&
+			$showCallOverlay &&
+			showAvatar &&
+			!camera &&
+			readyAvatar === avatar?.file_id
+		) {
+			command.result = { status: avatarView?.playAnimation(command.name) ?? 'unavailable' };
+		}
+	};
+
+	const analysePlayback = async (audio: HTMLAudioElement) => {
+		resetAvatarPlayback();
+		avatarSpeaking = true;
+		if (!showAvatar) return;
+		try {
+			if (!playbackContext) {
+				playbackContext = new AudioContext();
+				playbackAnalyser = playbackContext.createAnalyser();
+				playbackAnalyser.fftSize = 256;
+			}
+			await playbackContext.resume();
+			if (destroyed || audio.paused || audio.ended || playbackContext.state !== 'running') return;
+			if (!playbackSource) {
+				playbackSource = playbackContext.createMediaElementSource(audio);
+				playbackSource.connect(playbackAnalyser!);
+				playbackAnalyser!.connect(playbackContext.destination);
+			}
+			cancelAnimationFrame(playbackFrame);
+			const samples = new Float32Array(playbackAnalyser!.fftSize);
+			const sample = () => {
+				if (destroyed || audio.paused || audio.ended) {
+					resetAvatarPlayback();
+					return;
+				}
+				playbackAnalyser!.getFloatTimeDomainData(samples);
+				outputLevel = Math.sqrt(
+					samples.reduce((sum, value) => sum + value * value, 0) / samples.length
+				);
+				playbackFrame = requestAnimationFrame(sample);
+			};
+			sample();
+		} catch (error) {
+			console.error('Could not analyse avatar playback:', error);
+			outputLevel = 0;
+		}
+	};
 
 	let videoInputDevices: Pick<MediaDeviceInfo, 'deviceId' | 'label'>[] = [];
 	let selectedVideoInputDeviceId: string | null = null;
 
-	const getVideoInputDevices = async (): Promise<void> => {
+	$: if (bridge) {
+		assistantSpeaking = bridge.speaking;
+		muted = bridge.muted;
+		loading = bridge.connecting || (bridge.working && !bridge.speaking);
+		model = $models.find((m) => m.id === modelId);
+	}
+
+	const getVideoInputDevices = async () => {
 		const devices = await navigator.mediaDevices.enumerateDevices();
 		videoInputDevices = devices.filter((device) => device.kind === 'videoinput');
 
@@ -70,7 +159,7 @@
 				...videoInputDevices,
 				{
 					deviceId: 'screen',
-					label: 'Screen Share'
+					label: ''
 				}
 			];
 		}
@@ -443,6 +532,7 @@
 	const audioCache = new Map<string, string | true | null | undefined>();
 	const emojiCache = new Map<string, string>();
 	let messages: Record<string, string[]> = {};
+	let wakeLock: Awaited<ReturnType<Navigator['wakeLock']['request']>> | null = null;
 
 	const getVoiceId = (): string | undefined => {
 		if (model?.info?.meta?.tts?.voice) return model.info.meta.tts.voice;
@@ -468,6 +558,9 @@
 				if (done) return;
 				done = true;
 				signal.removeEventListener('abort', finish);
+				resetAvatarPlayback();
+				utterance.onstart = null;
+				utterance.onpause = null;
 				utterance.onend = null;
 				utterance.onerror = null;
 				if (currentUtterance === utterance) {
@@ -476,6 +569,8 @@
 				}
 				resolve();
 			};
+			utterance.onstart = () => { if (!signal.aborted) avatarSpeaking = true; };
+			utterance.onpause = resetAvatarPlayback;
 			utterance.onend = finish;
 			utterance.onerror = finish;
 			signal.addEventListener('abort', finish, { once: true });
@@ -494,7 +589,7 @@
 		signal: AbortSignal = audioAbortController.signal
 	): Promise<void> => {
 		if (destroyed || !$showCallOverlay || signal.aborted) return Promise.resolve();
-		const element = document.getElementById('audioElement') as HTMLAudioElement | null;
+		const element = callAudioElement;
 		if (!element) return Promise.resolve();
 		return new Promise<void>((resolve) => {
 			let done = false;
@@ -504,6 +599,9 @@
 				signal.removeEventListener('abort', finish);
 				element.onended = null;
 				element.onerror = null;
+				element.onplaying = null;
+				element.onwaiting = null;
+				resetAvatarPlayback();
 				element.muted = true;
 				element.pause();
 				resolve();
@@ -512,7 +610,9 @@
 			element.onerror = finish;
 			signal.addEventListener('abort', finish, { once: true });
 			element.src = audio.src;
-			element.muted = true;
+			element.muted = false;
+			element.onplaying = () => { void analysePlayback(element); };
+			element.onwaiting = resetAvatarPlayback;
 			element.playbackRate = $settings.audio?.tts?.playbackRate ?? 1;
 			try {
 				void element
@@ -542,18 +642,22 @@
 		emoji = null;
 	};
 
-	const stopAllAudio = async (): Promise<void> => {
+	const stopAllAudio = async (stopChat = true): Promise<void> => {
+		if (bridge) return bridge.stopSpeaking();
+		resetAvatarPlayback();
+		cancelAvatarAnimation();
 		audioAbortController.abort();
 		clearAudioCache();
 		assistantSpeaking = false;
 		const streaming = chatStreaming;
 		chatStreaming = false;
-		if (streaming) {
+		if (stopChat && streaming) {
 			try {
 				await stopResponse();
 			} catch (error) {
 				console.error('Error stopping call response:', error);
 			}
+
 		}
 	};
 
@@ -625,6 +729,7 @@
 		const { id } = (e as CustomEvent<{ id: string }>).detail;
 		chatStreaming = true;
 		if (currentMessageId === id) return;
+		interrupted = false;
 		audioAbortController.abort();
 		clearAudioCache();
 		currentMessageId = id;
@@ -655,6 +760,7 @@
 	};
 
 	const toggleMute = (): void => {
+		if (bridge) return bridge.mute();
 		muted = !muted;
 		if (muted && hasStartedSpeaking) {
 			// Abort the ongoing recording so it doesn't accidentally send a partial sentence
@@ -671,7 +777,7 @@
 	};
 
 	let wasAssistantSpeaking = false;
-	$: {
+	$: if (!bridge) {
 		if (assistantSpeaking && !wasAssistantSpeaking) {
 			wasAssistantSpeaking = true;
 		} else if (!assistantSpeaking && wasAssistantSpeaking) {
@@ -698,6 +804,15 @@
 			}
 		}
 	};
+
+	onMount(() => {
+		eventTarget.addEventListener('voice:play_animation', playAvatarAnimation);
+		eventTarget.addEventListener('voice:cancel_animation', cancelAvatarAnimation);
+		return () => {
+			eventTarget.removeEventListener('voice:play_animation', playAvatarAnimation);
+			eventTarget.removeEventListener('voice:cancel_animation', cancelAvatarAnimation);
+		};
+	});
 
 	const setWakeLock = async (): Promise<void> => {
 		if (destroyed || !$showCallOverlay || !('wakeLock' in navigator)) return;
@@ -755,6 +870,10 @@
 		stopAudioStream();
 		stopCamera();
 		releaseWakeLock();
+		resetAvatarPlayback();
+		playbackSource?.disconnect();
+		playbackAnalyser?.disconnect();
+		void playbackContext?.close();
 		eventTarget.removeEventListener('chat:start', chatStartHandler);
 		eventTarget.removeEventListener('chat', chatEventHandler);
 		eventTarget.removeEventListener('chat:finish', chatFinishHandler);
@@ -765,6 +884,8 @@
 </script>
 
 {#if $showCallOverlay}
+	<!-- A media element can only have one Web Audio source, even after its context closes. -->
+	<audio bind:this={callAudioElement} class="hidden"></audio>
 	<div class="max-w-lg w-full h-full max-h-[100dvh] flex flex-col justify-between p-3 md:p-6">
 		{#if camera}
 			<button
@@ -846,73 +967,108 @@
 			{#if !camera}
 				<button
 					type="button"
+					class={showAvatar
+						? 'relative w-full h-full min-h-64 flex items-center justify-center'
+						: ''}
+					aria-label={assistantSpeaking ? $i18n.t('Stop speaking') : $i18n.t('Voice call')}
 					on:click={() => {
 						if (assistantSpeaking) {
 							stopAllAudio();
 						}
 					}}
 				>
-					{#if emoji}
-						<div
-							class="  transition-all rounded-full"
-							style="font-size:{rmsLevel * 100 > 4
-								? '13'
-								: rmsLevel * 100 > 2
-									? '12'
-									: rmsLevel * 100 > 1
-										? '11.5'
-										: '11'}rem;width:100%;text-align:center;"
-						>
-							{emoji}
+					{#if showAvatar && avatar}
+						{@const selectedAvatar = avatar}
+						{#key selectedAvatar.file_id}
+							<div
+								class="absolute inset-0"
+								class:invisible={readyAvatar !== selectedAvatar.file_id}
+							>
+								<VoiceAvatar
+									bind:this={avatarView}
+									config={selectedAvatar}
+									speaking={avatarSpeaking}
+									listening={hasStartedSpeaking && !muted && !avatarSpeaking}
+									level={outputLevel}
+									active={!destroyed && $showCallOverlay}
+									on:ready={() => {
+										readyAvatar = selectedAvatar.file_id;
+									}}
+									on:error={() => {
+										failedAvatar = selectedAvatar.file_id;
+									}}
+								/>
+							</div>
+						{/key}
+					{/if}
+					{#if showAvatar && readyAvatar !== avatar?.file_id}
+						<div class="absolute inset-0 grid place-items-center" role="status">
+							<Spinner className="size-6 text-gray-400 dark:text-gray-500" />
+							<span class="sr-only">{$i18n.t('Loading avatar...')}</span>
 						</div>
-					{:else if loading || assistantSpeaking}
-						<svg
-							class="size-44 text-gray-900 dark:text-gray-400"
-							viewBox="0 0 24 24"
-							fill="currentColor"
-							xmlns="http://www.w3.org/2000/svg"
-							><style>
-								.spinner_qM83 {
-									animation: spinner_8HQG 1.05s infinite;
-								}
-								.spinner_oXPr {
-									animation-delay: 0.1s;
-								}
-								.spinner_ZTLf {
-									animation-delay: 0.2s;
-								}
-								@keyframes spinner_8HQG {
-									0%,
-									57.14% {
-										animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);
-										transform: translate(0);
+					{:else if !showAvatar}
+						{#if emoji}
+							<div
+								class="  transition-all rounded-full"
+								style="font-size:{rmsLevel * 100 > 4
+									? '13'
+									: rmsLevel * 100 > 2
+										? '12'
+										: rmsLevel * 100 > 1
+											? '11.5'
+											: '11'}rem;width:100%;text-align:center;"
+							>
+								{emoji}
+							</div>
+						{:else if loading || assistantSpeaking}
+							<svg
+								class="size-44 text-gray-900 dark:text-gray-400"
+								viewBox="0 0 24 24"
+								fill="currentColor"
+								xmlns="http://www.w3.org/2000/svg"
+								><style>
+									.spinner_qM83 {
+										animation: spinner_8HQG 1.05s infinite;
 									}
-									28.57% {
-										animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);
-										transform: translateY(-6px);
+									.spinner_oXPr {
+										animation-delay: 0.1s;
 									}
-									100% {
-										transform: translate(0);
+									.spinner_ZTLf {
+										animation-delay: 0.2s;
 									}
-								}
-							</style><circle class="spinner_qM83" cx="4" cy="12" r="3" /><circle
-								class="spinner_qM83 spinner_oXPr"
-								cx="12"
-								cy="12"
-								r="3"
-							/><circle class="spinner_qM83 spinner_ZTLf" cx="20" cy="12" r="3" /></svg
-						>
-					{:else}
-						<div
-							class=" {rmsLevel * 100 > 4
-								? ' size-52'
-								: rmsLevel * 100 > 2
-									? 'size-48'
-									: rmsLevel * 100 > 1
-										? 'size-44'
-										: 'size-40'} transition-all rounded-full bg-cover bg-center bg-no-repeat"
-							style={`background-image: url('${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&voice=true');`}
-						></div>
+									@keyframes spinner_8HQG {
+										0%,
+										57.14% {
+											animation-timing-function: cubic-bezier(0.33, 0.66, 0.66, 1);
+											transform: translate(0);
+										}
+										28.57% {
+											animation-timing-function: cubic-bezier(0.33, 0, 0.66, 0.33);
+											transform: translateY(-6px);
+										}
+										100% {
+											transform: translate(0);
+										}
+									}
+								</style><circle class="spinner_qM83" cx="4" cy="12" r="3" /><circle
+									class="spinner_qM83 spinner_oXPr"
+									cx="12"
+									cy="12"
+									r="3"
+								/><circle class="spinner_qM83 spinner_ZTLf" cx="20" cy="12" r="3" /></svg
+							>
+						{:else}
+							<div
+								class=" {rmsLevel * 100 > 4
+									? ' size-52'
+									: rmsLevel * 100 > 2
+										? 'size-48'
+										: rmsLevel * 100 > 1
+											? 'size-44'
+											: 'size-40'} transition-all rounded-full bg-cover bg-center bg-no-repeat"
+								style={`background-image: url('${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}&voice=true');`}
+							></div>
+						{/if}
 					{/if}
 				</button>
 			{:else}
@@ -953,17 +1109,20 @@
 		</div>
 
 		<div class="flex flex-col items-center gap-4 pb-4 w-full">
-			<button
-				type="button"
-				class="z-10"
-				on:click={() => {
-					if (assistantSpeaking) {
-						stopAllAudio();
-					}
-				}}
-			>
-				<div class="line-clamp-1 text-sm font-normal">
-					{#if loading}
+			<div class="z-10 line-clamp-1 text-sm font-normal" role="status" aria-live="polite">
+				<button
+					type="button"
+					on:click={() => {
+						if (assistantSpeaking) {
+							stopAllAudio();
+						}
+					}}
+				>
+					{#if bridge?.connecting}
+						{$i18n.t('Connecting')}
+					{:else if bridge?.approval}
+						{$i18n.t('Waiting for approval')}
+					{:else if loading}
 						{$i18n.t('Thinking...')}
 					{:else if muted}
 						{$i18n.t('Muted')}
@@ -972,13 +1131,15 @@
 					{:else}
 						{$i18n.t('Listening...')}
 					{/if}
-				</div>
-			</button>
+				</button>
+			</div>
 
 			<div class="flex items-center justify-center gap-4 z-10">
 				{#if camera}
 					<VideoInputMenu
-						devices={videoInputDevices}
+						devices={videoInputDevices.map((device) =>
+							device.deviceId === 'screen' ? { ...device, label: $i18n.t('Screen Share') } : device
+						)}
 						on:change={async (e) => {
 							console.log(e.detail);
 							selectedVideoInputDeviceId = e.detail;
@@ -1005,7 +1166,7 @@
 							</svg>
 						</button>
 					</VideoInputMenu>
-				{:else}
+				{:else if !bridge}
 					<Tooltip content={$i18n.t('Camera')}>
 						<button
 							aria-label={$i18n.t('Camera')}
@@ -1090,10 +1251,25 @@
 					</button>
 				</Tooltip>
 
+				{#if bridge?.working}
+					<Tooltip content={$i18n.t('Stop')}>
+						<button
+							type="button"
+							aria-label={$i18n.t('Stop')}
+							class="p-3 rounded-full bg-gray-50 dark:bg-gray-900"
+							on:click={() => bridge?.stopBackend()}
+						>
+							<svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+								<rect x="4" y="4" width="12" height="12" rx="2" />
+							</svg>
+						</button>
+					</Tooltip>
+				{/if}
+
 				<button
 					aria-label={$i18n.t('End call')}
 					class="p-3 rounded-full bg-gray-50 dark:bg-gray-900"
-					on:click={endCall}
+					on:click={() => { bridge?.end(); endCall(); }}
 					type="button"
 				>
 					<svg

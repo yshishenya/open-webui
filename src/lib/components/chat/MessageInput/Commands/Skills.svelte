@@ -1,19 +1,33 @@
 <script lang="ts">
+	import { resolveLocalizedResource } from '$lib/utils/localizedContent';
 	import { getContext, onDestroy } from 'svelte';
 	import { getSkillItems, type SkillUserItem } from '$lib/apis/skills';
+	import {
+		listTerminalSkills,
+		resolveTerminalConnection,
+		type TerminalSkill
+	} from '$lib/apis/terminal';
+	import {
+		chatId,
+		selectedTerminalId,
+		settings,
+		terminalServers,
+		terminalSkills
+	} from '$lib/stores';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Cube from '$lib/components/icons/Cube.svelte';
 
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
 
+	type SelectableSkill = (SkillUserItem & { source?: string | null }) | TerminalSkill;
 	const i18n = getContext<Readable<I18n>>('i18n');
 
 	export let query = '';
-	export let onSelect: (e: { type: 'skill'; data: SkillUserItem }) => void = () => {};
+	export let onSelect: (e: { type: 'skill'; data: SelectableSkill }) => void = () => {};
 
 	let selectedIdx = 0;
-	export let filteredItems: SkillUserItem[] = [];
+	export let filteredItems: SelectableSkill[] = [];
 
 	let searchDebounceTimer: ReturnType<typeof setTimeout>;
 
@@ -28,11 +42,27 @@
 		clearTimeout(searchDebounceTimer);
 	});
 
-	const getItems = async (): Promise<void> => {
-		const res = await getSkillItems(localStorage.token, query).catch(() => null);
-		if (res) {
-			filteredItems = res.items;
-		}
+	const getItems = async () => {
+		const [res, terminalItems] = await Promise.all([
+			getSkillItems(localStorage.token, query).catch(() => null),
+			getTerminalItems(query)
+		]);
+		filteredItems = [...(res?.items ?? []), ...terminalItems];
+	};
+
+	const getTerminalItems = async (query = ''): Promise<TerminalSkill[]> => {
+		const connection = resolveTerminalConnection(
+			$selectedTerminalId,
+			$terminalServers ?? [],
+			$settings?.terminalServers ?? [],
+			localStorage.token
+		);
+		const items = await listTerminalSkills(connection, $chatId || null).catch(() => []);
+		terminalSkills.set(items);
+		const q = query.trim().toLowerCase();
+		return q
+			? items.filter((skill) => `${skill.name} ${skill.description}`.toLowerCase().includes(q))
+			: items;
 	};
 
 	$: if (query) {
@@ -62,9 +92,11 @@
 			.replaceAll('"', '&quot;')
 			.replaceAll("'", '&#39;');
 
-	const getTooltipContent = (skill: SkillUserItem): string => {
-		const name = escapeTooltipText(skill.name);
-		const description = escapeTooltipText(skill.description);
+	const getTooltipContent = (skill: SelectableSkill) => {
+		const name = escapeTooltipText(resolveLocalizedResource(skill, $i18n.language));
+		const description = escapeTooltipText(
+			resolveLocalizedResource(skill, $i18n.language, 'description')
+		);
 
 		return `<div class="max-w-80 whitespace-normal text-left leading-snug">
 			<span class="break-words font-normal">${name}</span>${description ? `: <span class="break-words opacity-80">${description}</span>` : ''}
@@ -72,7 +104,7 @@
 	};
 </script>
 
-<div class="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400">
+<div class="px-2 py-1 text-[0.6875rem] text-gray-500 dark:text-gray-400">
 	{$i18n.t('Skills')}
 </div>
 
@@ -80,11 +112,12 @@
 	{#each filteredItems as skill, skillIdx}
 		<Tooltip
 			content={getTooltipContent(skill)}
+			allowHTML={true}
 			placement="top-start"
 			tippyOptions={{ maxWidth: '20rem' }}
 		>
 			<button
-				class="flex h-[1.6875rem] w-full items-center rounded-xl px-2 text-left text-[13px] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {skillIdx ===
+				class="flex h-[1.6875rem] w-full items-center rounded-xl px-2 text-left text-[0.8125rem] hover:bg-gray-50/40 dark:hover:bg-gray-800/40 {skillIdx ===
 				selectedIdx
 					? 'bg-gray-50/40 dark:bg-gray-800/40 selected-command-option-button'
 					: ''}"
@@ -103,10 +136,10 @@
 						<Cube className="size-3.5" />
 					</div>
 					<div class="truncate min-w-0 flex-1">
-						{skill.name}
+						{resolveLocalizedResource(skill, $i18n.language)}
 					</div>
 					<div class="ml-2 max-w-24 shrink-0 truncate text-xs text-gray-500 dark:text-gray-400">
-						{skill.id}
+						{skill.source === 'terminal' ? $i18n.t('Terminal') : skill.id}
 					</div>
 				</div>
 			</button>

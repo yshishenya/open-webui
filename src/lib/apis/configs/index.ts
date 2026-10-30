@@ -4,6 +4,23 @@ import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 import type { Banner } from '$lib/types';
 import type { ToolServerConnection } from '$lib/utils/airis/frontend-contracts';
 import { requestModelConnection } from '$lib/utils/airis/model_connection_request';
+import type { Visibility } from '$lib/utils/ui-visibility';
+
+export const setInterfaceVisibility = async (
+	token: string,
+	visibility: Visibility
+): Promise<Visibility> => {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/interface/visibility`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({ visibility })
+	});
+	if (!res.ok) throw (await res.json()).detail;
+	return (await res.json()).visibility;
+};
 
 export const importConfig = async (
 	token: string,
@@ -457,28 +474,20 @@ export const setSubagentsConfig = async (token: string, config: object) => {
 
 export const setDefaultPromptSuggestions = async (
 	token: string,
-	promptSuggestions: SuggestionPrompt[]
-): Promise<SuggestionPrompt[]> => {
-	const rows = await requestJSON<SuggestionPrompt[]>(
+	promptSuggestions: SuggestionPrompt[] | null,
+	promptSuggestionsI18n: Record<string, unknown> = {}
+): Promise<{ suggestions: SuggestionPrompt[] | null; i18n: Record<string, unknown> }> => {
+	const result = await requestJSON<{ suggestions: SuggestionPrompt[] | null; i18n: Record<string, unknown> }>(
 		`${WEBUI_API_BASE_URL}/configs/suggestions`,
 		token,
-		{ suggestions: promptSuggestions },
+		{ suggestions: promptSuggestions, i18n: promptSuggestionsI18n },
 		undefined,
 		'Prompt suggestions'
 	);
-	if (
-		!Array.isArray(rows) ||
-		!rows.every(
-			(row) =>
-				row &&
-				typeof row === 'object' &&
-				typeof row.content === 'string' &&
-				Array.isArray(row.title) &&
-				row.title.every((part: unknown) => typeof part === 'string')
-		)
-	)
-		throw new Error('Invalid prompt suggestions response');
-	return rows;
+	if (!result || !(result.suggestions === null || (Array.isArray(result.suggestions) && result.suggestions.every(
+		(row) => row && typeof row.content === 'string' && Array.isArray(row.title) && row.title.every((part: unknown) => typeof part === 'string')
+	)))) throw new Error('Invalid prompt suggestions response');
+	return result;
 };
 
 export const getBanners = async (token: string): Promise<Banner[]> => {

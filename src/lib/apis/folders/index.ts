@@ -242,7 +242,8 @@ export const markFolderChatsReadById = async (
 export const updateFolderAccessById = async (
 	token: string,
 	id: string,
-	accessGrants: unknown[]
+	accessGrants: unknown[],
+	shareMode?: 'continue' | null
 ): Promise<FolderResponse> => {
 	const res = await fetch(`${WEBUI_API_BASE_URL}/folders/${id}/access/update`, {
 		method: 'POST',
@@ -251,7 +252,7 @@ export const updateFolderAccessById = async (
 			'Content-Type': 'application/json',
 			authorization: `Bearer ${token}`
 		},
-		body: JSON.stringify({ access_grants: accessGrants })
+		body: JSON.stringify({ access_grants: accessGrants, share_mode: shareMode })
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
@@ -278,6 +279,11 @@ export const getSharedFolders = async (token: string): Promise<SelectedFolder[]>
 		.catch(rethrowFolderError);
 
 	return res;
+};
+
+export type ChatParticipant = {
+	id: string;
+	name: string | null;
 };
 
 export const getSharedFolderChats = async (

@@ -1,13 +1,18 @@
+import type { Model, ModelDownload } from '$lib/utils/airis/model-types';
+import type { ChatAttachment } from '$lib/utils/airis/chat_history';
 import type { CitationEmbed } from '$lib/utils/airis/citations';
 import type { NoteListItem } from '$lib/utils/airis/notes';
-import type { ChannelListItem } from '$lib/utils/airis/channel-types';
-import type { KnowledgeListItem } from '$lib/utils/airis/knowledge-types';
+import type { ChannelDisplayMessage, ChannelListItem } from '$lib/utils/airis/channel-types';
+import {
+	CONTROL_LABELS,
+	isControlVisible,
+	type ControlId
+} from '$lib/utils/ui-visibility';
 import { APP_NAME } from '$lib/constants';
-import { type Writable, writable } from 'svelte/store';
-import type { Model, ModelDownload } from '$lib/utils/airis/model-types';
-export type { Model, OpenAIModel, OllamaModel } from '$lib/utils/airis/model-types';
+import { type Writable, derived, writable } from 'svelte/store';
 import type { Banner } from '$lib/types';
 import type { Socket } from 'socket.io-client';
+import type { TerminalSkill } from '$lib/apis/terminal';
 import type { AudioQueue } from '$lib/utils/audio';
 import type { KokoroWorker } from '$lib/workers/KokoroWorker';
 import type {
@@ -90,9 +95,10 @@ export const selectedFolder = writable<SelectedFolder | null>(null);
 
 export const models: Writable<Model[]> = writable([]);
 
-export const knowledge: Writable<null | KnowledgeListItem[]> = writable(null);
+export const knowledge: Writable<null | Document[]> = writable(null);
 export const tools = writable<ToolListItem[] | null>(null);
 export const skills = writable<SkillListItem[] | null>(null);
+export const terminalSkills: Writable<TerminalSkill[]> = writable([]);
 export const functions = writable<FunctionListItem[] | null>(null);
 
 export type WorkspaceSection = 'models' | 'knowledge' | 'prompts' | 'skills' | 'tools';
@@ -127,10 +133,48 @@ export const banners: Writable<Banner[]> = writable([]);
 
 export const settings: Writable<Settings> = writable({});
 
+// Users who never pinned a model follow the admin default, so changes to it keep reaching them
+export const pinnedModels = derived([settings, config], ([$settings, $config]) =>
+	$settings?.pinnedModels === undefined
+		? ($config?.default_pinned_models ?? '').split(',').filter((id) => id)
+		: $settings.pinnedModels
+);
+
+// Pins for models the user cannot see are kept in their settings but left out of the sidebar
+export const visiblePinnedModels = derived([pinnedModels, models], ([$pinnedModels, $models]) =>
+	$pinnedModels.filter((id) =>
+		$models.some((model) => model.id === id && !model.info?.meta?.hidden)
+	)
+);
+
+export const visibleControls = derived(
+	[config, user],
+	([$config, $user]) =>
+		Object.fromEntries(
+			(Object.keys(CONTROL_LABELS) as ControlId[]).map((id) => [
+				id,
+				isControlVisible(id, { config: $config, user: $user })
+			])
+		) as Record<ControlId, boolean>
+);
+
 export const audioQueue = writable<AudioQueue | null>(null);
 export const chatRequestQueues: Writable<
-	Record<string, { id: string; prompt: string; files: Record<string, unknown>[] }[]>
+	Record<string, { id: string; prompt: string; files: ChatAttachment[]; error?: string }[]>
 > = writable({});
+
+export type ChannelQueuedMessage = {
+	id: string;
+	prompt: string;
+	files: ChatAttachment[];
+	user_id: string;
+	channel_id: string;
+	parent_id: string | null;
+	reply_to_message: ChannelDisplayMessage | null;
+	sending?: boolean;
+	error?: string;
+};
+export const channelRequestQueues = writable<Record<string, ChannelQueuedMessage[]>>({});
 
 export const sidebarWidth = writable(245);
 
@@ -150,9 +194,13 @@ export const showOverview = writable(false);
 export const showArtifacts = writable(false);
 export const showCallOverlay = writable(false);
 export const showFileNav = writable(false);
-export const showFileNavPath: Writable<string | null> = writable(null);
+export type FileNavOpenRequest = string | { path: string; page?: number | null };
+export const showFileNavPath: Writable<FileNavOpenRequest | null> = writable(null);
 export const showFileNavDir: Writable<string | null> = writable(null);
 export const selectedTerminalId: Writable<string | null> = writable(null);
+export const connectedUserTerminals = writable(
+	new Map<symbol, { terminalId: string; chatId: string }>()
+);
 
 export const artifactCode = writable<string | null>(null);
 export const artifactContents: Writable<ArtifactContent[] | null> = writable(null);
@@ -192,6 +240,8 @@ export type Settings = {
 	imageCompression?: boolean;
 	imageCompressionSize?: ImageCompressionSize;
 	textScale?: number | null;
+	fontFamily?: string | null;
+	terminalFileDisplay?: 'sidebar' | 'inline';
 	widescreenMode?: boolean;
 	largeTextAsFile?: boolean;
 	promptAutocomplete?: boolean;
@@ -220,8 +270,11 @@ export type Settings = {
 	splitLargeChunks?: boolean;
 	backgroundImageUrl?: string | null;
 	landingPageMode?: string;
+	iframeSandboxAllowScripts?: boolean;
 	iframeSandboxAllowForms?: boolean;
 	iframeSandboxAllowSameOrigin?: boolean;
+	iframeSandboxAllowDownloads?: boolean;
+	terminalPreviewAllowSameOrigin?: boolean;
 	scrollOnBranchChange?: boolean;
 	scrollOnResponseGeneration?: boolean;
 	showFilesOnTerminalSelect?: boolean;
@@ -242,6 +295,7 @@ export type Settings = {
 	chatDirection?: 'LTR' | 'RTL' | 'auto';
 	ctrlEnterToSend?: boolean;
 	keyboardShortcuts?: boolean;
+	chatHoverPreview?: boolean;
 	renderMarkdownInPreviews?: boolean;
 	renderMarkdownInUserMessages?: boolean;
 	renderMarkdownInAssistantMessages?: boolean;
@@ -251,7 +305,7 @@ export type Settings = {
 
 	defaultUploadContext?: 'full' | 'focused';
 
-	system?: string;
+	system?: string | null;
 	seed?: number;
 	temperature?: string;
 	repeat_penalty?: string;
@@ -301,3 +355,5 @@ export type SessionUser = {
 	status_message?: string | null;
 	status_expires_at?: number | null;
 };
+
+export type { Model, ModelDownload } from '$lib/utils/airis/model-types';

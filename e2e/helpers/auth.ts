@@ -57,6 +57,7 @@ export const getUserMenuTrigger = async (page: Page): Promise<Locator> => {
 export const login = async (page: Page, email: string, password: string): Promise<void> => {
 	await page.addInitScript(() => {
 		window.localStorage.setItem('locale', 'en-US');
+		window.localStorage.setItem('airis.analytics.consent.v1', 'denied');
 	});
 	await page.goto('/auth?form=1');
 	await expect(page.locator('input[autocomplete="email"]')).toBeVisible();

@@ -74,7 +74,7 @@
 
 <ManageOllamaModal bind:show={showManageModal} urlIdx={idx} />
 
-<div class="flex gap-1.5">
+<div class="group/setting-row flex gap-1.5">
 	<Tooltip
 		className="w-full relative"
 		content={$i18n.t(`Airis will make requests to "{{url}}/api/chat"`, {
@@ -89,7 +89,7 @@
 		{/if}
 
 		<input
-			class="w-full text-sm bg-transparent outline-hidden"
+			class="text-gray-600 dark:text-gray-400 transition-colors duration-150 group-hover/setting-row:text-gray-900 group-focus-within/setting-row:text-gray-900 dark:group-hover/setting-row:text-white dark:group-focus-within/setting-row:text-white w-full text-sm bg-transparent outline-hidden"
 			placeholder={$i18n.t('Enter URL (e.g. http://localhost:11434)')}
 			bind:value={url}
 			readonly={true}
@@ -99,6 +99,7 @@
 	<div class="flex gap-1 items-center">
 		<Tooltip content={$i18n.t('Manage')} className="self-start">
 			<button
+				aria-label={$i18n.t('Manage')}
 				class="self-center p-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-850 rounded-lg transition"
 				on:click={() => {
 					showManageModal = true;
@@ -111,6 +112,7 @@
 
 		<Tooltip content={$i18n.t('Configure')} className="self-start">
 			<button
+				aria-label={$i18n.t('Configure')}
 				class="self-center p-1 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-850 rounded-lg transition"
 				on:click={() => {
 					showConfigModal = true;
@@ -122,7 +124,7 @@
 		</Tooltip>
 
 		<Tooltip content={(config?.enable ?? true) ? $i18n.t('Enabled') : $i18n.t('Disabled')}>
-			<Switch bind:state={enabled} disabled={saving} on:change={toggleConnection} />
+			<Switch bind:state={enabled} ariaLabel={$i18n.t('Enabled')} disabled={saving} on:change={toggleConnection} />
 		</Tooltip>
 	</div>
 </div>

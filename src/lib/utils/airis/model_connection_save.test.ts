@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import type { Settings } from '$lib/stores';
 import { getOpenAIConfig, updateOpenAIConfig, verifyOpenAIConnection } from '$lib/apis/openai';
 import { getOllamaConfig, updateOllamaConfig, verifyOllamaConnection } from '$lib/apis/ollama';
+import { normalizeTags } from '$lib/utils/tags';
 import { parseConnectionHeaders } from './model_connection_request';
 
 vi.mock('$lib/constants', () => ({
@@ -71,6 +72,9 @@ const run = <T>(
 		setTimeout,
 		clearTimeout,
 		parseConnectionHeaders,
+		normalizeTags,
+		personalUiSettings: {},
+		mergeUiSettings: (defaults: object, personal: object) => ({ ...defaults, ...personal }),
 		getContext: () => ({}),
 		$i18n: { t: (s: string) => s },
 		onMount: (fn: () => unknown) => mount.push(fn),

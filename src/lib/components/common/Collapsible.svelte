@@ -11,23 +11,6 @@
 	dayjs.extend(duration);
 	dayjs.extend(relativeTime);
 
-	function loadLocale(locales: readonly string[] | undefined): void {
-		if (!locales || !Array.isArray(locales)) {
-			return;
-		}
-		for (const locale of locales) {
-			try {
-				dayjs.locale(locale);
-				break; // Stop after successfully loading the first available locale
-			} catch (error) {
-				console.error(`Could not load locale '${locale}':`, error);
-			}
-		}
-	}
-
-	// Assuming $i18n.languages is an array of language codes
-	$: loadLocale($i18n.languages);
-
 	import { slide } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 
@@ -108,7 +91,10 @@
 								})}
 							{:else}
 								{$i18n.t('Thought for {{DURATION}}', {
-									DURATION: dayjs.duration(durationSeconds, 'seconds').humanize()
+									DURATION: dayjs
+										.duration(durationSeconds, 'seconds')
+										.locale($i18n.language)
+										.humanize()
 								})}
 							{/if}
 						{:else if attributes?.done === 'true' || messageDone}
@@ -145,12 +131,12 @@
 			class="{buttonClassName} cursor-pointer"
 			on:click={(e) => {
 				e.stopPropagation();
+				toggleOpen();
 			}}
-			on:pointerup={toggleOpen}
 		>
 			<div>
 				<div class="flex items-start justify-between">
-					<slot />
+					<slot {open} />
 
 					{#if chevron}
 						<div class="flex self-start translate-y-1">
@@ -167,7 +153,7 @@
 					{#if open && !hide}
 						<div
 							transition:slide={{ duration: 300, easing: quintOut, axis: 'y' }}
-							on:pointerup={(e) => {
+							on:click={(e) => {
 								e.stopPropagation();
 							}}
 						>

@@ -56,7 +56,7 @@ it('renders numeric Draw, fixed table cells, nullable user and real username sor
 		const header = [...target.querySelectorAll('th')].find((el) =>
 			el.textContent?.includes('User')
 		);
-		header?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		header?.querySelector('button')?.click();
 		await tick();
 		await vi.waitFor(() =>
 			expect(vi.mocked(getFeedbackItems).mock.calls.at(-1)?.[1]).toBe('username')

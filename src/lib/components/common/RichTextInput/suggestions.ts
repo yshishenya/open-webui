@@ -42,8 +42,8 @@ export function getSuggestionRenderer(
 					props: {
 						char: props?.text?.charAt(0),
 						query: props?.query,
-						command: (item: Item): void => {
-							props.command({ id: item.id, label: item.label });
+						command: (item) => {
+							props.command(item);
 						},
 						...ComponentProps
 					},
@@ -106,8 +106,8 @@ export function getSuggestionRenderer(
 
 				component.$set({
 					query: props.query,
-					command: (item: Item): void => {
-						props.command({ id: item.id, label: item.label });
+					command: (item) => {
+						props.command(item);
 					}
 				});
 

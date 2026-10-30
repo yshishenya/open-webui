@@ -94,6 +94,9 @@ const rig = (category: string = 'tool', personal = false) => {
 			readValveSpec,
 			category,
 			personal,
+			resourceMeta: {},
+			$tools: [],
+			$functions: [],
 			getContext: () => ({}),
 			$i18n: { t: (s: string) => s },
 			createEventDispatcher: () => (e: string) => events.push(e),
@@ -452,7 +455,7 @@ it('ignores a late schema after close/reopen and permits no-schema/null settings
 it('allows an empty array through the actual native input constraint while retaining scalar constraints', () => {
 	const source = readFileSync('src/lib/components/common/Valves.svelte', 'utf8');
 	const block = source
-		.split("{:else if (valvesSpec.properties[property]?.type ?? null) !== 'string'}")[1]
+		.split("{:else if (displaySpec.properties[property]?.type ?? null) !== 'string'}")[1]
 		?.split('{:else if')[0];
 	expect(block).toBeDefined();
 	const attribute = block!.match(/\brequired(?:=\{([^}]+)\})?/);

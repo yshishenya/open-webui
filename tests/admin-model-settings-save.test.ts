@@ -29,6 +29,10 @@ function settings() {
 	};
 	const context = {
 		loading: false,
+		useDefaultPromptSuggestions: false,
+		promptSuggestionsI18n: {},
+		getLanguages: async () => [],
+		resolveLocalizedPromptSuggestions: (value: unknown) => value ?? [],
 		DEFAULT_CAPABILITIES: { vision: true },
 		defaultParams: {},
 		$appConfig: { default_prompt_suggestions: [{ content: 'Saved suggestion' }] },
@@ -60,7 +64,9 @@ function settings() {
 		appConfig: { set: vi.fn() },
 		getModelsConfig: vi.fn().mockResolvedValue(current),
 		setModelsConfig: vi.fn().mockResolvedValue(current),
-		setDefaultPromptSuggestions: vi.fn().mockResolvedValue([{ content: 'Retained draft' }]),
+		setDefaultPromptSuggestions: vi
+			.fn()
+			.mockResolvedValue({ suggestions: [{ content: 'Retained draft' }], i18n: {} }),
 		getBackendConfig: vi.fn().mockResolvedValue({}),
 		getModels: vi.fn().mockResolvedValue([]),
 		initHandler: vi.fn().mockResolvedValue(undefined),

@@ -3,8 +3,8 @@
 	import { useSvelteFlow, useNodesInitialized, useStore, type Edge } from '@xyflow/svelte';
 
 	import { writable } from 'svelte/store';
-	import type { ChatHistory } from '$lib/utils/airis/chat_history';
-	import type { ChatOverviewNode, ChatOverviewClick } from '$lib/utils/airis/frontend-contracts';
+
+	import type { ChatOverviewNode} from '$lib/utils/airis/frontend-contracts';
 	import { models, user } from '$lib/stores';
 
 	import '@xyflow/svelte/dist/style.css';
@@ -17,8 +17,9 @@
 	const { fitView } = useSvelteFlow();
 	const nodesInitialized = useNodesInitialized();
 
-	export let history: ChatHistory;
-	export let onNodeClick: (event: ChatOverviewClick) => void;
+	export let history;
+	export let onNodeClick;
+	export let chatUser: {id: string; name: string; profile_image_url?: string} | null = null;
 
 	type LayoutDirection = 'vertical' | 'horizontal';
 	type PositionMapEntry = {
@@ -60,8 +61,11 @@
 	const drawFlow = async (direction: LayoutDirection): Promise<void> => {
 		const nodeList: ChatOverviewNode[] = [];
 		const edgeList: Edge[] = [];
-		const levelOffset = direction === 'vertical' ? 150 : 300;
-		const siblingOffset = direction === 'vertical' ? 250 : 150;
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+		const nodeWidth = 15 * rootFontSize;
+		const nodeHeight = 5 * rootFontSize;
+		const levelOffset = direction === 'vertical' ? nodeHeight + 70 : nodeWidth + 60;
+		const siblingOffset = direction === 'vertical' ? nodeWidth + 60 : nodeHeight + 70;
 
 		// Map to keep track of node positions at each level
 		let positionMap = new Map<string, PositionMapEntry>();
@@ -95,9 +99,10 @@
 				id: pos.id,
 				type: 'custom',
 				data: {
-					user: $user,
+					user: chatUser ?? $user,
 					message: history.messages[id],
-					model: $models.find((model) => model.id === history.messages[id].model)
+					model: $models.find((model) => model.id === history.messages[id].model),
+					direction
 				},
 				position: { x, y }
 			});

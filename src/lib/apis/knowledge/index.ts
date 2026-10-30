@@ -297,7 +297,7 @@ export const updateExternalKnowledgeSource = async (token: string, id: string, p
 			'Content-Type': 'application/json',
 			authorization: `Bearer ${token}`
 		},
-		body: JSON.stringify(payload)
+		body: JSON.stringify({ ...payload, access_grants: undefined })
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
@@ -389,8 +389,9 @@ export const searchKnowledgeBases = async (
 	page: number | null = null,
 	source: string | null = null,
 	orderBy: string | null = null,
-	direction: string | null = null
-): Promise<KnowledgeListResponse | null> => {
+	direction: string | null = null,
+	signal?: AbortSignal
+) => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();
@@ -403,6 +404,7 @@ export const searchKnowledgeBases = async (
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/search?${searchParams.toString()}`, {
 		method: 'GET',
+		signal,
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
@@ -417,6 +419,7 @@ export const searchKnowledgeBases = async (
 			return json;
 		})
 		.catch((err) => {
+			if (signal?.aborted) return null;
 			error = err.detail;
 			console.error(err);
 			return null;
@@ -643,8 +646,7 @@ export const updateKnowledgeById = async (
 		body: JSON.stringify({
 			name: form?.name ? form.name : undefined,
 			description: form?.description ? form.description : undefined,
-			data: form?.data ? form.data : undefined,
-			access_grants: form.access_grants
+			data: form?.data ? form.data : undefined
 		})
 	})
 		.then(async (res) => {
@@ -988,7 +990,35 @@ export const reindexKnowledgeFiles = async (token: string): Promise<boolean | nu
 	return res;
 };
 
-export const exportKnowledgeById = async (token: string, id: string): Promise<Blob | null> => {
+export const reindexKnowledgeMetadata = async (token: string) => {
+	let error = null;
+
+	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/metadata/reindex`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		}
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err.detail;
+			console.error(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+export const exportKnowledgeById = async (token: string, id: string) => {
 	let error = null;
 
 	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge/${id}/export`, {
@@ -1092,7 +1122,7 @@ export const deleteKnowledgeDirectory = async (
 	id: string,
 	dirId: string,
 	moveFiles: boolean = true
-): Promise<{ status: boolean } | null> => {
+): Promise<{ status: boolean; file_ids: string[] } | null> => {
 	let error = null;
 
 	const searchParams = new URLSearchParams();

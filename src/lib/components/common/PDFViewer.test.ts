@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
 import PDFViewer from './PDFViewer.svelte';
+import { readable } from 'svelte/store';
 
 const mocks = vi.hoisted(() => ({
 	getDocument: vi.fn(),
@@ -16,6 +17,20 @@ vi.mock('pdfjs-dist', () => ({
 	}
 }));
 vi.mock('panzoom', () => ({ default: mocks.panzoom }));
+
+beforeEach(() => {
+	Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+		configurable: true,
+		value: vi.fn()
+	});
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe(): void {}
+			disconnect(): void {}
+		}
+	);
+});
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -43,11 +58,22 @@ function start(props: { data?: Uint8Array; url?: string }): {
 } {
 	const target = document.createElement('div');
 	document.body.append(target);
-	return { component: mount(PDFViewer, { target, props }), target };
+	return {
+		component: mount(PDFViewer, {
+			target,
+			props,
+			context: new Map([['i18n', readable({ t: (value: string) => value })]])
+		}),
+		target
+	};
 }
 
 it('destroys the loading task when the viewer closes before the PDF is ready', async () => {
-	const loaded = deferred<{ numPages: number; getPage: ReturnType<typeof vi.fn> }>();
+	const loaded = deferred<{
+		numPages: number;
+		getPage: ReturnType<typeof vi.fn>;
+		destroy: ReturnType<typeof vi.fn>;
+	}>();
 	const destroy = vi.fn().mockResolvedValue(undefined);
 	mocks.getDocument.mockReturnValue({ promise: loaded.promise, destroy });
 	const { component } = start({ data: new Uint8Array([1]) });
@@ -55,7 +81,7 @@ it('destroys the loading task when the viewer closes before the PDF is ready', a
 	await unmount(component);
 	expect(destroy).toHaveBeenCalledOnce();
 	const getPage = vi.fn();
-	loaded.resolve({ numPages: 1, getPage });
+	loaded.resolve({ numPages: 1, getPage, destroy });
 	await Promise.resolve();
 	expect(getPage).not.toHaveBeenCalled();
 });

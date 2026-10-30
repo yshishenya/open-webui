@@ -60,6 +60,7 @@ def test_s3_filters_preserve_short_circuit_pagination_and_deletion_selection() -
             stub.add_response('get_index', {'index': index}, index_params)
         stub.add_response('list_vectors', {'vectors': [first, second], 'nextToken': 'page-2'}, list_params)
         stub.add_response('list_vectors', {'vectors': [third]}, {**list_params, 'nextToken': 'page-2'})
+    stub.add_response('get_index', {'index': index}, index_params)
     stub.add_response('delete_vectors', {}, {**index_params, 'keys': ['one', 'three']})
     query_params = {
         **index_params,

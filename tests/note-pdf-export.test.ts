@@ -27,6 +27,23 @@ it('exports sanitized note content with its title, paginates and removes the hid
 		expect(node.querySelector('img')?.hasAttribute('onerror')).toBe(false);
 		return { width: 1000, height: 5000, toDataURL: () => 'data:image/jpeg;base64,TEST' };
 	});
+	Object.defineProperty(HTMLImageElement.prototype, 'decode', {
+		configurable: true,
+		value: async () => {}
+	});
+	const geometry = vi
+		.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+		.mockReturnValue({
+			top: 0,
+			left: 0,
+			right: 800,
+			bottom: 5000,
+			width: 800,
+			height: 5000,
+			x: 0,
+			y: 0,
+			toJSON: () => ({})
+		});
 	const count = document.body.children.length;
 	await downloadPdf(
 		normalizeNote({
@@ -48,4 +65,5 @@ it('exports sanitized note content with its title, paginates and removes the hid
 	expect(output.addPage).toHaveBeenCalledTimes(3);
 	expect(output.save).toHaveBeenCalledWith('Note title.pdf');
 	expect(document.body.children.length).toBe(count);
+	geometry.mockRestore();
 });

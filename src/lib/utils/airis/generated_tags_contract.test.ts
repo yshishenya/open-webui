@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { generateTags } from '$lib/apis';
 
-vi.mock('$lib/constants', () => ({ WEBUI_BASE_URL: 'https://airis.test' }));
+vi.mock('$lib/constants', () => ({ WEBUI_BASE_URL: 'https://airis.test', APP_NAME: 'AIRIS' }));
 vi.mock('$lib/utils', () => ({ convertOpenApiToToolPayload: vi.fn() }));
 vi.mock('$lib/apis/openai', () => ({ getOpenAIModelsDirect: vi.fn() }));
 afterEach(() => {

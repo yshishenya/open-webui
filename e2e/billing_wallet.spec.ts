@@ -53,10 +53,10 @@ test.describe('Billing Wallet', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.addInitScript(() => {
 			localStorage.setItem('locale', 'en-US');
-			localStorage.setItem('settings', JSON.stringify({ version: '0.11.0' }));
+			localStorage.setItem('settings', JSON.stringify({ version: '0.12.5' }));
 		});
 		await page.route('**/api/v1/users/user/settings', (route) =>
-			route.fulfill({ json: { ui: { version: '0.11.0' } } })
+			route.fulfill({ json: { ui: { version: '0.12.5' } } })
 		);
 		await page.route('**/api/v1/billing/summary?*', (route) =>
 			route.fulfill({

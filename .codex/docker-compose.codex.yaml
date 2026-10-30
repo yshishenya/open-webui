@@ -3,7 +3,7 @@ services:
   # These avoid requiring a local Python venv / npm install in the worktree.
 
   pytools:
-    image: python:3.11-slim
+    image: python:3.12-slim-trixie
     working_dir: /work
     volumes:
       - ./:/work

@@ -46,6 +46,7 @@ export type DocumentSettings = {
 	MISTRAL_OCR_API_BASE_URL: string;
 	MISTRAL_OCR_API_KEY: string;
 	MISTRAL_OCR_USE_BASE64: boolean;
+	MISTRAL_OCR_PARAMS: string;
 	PADDLEOCR_VL_BASE_URL: string;
 	PADDLEOCR_VL_TOKEN: string;
 	PDF_EXTRACT_IMAGES: boolean;
@@ -61,6 +62,7 @@ export type DocumentSettings = {
 	RELEVANCE_THRESHOLD: number | null | undefined;
 	TEXT_SPLITTER: string;
 	TIKA_SERVER_URL: string;
+	TIKA_SERVER_VERSION: string;
 	TOP_K: number | null | undefined;
 	TOP_K_RERANKER: number | null | undefined;
 };

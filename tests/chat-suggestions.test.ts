@@ -131,7 +131,7 @@ it('selects active model, catalog model or configured defaults on the actual emp
 		try {
 			await tick();
 			const buttons = Array.from(
-				target.querySelectorAll<HTMLButtonElement>('button[role="listitem"]')
+				target.querySelectorAll<HTMLButtonElement>('[role="listitem"] button')
 			);
 			expect(buttons.length).toBe(label ? 1 : 0);
 			if (label) {

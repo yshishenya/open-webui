@@ -1,0 +1,133 @@
+{
+  "spec_id": "airis-upstream-0125-2026-10-30-031",
+  "title": "AIRIS Open WebUI v0.12.5 integration and guarded release 20261030",
+  "generated": "2026-10-29T21:31:05.622244Z",
+  "last_updated": "2026-10-30T03:19:57.847222Z",
+  "metadata": {
+    "template": "simple",
+    "complexity": "high",
+    "risk_level": "high",
+    "estimated_hours": 8,
+    "security_sensitive": true,
+    "default_category": "implementation",
+    "status": "active",
+    "activated_date": "2026-10-29T21:31:50.416712Z",
+    "work_item_spec": "meta/memory_bank/specs/work_items/2026-10-30__feature__upstream-v0.12.5-integration.md"
+  },
+  "hierarchy": {
+    "spec-root": {
+      "type": "spec",
+      "title": "AIRIS Open WebUI v0.12.5 integration and guarded release 20261030",
+      "status": "in_progress",
+      "parent": null,
+      "children": [
+        "phase-1",
+        "phase-2"
+      ],
+      "total_tasks": 4,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-1": {
+      "type": "phase",
+      "title": "Интеграция исходников и воспроизводимая сборка",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-1-1",
+        "task-1-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "phase-2": {
+      "type": "phase",
+      "title": "Проверки, перенос копии базы и защищённый выпуск",
+      "status": "in_progress",
+      "parent": "spec-root",
+      "children": [
+        "task-2-1",
+        "task-2-2"
+      ],
+      "total_tasks": 2,
+      "completed_tasks": 0,
+      "metadata": {}
+    },
+    "task-1-1": {
+      "type": "task",
+      "title": "Интеграция исходников с сохранением AIRIS",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-29T21:52:02.480028Z",
+        "status_note": "Manual integration ongoing; production unchanged",
+        "file_path": "src/lib/components/chat/Chat.svelte"
+      }
+    },
+    "task-1-2": {
+      "type": "task",
+      "title": "Миграции, зависимости и чистая сборка",
+      "status": "in_progress",
+      "parent": "phase-1",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-29T22:49:48.296430Z",
+        "status_note": "Single Alembic head a12520261030; clean Python3.12/Debian13 snapshot6 build, native audio and pip checks passed; final commit image pending.",
+        "file_path": "Dockerfile"
+      }
+    },
+    "task-2-1": {
+      "type": "task",
+      "title": "Автотесты, браузер и перенос копии PostgreSQL",
+      "status": "in_progress",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "started_at": "2026-10-29T22:49:48.568070Z",
+        "status_note": "Backend9 1447passed/13skipped/600stableSHA. Frontend2926passed/262files/types0errors5warnings after awaited i18n. Black9filesgreen; Ruff461exactapproved. ESLint169comparison finishing. New commit image/browser/CI required; CodeQL distinct gate not waived.",
+        "file_path": "playwright.config.ts"
+      }
+    },
+    "task-2-2": {
+      "type": "task",
+      "title": "Резервная копия, восстановление и защищённый выпуск",
+      "status": "pending",
+      "parent": "phase-2",
+      "children": [],
+      "dependencies": {
+        "blocks": [],
+        "blocked_by": [],
+        "depends": []
+      },
+      "total_tasks": 1,
+      "completed_tasks": 0,
+      "metadata": {
+        "file_path": "meta/memory_bank/specs/work_items/2026-10-30__feature__upstream-v0.12.5-integration.md",
+        "status_note": "All real isolated executor scenarios passed: success219.861s,rollback302.297s,corruptbackup failclosed238.979s. Stand cleaned. Production unchanged old59d2healthy/restarts0; exact final image/gates required before preload/prepare/release."
+      }
+    }
+  }
+}

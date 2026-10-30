@@ -2,6 +2,18 @@ import { WEBUI_API_BASE_URL } from '$lib/constants';
 import { requestJSON } from '$lib/utils/airis/request_json';
 
 export type AdminConfig = {
+	ENABLE_LOGIN_FORM: boolean;
+	ENABLE_MFA: boolean;
+	ENABLE_ENCRYPTED_CHANNELS: boolean;
+	ENABLE_APPS: boolean;
+	ENABLE_SKILL_LAZY_LOADING: boolean;
+	SKILL_CONTENT_MAX_CHARS?: number | null;
+	SKILL_PREVIEW_MAX_CHARS?: number | null;
+	MFA_ALLOW_OAUTH_BYPASS: boolean;
+	MFA_ALLOW_TRUSTED_HEADER_BYPASS: boolean;
+	sessions_revoked?: boolean;
+	I18N?: Record<string, Record<string, string>>;
+	DEFAULT_INTERFACE_SETTINGS?: Record<string, unknown>;
 	SHOW_ADMIN_DETAILS: boolean;
 	ADMIN_EMAIL: string | null;
 	WEBUI_URL: string;
@@ -33,6 +45,7 @@ export type AdminConfig = {
 };
 
 export type OAuthConfig = {
+	ENABLE_OAUTH_PERSISTENT_CONFIG?: boolean;
 	ENABLE_OAUTH: boolean | null;
 	ENABLE_OAUTH_SIGNUP: boolean | null;
 	OAUTH_MERGE_ACCOUNTS_BY_EMAIL: boolean | null;
@@ -635,6 +648,36 @@ export const userSignOut = async () => {
 
 	sessionStorage.clear();
 	return res;
+};
+
+export const getLogoutRedirectUrl = (redirectUrl?: string | null) => {
+	const logoutUrl = new URL('/auth?state=logout', window.location.origin);
+	const postLogoutUrl = new URL('/auth', window.location.origin);
+	if (!redirectUrl) {
+		return logoutUrl.href;
+	}
+
+	const url = new URL(redirectUrl, window.location.origin);
+	if (url.origin === window.location.origin && url.pathname === '/auth') {
+		url.searchParams.set('state', 'logout');
+		return url.href;
+	}
+
+	const postLogoutRedirectUri = url.searchParams.get('post_logout_redirect_uri');
+	if (postLogoutRedirectUri) {
+		const configuredPostLogoutUrl = new URL(postLogoutRedirectUri, window.location.origin);
+		if (
+			configuredPostLogoutUrl.origin === window.location.origin &&
+			configuredPostLogoutUrl.pathname === '/auth'
+		) {
+			url.searchParams.set('state', 'logout');
+		}
+		return url.href;
+	}
+
+	url.searchParams.set('post_logout_redirect_uri', postLogoutUrl.href);
+	url.searchParams.set('state', 'logout');
+	return url.href;
 };
 
 export const addUser = async (

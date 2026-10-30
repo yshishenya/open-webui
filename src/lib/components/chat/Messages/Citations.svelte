@@ -2,6 +2,7 @@
 	import { getContext } from 'svelte';
 	import { groupCitations, type Citation } from '$lib/utils/airis/citations';
 	import { embed, showControls, showEmbeds } from '$lib/stores';
+	import { isValidHttpUrl } from '$lib/utils';
 
 	import CitationModal from './Citations/CitationModal.svelte';
 
@@ -28,7 +29,7 @@
 		if (!citation) return;
 
 		const embedUrl = citation.source.embed_url;
-		if (embedUrl) {
+		if (typeof embedUrl === 'string' && (isValidHttpUrl(embedUrl) || embedUrl.startsWith('/'))) {
 			if (readOnly) {
 				window.open(embedUrl, '_blank', 'noopener,noreferrer');
 			} else {
@@ -58,6 +59,11 @@
 
 		if (distances.length === 0) {
 			return false;
+		}
+
+		// A single distance cannot be an outlier
+		if (distances.length === 1) {
+			return true;
 		}
 
 		if (
@@ -128,7 +134,7 @@
 					{/each}
 					{#if citations.length > 3}
 						<div
-							class="size-4 rounded-full shrink-0 border border-white dark:border-gray-850 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-[8px] font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap tracking-tighter"
+							class="size-4 rounded-full shrink-0 border border-white dark:border-gray-850 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-[0.5rem] font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap tracking-tighter"
 							aria-hidden="true"
 						>
 							+{citations.length - Math.min(urlCitations.length, 3)}
@@ -156,7 +162,7 @@
 				<button
 					id={`source-${id}-${idx + 1}`}
 					aria-label={$i18n.t('View source: {{name}}', {
-						name: decodeString(citation.source.name)
+						name: `${idx + 1} ${decodeString(citation.source.name)}`
 					})}
 					class="no-toggle outline-hidden flex dark:text-gray-300 bg-transparent text-gray-600 rounded-xl gap-1.5 items-center"
 					on:click={() => {

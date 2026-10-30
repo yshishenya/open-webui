@@ -81,7 +81,9 @@ it('accepts nullable create/update and boolean acknowledgements including false'
 });
 function modal() {
 	const c = {
+		structuredClone,
 		show: true,
+		edit: false,
 		loading: false,
 		formSession: 1,
 		channel: {

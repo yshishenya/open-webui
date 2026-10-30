@@ -10,8 +10,10 @@ AIRIS application release as `FROM`.
 - An exact reviewed source SHA and clean Git archive; exclude private documents,
   production data, environment files and credentials from the context.
 - `AIRIS_NODE_IMAGE` and `AIRIS_PYTHON_IMAGE`: immutable platform image digests.
-  The first CPU profile keeps Python 3.11.16 and Node 22 Alpine 3.20 for compatibility.
-- `AIRIS_PRODUCTION_LOCK=true`: 351 accepted Python distributions, each with a
+  The historical accepted CPU profile uses Python 3.11.16. The v0.12.5 integration
+  candidate uses Python 3.12/Debian 13 and Node 22 Alpine 3.20; its full image
+  acceptance remains in progress.
+- `AIRIS_PRODUCTION_LOCK=true`: the candidate lock records exact Python distributions, each with a
   fixed artifact URL and SHA256. torch/vision/audio use the supported 2.9.1 trio.
   This amd64 CPU profile rejects CUDA. Other architectures use the default path.
 - `AIRIS_PREPARED_STATIC=true`: prepare all files listed in

@@ -19,15 +19,12 @@ log = logging.getLogger(__name__)
 
 class MistralLoader:
     """
-    Enhanced Mistral OCR loader with both sync and async support.
+    Enhanced Mistral OCR loader.
     Loads documents by processing them through the Mistral OCR API.
 
     Performance Optimizations:
     - Differentiated timeouts for different operations
     - Intelligent retry logic with exponential backoff
-    - Memory-efficient file streaming for large files
-    - Connection pooling and keepalive optimization
-    - Semaphore-based concurrency control for batch processing
     - Enhanced error handling with retryable error classification
     """
 
@@ -40,7 +37,8 @@ class MistralLoader:
         max_retries: int = 3,
         enable_debug_logging: bool = False,
         use_base64: bool = False,
-        user: Any | None = None,
+        params: dict[str, object] | None = None,
+        user: object | None = None,
     ):
         """
         Initializes the loader with enhanced features.
@@ -52,6 +50,7 @@ class MistralLoader:
             max_retries: Maximum number of retry attempts.
             enable_debug_logging: Enable detailed debug logs.
             use_base64: Send the document as a data URL instead of uploading it first.
+            params: Extra fields merged into the OCR request, overriding the defaults (e.g. model).
             user: The requesting user, forwarded to Mistral via user-info headers
                 when ENABLE_FORWARD_USER_INFO_HEADERS is enabled.
         """
@@ -63,10 +62,10 @@ class MistralLoader:
         self.base_url = base_url.rstrip('/') if base_url else 'https://api.mistral.ai/v1'
         self.api_key = api_key
         self.file_path = file_path
-        self.timeout = timeout
         self.max_retries = max_retries
         self.debug = enable_debug_logging
         self.use_base64 = use_base64
+        self.params = params or {}
         self.user = user
 
         # PERFORMANCE OPTIMIZATION: Differentiated timeouts for different operations
@@ -173,10 +172,6 @@ class MistralLoader:
                 status_code = error.response.status_code
                 return status_code >= 500 or status_code == 429
             return False
-        if isinstance(error, (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError)):
-            return True  # Async network/timeout errors are retryable
-        if isinstance(error, aiohttp.ClientResponseError):
-            return error.status >= 500 or error.status == 429
         return False  # All other errors are non-retryable
 
     def _retry_request_sync(self, request_func, *args, **kwargs):
@@ -203,32 +198,11 @@ class MistralLoader:
                 )
                 time.sleep(wait_time)
 
-    async def _retry_request_async(self, request_func, *args, **kwargs):
-        """
-        ENHANCEMENT: Async retry logic with intelligent error classification.
-
-        Async version of retry logic that doesn't block the event loop during
-        wait periods. Uses the same exponential backoff strategy as sync version.
-        """
-        for attempt in range(self.max_retries):
-            try:
-                return await request_func(*args, **kwargs)
-            except Exception as e:
-                if attempt == self.max_retries - 1 or not self._is_retryable_error(e):
-                    raise
-
-                # PERFORMANCE OPTIMIZATION: Non-blocking exponential backoff
-                wait_time = min((2**attempt) + 0.5, 30)  # Cap at 30 seconds
-                log.warning(
-                    f'Retryable error (attempt {attempt + 1}/{self.max_retries}): {e}. Retrying in {wait_time}s...'
-                )
-                await asyncio.sleep(wait_time)  # Non-blocking wait
-
     def _upload_file(self) -> str:
         """
         PERFORMANCE OPTIMIZATION: Enhanced file upload with streaming consideration.
 
-        Uploads the file to Mistral for OCR processing (sync version).
+        Uploads the file to Mistral for OCR processing.
         Uses context manager for file handling to ensure proper resource cleanup.
         Although streaming is not enabled for this endpoint, the file is opened
         in a context manager to minimize memory usage duration.
@@ -261,56 +235,15 @@ class MistralLoader:
             file_id = response_data.get('id')
             if not file_id:
                 raise ValueError('File ID not found in upload response.')
-            log.info(f'File uploaded successfully. File ID: {file_id}')
+            log.info('File uploaded successfully. File ID: %s', file_id)
             return file_id
         except Exception as e:
             log.error(f'Failed to upload file: {e}')
             raise
 
-    async def _upload_file_async(self, session: aiohttp.ClientSession) -> str:
-        """Async file upload with streaming for better memory efficiency."""
-        url = f'{self.base_url}/files'
-
-        async def upload_request():
-            # Open inside the request so the handle stays valid for the whole
-            # streamed POST and is closed right after.
-            with open(self.file_path, 'rb') as f:
-                writer = aiohttp.MultipartWriter('form-data')
-
-                # Add purpose field
-                purpose_part = writer.append('ocr')
-                purpose_part.set_content_disposition('form-data', name='purpose')
-
-                # Stream the file. aiohttp builds a payload from the file object;
-                # the previous aiohttp.streams.FilePayload was removed upstream
-                # (payloads live in aiohttp.payload and there is no FilePayload),
-                # so this path raised AttributeError on every async OCR upload.
-                file_part = writer.append(f, {'Content-Type': 'application/pdf'})
-                file_part.set_content_disposition('form-data', name='file', filename=self.file_name)
-
-                self._debug_log(f'Uploading file: {self.file_name} ({self.file_size:,} bytes)')
-
-                async with session.post(
-                    url,
-                    data=writer,
-                    headers=self.headers,
-                    timeout=aiohttp.ClientTimeout(total=self.upload_timeout),
-                    ssl=AIOHTTP_CLIENT_SESSION_SSL,
-                ) as response:
-                    return await self._handle_response_async(response)
-
-        response_data = await self._retry_request_async(upload_request)
-
-        file_id = response_data.get('id')
-        if not file_id:
-            raise ValueError('File ID not found in upload response.')
-
-        log.info(f'File uploaded successfully. File ID: {file_id}')
-        return file_id
-
     def _get_signed_url(self, file_id: str) -> str:
-        """Retrieves a temporary signed URL for the uploaded file (sync version)."""
-        log.info(f'Getting signed URL for file ID: {file_id}')
+        """Retrieves a temporary signed URL for the uploaded file."""
+        log.info('Getting signed URL for file ID: %s', file_id)
         url = f'{self.base_url}/files/{file_id}/url'
         params = {'expiry': 1}
         signed_url_headers = {**self.headers, 'Accept': 'application/json'}
@@ -373,6 +306,7 @@ class MistralLoader:
                 'document_url': signed_url,
             },
             'include_image_base64': False,
+            **self.params,
         }
 
         def ocr_request():
@@ -405,6 +339,7 @@ class MistralLoader:
                 'document_url': signed_url,
             },
             'include_image_base64': False,
+            **self.params,
         }
 
         async def ocr_request():
@@ -433,14 +368,14 @@ class MistralLoader:
         return f'data:application/pdf;base64,{encoded_file}'
 
     def _delete_file(self, file_id: str) -> None:
-        """Deletes the file from Mistral storage (sync version)."""
-        log.info(f'Deleting uploaded file ID: {file_id}')
+        """Deletes the file from Mistral storage."""
+        log.info('Deleting uploaded file ID: %s', file_id)
         url = f'{self.base_url}/files/{file_id}'
 
         try:
             response = requests.delete(url, headers=self.headers, timeout=self.cleanup_timeout)
             delete_response = self._handle_response(response)
-            log.info(f'File deleted successfully: {delete_response}')
+            log.info('File deleted successfully: %s', delete_response)
         except Exception as e:
             # Log error but don't necessarily halt execution if deletion fails
             log.error(f'Failed to delete file ID {file_id}: {e}')
@@ -519,7 +454,7 @@ class MistralLoader:
             if page_content is None or page_index is None:
                 skipped_pages += 1
                 self._debug_log(
-                    f"Skipping page due to missing 'markdown' or 'index'. Data keys: {list(page_data.keys())}"
+                    "Skipping page due to missing 'markdown' or 'index'. Data keys: %s", list(page_data.keys())
                 )
                 continue
 
@@ -531,7 +466,7 @@ class MistralLoader:
 
             if not cleaned_content:
                 skipped_pages += 1
-                self._debug_log(f'Skipping empty page {page_index}')
+                self._debug_log('Skipping empty page %s', page_index)
                 continue
 
             # Create document with optimized metadata
@@ -551,7 +486,7 @@ class MistralLoader:
             )
 
         if skipped_pages > 0:
-            log.info(f'Processed {len(documents)} pages, skipped {skipped_pages} empty/invalid pages')
+            log.info('Processed %s pages, skipped %s empty/invalid pages', len(documents), skipped_pages)
 
         if not documents:
             # Case where pages existed but none had valid markdown/index
@@ -572,7 +507,6 @@ class MistralLoader:
     def load(self) -> list[Document]:
         """
         Executes the full OCR workflow: upload, get URL, process OCR, delete file.
-        Synchronous version for backward compatibility.
 
         Returns:
             A list of Document objects, one for each page processed.
@@ -584,7 +518,7 @@ class MistralLoader:
             if self.use_base64:
                 documents = self._process_results(self._process_ocr(self._get_file_data_url()))
                 total_time = time.time() - start_time
-                log.info(f'Sync OCR workflow completed in {total_time:.2f}s, produced {len(documents)} documents')
+                log.info('Sync OCR workflow completed in %.2fs, produced %s documents', total_time, len(documents))
                 return documents
 
             # 1. Upload file
@@ -600,7 +534,7 @@ class MistralLoader:
             documents = self._process_results(ocr_response)
 
             total_time = time.time() - start_time
-            log.info(f'Sync OCR workflow completed in {total_time:.2f}s, produced {len(documents)} documents')
+            log.info('Sync OCR workflow completed in %.2fs, produced %s documents', total_time, len(documents))
 
             return documents
 

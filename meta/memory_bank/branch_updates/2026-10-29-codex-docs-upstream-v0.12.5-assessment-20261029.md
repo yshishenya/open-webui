@@ -1,0 +1,8 @@
+- [x] **[REVIEW][UPSTREAM]** Оценить обновление до Open WebUI v0.12.5
+  - Spec: meta/memory_bank/specs/work_items/2026-10-29__docs__upstream-v0.12.5-assessment.md
+  - Owner: Codex
+  - Started: 2026-10-29
+  - Summary: Проверка официального выпуска, конфликтов, зависимостей и миграций в отдельной рабочей копии.
+  - Done: 2026-10-29
+  - Tests: Official tag verification, two trial merges (448/447 conflicts), static migration graph and dependency audit; both merges aborted. No application candidate or deployment.
+  - Result: Full integration required; two Alembic heads and Python/MCP lock incompatibility block a direct update.

@@ -7,7 +7,7 @@ import { expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 
 // Execute the real handlers, including Svelte's inline action callbacks.
-type Input = { content: string; data: { files: [] } };
+type Input = { content: string; data: { files: [] }; channel_id?: string };
 function handler(
 	file: string,
 	action: string,
@@ -67,7 +67,7 @@ it.each(['Channel', 'Thread'])('%s still submits text to the selected channel', 
 		"channel = { id: 'a' }; messages = []; " +
 		(file === 'Thread' ? "threadId = 'parent';" : "id = 'a';");
 	const { run, send } = handler(file, 'submitHandler;', setup);
-	await run({ content: 'Hello', data: { files: [] } });
+	await run({ content: 'Hello', data: { files: [] }, channel_id: 'a' } as Input);
 	expect(send).toHaveBeenCalledOnce();
 	expect(send).toHaveBeenCalledWith(
 		'fixture',

@@ -17,6 +17,37 @@ export type NoteForm = {
 	access_grants?: object[];
 };
 
+export type NoteContent = { json: import('@tiptap/core').Content | null; html: string; md: string };
+export type NotePage = {
+	id: string;
+	parent_id?: string | null;
+	inherit_note_title?: boolean;
+	title: string;
+	content: NoteContent;
+	versions: NoteContent[];
+	revision: number;
+	generation: number;
+};
+export type NotePageOperation = {
+	action: 'create' | 'rename' | 'duplicate' | 'reorder' | 'move' | 'delete';
+	revision: number;
+	page_id?: string;
+	new_id?: string;
+	parent_id?: string | null;
+	before_id?: string | null;
+	title?: string;
+	order?: string[];
+};
+
+export const updateNotePages = async (token: string, id: string, operation: NotePageOperation): Promise<NoteRecord> => {
+	const response = await fetch(`${WEBUI_API_BASE_URL}/notes/${id}/pages/update`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+		body: JSON.stringify(operation)
+	});
+	return normalizeNote(await readNoteResponse(response));
+};
+
 export const createNewNote = async (
 	token: string,
 	note: NoteForm
@@ -329,9 +360,9 @@ const noteUpdates = new Map<string, Promise<NoteRecord>>();
 export const updateNoteById = async (
 	token: string,
 	id: string,
-	note: NoteForm
+	note: Omit<NoteForm, 'access_grants'> & { page_id?: string }
 ): Promise<NoteRecord> => {
-	const body = JSON.stringify(note);
+	const body = JSON.stringify({ ...note, access_grants: undefined });
 	const pending = (noteUpdates.get(id) ?? Promise.resolve())
 		.catch(() => undefined)
 		.then(async (): Promise<NoteRecord> => {

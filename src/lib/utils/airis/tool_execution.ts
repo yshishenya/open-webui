@@ -1,3 +1,5 @@
+import { resolveSchema } from '$lib/utils';
+import type { ToolSchema, OpenAPIComponents } from './utility-types';
 import { requestModelConnection } from './model_connection_request';
 
 export type ToolExecutionResult = [unknown, Record<string, string> | null];
@@ -48,6 +50,20 @@ const toolRequest = (
 		else if (p.in === 'query') query.append(key, String(params[key]));
 	}
 	if (query.size) target += `?${query}`;
+	let bodyParams = params;
+	const requestBody = operation.requestBody;
+	if (record(requestBody) && record(requestBody.content)) {
+		const jsonContent = requestBody.content['application/json'];
+		const components = record(server) && record(server.openapi) ? server.openapi.components : undefined;
+		const schema: Record<string, unknown> = resolveSchema(record(jsonContent) ? jsonContent.schema as ToolSchema | undefined : undefined, components as OpenAPIComponents | undefined);
+		const composed = ['allOf', 'anyOf', 'oneOf'].some((key) => key in schema);
+		const properties = !composed && record(schema.properties) ? schema.properties : {};
+		if (Object.keys(properties).length) {
+			const declared = new Set([...parameters.values()].map((p) => String(p.name)));
+			bodyParams = Object.fromEntries(Object.entries(params).filter(([key]) =>
+				Object.prototype.hasOwnProperty.call(properties, key) || !declared.has(key)));
+		}
+	}
 	const headers = new Headers({ 'Content-Type': 'application/json', ...customHeaders });
 	if (token) headers.set('Authorization', `Bearer ${token}`);
 	if (sessionId) headers.set('X-Session-Id', sessionId);
@@ -57,7 +73,7 @@ const toolRequest = (
 			method: method.toUpperCase(),
 			headers,
 			...(['post', 'put', 'patch', 'delete'].includes(method) && operation.requestBody
-				? { body: JSON.stringify(params) }
+				? { body: JSON.stringify(bodyParams) }
 				: {})
 		}
 	];

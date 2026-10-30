@@ -128,14 +128,21 @@ async def test_background_task_contract(monkeypatch: pytest.MonkeyPatch, saved: 
         assert tags.await_args.args == ('saved-fixture', ['tag'], ctx['user'])
     else:
         assert read.await_count == 0
-        assert ctx['form_data']['messages'][0]['model'] == 'fixture-model'
-    follow_present = case not in {'broken-json', 'no-response', 'empty-choices'}
+        assert ctx['form_data']['messages'] == [{'id': 'user', 'role': 'user', 'content': 'question'}]
+        assert generate_follow.call_args.args[1]['model'] == 'fixture-model'
+        assert generate_follow.call_args.args[1]['messages'][-1] == {
+            **ctx['assistant_message'],
+            'role': 'assistant',
+            'id': 'answer',
+        }
+    follow_present = case != 'no-response'
+    expected_follow_ups = [] if case in {'broken-json', 'empty-choices'} else ['next']
     expected = (['chat:message:follow_ups'] if follow_present else []) + (['chat:title', 'chat:tags'] if saved else [])
     assert [c.args[0]['type'] for c in events.await_args_list] == expected
     assert persist.await_count == (1 if saved and follow_present and case != 'emit-error' else 0)
     if persist.await_count:
         assert persist.await_args.kwargs == {'touch': False}
-        assert persist.await_args.args == ('saved-fixture', 'answer', {'followUps': ['next']})
+        assert persist.await_args.args == ('saved-fixture', 'answer', {'followUps': expected_follow_ups})
     assert messages == original
     assert review.call_args.kwargs['assistant_message'] is ctx['assistant_message']
     assert review.call_args.kwargs['model'] is ctx['model']

@@ -42,6 +42,7 @@ export type PromptDiff = {
 	from_snapshot: Partial<PromptForm>;
 	to_snapshot: Partial<PromptForm>;
 	content_diff: string[];
+	line_endings_only?: boolean;
 	name_changed: boolean;
 };
 const readPromptPage = (value: PromptPage): PromptPage => {
@@ -141,14 +142,14 @@ export const getPromptById = async (
 };
 export const updatePromptById = async (
 	token: string,
-	prompt: PromptForm,
+	prompt: Omit<PromptForm, 'access_grants'>,
 	signal?: AbortSignal
 ): Promise<PromptRecord | null> => {
 	if (!prompt.id) throw new Error('Prompt id is required.');
 	return requestJSON(
 		`${WEBUI_API_BASE_URL}/prompts/id/${encodeURIComponent(prompt.id)}/update`,
 		token,
-		prompt,
+		{ ...prompt, access_grants: undefined },
 		signal,
 		'Prompt request'
 	);

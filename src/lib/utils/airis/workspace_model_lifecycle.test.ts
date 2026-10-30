@@ -62,7 +62,7 @@ function setup() {
 	const list = vi.fn(async () => ({ items: [fixture], total: 1 })),
 		tags = vi.fn(async () => ['fixture-tag']);
 	const update = vi.fn(async () => fixture),
-		create = vi.fn(async () => fixture),
+		create = vi.fn<[string?, object?], Promise<typeof fixture>>(async () => fixture),
 		full = vi.fn(async () => fixture),
 		save = vi.fn();
 	const tick = deferred<void>();
@@ -77,6 +77,9 @@ function setup() {
 		).outputText,
 		{
 			mounted: () => mount(),
+			workspaceCounts: { update: vi.fn() },
+			structuredClone: (value: unknown) => JSON.parse(JSON.stringify(value)),
+			onDestroy: () => {},
 			onMount: (callback: () => unknown) => {
 				mount = callback;
 			},
@@ -99,6 +102,9 @@ function setup() {
 			getModelTags: tags,
 			updateModelById: update,
 			createNewModel: create,
+			importModels: async (token: string, items: object[]) => {
+				for (const item of items) await create(token, item);
+			},
 			getModelById: full,
 			getModels: refresh,
 			_models: { set },
@@ -108,6 +114,7 @@ function setup() {
 			$settings: {},
 			$config: undefined,
 			toast: { error, success },
+			getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : String(error)),
 			console: { log: vi.fn(), error: vi.fn() },
 			clearTimeout,
 			setTimeout,

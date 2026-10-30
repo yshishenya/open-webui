@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount, tick, getContext, type ComponentProps } from 'svelte';
 
-	import { mobile, models, settings } from '$lib/stores';
+	import { mobile, models, settings, visibleControls } from '$lib/stores';
 
 	import ResponseMessage from './ResponseMessage.svelte';
+	import { getOutputText } from './structuredOutput';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Merge from '$lib/components/icons/Merge.svelte';
 
@@ -25,6 +26,7 @@
 
 	export let isLastMessage: boolean;
 	export let readOnly = false;
+	export let shareMode: 'view' | 'continue' | null = null;
 	export let allowDelete = true;
 	export let compactPreview = false;
 	export let editCodeBlock = true;
@@ -54,12 +56,9 @@
 		chatId: string
 	) => void | Promise<void>;
 
-	export let addMessages: (request: {
-		modelId: string;
-		parentId: string | null;
-		messages: ChatHistoryMessage[];
-	}) => void | Promise<void>;
-	export let forkHandler: ((messageId?: string | null) => void | Promise<void>) | null = null;
+	export let addMessages: ComponentProps<typeof ResponseMessage>['addMessages'];
+	export let onToolCallResolved: ComponentProps<typeof ResponseMessage>['onToolCallResolved'] = () => {};
+	export let forkHandler: ComponentProps<typeof ResponseMessage>['forkHandler'] = null;
 
 	export let triggerScroll: () => void;
 
@@ -223,8 +222,9 @@
 				const { messageIds } = groupedMessageIds[modelIdx];
 				const messageId = messageIds[groupedMessageIdsIdx[modelIdx]];
 
-				return history.messages[messageId].content ?? '';
-			});
+			const message = history.messages[messageId];
+			return getOutputText(message?.output) || message?.content || '';
+		});
 		mergeResponses(messageId, responses, chatId);
 	};
 
@@ -319,11 +319,13 @@
 											groupedMessageIds[selectedModelIdx!].messageIds.length - 1;
 									}}
 									{addMessages}
+									{onToolCallResolved}
 									{forkHandler}
 									{readOnly}
 									{compactPreview}
 									{topPadding}
 									{onInsertToNote}
+									{shareMode}
 								/>
 							{/if}
 						{/key}
@@ -391,12 +393,14 @@
 												groupedMessageIds[modelIdx].messageIds.length - 1;
 										}}
 										{addMessages}
+										{onToolCallResolved}
 										{forkHandler}
 										{readOnly}
 										{compactPreview}
 										{editCodeBlock}
 										{topPadding}
 										{onInsertToNote}
+										{shareMode}
 									/>
 								{/if}
 							{/key}
@@ -440,14 +444,14 @@
 									>
 										<Tooltip
 											className="flex self-center"
-											content={formatMessageTimestampFull(message.timestamp * 1000)}
+											content={formatMessageTimestampFull(message.timestamp * 1000, $i18n.language)}
 											placement="bottom"
 										>
 											<time
 												datetime={new Date(message.timestamp * 1000).toISOString()}
-												class="invisible group-hover:visible ml-1 shrink-0 whitespace-nowrap text-[0.6875rem] tabular-nums text-gray-400 dark:text-gray-600 select-none"
+												class="hover-reveal ml-1 shrink-0 whitespace-nowrap text-[0.6875rem] tabular-nums text-gray-400 dark:text-gray-600 select-none"
 											>
-												{formatMessageTimestamp(message.timestamp * 1000)}
+												{formatMessageTimestamp(message.timestamp * 1000, $i18n.language)}
 											</time>
 										</Tooltip>
 									</div>
@@ -456,10 +460,11 @@
 						{/if}
 					</div>
 
-					{#if isLastMessage}
+					{#if isLastMessage && $visibleControls['chat.merge']}
 						<div class=" shrink-0 text-gray-600 dark:text-gray-500 mt-1">
 							<Tooltip content={$i18n.t('Merge Responses')} placement="bottom">
 								<button
+									aria-label={$i18n.t('Merge Responses')}
 									type="button"
 									id="merge-response-button"
 									class="visible p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"

@@ -4,6 +4,7 @@ import chromadb
 from chromadb import Settings
 from chromadb.errors import NotFoundError
 from chromadb.utils.batch_utils import create_batches
+from fastapi import HTTPException
 from open_webui.config import (
     CHROMA_CLIENT_AUTH_CREDENTIALS,
     CHROMA_CLIENT_AUTH_PROVIDER,
@@ -15,6 +16,7 @@ from open_webui.config import (
     CHROMA_HTTP_SSL,
     CHROMA_TENANT,
 )
+from open_webui.env import USE_SLIM
 from open_webui.retrieval.vector.main import (
     GetResult,
     SearchResult,
@@ -25,9 +27,13 @@ from open_webui.retrieval.vector.utils import process_metadata
 
 log = logging.getLogger(__name__)
 
+GET_PAGE_SIZE = 10000
+
 
 class ChromaClient(VectorDBBase):
     def __init__(self):
+        if USE_SLIM and not CHROMA_HTTP_HOST:
+            raise HTTPException(503, 'Configure CHROMA_HTTP_HOST: embedded Chroma is unavailable in slim.')
         settings_dict = {
             'allow_reset': True,
             'anonymized_telemetry': False,
@@ -57,7 +63,7 @@ class ChromaClient(VectorDBBase):
 
     def has_collection(self, collection_name: str) -> bool:
         try:
-            self.client.get_collection(name=collection_name)
+            self.client.get_collection(name=collection_name, embedding_function=None)
             return True
         except NotFoundError:
             return False
@@ -75,7 +81,7 @@ class ChromaClient(VectorDBBase):
     ) -> SearchResult | None:
         # Search for the nearest neighbor items based on the vectors and return 'limit' number of results.
         try:
-            collection = self.client.get_collection(name=collection_name)
+            collection = self.client.get_collection(name=collection_name, embedding_function=None)
             if collection:
                 result = collection.query(
                     query_embeddings=vectors,
@@ -104,7 +110,7 @@ class ChromaClient(VectorDBBase):
     def query(self, collection_name: str, filter: dict, limit: int | None = None) -> GetResult | None:
         # Query the items from the collection based on the filter.
         try:
-            collection = self.client.get_collection(name=collection_name)
+            collection = self.client.get_collection(name=collection_name, embedding_function=None)
             if collection:
                 result = collection.get(
                     where=filter,
@@ -124,21 +130,29 @@ class ChromaClient(VectorDBBase):
 
     def get(self, collection_name: str) -> GetResult | None:
         # Get all the items in the collection.
-        collection = self.client.get_collection(name=collection_name)
+        collection = self.client.get_collection(name=collection_name, embedding_function=None)
         if collection:
-            result = collection.get()
+            ids, documents, metadatas = [], [], []
+            # Unpaged get() exceeds SQLite's bind-variable limit on large collections
+            for offset in range(0, collection.count(), GET_PAGE_SIZE):
+                page = collection.get(limit=GET_PAGE_SIZE, offset=offset)
+                ids.extend(page['ids'])
+                documents.extend(page['documents'])
+                metadatas.extend(page['metadatas'])
             return GetResult(
                 **{
-                    'ids': [result['ids']],
-                    'documents': [result['documents']],
-                    'metadatas': [result['metadatas']],
+                    'ids': [ids],
+                    'documents': [documents],
+                    'metadatas': [metadatas],
                 }
             )
         return None
 
     def insert(self, collection_name: str, items: list[VectorItem]):
         # Insert the items into the collection, if the collection does not exist, it will be created.
-        collection = self.client.get_or_create_collection(name=collection_name, metadata={'hnsw:space': 'cosine'})
+        collection = self.client.get_or_create_collection(
+            name=collection_name, metadata={'hnsw:space': 'cosine'}, embedding_function=None
+        )
 
         ids = [item['id'] for item in items]
         documents = [item['text'] for item in items]
@@ -156,7 +170,9 @@ class ChromaClient(VectorDBBase):
 
     def upsert(self, collection_name: str, items: list[VectorItem]):
         # Update the items in the collection, if the items are not present, insert them. If the collection does not exist, it will be created.
-        collection = self.client.get_or_create_collection(name=collection_name, metadata={'hnsw:space': 'cosine'})
+        collection = self.client.get_or_create_collection(
+            name=collection_name, metadata={'hnsw:space': 'cosine'}, embedding_function=None
+        )
 
         ids = [item['id'] for item in items]
         documents = [item['text'] for item in items]
@@ -173,7 +189,7 @@ class ChromaClient(VectorDBBase):
     ) -> None:
         # Delete the items from the collection based on the ids.
         try:
-            collection = self.client.get_collection(name=collection_name)
+            collection = self.client.get_collection(name=collection_name, embedding_function=None)
             if collection:
                 if ids:
                     collection.delete(ids=ids)
@@ -181,7 +197,7 @@ class ChromaClient(VectorDBBase):
                     collection.delete(where=filter)
         except Exception:
             # If collection doesn't exist, that's fine - nothing to delete
-            log.debug(f'Attempted to delete from non-existent collection {collection_name}. Ignoring.')
+            log.debug('Attempted to delete from non-existent collection %s. Ignoring.', collection_name)
             pass
 
     def reset(self):

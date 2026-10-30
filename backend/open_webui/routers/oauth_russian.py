@@ -3,21 +3,18 @@ Russian OAuth Providers Router
 Handles VK, Yandex, and Telegram OAuth authentication flows
 """
 
-import datetime as dt
 import hashlib
 import hmac
 import json
 import logging
 import secrets
 import time
-import uuid
 
 from aiohttp import ClientSession, ClientTimeout
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from open_webui.config import (
     ENABLE_OAUTH_SIGNUP,
-    OAUTH_MERGE_ACCOUNTS_BY_EMAIL,
     TELEGRAM_BOT_TOKEN,
     VK_API_VERSION,
     VK_CLIENT_ID,
@@ -31,6 +28,7 @@ from open_webui.env import (
     WEBUI_AUTH_COOKIE_SECURE,
 )
 from open_webui.internal.db import get_async_session
+from open_webui.models.auths import Auths
 from open_webui.models.config import Config
 from open_webui.models.users import UserModel, Users
 from open_webui.utils.airis.legal_acceptance import record_legal_acceptances
@@ -40,9 +38,8 @@ from open_webui.utils.airis.social_account import (
     require_active_social_account,
     verify_social_address,
 )
-from open_webui.utils.auth import create_token
+from open_webui.utils.auth import create_signin_response, get_password_hash
 from open_webui.utils.email import email_service
-from open_webui.utils.misc import parse_duration
 from open_webui.utils.redis import get_redis_client
 from pydantic import BaseModel, EmailStr, Field, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,6 +93,32 @@ async def validate_oauth_state(state: str, expected_provider: str) -> bool:
         return False
 
 
+async def _social_signin(
+    request: Request, response: Response, user: UserModel, db: AsyncSession | None, provider: str
+) -> dict[str, object]:
+    await require_active_social_account(user, db, repair_legacy_vk=provider == 'vk')
+    result = await create_signin_response(
+        request, user, db, response, set_cookie=True, source='oauth', provider=provider
+    )
+    response.headers['Cache-Control'] = 'no-store'
+    if result.get('challenge_token'):
+        from open_webui.routers.mfa import CHALLENGE_COOKIE
+
+        response.set_cookie(
+            CHALLENGE_COOKIE,
+            result['challenge_token'],
+            max_age=300,
+            httponly=True,
+            path='/api/v1/auths/mfa',
+            secure=WEBUI_AUTH_COOKIE_SECURE,
+            samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
+        )
+    if result.get('next_step'):
+        response.delete_cookie('token')
+        return result
+    return {**result, 'user': {key: result[key] for key in ('id', 'name', 'email', 'role', 'profile_image_url')}}
+
+
 ############################
 # VK ID SDK Endpoints (New)
 ############################
@@ -113,22 +136,13 @@ class VKIDAuthRequest(BaseModel):
     email: str | None = Field(None, description='Email from SDK')
 
 
-class VKIDAuthResponse(BaseModel):
-    """Response model for VK ID SDK authentication"""
-
-    token: str
-    token_type: str = 'Bearer'
-    expires_at: int | None = None
-    user: dict
-
-
 @router.post('/oauth/vkid/callback')
 async def vkid_callback(
     request: Request,
     response: Response,
     auth_data: VKIDAuthRequest,
     db: AsyncSession = Depends(get_async_session),
-) -> VKIDAuthResponse:
+) -> dict[str, object]:
     """
     Handle VK ID SDK callback with code exchange.
     This endpoint receives the authorization code from VK ID SDK widget
@@ -149,39 +163,7 @@ async def vkid_callback(
         await require_active_social_account(user, db, repair_legacy_vk=True)
         await verify_social_address(user, db)
 
-        # Create JWT token
-        expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
-        expires_at = None
-        if expires_delta:
-            expires_at = int(time.time()) + int(expires_delta.total_seconds())
-
-        token = create_token(
-            data={'id': user.id},
-            expires_delta=expires_delta,
-        )
-
-        # Set cookie
-        response.set_cookie(
-            key='token',
-            value=token,
-            expires=(dt.datetime.fromtimestamp(expires_at, dt.UTC) if expires_at else None),
-            httponly=True,
-            samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
-            secure=WEBUI_AUTH_COOKIE_SECURE,
-        )
-
-        return VKIDAuthResponse(
-            token=token,
-            token_type='Bearer',
-            expires_at=expires_at,
-            user={
-                'id': user.id,
-                'name': user.name,
-                'email': user.email,
-                'role': user.role,
-                'profile_image_url': user.profile_image_url,
-            },
-        )
+        return await _social_signin(request, response, user, db, 'vk')
 
     except HTTPException:
         raise
@@ -237,6 +219,9 @@ async def vk_oauth_callback(
 ) -> RedirectResponse:
     """Handle VK OAuth callback"""
 
+    if not ENABLE_OAUTH_SIGNUP:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='OAuth signup is disabled')
+
     # Handle authorization errors
     if error:
         log.error(f'VK OAuth error: {error} - {error_description}')
@@ -261,28 +246,10 @@ async def vk_oauth_callback(
 
         # Billing: lead magnet applies by default; no free plan assignment.
 
-        # Create JWT token
-        expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
-        expires_at = None
-        if expires_delta:
-            expires_at = int(time.time()) + int(expires_delta.total_seconds())
-
-        token = create_token(
-            data={'id': user.id},
-            expires_delta=expires_delta,
-        )
-
-        # Set cookie
         response = RedirectResponse(url='/home')
-        response.set_cookie(
-            key='token',
-            value=token,
-            expires=(dt.datetime.fromtimestamp(expires_at, dt.UTC) if expires_at else None),
-            httponly=True,
-            samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
-            secure=WEBUI_AUTH_COOKIE_SECURE,
-        )
-
+        result = await _social_signin(request, response, user, db, 'vk')
+        if result.get('next_step'):
+            response.headers['location'] = '/auth?pending=1' if result['next_step'] == 'pending' else '/auth?mfa=1'
         return response
 
     except HTTPException:
@@ -394,29 +361,7 @@ async def telegram_oauth_callback(
         user = await Users.get_user_by_oauth_sub('telegram', telegram_id, db=db)
 
         if user:
-            # User exists, login directly
-            expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
-            expires_at = None
-            if expires_delta:
-                expires_at = int(time.time()) + int(expires_delta.total_seconds())
-
-            token = create_token(
-                data={'id': user.id},
-                expires_delta=expires_delta,
-            )
-
-            return {
-                'token': token,
-                'token_type': 'Bearer',
-                'expires_at': expires_at,
-                'user': {
-                    'id': user.id,
-                    'email': user.email,
-                    'name': user.name,
-                    'role': user.role,
-                    'profile_image_url': user.profile_image_url,
-                },
-            }
+            return await _social_signin(request, response, user, db, 'telegram')
         else:
             # New user - need to collect email
             # Create temporary session for email collection
@@ -463,6 +408,9 @@ async def telegram_complete_profile(
 ):
     """Complete Telegram user profile with email"""
 
+    if not ENABLE_OAUTH_SIGNUP:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='OAuth signup is disabled')
+
     if not form_data.terms_accepted or not form_data.privacy_accepted:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail='You must accept the terms and privacy policy'
@@ -482,21 +430,14 @@ async def telegram_complete_profile(
         # Check for existing user with this email
         existing_user = await Users.get_user_by_email(email, db=db)
 
-        if existing_user and OAUTH_MERGE_ACCOUNTS_BY_EMAIL:
-            # Merge: Link Telegram to existing account
-            await Users.update_user_oauth_by_id(existing_user.id, 'telegram', telegram_id, db=db)
-            user = existing_user
-            log.info(f'Merged Telegram account with existing user {user.id}')
-            # FIXME(billing): Send account merge notification email when email templates are ready
-        elif existing_user:
+        if existing_user:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Email already in use')
         else:
             # Create new user
-            user_id = str(uuid.uuid4())
             role = await Config.get('ui.default_user_role')
 
-            user = await Users.insert_new_user(
-                id=user_id,
+            user = await Auths.insert_new_auth(
+                password=await get_password_hash(secrets.token_urlsafe(32)),
                 name=name,
                 email=email,
                 profile_image_url=photo_url,
@@ -531,29 +472,7 @@ async def telegram_complete_profile(
         # Delete temporary session
         await redis_client.delete(f'telegram_temp_session:{form_data.temp_session}')
 
-        # Create JWT token
-        expires_delta = parse_duration(await Config.get('auth.jwt_expiry'))
-        expires_at = None
-        if expires_delta:
-            expires_at = int(time.time()) + int(expires_delta.total_seconds())
-
-        token = create_token(
-            data={'id': user.id},
-            expires_delta=expires_delta,
-        )
-
-        return {
-            'token': token,
-            'token_type': 'Bearer',
-            'expires_at': expires_at,
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'name': user.name,
-                'role': user.role,
-                'profile_image_url': user.profile_image_url,
-            },
-        }
+        return await _social_signin(request, response, user, db, 'telegram')
 
     except HTTPException:
         raise

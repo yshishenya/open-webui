@@ -12,6 +12,7 @@
 	import {
 		config,
 		user,
+		models,
 		settings,
 		theme,
 		WEBUI_NAME,
@@ -19,7 +20,6 @@
 		WEBUI_DEPLOYMENT_ID,
 		appData,
 		mobile,
-		models,
 		socket,
 		socketConnected,
 		chatId,
@@ -32,7 +32,9 @@
 		playingNotificationSound,
 		channels,
 		channelId,
+		channelRequestQueues,
 		terminalServers,
+		connectedUserTerminals,
 		showControls,
 		showFileNavPath,
 		showFileNavDir,
@@ -40,7 +42,7 @@
 		desktopEvent
 	} from '$lib/stores';
 	import { refreshChatList } from '$lib/stores/chatList';
-	import { getFileContentById } from '$lib/apis/files';
+	import { getFileBlobById, getFileContentById } from '$lib/apis/files';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { beforeNavigate, onNavigate } from '$app/navigation';
@@ -64,7 +66,7 @@
 		removeTerminalConnection
 	} from '$lib/utils/connections';
 
-	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
+	import { COMMUNITY_ORIGINS, WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 	import {
 		bestMatchingLanguage,
 		cleanText,
@@ -81,9 +83,12 @@
 	import AppSidebar from '$lib/components/app/AppSidebar.svelte';
 	import SyncStatsModal from '$lib/components/chat/Settings/SyncStatsModal.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
+	import MfaManagement from '$lib/components/auth/MfaManagement.svelte';
 	import { getOutputText } from '$lib/components/chat/Messages/structuredOutput';
-	import dayjs from 'dayjs';
-	import { getChannels } from '$lib/apis/channels';
+
+	import { getChannelById, getChannels } from '$lib/apis/channels';
+	import { shouldNotifyChannelMessage } from '$lib/utils/channelNotifications';
+	import { resolveTerminalConnection, terminalRequest } from '$lib/apis/terminal';
 
 	const unregisterServiceWorkers = async () => {
 		if ('serviceWorker' in navigator) {
@@ -111,12 +116,11 @@
 			location.href = to.url.href;
 			return;
 		}
-
 	});
 
 	// Leaf forms must be able to cancel departure before update cleanup starts.
 	onNavigate(async ({ willUnload, to }) => {
-		if (updated.current && !willUnload && to?.url) {
+		if (updated.current && !mfaManagement && !willUnload && to?.url) {
 			await unregisterServiceWorkers();
 			return () => {
 				location.href = to.url.href;
@@ -125,6 +129,15 @@
 	});
 
 	setContext('i18n', i18n);
+	/** @type {import('$lib/components/auth/MfaManagement.svelte').MfaManagementFlow | null} */
+	let mfaManagement = null;
+	setContext(
+		'showMfaManagement',
+		/** @param {import('$lib/components/auth/MfaManagement.svelte').MfaManagementFlow} flow */
+		(flow) => {
+			mfaManagement = flow;
+		}
+	);
 
 	let bc = null;
 
@@ -193,9 +206,18 @@
 			randomizationFactor: 0.5,
 			path: '/ws/socket.io',
 			transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
-			auth: { token: localStorage.token }
+			auth: (cb) => cb({ token: localStorage.token })
+		});
+		rootCleanups.push(() => {
+			_socket.removeAllListeners();
+			_socket.disconnect();
+			if (heartbeatInterval) {
+				clearInterval(heartbeatInterval);
+				heartbeatInterval = null;
+			}
 		});
 		await socket.set(_socket);
+		if (rootDestroyed) return;
 
 		_socket.on('connect_error', (err) => {
 			console.log('connect_error', err);
@@ -225,13 +247,15 @@
 				return null;
 			});
 
+			if (rootDestroyed) return;
 			const deploymentId = res?.deployment_id ?? null;
 			const version = res?.version ?? null;
 
 			if (version !== null || deploymentId !== null) {
 				if (
-					($WEBUI_VERSION !== null && version !== $WEBUI_VERSION) ||
-					($WEBUI_DEPLOYMENT_ID !== null && deploymentId !== $WEBUI_DEPLOYMENT_ID)
+					!mfaManagement &&
+					(($WEBUI_VERSION !== null && version !== $WEBUI_VERSION) ||
+						($WEBUI_DEPLOYMENT_ID !== null && deploymentId !== $WEBUI_DEPLOYMENT_ID))
 				) {
 					await unregisterServiceWorkers();
 					location.href = location.href;
@@ -239,13 +263,15 @@
 				}
 			}
 
-			// Send heartbeat every 30 seconds
-			heartbeatInterval = setInterval(() => {
-				if (_socket.connected) {
-					console.log('Sending heartbeat');
-					_socket.emit('heartbeat', {});
-				}
-			}, 30000);
+			heartbeatInterval = setInterval(
+				() => {
+					if (_socket.connected) {
+						console.log('Sending heartbeat');
+						_socket.emit('heartbeat', {});
+					}
+				},
+				($config?.features?.websocket_heartbeat_interval ?? 30) * 1000
+			);
 
 			if (deploymentId !== null) {
 				WEBUI_DEPLOYMENT_ID.set(deploymentId);
@@ -290,6 +316,10 @@
 			if (heartbeatInterval) {
 				clearInterval(heartbeatInterval);
 				heartbeatInterval = null;
+			}
+
+			if (reason === 'io server disconnect') {
+				_socket.connect();
 			}
 
 			if (details) {
@@ -397,7 +427,11 @@
 			/\bimport\s+seaborn\b|\bfrom\s+seaborn\b/.test(code) ? 'seaborn' : null,
 			/\bimport\s+sympy\b|\bfrom\s+sympy\b/.test(code) ? 'sympy' : null,
 			/\bimport\s+tiktoken\b|\bfrom\s+tiktoken\b/.test(code) ? 'tiktoken' : null,
-			/\bimport\s+pytz\b|\bfrom\s+pytz\b/.test(code) ? 'pytz' : null
+			/\bimport\s+pytz\b|\bfrom\s+pytz\b/.test(code) ? 'pytz' : null,
+			/\bimport\s+openpyxl\b|\bfrom\s+openpyxl\b/.test(code) ? 'openpyxl' : null,
+			/\.(read|to)_excel\(|\.Excel(Writer|File)\(/.test(code) ? 'openpyxl' : null,
+			/\bimport\s+pptx\b|\bfrom\s+pptx\b/.test(code) ? 'python-pptx' : null,
+			/\bimport\s+docx\b|\bfrom\s+docx\b/.test(code) ? 'python-docx' : null
 		].filter(Boolean);
 		try {
 			worker = getOrCreateWorker();
@@ -459,31 +493,91 @@
 		return { toolServer, toolServerData, token };
 	};
 
+	const isDirectTerminalServer = (serverUrl) =>
+		!!serverUrl &&
+		(($settings?.terminalServers ?? []).some((server) => server.url === serverUrl) ||
+			($terminalServers ?? []).some((server) => !server.id && server.url === serverUrl));
+
+	const terminalFileResult = (result, params, serverUrl, chatId) => {
+		const path = result?.path ?? params?.path;
+		const name =
+			result?.name ??
+			String(path ?? '')
+				.split('/')
+				.filter(Boolean)
+				.at(-1) ??
+			'file';
+		const contentType = result?.content_type ?? result?.mime_type ?? 'application/octet-stream';
+
+		return {
+			...(result ?? {}),
+			type: 'file',
+			source: 'open_terminal',
+			displayed: true,
+			terminal_selector: serverUrl,
+			terminal_url: serverUrl,
+			session_id: chatId,
+			path,
+			full_path: result?.full_path ?? path,
+			name,
+			mime_type: contentType,
+			content_type: contentType,
+			page: result?.page ?? params?.page
+		};
+	};
+
 	/**
 	 * @param {{name: string, params: Record<string, unknown>, server?: {url?: string}}} data
 	 * @param {((result: unknown) => void) | undefined} cb
 	 * @param {string} chatId
 	 */
 	const executeTool = async (data, cb, chatId) => {
+		if (!$config?.features?.enable_tool_servers) {
+			cb?.({ error: 'Tool servers are disabled' });
+			return;
+		}
+		const { toolServer, toolServerData, token } = resolveToolServer(data.server?.url);
+		const defaultInline =
+			data?.name === 'display_file' &&
+			data?.params?.path &&
+			data?.params?.inline === undefined &&
+			$settings?.terminalFileDisplay === 'inline' &&
+			isDirectTerminalServer(data.server?.url);
+		const params = defaultInline ? { ...data.params, inline: true } : data?.params;
+		const serverParams = data?.name === 'display_file' && params ? { ...params } : params;
+		if (serverParams && data?.name === 'display_file') {
+			delete serverParams.page;
+		}
+
 		let result = [{ error: 'Tool execution failed.' }, null];
 		try {
-			const { toolServer, toolServerData, token } = resolveToolServer(data.server?.url);
 			if (toolServer) {
 				const res = await executeToolServer(
 					token,
 					toolServer.url,
 					data.name,
-					data.params,
+					serverParams,
 					toolServerData,
 					chatId,
 					toolServer.headers
 				);
-				result = res;
+				const fields = res[0] && typeof res[0] === 'object' && !Array.isArray(res[0]) ? res[0] : {};
+				const inlineDisplayFile =
+					data.name === 'display_file' && params?.path && params.inline === true;
+				result =
+					inlineDisplayFile && !fields.error && fields.exists !== false && res[1] !== null
+						? [terminalFileResult(fields, params, toolServer.url, chatId), res[1]]
+						: res;
 				try {
 					const value = res[0];
 					const fields = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 					if (!fields.error && res[1] !== null && typeof data.params?.path === 'string') {
-						if (data.name === 'display_file' && fields.exists !== false)
+						if (
+							data.name === 'display_file' &&
+							!inlineDisplayFile &&
+							!chatId &&
+							fields.exists !== false
+						)
 							displayFileHandler(data.params.path, { showControls, showFileNavPath });
 						if (data.name === 'write_file')
 							showFileNavDir.set(typeof fields.path === 'string' ? fields.path : data.params.path);
@@ -500,6 +594,22 @@
 	};
 
 	const chatEventHandler = async (event, cb) => {
+		if (event.shared) return;
+		// Answer this session's availability check even when another chat is active.
+		if (
+			event?.data?.type === 'request:terminal:state' &&
+			event.data.data?.session_id === $socket?.id
+		) {
+			cb?.({
+				connected:
+					$config?.features?.enable_tool_servers &&
+					[...$connectedUserTerminals.values()].some(
+						(shell) =>
+							shell.terminalId === event.data.data?.terminal_id && shell.chatId === event.chat_id
+					)
+			});
+			return;
+		}
 		const type = event?.data?.type ?? null;
 		const data = event?.data?.data ?? null;
 
@@ -512,6 +622,29 @@
 				return;
 			} else if (type === 'execute:tool') {
 				await executeTool(data, cb, event.chat_id);
+				return;
+			} else if (type === 'request:terminal') {
+				try {
+					if (!$config?.features?.enable_tool_servers) throw new Error('Tool servers are disabled');
+					const connection = resolveTerminalConnection(
+						data.terminal_id,
+						[],
+						$config?.features?.enable_direct_integrations ? ($settings?.terminalServers ?? []) : [],
+						localStorage.token
+					);
+					if (!connection) throw new Error('Terminal Not Found');
+					let options = {};
+					if (data.file) {
+						const blob = await getFileBlobById(localStorage.token, data.file.id);
+						const body = new FormData();
+						body.append('file', blob, data.file.name);
+						options = { method: 'POST', body };
+					}
+					const result = await terminalRequest(connection, event.chat_id, data.path, options);
+					cb?.({ data: result });
+				} catch {
+					cb?.({ error: 'Terminal request failed.' });
+				}
 				return;
 			} else if (type === 'request:chat:completion') {
 				const { channel, form_data, model } = data;
@@ -626,6 +759,9 @@
 				if ($settings?.notificationEnabled ?? false) {
 					new Notification(`${data.title} / Airis`, {
 						body: timeStr,
+						// LICENSE covers this Open WebUI notification identifier.
+						// Do not alter, remove, obscure, or replace it except as LICENSE permits:
+						// https://docs.openwebui.com/license.
 						icon: `${WEBUI_BASE_URL}/static/favicon.png`
 					});
 				}
@@ -660,6 +796,9 @@
 						if ($settings?.notificationEnabled ?? false) {
 							new Notification(`${displayTitle} / Airis`, {
 								body: contentPreview,
+								// LICENSE covers this Open WebUI notification identifier.
+								// Do not alter, remove, obscure, or replace it except as LICENSE permits:
+								// https://docs.openwebui.com/license.
 								icon: `${WEBUI_BASE_URL}/static/favicon.png`
 							});
 						}
@@ -687,6 +826,16 @@
 
 	const channelEventHandler = async (event) => {
 		console.log('channelEventHandler', event);
+		if (event.data?.type === 'channel:mute') {
+			channels.update((items) =>
+				items.map((item) =>
+					item.id === event.channel_id
+						? { ...item, is_channel_muted: event.data.data.is_channel_muted }
+						: item
+				)
+			);
+			return;
+		}
 		if (event.data?.type === 'typing') {
 			return;
 		}
@@ -761,12 +910,29 @@
 			}
 
 			if (type === 'message') {
+				const preference =
+					$channels?.find((item) => item.id === event.channel_id) ??
+					(await getChannelById(localStorage.token, event.channel_id).catch(() => null));
+				if (
+					!preference ||
+					!shouldNotifyChannelMessage(
+						preference.is_channel_muted ?? false,
+						data?.content ?? '',
+						$user?.id ?? ''
+					)
+				) {
+					return;
+				}
 				const title = `${data?.user?.name}${event?.channel?.type !== 'dm' ? ` (#${event?.channel?.name})` : ''}`;
+				const content = data?.content?.replace(
+					/<([@#])([^|>\s]+)(?:\|([^>]*))?>/g,
+					(_, trigger, id, label) => trigger + (label || id)
+				);
 
 				if ($isLastActiveTab) {
 					if ($settings?.notificationEnabled ?? false) {
 						new Notification(`${title} / Airis`, {
-							body: data?.content,
+							body: content,
 							icon: `${WEBUI_API_BASE_URL}/users/${data?.user?.id}/profile/image`
 						});
 					}
@@ -775,9 +941,11 @@
 				toast.custom(NotificationToast, {
 					componentProps: {
 						onClick: () => {
-							goto(`/channels/${event.channel_id}`);
+							goto(
+								`/channels/${event.channel_id}${data?.parent_id ? `?thread=${data.parent_id}` : ''}`
+							);
 						},
-						content: data?.content,
+						content,
 						title: `${title}`
 					},
 					duration: 15000,
@@ -962,7 +1130,7 @@
 		if (
 			event.source !== window.opener ||
 			!window.opener ||
-			![window.location.origin, 'http://localhost:9999'].includes(event.origin)
+			![window.location.origin, ...COMMUNITY_ORIGINS].includes(event.origin)
 		) {
 			return;
 		}
@@ -974,28 +1142,38 @@
 		}
 	};
 
+	let rootDestroyed = false;
+	const rootCleanups = [];
+
 	onMount(async () => {
 		if (typeof BroadcastChannel !== 'undefined') {
 			bc = new BroadcastChannel('active-tab-channel');
 		}
 
-		const originalFetch = window.fetch.bind(window);
-		window.fetch = async (input, init) => {
+		const previousFetch = window.fetch;
+		const originalFetch = previousFetch.bind(window);
+		const sessionFetch = async (input, init) => {
 			const response = await originalFetch(input, init);
 
 			if (
+				!rootDestroyed &&
 				response.status === 401 &&
 				localStorage.token &&
 				isAuthenticatedBackendFetch(input, init) &&
 				(await isCurrentSessionUnauthorized(originalFetch))
 			) {
-				clearExpiredSession();
+				if (!rootDestroyed) clearExpiredSession();
 			}
 
 			return response;
 		};
+		window.fetch = sessionFetch;
+		rootCleanups.push(() => {
+			if (window.fetch === sessionFetch) window.fetch = previousFetch;
+		});
 
 		window.addEventListener('message', windowMessageEventHandler);
+		rootCleanups.push(() => window.removeEventListener('message', windowMessageEventHandler));
 
 		let touchstartY = 0;
 
@@ -1028,8 +1206,11 @@
 		};
 
 		document.addEventListener('touchstart', touchstartHandler);
+		rootCleanups.push(() => document.removeEventListener('touchstart', touchstartHandler));
 		document.addEventListener('touchmove', touchmoveHandler);
+		rootCleanups.push(() => document.removeEventListener('touchmove', touchmoveHandler));
 		document.addEventListener('touchend', touchendHandler);
+		rootCleanups.push(() => document.removeEventListener('touchend', touchendHandler));
 
 		if (typeof window !== 'undefined') {
 			if (window.applyTheme) {
@@ -1041,6 +1222,7 @@
 			const info = await window.electronAPI.send({
 				type: 'app:info'
 			});
+			if (rootDestroyed) return;
 
 			if (info) {
 				isApp.set(true);
@@ -1049,6 +1231,7 @@
 				const data = await window.electronAPI.send({
 					type: 'app:data'
 				});
+				if (rootDestroyed) return;
 
 				if (data) {
 					appData.set(data);
@@ -1057,7 +1240,8 @@
 
 			// Listen for desktop service lifecycle events (scalable protocol)
 			if (window.electronAPI.onEvent) {
-				window.electronAPI.onEvent(desktopEventHandler);
+				const unsubscribeDesktop = window.electronAPI.onEvent(desktopEventHandler);
+				if (typeof unsubscribeDesktop === 'function') rootCleanups.push(unsubscribeDesktop);
 			}
 		}
 
@@ -1102,8 +1286,13 @@
 
 		// Add event listener for visibility state changes
 		document.addEventListener('visibilitychange', handleVisibilityChange);
+		rootCleanups.push(() =>
+			document.removeEventListener('visibilitychange', handleVisibilityChange)
+		);
 		window.addEventListener('pagehide', handlePageHidden);
+		rootCleanups.push(() => window.removeEventListener('pagehide', handlePageHidden));
 		window.addEventListener('pageshow', handlePageVisible);
+		rootCleanups.push(() => window.removeEventListener('pageshow', handlePageVisible));
 
 		// Call visibility change handler initially to set state on load
 		handleVisibilityChange();
@@ -1120,8 +1309,14 @@
 			}
 		};
 		window.addEventListener('resize', onResize);
+		rootCleanups.push(() => window.removeEventListener('resize', onResize));
 
-		user.subscribe(async (value) => {
+		let queueUserId = $user?.id;
+		const unsubscribeQueueUser = user.subscribe(async (value) => {
+			if (queueUserId !== value?.id) {
+				channelRequestQueues.set({});
+				queueUserId = value?.id;
+			}
 			if (value) {
 				$socket?.off('events', chatEventHandler);
 				$socket?.off('events:channel', channelEventHandler);
@@ -1140,13 +1335,14 @@
 			}
 		});
 
-		initI18n(localStorage?.locale);
+		rootCleanups.push(unsubscribeQueueUser);
+		await initI18n(localStorage?.locale);
 		const isPublicRoute = isPublicMarketingRoute($page.url.pathname);
 		if (isPublicRoute && localStorage.token) {
 			// Hydrate an existing session without delaying the public landing page.
 			void getSessionUser(localStorage.token)
 				.then((sessionUser) => {
-					if (sessionUser) user.set(sessionUser);
+					if (!rootDestroyed && sessionUser) user.set(sessionUser);
 				})
 				.catch((error) => console.warn('Unable to hydrate public session:', error));
 		}
@@ -1154,8 +1350,10 @@
 			let backendConfig = null;
 			try {
 				backendConfig = await getBackendConfig();
+				if (rootDestroyed) return;
 				console.log('Backend config:', backendConfig);
 			} catch (error) {
+				if (rootDestroyed) return;
 				if (error?.authRedirect) {
 					// Forward-auth proxy is redirecting to an external login page.
 					// Full-page navigation lets the browser follow the redirect natively.
@@ -1165,25 +1363,31 @@
 				console.error('Error loading backend config:', error);
 			}
 
+			await initI18n(backendConfig?.default_locale, backendConfig?.i18n ?? {});
+			if (rootDestroyed) return;
 			if (!localStorage.locale) {
 				const languages = await getLanguages();
+				if (rootDestroyed) return;
 				const browserLanguages = navigator.languages
 					? navigator.languages
 					: [navigator.language || navigator.userLanguage];
 				const lang = backendConfig?.default_locale
 					? backendConfig.default_locale
 					: bestMatchingLanguage(languages, browserLanguages, 'en-US');
-				changeLanguage(lang);
-				dayjs.locale(lang);
+				await changeLanguage(lang);
+				if (rootDestroyed) return;
 			}
 
 			if (backendConfig) {
 				// Save Backend Status to Store
 				await config.set(backendConfig);
+				if (rootDestroyed) return;
 				await WEBUI_NAME.set(backendConfig.name);
+				if (rootDestroyed) return;
 
 				if ($config) {
 					await setupSocket($config.features?.enable_websocket ?? true);
+					if (rootDestroyed) return;
 
 					if (localStorage.token) {
 						// Get Session User Info
@@ -1192,10 +1396,13 @@
 							return null;
 						});
 
+						if (rootDestroyed) return;
 						if (sessionUser) {
 							await user.set(sessionUser);
+							if (rootDestroyed) return;
 							try {
 								await config.set(await getBackendConfig());
+								if (rootDestroyed) return;
 							} catch (error) {
 								console.error('Error refreshing backend config:', error);
 							}
@@ -1218,6 +1425,7 @@
 						} else {
 							localStorage.removeItem('token');
 							await user.set(null);
+							if (rootDestroyed) return;
 						}
 					}
 				}
@@ -1228,12 +1436,13 @@
 		}
 
 		await tick();
+		if (rootDestroyed) return;
 
 		if (
 			document.documentElement.classList.contains('her') &&
 			document.getElementById('progress-bar')
 		) {
-			loadingProgress.subscribe((value) => {
+			const unsubscribeProgress = loadingProgress.subscribe((value) => {
 				const progressBar = document.getElementById('progress-bar');
 
 				if (progressBar) {
@@ -1241,7 +1450,9 @@
 				}
 			});
 
+			rootCleanups.push(unsubscribeProgress);
 			await loadingProgress.set(100);
+			if (rootDestroyed) return;
 
 			document.getElementById('splash-screen')?.remove();
 			document.documentElement.classList.remove('splash');
@@ -1253,6 +1464,10 @@
 			};
 
 			document.addEventListener('click', playAudio);
+			rootCleanups.push(() => {
+				document.removeEventListener('click', playAudio);
+				audio.pause();
+			});
 
 			loaded = true;
 		} else {
@@ -1265,17 +1480,6 @@
 		if ((window.opener ?? false) && $page.url.searchParams.get('sync') === 'true') {
 			showSyncStatsModal = true;
 		}
-
-		return () => {
-			window.removeEventListener('resize', onResize);
-			window.removeEventListener('message', windowMessageEventHandler);
-			document.removeEventListener('touchstart', touchstartHandler);
-			document.removeEventListener('touchmove', touchmoveHandler);
-			document.removeEventListener('touchend', touchendHandler);
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			window.removeEventListener('pagehide', handlePageHidden);
-			window.removeEventListener('pageshow', handlePageVisible);
-		};
 	});
 
 	$: if (typeof document !== 'undefined') {
@@ -1283,12 +1487,26 @@
 			'high-contrast',
 			$settings?.highContrastMode ?? false
 		);
+
+		const viewport = document.querySelector('meta[name="viewport"]');
+		if (viewport) {
+			viewport.content = viewport.content.replace(
+				/maximum-scale=[\d.]+/,
+				`maximum-scale=${$settings?.highContrastMode ? 5 : 1}`
+			);
+		}
 	}
 
 	onDestroy(() => {
-		if (typeof window !== 'undefined') {
-			window.removeEventListener('message', windowMessageEventHandler);
-		}
+		rootDestroyed = true;
+		rootCleanups
+			.splice(0)
+			.reverse()
+			.forEach((cleanup) => cleanup());
+		if (tokenTimer) clearInterval(tokenTimer);
+		clearDisconnectToastTimer();
+		$socket?.off('events', chatEventHandler);
+		$socket?.off('events:channel', channelEventHandler);
 		bc?.close();
 	});
 </script>
@@ -1335,7 +1553,9 @@
 {/if}
 
 {#if loaded}
-	{#if $isApp}
+	{#if mfaManagement}
+		<MfaManagement flow={mfaManagement} onClose={() => (mfaManagement = null)} />
+	{:else if $isApp}
 		<div class="flex flex-row h-screen">
 			<AppSidebar />
 
@@ -1356,21 +1576,23 @@
 	/>
 {/if}
 
-<Toaster
-	theme={$theme.includes('dark')
-		? 'dark'
-		: $theme === 'system'
-			? typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
-				? 'dark'
-				: 'light'
-			: 'light'}
-	richColors
-	position="top-right"
-	closeButton
-	toastOptions={{
-		classes: {
-			closeButton:
-				'!bg-white/80 !text-gray-500 !border-gray-200 hover:!bg-gray-50 hover:!text-gray-700 dark:!bg-gray-850 dark:!text-gray-400 dark:!border-gray-700 dark:hover:!bg-gray-800 dark:hover:!text-gray-200'
-		}
-	}}
-/>
+<div aria-live="polite">
+	<Toaster
+		theme={$theme.includes('dark')
+			? 'dark'
+			: $theme === 'system'
+				? typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+					? 'dark'
+					: 'light'
+				: 'light'}
+		richColors
+		position="top-right"
+		closeButton
+		toastOptions={{
+			classes: {
+				closeButton:
+					'!bg-white/80 !text-gray-500 !border-gray-200 hover:!bg-gray-50 hover:!text-gray-700 dark:!bg-gray-850 dark:!text-gray-400 dark:!border-gray-700 dark:hover:!bg-gray-800 dark:hover:!text-gray-200'
+			}
+		}}
+	/>
+</div>

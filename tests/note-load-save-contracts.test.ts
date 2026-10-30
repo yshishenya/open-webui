@@ -48,6 +48,16 @@ const noteRecord = (id = 'A') => ({
 	title: `Title ${id}`,
 	data: {
 		content: { md: `Text ${id}`, html: `<p>${id}</p>`, json: { type: 'doc' } },
+		pages: [
+			{
+				id: 'main',
+				title: 'Main',
+				content: { md: `Text ${id}`, html: `<p>${id}</p>`, json: { type: 'doc' } },
+				versions: [],
+				revision: 0,
+				generation: 0
+			}
+		],
 		files: [{ id: `file-${id}` }]
 	},
 	access_grants: [{ principal_type: 'user', principal_id: 'reader', permission: 'read' }],
@@ -202,7 +212,18 @@ const setup = () => {
 		destroyed: false,
 		saveTimers: new Map<string, number>(),
 		saveQueues: new Map<string, Promise<void>>(),
-		localStorage: { token: 'test-token' },
+		localStorage: { token: 'test-token', getItem: () => null },
+		$page: { url: new URL('https://fixture.test/notes/A') },
+		$user: { id: 'user' },
+		previousPage: null,
+		activePageId: '',
+		savedAccessGrants: [],
+		activatePage: vi.fn(),
+		presenceEventHandler: vi.fn(),
+		clearPresence: vi.fn(),
+		joinNote: vi.fn(),
+		autoFormat: true,
+		titleInputFocused: false,
 		$i18n: { t: (text: string): string => text },
 		toast: { error: vi.fn() },
 		goto: vi.fn(),
@@ -221,6 +242,9 @@ const setup = () => {
 			timers.delete(id);
 		}
 	};
+	Object.assign(context, {
+		saveTitle: evaluate(`(${initializer(editorPath, 'saveTitle')})`, context)
+	});
 	const init = evaluate<() => Promise<void>>(`(${initializer(editorPath, 'init')})`, context);
 	const change = evaluate<() => void>(
 		`(${initializer(editorPath, 'changeDebounceHandler')})`,
@@ -296,7 +320,7 @@ it('ignores older load after A to B', async () => {
 	first.resolve(noteRecord('A'));
 	await pending;
 	expect(context.note.id).toBe('B');
-	expect(context.files).toEqual(noteRecord('B').data.files);
+	expect(context.note.data.files).toEqual(noteRecord('B').data.files);
 	expect(context.$socket.emit).toHaveBeenCalledTimes(1);
 	expect(context.loading).toBe(false);
 });
@@ -313,13 +337,24 @@ it('ignores stale load failure without toast or redirect', async () => {
 	expect(context.toast.error).not.toHaveBeenCalled();
 	expect(context.goto).not.toHaveBeenCalled();
 });
-it('settles current loading failure', async () => {
-	const { context, init } = setup();
-	context.getNoteById.mockRejectedValue(new Error('Offline'));
-	await init();
-	expect(context.loading).toBe(false);
-	expect(context.toast.error).toHaveBeenCalledOnce();
-});
+it.each(['Offline', 'Invalid note pages'])(
+	'keeps the current failed note unavailable and permits explicit retry: %s',
+	async (message) => {
+		const { context, init } = setup();
+		context.getNoteById.mockRejectedValueOnce(new Error(message));
+		await init();
+		expect(context.loading).toBe(false);
+		expect(context.note).toBeNull();
+		expect(context.toast.error).toHaveBeenCalledWith(`Error: ${message}`);
+		expect(context.goto).not.toHaveBeenCalled();
+		expect(context.$socket.emit).toHaveBeenCalledWith('note:leave', { note_id: 'A' });
+		await init();
+		expect(context.note).toMatchObject({ id: 'A', title: 'Title A' });
+		expect(context.loading).toBe(false);
+		expect(context.joinNote).toHaveBeenCalledOnce();
+		expect(context.goto).not.toHaveBeenCalled();
+	}
+);
 it('saves captured A when route already points to B', async () => {
 	const { context, change, fire } = setup();
 	context.id = 'B';
@@ -328,11 +363,10 @@ it('saves captured A when route already points to B', async () => {
 	context.files[0].id = 'changed';
 	fire();
 	await settle();
-	expect(context.updateNoteById).toHaveBeenCalledWith('test-token', 'A', {
-		title: 'Title A',
-		data: { files: [{ id: 'file-A' }] },
-		access_grants: [{ principal_type: 'user', principal_id: 'reader', permission: 'read' }]
-	});
+	expect(context.updateNoteById).toHaveBeenCalledWith('test-token', 'A', { title: 'Title A' });
+	// Pages and sharing have independent versioned endpoints; title saves must never overwrite them.
+	expect(context.updateNoteById.mock.calls[0][2]).not.toHaveProperty('data');
+	expect(context.updateNoteById.mock.calls[0][2]).not.toHaveProperty('access_grants');
 });
 it('saves both notes instead of cancelling A on editing B', async () => {
 	const { context, change, fire } = setup();
@@ -413,7 +447,12 @@ it('preserves all valid content and unknown extensions', () => {
 			content: { ...noteRecord().data.content, custom: 7 }
 		}
 	};
-	expect(normalizeNote(original)).toEqual(original);
+	expect(normalizeNote(original)).toMatchObject(original);
+	expect(normalizeNote(original).data.pages[0].content).toMatchObject({
+		md: original.data.content.md,
+		html: original.data.content.html,
+		json: original.data.content.json
+	});
 });
 it.each([
 	{ content: 'broken' },
@@ -526,7 +565,7 @@ it('rejects events for B while the retained draft belongs to A', async () => {
 	context.id = 'B';
 	const before = structuredClone(context.note);
 	const eventContext = { ...context, console: { log: vi.fn() } };
-	for (const name of ['noteEventHandler', 'applyExternalNoteContent']) {
+	for (const name of ['noteEventHandler']) {
 		const handler = evaluate<(note: object) => Promise<unknown>>(
 			`(${initializer(editorPath, name)})`,
 			eventContext
@@ -535,35 +574,52 @@ it('rejects events for B while the retained draft belongs to A', async () => {
 		expect(eventContext.note).toEqual(before);
 	}
 });
-it('keeps omitted content on socket updates and normalizes explicit legacy nulls', async () => {
+it('preserves active collaborator content, accepts newer generations and rejects stale page events', async () => {
 	const { context } = setup();
+	const initial = {
+		id: 'main',
+		title: 'Main',
+		content: { md: 'Local draft', html: '', json: null },
+		versions: [],
+		revision: 2,
+		generation: 1
+	};
 	const eventContext = {
 		...context,
-		editor: null,
-		lastLocalContentChangeAt: 0,
-		normalizeNote,
-		console: { log: vi.fn(), info: vi.fn() },
-		tick: async (): Promise<void> => {},
-		applyExternalNoteContent: null as ((note: object) => Promise<boolean>) | null
+		note: {
+			...normalizeNote(noteRecord()),
+			data: { ...normalizeNote(noteRecord()).data, pages: [initial] }
+		},
+		activePageId: 'main',
+		titleInputFocused: false,
+		editor: { commands: { setContent: vi.fn() } },
+		marked: { parse: (value: string) => value },
+		mergePages: vi.fn()
 	};
-	eventContext.applyExternalNoteContent = evaluate<(note: object) => Promise<boolean>>(
-		`(${initializer(editorPath, 'applyExternalNoteContent')})`,
-		eventContext
-	);
 	const update = evaluate<(note: object) => Promise<void>>(
 		`(${initializer(editorPath, 'noteEventHandler')})`,
 		eventContext
 	);
-	const content = structuredClone(context.note.data.content);
 	await update({ id: 'A', title: 'Remote', data: { files: [] }, updated_at: 2 });
-	expect(eventContext.note.data.content).toEqual(content);
-	expect(eventContext.note.data.files).toEqual([]);
-	await update({ id: 'A', data: { content: { md: 'Remote text' } }, updated_at: 3 });
-	expect(eventContext.note.data.content).toEqual({ ...content, md: 'Remote text' });
-	await update({ id: 'A', data: { content: { md: null, html: null, json: null } }, updated_at: 4 });
-	expect(eventContext.note.data.content).toEqual({ md: '', html: '', json: null });
-	await update({ id: 'A', data: { content: { md: 'Stale' } }, updated_at: 1 });
-	expect(eventContext.note.data.content.md).toBe('');
+	expect(eventContext.note.data.pages[0].content.md).toBe('Local draft');
+	await update({
+		id: 'A',
+		page: { ...initial, content: { ...initial.content, md: 'Remote same generation' }, revision: 3 }
+	});
+	expect(eventContext.note.data.pages[0]).toMatchObject({
+		revision: 3,
+		content: { md: 'Local draft' }
+	});
+	const replacement = {
+		...initial,
+		generation: 2,
+		revision: 4,
+		content: { ...initial.content, md: 'New generation' }
+	};
+	await update({ id: 'A', page: replacement });
+	expect(eventContext.note.data.pages[0]).toEqual(replacement);
+	await update({ id: 'A', page: { ...initial, revision: 1 } });
+	expect(eventContext.note.data.pages[0]).toEqual(replacement);
 });
 it('keeps image compression optional and applies numeric upper bounds with empty settings', async () => {
 	const compressImage = vi.fn().mockResolvedValue('compressed');
@@ -642,7 +698,12 @@ it('preserves sparse versions, attachments and nullable legacy lists', () => {
 			versions: [{ md: 'old', custom: { keep: true } }]
 		}
 	};
-	expect(normalizeNote(original)).toEqual(original);
+	expect(normalizeNote(original)).toMatchObject(original);
+	expect(normalizeNote(original).data.pages[0].content).toMatchObject({
+		md: original.data.content.md,
+		html: original.data.content.html,
+		json: original.data.content.json
+	});
 	expect(
 		normalizeNote({ ...noteRecord(), data: { versions: null, files: null } }).data.files
 	).toEqual([]);
@@ -658,6 +719,7 @@ it.each(['json', 'markdown', 'html', 'empty'])('keeps the shared rich-text %s pa
 	const context = {
 		value: mode === 'json' ? doc : mode === 'empty' ? '' : 'New',
 		json: mode === 'json',
+		jsonValue: null,
 		raw: mode === 'html',
 		preserveBreaks: false,
 		editor: {
@@ -667,7 +729,7 @@ it.each(['json', 'markdown', 'html', 'empty'])('keeps the shared rich-text %s pa
 		},
 		turndownService: { turndown: () => 'Old' },
 		marked: { parse: (s: string) => `<p>${s}</p>` },
-		equal: (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b),
+		equalEditorJSON: (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b),
 		selectTemplate: vi.fn()
 	};
 	const change = evaluate<() => void>(

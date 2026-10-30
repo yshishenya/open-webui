@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
+import { readable } from 'svelte/store';
 import HTMLToken from './HTMLToken.svelte';
 
 vi.mock('$lib/constants', () => ({ WEBUI_BASE_URL: '' }));
@@ -30,6 +31,7 @@ for (const kind of ['video', 'audio'] as const) {
 		const target = document.createElement('div');
 		const component = mount(HTMLToken, {
 			target,
+            context: new Map([['i18n', readable({ t: (text: string) => text })]]),
 			props: { id: 'media-check', token: { type: 'html', raw: text, text, block: true } }
 		});
 		try {
@@ -53,6 +55,7 @@ it.each(['</video>', '</audio>'])('consumes native media closing token %s', asyn
 	const target = document.createElement('div');
 	const component = mount(HTMLToken, {
 		target,
+        context: new Map([['i18n', readable({ t: (text: string) => text })]]),
 		props: { id: 'closing-check', token: { type: 'html', raw: text, text, block: false } }
 	});
 	try {

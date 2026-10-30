@@ -29,6 +29,14 @@
 
 		try {
 			const res = await verifyEmail(token);
+			if ('next_step' in res.session) {
+				localStorage.removeItem('token');
+				window.location.replace(
+					res.session.next_step === 'pending' ? '/auth?pending=1' : '/auth?mfa=1'
+				);
+				return;
+			}
+			if (!res.session.token) throw new Error($i18n.t('Authentication failed. Please try again.'));
 			localStorage.token = res.session.token;
 			// Reload the app so all account-specific stores use the new session.
 			window.location.replace('/');

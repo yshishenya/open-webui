@@ -3,8 +3,11 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { Fragment, Slice, Schema, DOMParser, DOMSerializer } from 'prosemirror-model';
 import { EditorState, TextSelection, Selection, type Transaction } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import TurndownService from 'turndown';
+import { equalEditorJSON } from '../src/lib/utils/editorJson';
 import ts from 'typescript';
 import { afterEach, expect, it, vi } from 'vitest';
 
@@ -14,17 +17,32 @@ const source = ts.createSourceFile(
 	readFileSync(path, 'utf8').split('<script lang="ts">')[1].split('</script>')[0],
 	ts.ScriptTarget.Latest
 );
-const definition = (name: string): string => {
+const messageInputPath = 'src/lib/components/chat/MessageInput.svelte';
+const messageInputSource = ts.createSourceFile(
+	messageInputPath,
+	readFileSync(messageInputPath, 'utf8').split('<script lang="ts">')[1].split('</script>')[0],
+	ts.ScriptTarget.Latest
+);
+const definition = (name: string, inputSource = source, includeProperties = true): string => {
 	let result = '';
 	const visit = (node: ts.Node): void => {
-		if (ts.isFunctionDeclaration(node) && node.name?.text === name) result = node.getText(source);
-		if (ts.isVariableDeclaration(node) && node.name.getText(source) === name && node.initializer)
-			result = `const ${name} = ${node.initializer.getText(source)};`;
-		if (ts.isPropertyAssignment(node) && node.name.getText(source) === name)
-			result = `const ${name} = ${node.initializer.getText(source)};`;
+		if (ts.isFunctionDeclaration(node) && node.name?.text === name)
+			result = node.getText(inputSource);
+		if (
+			ts.isVariableDeclaration(node) &&
+			node.name.getText(inputSource) === name &&
+			node.initializer
+		)
+			result = `const ${name} = ${node.initializer.getText(inputSource)};`;
+		if (
+			includeProperties &&
+			ts.isPropertyAssignment(node) &&
+			node.name.getText(inputSource) === name
+		)
+			result = `const ${name} = ${node.initializer.getText(inputSource)};`;
 		ts.forEachChild(node, visit);
 	};
-	visit(source);
+	visit(inputSource);
 	if (!result) throw new Error(`Missing ${name}`);
 	return result;
 };
@@ -77,7 +95,13 @@ const setup = (text: string, from: number, to = from, rich = false) => {
 		editor: editor as typeof editor | null,
 		value: text,
 		richText: rich,
+		autoFormat: true,
+		suppressAutoFocus: false,
 		insertPromptAsRichText: rich,
+		$settings: { insertPromptAsRichText: rich },
+		textVariableHandler: async (text: string): Promise<string> => text,
+		inputVariableHandler: vi.fn().mockResolvedValue(undefined),
+		focus: vi.fn(),
 		largeTextAsFile: false,
 		PASTED_TEXT_CHARACTER_LIMIT: 10000,
 		navigator: { userAgent: 'desktop' },
@@ -99,7 +123,7 @@ const setup = (text: string, from: number, to = from, rich = false) => {
 	const evaluate = <T>(name: string): T =>
 		runInNewContext(
 			ts.transpileModule(
-				`(() => { ${definition('getWordBoundsAtPos')} ${definition('textToNodes')} ${definition(name)}; return ${name}; })()`,
+				`(() => { ${definition('getWordBoundsAtPos')} ${definition('textToNodes')} ${definition('plainMentionPaste')} ${definition(name, name === 'replaceSlashRangeWithPrompt' ? messageInputSource : source)}; return ${name === 'handlePaste' ? '(view, event, slice = Slice.empty) => handlePaste(view, event, slice)' : name}; })()`,
 				{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
 			).outputText,
 			context
@@ -273,3 +297,134 @@ it('plain copy contains only the selected range and preserves inline breaks', ()
 	expect(copy(fixture.view, event)).toBe(false);
 	expect(event.preventDefault).not.toHaveBeenCalled();
 });
+
+it.each(['one', '\nOne\n\nTwo\n', ''])(
+	'the actual slash suggestion inserts exact plain text and leaves the cursor before the suffix: %j',
+	async (text) => {
+		const fixture = setup('left /cmd right', 10);
+		const insert = fixture.evaluate<
+			(
+				editor: typeof fixture.editor,
+				range: { from: number; to: number },
+				text: string
+			) => Promise<void>
+		>('replaceSlashRangeWithPrompt');
+		await insert(fixture.editor, { from: 6, to: 10 }, text);
+		expect(fixture.text()).toBe(`left ${text} right`);
+		expect(fixture.view.state.doc.childCount).toBe(1);
+		expect(fixture.view.state.selection.from).toBe(6 + text.length);
+		fixture.view.dispatch(fixture.view.state.tr.insertText('X'));
+		expect(fixture.text()).toBe(`left ${text}X right`);
+	}
+);
+
+it.each(['one', '\nOne\n\nTwo\n', ''])(
+	'slash prompt keeps its native cursor through blur, async variables and editor updates: %j',
+	async (text) => {
+		const fixture = setup('left /cmd right', 10);
+		const mount = document.createElement('div');
+		document.body.append(mount);
+		const turndownService = new TurndownService();
+		turndownService.escape = (value: string): string => value;
+		turndownService.addRule('singleNewlineParagraphs', {
+			filter: 'p',
+			replacement: (value: string): string => `\n${value}\n`
+		});
+		let updated: (event: { transaction: Transaction }) => void = () => {};
+		const view = new EditorView(mount, {
+			state: fixture.view.state,
+			dispatchTransaction(this: EditorView, tr: Transaction) {
+				this.updateState(this.state.apply(tr));
+				updated({ transaction: tr });
+			}
+		});
+		const setContent = vi.fn();
+		const editor = {
+			view,
+			get state() {
+				return view.state;
+			},
+			isDestroyed: false,
+			getJSON: () => view.state.doc.toJSON(),
+			getHTML: (): string => {
+				const element = document.createElement('div');
+				element.append(DOMSerializer.fromSchema(schema).serializeFragment(view.state.doc.content));
+				return element.innerHTML;
+			},
+			commands: { setContent }
+		};
+		const inputVariablesModalCancelCallback = vi.fn();
+		const lifecycleContext = {
+			editor,
+			HTMLElement,
+			console,
+			turndownService,
+			equalEditorJSON,
+			richText: false,
+			json: true,
+			preserveBreaks: false,
+			raw: false,
+			jsonValue: '',
+			htmlValue: '',
+			mdValue: '',
+			value: '',
+			pendingUpdate: null,
+			requestAnimationFrame: vi.fn().mockReturnValue(1),
+			onChange: vi.fn(),
+			eventDispatch: vi.fn(),
+			selectTemplate: vi.fn(),
+			inputVariablesModalCancelCallback,
+			extractInputVariables: (): Record<string, never> => ({}),
+			inputVariables: {}
+		};
+		const lifecycle = runInNewContext(
+			ts.transpileModule(
+				`(() => { ${definition('focus', source, false)} ${definition('serializeContent')} ${definition('onValueChange')} ${definition('onTransaction')} ${definition('inputVariableHandler', messageInputSource)}; return { focus, onValueChange, onTransaction, inputVariableHandler }; })()`,
+				{ compilerOptions: { target: ts.ScriptTarget.ES2022 } }
+			).outputText,
+			lifecycleContext
+		) as {
+			focus: (options: { preventScroll: boolean }) => void;
+			onValueChange: () => void;
+			onTransaction: typeof updated;
+			inputVariableHandler: (value: string) => Promise<string | null>;
+		};
+		updated = lifecycle.onTransaction;
+		Object.assign(fixture.context, {
+			focus: lifecycle.focus,
+			inputVariableHandler: lifecycle.inputVariableHandler,
+			tick: vi.fn(async (): Promise<void> => {
+				lifecycle.onValueChange();
+			})
+		});
+		const suggestion = document.createElement('button');
+		document.body.append(suggestion);
+		try {
+			view.focus();
+			suggestion.focus();
+			const insert = fixture.evaluate<
+				(input: typeof editor, range: { from: number; to: number }, value: string) => Promise<void>
+			>('replaceSlashRangeWithPrompt');
+			await insert(editor, { from: 6, to: 10 }, text);
+			const selection = document.getSelection();
+			if (!selection?.anchorNode) throw new Error('Missing native cursor');
+			const nativePosition = view.posAtDOM(selection.anchorNode, selection.anchorOffset);
+			expect(view.state.doc.textBetween(0, view.state.doc.content.size, '\n', '\n')).toBe(
+				`left ${text} right`
+			);
+			expect(view.state.selection.from).toBe(6 + text.length);
+			expect(nativePosition).toBe(6 + text.length);
+			expect(inputVariablesModalCancelCallback).toHaveBeenCalledOnce();
+			expect(lifecycleContext.onChange).toHaveBeenCalled();
+			expect(setContent).not.toHaveBeenCalled();
+			view.dispatch(view.state.tr.insertText('X', nativePosition));
+			expect(view.state.doc.textBetween(0, view.state.doc.content.size, '\n', '\n')).toBe(
+				`left ${text}X right`
+			);
+		} finally {
+			view.destroy();
+			mount.remove();
+			suggestion.remove();
+		}
+	}
+);

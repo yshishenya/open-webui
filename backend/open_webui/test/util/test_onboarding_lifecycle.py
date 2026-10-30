@@ -21,7 +21,7 @@ from open_webui.models.users import User
 from open_webui.routers import auths as signup_routes
 from open_webui.routers.airis import email_preferences as preference_routes
 from open_webui.routers.airis import password_reset as verification_routes
-from open_webui.utils import email
+from open_webui.utils import email, mfa
 from open_webui.utils.airis import email_queue as worker
 from open_webui.utils.airis import email_scenarios as scenarios
 from open_webui.utils.airis import task_success as completion
@@ -87,6 +87,7 @@ async def app(
     for module in [groups, legal, verification, successes]:
         monkeypatch.setattr(module, 'get_async_db_context', prefs.get_async_db_context)
     monkeypatch.setattr(settings, 'get_async_db', prefs.get_async_db_context)
+    monkeypatch.setattr(mfa, 'get_async_db', prefs.get_async_db_context)
     await settings.Config.upsert(
         {
             'ui.enable_signup': True,

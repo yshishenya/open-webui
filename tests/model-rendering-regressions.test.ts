@@ -110,7 +110,7 @@ it('updates the actual model placeholder after selection and forwards a suggeste
 		target.querySelector('button')?.click();
 		await tick();
 		expect(target.querySelector('.markdown strong')?.textContent).toBe('Первый');
-		target.querySelector<HTMLButtonElement>('[role="listitem"]')?.click();
+		target.querySelector<HTMLButtonElement>('[role="listitem"] button')?.click();
 		expect(onSelect).toHaveBeenCalledWith({ type: 'prompt', data: 'Составь план' });
 		models.update((items) =>
 			items.map((item) =>

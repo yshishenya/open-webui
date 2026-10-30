@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LockClosed from '$lib/components/icons/LockClosed.svelte';
 	import { getContext } from 'svelte';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
@@ -7,17 +8,20 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import DocumentDuplicate from '$lib/components/icons/DocumentDuplicate.svelte';
 	import Download from '$lib/components/icons/Download.svelte';
-	import { user } from '$lib/stores';
+	import Share from '$lib/components/icons/Share.svelte';
+	import { user, config } from '$lib/stores';
 
 	const i18n = getContext<Readable<I18n>>('i18n');
 	import type { Readable } from 'svelte/store';
 	import type { i18n as I18n } from 'i18next';
 
-	export let editHandler: () => void | Promise<void>;
-	export let cloneHandler: () => void | Promise<void>;
-	export let exportHandler: () => void | Promise<void>;
-	export let deleteHandler: () => void | Promise<void>;
-	export let onClose: () => void | Promise<void>;
+	export let editHandler: Function;
+	export let cloneHandler: Function;
+	export let exportHandler: Function;
+	export let shareHandler: (() => void) | null = null;
+	export let deleteHandler: Function;
+	export let accessHandler: (() => void) | null = null;
+	export let onClose: Function;
 
 	export let show = false;
 
@@ -40,9 +44,9 @@
 	</Tooltip>
 
 	<div slot="content">
-		<DropdownMenu className="min-w-[170px]">
+		<DropdownMenu className="min-w-[10.625rem]">
 			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 				on:click={() => {
 					editHandler();
 					closeMenu();
@@ -65,9 +69,37 @@
 
 				<div class="flex items-center">{$i18n.t('Edit')}</div>
 			</button>
+			{#if accessHandler}
+				<button
+					type="button"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => {
+						accessHandler?.();
+						closeMenu();
+					}}
+				>
+					<LockClosed className="size-3.5" />
+					<div class="flex items-center">{$i18n.t('Access')}</div>
+				</button>
+			{/if}
+
+			{#if shareHandler && $config?.features?.enable_community_sharing && ($user?.role === 'admin' || $user?.permissions?.workspace?.skills_export)}
+				<button
+					type="button"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
+					draggable="false"
+					on:click={() => {
+						shareHandler?.();
+						closeMenu();
+					}}
+				>
+					<Share className="size-3.5" />
+					<div class="flex items-center">{$i18n.t('Share')}</div>
+				</button>
+			{/if}
 
 			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 				on:click={() => {
 					cloneHandler();
 					closeMenu();
@@ -79,21 +111,38 @@
 
 			{#if $user?.role === 'admin' || $user?.permissions?.workspace?.skills_export}
 				<button
-					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 					on:click={() => {
-						exportHandler();
+						exportHandler('skill');
 						closeMenu();
 					}}
 				>
 					<Download className="size-3.5" />
-					<div class="flex items-center">{$i18n.t('Export')}</div>
+					<div class="flex items-center">{$i18n.t('Export .skill')}</div>
 				</button>
+				<button
+					class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
+					on:click={() => {
+						exportHandler('json');
+						closeMenu();
+					}}
+				>
+					<Download className="size-3.5" />
+					<div class="flex items-center">{$i18n.t('Export JSON')}</div>
+				</button>
+				<button
+					class="flex h-7 w-full items-center gap-2 px-2 text-[0.8125rem]"
+					on:click={() => {
+						exportHandler('zip');
+						closeMenu();
+					}}><Download className="size-3.5" />{$i18n.t('Export ZIP')}</button
+				>
 			{/if}
 
 			<hr class="border-gray-50 dark:border-gray-850/30 mx-1 my-0.5" />
 
 			<button
-				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[13px] hover:text-gray-900 dark:hover:text-gray-100"
+				class="select-none flex h-[1.6875rem] w-full cursor-pointer items-center gap-2 rounded-xl bg-transparent px-2 text-[0.8125rem] hover:text-gray-900 dark:hover:text-gray-100"
 				on:click={() => {
 					deleteHandler();
 					closeMenu();

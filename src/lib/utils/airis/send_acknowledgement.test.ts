@@ -15,7 +15,7 @@ import { runInNewContext } from 'node:vm';
 import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import equal from 'fast-deep-equal';
-import { createMessagesList, processDetails } from '../index';
+import { createMessagesList, processDetails, resolveDefaultModelIds, isRasterImageContentType } from '../index';
 import { expect, it, vi } from 'vitest';
 vi.stubGlobal('crypto', webcrypto);
 import type {
@@ -53,7 +53,9 @@ function handler<T>(component: string, name: string, context: object): T {
 		}).outputText;
 		handlerCodeCache.set(key, code);
 	}
-	return runInNewContext(code, context) as T;
+	const result = runInNewContext(code, context) as T;
+    if (name === 'processNextInQueue') Object.assign(context, { [name]: result });
+    return result;
 }
 
 function submitEvents(context: object): ((event: { detail: string }) => Promise<void>)[] {
@@ -134,7 +136,11 @@ function bindDispatch(c: object): void {
 		'availableDispatchServers',
 		'refreshPendingDispatch',
 		'dispatchPreparedRequest',
-		'recoverPendingDispatch'
+		'recoverPendingDispatch',
+        'onToolCallResolved',
+        'startChatLoad',
+        'normalizeSelectedModels',
+        'restoreChatInput'
 	]) {
 		Object.assign(c, { [name]: handler('Chat', name, c) });
 	}
@@ -157,6 +163,22 @@ function setup() {
 	let counter = 0;
 	const c = {
 		history,
+        $_user: { id: 'fixture-user', name: 'Fixture' },
+        processing: '',
+        emitTyping: vi.fn(),
+        getChatId: vi.fn().mockResolvedValue('chat1'),
+        isRasterImageContentType,
+        resolveDefaultModelIds,
+        chatLoadController: new AbortController(),
+        AbortController,
+        cancelBrowserInteractions: vi.fn(),
+        bridge: null,
+        modelDefaults: null,
+        saveControls: vi.fn().mockResolvedValue(undefined),
+        saveControlsTimer: undefined,
+        restoreChatInput: vi.fn().mockResolvedValue(false),
+        noteFiles: [],
+        syncChatRoom: vi.fn().mockResolvedValue(undefined),
 		$chatId: 'chat1',
 		chatId: 'chat1',
 		sourceHistory: history,
@@ -201,7 +223,7 @@ function setup() {
 		pendingCopyIds: new Map(),
 		prompt: 'draft',
 		files: [{ id: 'f', type: 'file' }] as ChatAttachment[],
-		messageInput: { setText: vi.fn().mockResolvedValue(true) },
+		messageInput: { setText: vi.fn().mockResolvedValue(true), setTextHandler: vi.fn().mockResolvedValue(true), focus: vi.fn() },
 		pendingOAuthTools: [],
 		selectedModelIds: ['model'],
 		chatVariables: {},
@@ -279,6 +301,7 @@ function setup() {
 			c.$chatRequestQueues = fn(c.$chatRequestQueues);
 		})
 	});
+	c.getChatId.mockImplementation(async () => c.$chatId);
 	bindDispatch(c);
 
 	return c;
@@ -373,7 +396,7 @@ it.each([false, true])('accepted composer remount preserves newer draft=%s', asy
 	c.submitPrompt.mockReturnValueOnce(pending.promise);
 	const sending = handler<(text: string) => Promise<void>>('Chat', 'submitHandler', c)('draft');
 	await Promise.resolve();
-	c.messageInput = { setText: vi.fn().mockResolvedValue(true) };
+	c.messageInput = { setText: vi.fn().mockResolvedValue(true), setTextHandler: vi.fn().mockResolvedValue(true), focus: vi.fn() };
 	if (changed) c.prompt = 'new draft';
 	pending.resolve(true);
 	await sending;
@@ -439,7 +462,7 @@ it.each([0, 1, 2])(
 		const snapshot = JSON.stringify(handler<() => object>('Chat', 'composerDraft', c)());
 		c.sessionStorage.setItem(key, snapshot);
 		await submitEvents(c)[entry]({ detail: 'draft' });
-		await Promise.resolve();
+        await new Promise<void>((resolve) => setImmediate(resolve));
 		expect(c.submitPrompt).toHaveBeenCalled();
 		expect(c.sessionStorage.getItem(key)).toBe(snapshot);
 		expect(c.prompt).toBe('draft');
@@ -582,7 +605,7 @@ it.each([true, false])('send now preserves queue until accepted=%s', async (acce
 			{ id: 'q2', prompt: 'two', files: [] }
 		]
 	};
-	c.submitPrompt.mockResolvedValue(accepted);
+	c.submitPrompt.mockResolvedValueOnce(accepted).mockResolvedValue(false);
 	await handler<(chatId: string, id?: string) => Promise<void>>(
 		'Chat',
 		'processNextInQueue',
@@ -1033,6 +1056,7 @@ it('recovered queued dispatch removes only its original queue items', async () =
 	c.sendMessage = handler('Chat', 'sendMessage', c);
 	c.submitPrompt.mockImplementation(handler('Chat', 'submitPrompt', c));
 	c.generateOpenAIChatCompletion.mockRejectedValueOnce(new Error('lost HTTP response'));
+	c.history.messages.a.done = true;
 	c.$chatRequestQueues = { chat1: [{ id: 'original', prompt: 'queued request', files: [] }] };
 	await handler<(id: string) => Promise<void>>('Chat', 'processNextInQueue', c)('chat1');
 	expect(c.pendingDispatch!.queueIds).toEqual(['original']);
@@ -1117,7 +1141,7 @@ it.each(['original', 'new-settings', 'remount'])(
 		});
 		if (change === 'remount') {
 			c.getChatById.mockImplementationOnce(async () => {
-				c.messageInput = { setText: vi.fn().mockResolvedValue(true) };
+				c.messageInput = { setText: vi.fn().mockResolvedValue(true), setTextHandler: vi.fn().mockResolvedValue(true), focus: vi.fn() };
 				return { id: 'chat1', chat: { title: 'Saved', history: structuredClone(c.history) } };
 			});
 		} else {
@@ -1150,6 +1174,10 @@ it('chat navigation restores before a newly mounted composer can autosave empty 
 		setDefaults: vi.fn(),
 		goto: vi.fn()
 	});
+	c.loadChat.mockImplementation(async () => {
+        handler<(scope: string) => boolean>('Chat', 'restoreDraft', c)('chat1');
+        return true;
+    });
 	Object.assign(c.window, { setTimeout: vi.fn() });
 	c.chat = { id: 'chat1', user_id: c.$user.id };
 	const draft = handler<() => import('./chat_draft').ComposerDraft>('Chat', 'composerDraft', c)();
@@ -1160,6 +1188,48 @@ it('chat navigation restores before a newly mounted composer can autosave empty 
 	await handler<() => Promise<void>>('Chat', 'navigateHandler', c)();
 	expect(c.prompt).toBe('draft');
 	expect(readComposerDraft(c.sessionStorage, c.$user.id, 'chat1')).toEqual(draft);
+	expect(c.goto).not.toHaveBeenCalled();
+});
+
+it('chat navigation clears a failed load spinner and preserves the saved draft', async () => {
+	const c = Object.assign(setup(), {
+		loading: false,
+		embedded: true,
+		chatIdProp: 'chat1',
+		noteChatDebug: vi.fn(),
+		loadChat: vi.fn().mockRejectedValue(new Error('Malformed chat')),
+		updateLastReadAt: vi.fn(),
+		goto: vi.fn()
+	});
+	const draft = handler<() => import('./chat_draft').ComposerDraft>('Chat', 'composerDraft', c)();
+	writeComposerDraft(c.sessionStorage, { actor: c.$user.id, scope: 'chat1', draft });
+	await handler<() => Promise<void>>('Chat', 'navigateHandler', c)();
+	expect(c.loading).toBe(false);
+	expect(c.prompt).toBe('draft');
+	expect(readComposerDraft(c.sessionStorage, c.$user.id, 'chat1')).toEqual(draft);
+	expect(c.toast.error).toHaveBeenCalledWith('Failed to load chat');
+	expect(c.goto).not.toHaveBeenCalled();
+});
+
+it('an aborted chat navigation cannot clear the next navigation spinner or draft', async () => {
+	const pending = deferred<void>();
+	const c = Object.assign(setup(), {
+		loading: false,
+		chatIdProp: 'chat1',
+		noteChatDebug: vi.fn(),
+		loadChat: vi.fn().mockReturnValue(pending.promise),
+		updateLastReadAt: vi.fn(),
+		goto: vi.fn()
+	});
+	const navigating = handler<() => Promise<void>>('Chat', 'navigateHandler', c)();
+	await Promise.resolve();
+	c.chatLoadController.abort();
+	c.loading = true;
+	c.prompt = 'New chat draft';
+	pending.resolve();
+	await navigating;
+	expect(c.loading).toBe(true);
+	expect(c.prompt).toBe('New chat draft');
 	expect(c.goto).not.toHaveBeenCalled();
 });
 
@@ -1271,7 +1341,9 @@ it('guide query fills the composer after its loading view has mounted', async ()
 	});
 	c.prompt = '';
 	const composer = {
-		setText: vi.fn(async (text: string) => {
+        setText: vi.fn(),
+        focus: vi.fn(),
+		setTextHandler: vi.fn(async (text: string) => {
 			c.prompt = text;
 			return true;
 		})
@@ -1281,7 +1353,7 @@ it('guide query fills the composer after its loading view has mounted', async ()
 	});
 	await handler<() => Promise<void>>('Chat', 'initNewChat', c)();
 	expect(c.prompt).toBe('guide');
-	expect(composer.setText).toHaveBeenCalledWith('guide');
+	expect(composer.setTextHandler).toHaveBeenCalledWith('guide');
 	expect(c.submitPrompt).not.toHaveBeenCalled();
 });
 

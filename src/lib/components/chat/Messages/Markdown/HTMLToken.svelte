@@ -2,9 +2,13 @@
 	import DOMPurify from 'dompurify';
 	import type { Token } from 'marked';
 	import { getMarkdownMediaSource } from '$lib/utils/airis/markdown_media_source';
+	import { getContext } from 'svelte';
 
 	import { WEBUI_BASE_URL } from '$lib/constants';
 	import { settings } from '$lib/stores';
+
+	const i18n = getContext<typeof import('$lib/i18n').default>('i18n');
+	const markdown = getContext<{ document?: boolean } | undefined>('markdown');
 
 	export let id: string;
 	export let token: Token;
@@ -16,18 +20,20 @@
 </script>
 
 {#if token.type === 'html'}
-	{#if html && html.includes('<video')}
+	{#if markdown?.document}
+		{@html html ?? ''}
+	{:else if html && html.includes('<video')}
 		{@const videoSrc = getMarkdownMediaSource(html, 'video')}
 		{#if videoSrc}
 			<!-- svelte-ignore a11y-media-has-caption -->
-			<video {id} class="w-full my-2" src={videoSrc} title="Video player" controls></video>
+			<video {id} class="w-full my-2" src={videoSrc} title={$i18n.t('Video player')} controls></video>
 		{:else}
 			{token.text}
 		{/if}
 	{:else if html && html.includes('<audio')}
 		{@const audioSrc = getMarkdownMediaSource(html, 'audio')}
 		{#if audioSrc}
-			<audio {id} class="w-full my-2" src={audioSrc} title="Audio player" controls></audio>
+			<audio {id} class="w-full my-2" src={audioSrc} title={$i18n.t('Audio player')} controls></audio>
 		{:else}
 			{token.text}
 		{/if}
@@ -42,7 +48,7 @@
 			<iframe
 				class="w-full aspect-video my-2"
 				src={`https://www.youtube.com/embed/${ytId}`}
-				title="YouTube video player"
+				title={$i18n.t('YouTube video player')}
 				frameborder="0"
 				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 				referrerpolicy="strict-origin-when-cross-origin"
@@ -57,7 +63,7 @@
 			<iframe
 				class="w-full my-2"
 				src={iframeSrc}
-				title="Embedded content"
+				title={$i18n.t('Embedded content')}
 				frameborder="0"
 				sandbox=""
 				on:load={(e) => {
@@ -97,9 +103,13 @@
 			<iframe
 				class="w-full my-2"
 				src={`${WEBUI_BASE_URL}/api/v1/files/${fileId}/content/html`}
-				title="Content"
+				title={$i18n.t('Content')}
 				frameborder="0"
-				sandbox="allow-scripts allow-downloads{($settings?.iframeSandboxAllowForms ?? false)
+				sandbox="{($settings?.iframeSandboxAllowScripts ?? true)
+					? 'allow-scripts'
+					: ''}{($settings?.iframeSandboxAllowDownloads ?? true)
+					? ' allow-downloads'
+					: ''}{($settings?.iframeSandboxAllowForms ?? true)
 					? ' allow-forms'
 					: ''}{($settings?.iframeSandboxAllowSameOrigin ?? false) ? ' allow-same-origin' : ''}"
 				referrerpolicy="strict-origin-when-cross-origin"

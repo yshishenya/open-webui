@@ -7,6 +7,7 @@
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 	import { settings, config } from '$lib/stores';
 	import { injectCsp } from '$lib/utils/csp';
+	import { isValidHttpUrl } from '$lib/utils';
 
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Textarea from '$lib/components/common/Textarea.svelte';
@@ -42,7 +43,7 @@
 
 	$: if (citation) {
 		expandedDocs = new Set();
-		mergedDocuments = citation.document.map((c, i) => {
+		mergedDocuments = (citation.document ?? []).map((c, i) => {
 			return {
 				source: citation.source,
 				document: c,
@@ -72,11 +73,11 @@
 
 		const baseUrl = file_id
 			? `${WEBUI_API_BASE_URL}/files/${file_id}/content${page !== undefined ? `#page=${page + 1}` : ''}`
-			: sourceUrl?.includes('http')
+			: isValidHttpUrl(sourceUrl ?? '')
 				? sourceUrl
 				: null;
 
-		if (!baseUrl || !content) return baseUrl;
+		if (!baseUrl || !content) return baseUrl ?? null;
 
 		// Extract first and last words for text fragment, filtering out URLs and emojis
 		const words = content
@@ -85,7 +86,7 @@
 			.split(' ')
 			.filter((w: string) => w.length > 0 && !/https?:\/\/|[\u{1F300}-\u{1F9FF}]/u.test(w));
 
-		if (words.length === 0) return baseUrl;
+		if (words.length === 0) return baseUrl ?? null;
 
 		const clean = (w: string): string => w.replace(/[^\p{L}\p{N}_]/gu, '');
 		const first = clean(words[0]);
@@ -107,10 +108,10 @@
 			<div class=" text-sm font-medium self-center flex items-center">
 				{#if citation?.source?.name}
 					{@const document = mergedDocuments?.[0]}
-					{#if document?.metadata?.file_id || document?.source?.url?.includes('http')}
+					{#if document?.metadata?.file_id || isValidHttpUrl(document?.source?.url ?? '')}
 						<Tooltip
 							className="w-fit"
-							content={document?.source?.url?.includes('http')
+							content={isValidHttpUrl(document?.source?.url ?? '')
 								? $i18n.t('Open link')
 								: $i18n.t('Open file')}
 							placement="top-start"
@@ -120,7 +121,7 @@
 								class="hover:text-gray-500 dark:hover:text-gray-100 underline grow line-clamp-1"
 								href={document?.metadata?.file_id
 									? `${WEBUI_API_BASE_URL}/files/${document?.metadata?.file_id}/content${document?.metadata?.page !== undefined ? `#page=${document.metadata.page + 1}` : ''}`
-									: document?.source?.url?.includes('http')
+									: isValidHttpUrl(document?.source?.url ?? '')
 										? document.source.url
 										: `#`}
 								target="_blank"
@@ -167,7 +168,7 @@
 							<div
 								class=" text-sm font-normal dark:text-gray-300 flex items-center gap-2 w-fit mb-1"
 							>
-								{#if document?.source?.url?.includes('http')}
+								{#if isValidHttpUrl(document?.source?.url ?? '')}
 									{@const snippetUrl = getTextFragmentUrl(document)}
 									{#if snippetUrl}
 										<a
@@ -221,15 +222,20 @@
 							{#if document.metadata?.html}
 								<iframe
 									class="w-full border-0 h-auto rounded-none"
-									sandbox="allow-scripts allow-forms{($settings?.iframeSandboxAllowSameOrigin ??
-									false)
+									sandbox="{($settings?.iframeSandboxAllowScripts ?? true)
+										? 'allow-scripts'
+										: ''}{($settings?.iframeSandboxAllowForms ?? true)
+										? ' allow-forms'
+										: ''}{($settings?.iframeSandboxAllowDownloads ?? true)
+										? ' allow-downloads'
+										: ''}{($settings?.iframeSandboxAllowSameOrigin ?? false)
 										? ' allow-same-origin'
 										: ''}"
 									srcdoc={injectCsp(document.document, $config?.ui?.iframe_csp ?? '')}
 									title={$i18n.t('Content')}
 								></iframe>
 							{:else}
-								{@const rawContent = document.document.trim().replace(/\n\n+/g, '\n\n')}
+								{@const rawContent = (document.document ?? '').trim().replace(/\n\n+/g, '\n\n')}
 								{@const isTruncated =
 									($settings?.renderMarkdownInPreviews ?? true) &&
 									rawContent.length > CONTENT_PREVIEW_LIMIT &&

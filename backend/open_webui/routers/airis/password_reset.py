@@ -1,7 +1,7 @@
-import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from open_webui.env import WEBUI_AUTH_COOKIE_SAME_SITE, WEBUI_AUTH_COOKIE_SECURE
 from open_webui.internal.db import get_async_session
 from open_webui.models.auths import Auths
 from open_webui.models.email_verification import EmailVerificationTokens
@@ -11,7 +11,6 @@ from open_webui.utils.auth import get_password_hash, validate_password
 from open_webui.utils.email import email_service
 from open_webui.utils.misc import validate_email_format
 from open_webui.utils.rate_limit import RateLimiter
-from open_webui.utils.redis import get_redis_client
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,13 +18,9 @@ router = APIRouter()
 
 log = logging.getLogger(__name__)
 
-email_verification_rate_limiter = RateLimiter(
-    redis_client=get_redis_client(), limit=3, window=60 * 60  # 3 emails per hour
-)
+email_verification_rate_limiter = RateLimiter(limit=3, window=60 * 60)  # 3 emails per hour
 
-password_reset_rate_limiter = RateLimiter(
-    redis_client=get_redis_client(), limit=3, window=60 * 60  # 3 reset requests per hour
-)
+password_reset_rate_limiter = RateLimiter(limit=3, window=60 * 60)  # 3 reset requests per hour
 
 
 class VerifyEmailForm(BaseModel):
@@ -79,30 +74,40 @@ async def verify_email_and_signin(
 ) -> dict[str, object]:
     """Exchange a single-use confirmation token for the normal login session."""
     # auths includes this router, so load its existing session helper at call time.
-    from open_webui.routers.auths import create_session_response
+    from open_webui.utils.auth import create_signin_response
 
     user = await _verify_email_user(form_data.token, db)
     response.headers['Cache-Control'] = 'no-store'
-    return {
-        'success': True,
-        'message': 'Email verified successfully',
-        'session': await create_session_response(
-            request, user, db, response, set_cookie=True, source='email_verification'
-        ),
-    }
+    session = await create_signin_response(request, user, db, response, set_cookie=True, source='password')
+    if session.get('challenge_token'):
+        from open_webui.routers.mfa import CHALLENGE_COOKIE
+
+        response.set_cookie(
+            CHALLENGE_COOKIE,
+            session['challenge_token'],
+            max_age=300,
+            httponly=True,
+            path='/api/v1/auths/mfa',
+            secure=WEBUI_AUTH_COOKIE_SECURE,
+            samesite=WEBUI_AUTH_COOKIE_SAME_SITE,
+        )
+    if session.get('next_step'):
+        response.delete_cookie('token')
+    return {'success': True, 'message': 'Email verified successfully', 'session': session}
 
 
 @router.post('/resend-verification')
 async def resend_verification_email(
     form_data: ResendVerificationForm,
+    request: Request,
     db: AsyncSession = Depends(get_async_session),
 ):
     """Resend verification email to user.
 
     Rate limited to 3 emails per hour per email address.
     """
-    if await asyncio.to_thread(
-        email_verification_rate_limiter.is_limited,
+    if await email_verification_rate_limiter.is_limited(
+        request.app.state.redis,
         f'email_verification:{form_data.email}',
     ):
         raise HTTPException(
@@ -183,14 +188,15 @@ class ResetPasswordForm(BaseModel):
 @router.post('/request-password-reset')
 async def request_password_reset(
     form_data: RequestPasswordResetForm,
+    request: Request,
     db: AsyncSession = Depends(get_async_session),
 ):
     """Request password reset - sends reset email to user.
 
     Rate limited to 3 requests per hour per email address.
     """
-    if await asyncio.to_thread(
-        password_reset_rate_limiter.is_limited,
+    if await password_reset_rate_limiter.is_limited(
+        request.app.state.redis,
         f'password_reset:{form_data.email}',
     ):
         raise HTTPException(

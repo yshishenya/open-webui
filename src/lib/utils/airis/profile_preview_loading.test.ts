@@ -72,7 +72,9 @@ function fixture(
 			.map((s) => s.getText(ast))
 			.join('\n');
 		const script = ts.transpileModule(
-			'const channels = testStores.channels; const models = testStores.models;\n' + code + extra,
+			'const channels = testStores.channels; const models = testStores.models; const sessionUser = testStores.sessionUser;\n' +
+				code +
+				extra,
 			{ compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }
 		).outputText;
 		const rewritten =
@@ -84,11 +86,16 @@ function fixture(
 		const mod = { exports: {} };
 		const globals = {
 			LinkPreview,
+			browser: true,
 			getContext: runtime.getContext,
 			onDestroy: runtime.onDestroy,
 			getUserInfoById: api,
 			goto: vi.fn(),
-			testStores: { channels: readable([]), models: readable([]) },
+			testStores: {
+				channels: readable([]),
+				models: readable([]),
+				sessionUser: readable({ id: 'viewer' })
+			},
 			...dependencies
 		};
 		return new Function(

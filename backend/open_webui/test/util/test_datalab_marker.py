@@ -169,7 +169,7 @@ def test_datalab_marker_contract(
             metadata.update(page_count=3, request_id='request-1')
         if scenario == 'metadata':
             metadata.update(
-                page_count='[2]', output_format='{"format": "md"}', image_count=2, images='["a.png", "b.png"]'
+                page_count='[2]', output_format='{"format":"md"}', image_count=2, images='["a.png","b.png"]'
             )
         if scenario == 'null-metadata':
             metadata.update(page_count='', output_format='')
@@ -201,12 +201,6 @@ def _prepare_loader(
         output.write_text('file instead of directory')
     events: list[str] = []
     responses = iter(polls)
-    real_join = marker.os.path.join
-
-    def output_join(first: str, *parts: str) -> str:
-        if first == '/app/backend/data/uploads':
-            return str(output)
-        return real_join(first, *parts)
 
     def post(url: str, **kwargs: object) -> requests.Response:
         events.append('post')
@@ -240,7 +234,7 @@ def _prepare_loader(
         assert seconds == 2
         events.append('sleep')
 
-    monkeypatch.setattr(marker.os.path, 'join', output_join)
+    monkeypatch.setattr(marker, 'UPLOAD_DIR', str(tmp_path))
     monkeypatch.setattr(marker.requests, 'post', post)
     monkeypatch.setattr(marker.requests, 'get', get)
     monkeypatch.setattr(marker.time, 'sleep', sleep)

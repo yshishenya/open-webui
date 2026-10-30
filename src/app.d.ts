@@ -19,6 +19,13 @@ declare global {
 		pdfjsLib?: unknown;
 	}
 
+	class AudioWorkletProcessor {
+		readonly port: MessagePort;
+	}
+	function registerProcessor(name: string, processor: typeof AudioWorkletProcessor): void;
+
+	const APP_BUILD_CHANNEL: 'main' | 'dev' | 'unknown';
+
 	namespace App {
 		// interface Error {}
 		// interface Locals {}

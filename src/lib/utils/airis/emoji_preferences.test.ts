@@ -194,7 +194,8 @@ it('debounces rapid picks and preserves unrelated settings', async () => {
 	r.api.pick('B');
 	expect(r.jobs.size).toBe(1);
 	await r.flush();
-	expect(r.requests[0].payload.ui).toMatchObject({ theme: 'dark', recentEmojis: ['B', 'A'] });
+	expect(r.requests[0].payload.ui).toEqual({ recentEmojis: ['B', 'A'] });
+	expect(r.context.$settings).toMatchObject({ theme: 'dark', recentEmojis: ['B', 'A'] });
 });
 it('selects and deselects immediately without waiting for save', () => {
 	const r = rig();
@@ -233,7 +234,7 @@ it('renders recents only outside search and keeps the group heading separate', (
 });
 it('passes a CSS height and keeps native measured row heights', () => {
 	const r = rig();
-	expect(r.source).toContain('height="384px"');
+	expect(r.source).toContain('height="100%"');
 	expect(r.source).not.toContain('rowHeight=');
 	expect(r.source).not.toContain('itemHeight=');
 });

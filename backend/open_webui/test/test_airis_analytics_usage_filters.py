@@ -68,7 +68,7 @@ async def test_usage_reports_and_details_preserve_group_period_and_visible_chats
             assert counts == {'model': 1}
             assert await ChatMessages.get_message_count_by_user(**filters) == {'a': 1}
             assert await ChatMessages.get_message_count_by_chat(**filters) == {'visible': 1}
-            usage_by_user = await ChatMessages.get_token_usage_by_user(**filters)
+            usage_by_user = await ChatMessages.get_user_analytics(**filters)
             assert usage_by_user['a']['message_count'] == 1
             assert usage_by_user['a']['total_tokens'] == 3
             daily = await ChatMessages.get_daily_message_counts_by_model(**filters)

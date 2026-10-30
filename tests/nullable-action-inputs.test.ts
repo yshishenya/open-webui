@@ -57,6 +57,7 @@ it('ignores missing terminal ids before changing selection or settings', async (
 		'src/lib/components/chat/MessageInput/TerminalMenu.svelte',
 		'selectSystem',
 		{
+			window: { matchMedia: () => ({ matches: false }) },
 			selectedTerminalId,
 			settings,
 			$selectedTerminalId: 'existing',
@@ -107,9 +108,7 @@ it('ignores empty downloads and preserves file/directory download contracts', as
 		'chat-fixture'
 	);
 	await download('/folder/');
-	expect(archiveFromTerminal).toHaveBeenCalledWith('https://fixture.invalid', 'fixture', [
-		'/folder'
-	]);
+	expect(archiveFromTerminal).toHaveBeenCalledWith('https://fixture.invalid', 'fixture', ['/folder'], 'chat-fixture');
 	expect(link.click).toHaveBeenCalledTimes(2);
 	expect(link.download).toBe('fixture.txt');
 	expect(urls.revokeObjectURL).toHaveBeenCalledTimes(2);
@@ -143,7 +142,7 @@ const worker = (
 		{ backends: { onnx: { wasm: wasm ?? undefined } } },
 		{ from_pretrained: load },
 		self,
-		{ gpu: gpu ? {} : undefined },
+		{ gpu: gpu ? { requestAdapter: async () => ({}) } : undefined },
 		{ createObjectURL: () => 'blob:audio' }
 	);
 	return {

@@ -23,7 +23,7 @@ export const test = base.extend({
 		await page.addInitScript((token) => {
 			localStorage.setItem('token', token);
 			localStorage.setItem('locale', 'en-US');
-			localStorage.setItem('settings', JSON.stringify({ version: '0.11.0' }));
+			localStorage.setItem('settings', JSON.stringify({ version: '0.12.5' }));
 			localStorage.setItem('airis.analytics.consent.v1', 'denied');
 		}, localToken);
 		await use(page);

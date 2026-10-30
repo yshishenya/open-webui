@@ -12,17 +12,18 @@ from open_webui.utils.airis import email_queue
 
 
 @pytest.mark.parametrize('frequency,seconds', [('SECONDLY', 5), ('MINUTELY', 300), ('HOURLY', 18000)])
-def test_subdaily_rule_alignment(frequency: str, seconds: int) -> None:
-    now = dt.datetime(2026, 10, 2, 1, 2, 3)
-    rule = automations._parse_rule(f'FREQ={frequency};INTERVAL=5', now)
-    first = rule.after(now)
-    assert first > now
-    assert int((first - dt.datetime(2000, 1, 1)).total_seconds()) % seconds == 0
-    assert (rule.after(first) - first).total_seconds() == seconds
-    assert automations.next_run_ns(f'FREQ={frequency};INTERVAL=5', 'UTC') is not None
-    runs = automations.next_n_runs_ns(f'FREQ={frequency};INTERVAL=5', 3, 'UTC')
+@pytest.mark.asyncio
+async def test_subdaily_rule_alignment(frequency: str, seconds: int) -> None:
+    now = dt.datetime.now(dt.UTC)
+    assert await automations.next_run_ns(f'FREQ={frequency};INTERVAL=5', 'UTC') is not None
+    runs = await automations.next_n_runs_ns(f'FREQ={frequency};INTERVAL=5', 3, 'UTC')
     assert len(runs) == 3 and runs == sorted(runs)
-    assert automations.rrule_interval_seconds(f'FREQ={frequency};INTERVAL=5') == seconds
+    epoch = dt.datetime(2000, 1, 1, tzinfo=dt.UTC)
+    dates = [dt.datetime.fromtimestamp(run / 1_000_000_000, dt.UTC) for run in runs]
+    assert dates[0] > now
+    assert all(int((date - epoch).total_seconds()) % seconds == 0 for date in dates)
+    assert all((later - earlier).total_seconds() == seconds for earlier, later in zip(dates, dates[1:]))
+    assert await automations.rrule_interval_seconds(f'FREQ={frequency};INTERVAL=5') == seconds
 
 
 @pytest.mark.asyncio

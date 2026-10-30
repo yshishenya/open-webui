@@ -18,7 +18,8 @@ export const buildModelMutationPayload = (model: object, id?: string): ModelReco
 		name: source.name,
 		meta: source.meta,
 		params: source.params,
-		is_active: source.is_active
+		is_active: source.is_active,
+		commit_message: source.commit_message
 	};
 
 	if (Array.isArray(source.access_grants)) {

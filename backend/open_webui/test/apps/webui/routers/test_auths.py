@@ -38,15 +38,25 @@ class TestAuths(AbstractPostgresTest):
         cls.users = Users
         cls.auths = Auths
 
-    def test_get_session_user(self):
-        with mock_webui_user() as token:
-            response = self.fast_api_client.get(
-                self.create_url(''),
-                headers={'Authorization': f'Bearer {token}'},
-            )
+    def test_get_session_user(self) -> None:
+        from open_webui.utils.auth import create_token
+
+        user = asyncio.run(
+            self.auths.insert_new_auth(email='john.doe@openwebui.com', password='unused', name='John Doe', role='user')
+        )
+        assert user is not None
+        auth = asyncio.run(self.auths.get_auth_by_id(user.id))
+        assert auth is not None and auth.session_stamp
+        token = create_token(
+            {'id': user.id, 'typ': 'session', 'auth_method': 'password', 'session_stamp': auth.session_stamp}
+        )
+        response = self.fast_api_client.get(
+            self.create_url(''),
+            headers={'Authorization': f'Bearer {token}'},
+        )
         assert response.status_code == 200
         payload = response.json()
-        assert payload['id'] == '1'
+        assert payload['id'] == user.id
         assert payload['name'] == 'John Doe'
         assert payload['email'] == 'john.doe@openwebui.com'
         assert payload['role'] == 'user'

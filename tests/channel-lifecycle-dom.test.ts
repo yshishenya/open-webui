@@ -28,6 +28,19 @@ vi.mock('svelte-sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } })
 vi.mock('focus-trap', () => ({
 	createFocusTrap: () => ({ activate() {}, deactivate() {}, pause() {}, unpause() {} })
 }));
+if (!Element.prototype.animate)
+	Object.defineProperty(Element.prototype, 'animate', {
+		configurable: true,
+		value: () => ({ cancel() {}, finished: Promise.resolve(), finish() {}, pause() {}, play() {} })
+	});
+vi.stubGlobal(
+	'ResizeObserver',
+	class {
+		observe() {}
+		disconnect() {}
+		unobserve() {}
+	}
+);
 afterEach(() => {
 	vi.clearAllMocks();
 	channels.set([]);
@@ -116,8 +129,11 @@ it('real DM hiding waits for confirmation, blocks duplicate clicks and keeps the
 	const component = mount(ChannelItem, { target, context: await context(), props: { channel } });
 	try {
 		await tick();
-		const hide = target.querySelector<HTMLButtonElement>(
-			'#sidebar-channel-item > div:last-child button'
+		const menu = target.querySelector<HTMLButtonElement>('[aria-label="Conversation options"]')!;
+		menu.click();
+		await tick();
+		const hide = [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+			(button) => button.textContent?.includes('Hide conversation')
 		)!;
 		hide.click();
 		await tick();
@@ -126,9 +142,15 @@ it('real DM hiding waits for confirmation, blocks duplicate clicks and keeps the
 		await tick();
 		expect(updateChannelMemberActiveStatusById).toHaveBeenCalledOnce();
 		finish(false);
-		await vi.waitFor(() => expect(hide.disabled).toBe(false));
+		await vi.waitFor(() => expect(menu.getAttribute('aria-expanded')).toBe('false'));
 		expect(get(channels)).toEqual([channel]);
-		hide.click();
+		menu.click();
+		await tick();
+		const retry = [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+			(button) => button.textContent?.includes('Hide conversation')
+		)!;
+		expect(retry.disabled).toBe(false);
+		retry.click();
 		await tick();
 		await vi.waitFor(() => expect(get(channels)).toEqual([]));
 		expect(updateChannelMemberActiveStatusById).toHaveBeenCalledTimes(2);
