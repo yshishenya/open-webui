@@ -8,6 +8,8 @@
 
 ## Dependency Policy (Important)
 
+- eMudhra security update (2026-10-23): certifi floor 2026.10.19, resolved 2026.10.23 in both applicable locks; Node build 22.23.4 pinned by OCI index. Alpine 3.23 is required because the patched Node has no Alpine 3.20 image. System CA packages are installed normally during a fresh Docker build. Production TLS rejection still requires runtime readback.
+
 - CPU production builds can use `backend/requirements-production.lock` with
   `AIRIS_PRODUCTION_LOCK=true`. This freezes the accepted Python 3.11 amd64
   environment by artifact URL and SHA256; dependencies are not implicitly upgraded.

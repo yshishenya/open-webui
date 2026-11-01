@@ -132,12 +132,302 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosmtplib"
+version = "3.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/2a/812517f8350cd317aad2ba1ce25dfc213c6f1f2e62e1cbf662b4bdc51d34/aiosmtplib-3.0.2.tar.gz", hash = "sha256:08fd840f9dbc23258025dca229e8a8f04d2ccf3ecb1319585615bfc7933f7f47", size = 59941, upload-time = "2024-07-31T05:13:10.065Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/35/441faea7a11159795881a6ec869454f40269e4e3806dced935a35d83a412/aiosmtplib-3.0.2-py3-none-any.whl", hash = "sha256:8783059603a34834c7c90ca51103c3aa129d5922003b5ce98dbaa6d4440f10fc", size = 27111, upload-time = "2024-07-31T05:13:08.515Z" },
+]
+
+[[package]]
 name = "aiosqlite"
 version = "0.22.1"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/4e/8a/64761f4005f17809769d23e518d915db74e6310474e733e3593cfc854ef1/aiosqlite-0.22.1.tar.gz", hash = "sha256:043e0bd78d32888c0a9ca90fc788b38796843360c855a7262a532813133a0650", size = 14821, upload-time = "2025-12-23T19:25:43.997Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl", hash = "sha256:21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb", size = 17405, upload-time = "2025-12-23T19:25:42.139Z" },
+]
+
+[[package]]
+name = "airis"
+source = { editable = "." }
+dependencies = [
+    { name = "accelerate" },
+    { name = "aiocache" },
+    { name = "aiodns" },
+    { name = "aiofiles" },
+    { name = "aiohttp" },
+    { name = "aiosmtplib" },
+    { name = "aiosqlite" },
+    { name = "alembic" },
+    { name = "anthropic" },
+    { name = "apscheduler" },
+    { name = "argon2-cffi" },
+    { name = "asgiref" },
+    { name = "async-timeout" },
+    { name = "authlib" },
+    { name = "azure-ai-documentintelligence" },
+    { name = "azure-identity" },
+    { name = "azure-storage-blob" },
+    { name = "bcrypt" },
+    { name = "beautifulsoup4" },
+    { name = "black" },
+    { name = "boto3" },
+    { name = "brotli" },
+    { name = "brotlicffi" },
+    { name = "certifi" },
+    { name = "chardet" },
+    { name = "chromadb" },
+    { name = "cryptography" },
+    { name = "ddgs" },
+    { name = "docx2txt" },
+    { name = "einops" },
+    { name = "email-validator" },
+    { name = "fake-useragent" },
+    { name = "fastapi" },
+    { name = "faster-whisper" },
+    { name = "fpdf2" },
+    { name = "ftfy" },
+    { name = "google-api-python-client" },
+    { name = "google-auth-httplib2" },
+    { name = "google-auth-oauthlib" },
+    { name = "google-cloud-storage" },
+    { name = "google-genai" },
+    { name = "googleapis-common-protos" },
+    { name = "hiredis" },
+    { name = "httpx", extra = ["brotli", "cli", "http2", "socks", "zstd"] },
+    { name = "itsdangerous" },
+    { name = "joserfc" },
+    { name = "langchain" },
+    { name = "langchain-classic" },
+    { name = "langchain-community" },
+    { name = "langchain-text-splitters" },
+    { name = "ldap3" },
+    { name = "loguru" },
+    { name = "lxml" },
+    { name = "markdown" },
+    { name = "mcp" },
+    { name = "msoffcrypto-tool" },
+    { name = "nltk" },
+    { name = "onnxruntime" },
+    { name = "openai" },
+    { name = "opencv-python-headless" },
+    { name = "openpyxl" },
+    { name = "opensearch-py" },
+    { name = "orjson" },
+    { name = "pandas" },
+    { name = "pillow" },
+    { name = "psutil" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pyarrow" },
+    { name = "pycrdt" },
+    { name = "pydantic" },
+    { name = "pydub" },
+    { name = "pyjwt", extra = ["crypto"] },
+    { name = "pymdown-extensions" },
+    { name = "pymysql" },
+    { name = "pypandoc" },
+    { name = "pypdf" },
+    { name = "python-mimeparse" },
+    { name = "python-multipart" },
+    { name = "python-pptx" },
+    { name = "python-socketio" },
+    { name = "pytube" },
+    { name = "pytz" },
+    { name = "pyxlsb" },
+    { name = "rank-bm25" },
+    { name = "rapidocr" },
+    { name = "redis" },
+    { name = "regex" },
+    { name = "requests" },
+    { name = "restrictedpython" },
+    { name = "sentence-transformers" },
+    { name = "sentencepiece" },
+    { name = "soundfile" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "starlette-compress" },
+    { name = "starsessions", extra = ["redis"] },
+    { name = "tiktoken" },
+    { name = "transformers" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "validators" },
+    { name = "xlrd" },
+    { name = "youtube-transcript-api" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "azure-search-documents" },
+    { name = "colbert-ai" },
+    { name = "docker" },
+    { name = "elasticsearch" },
+    { name = "gcp-storage-emulator" },
+    { name = "moto", extra = ["s3"] },
+    { name = "oracledb" },
+    { name = "pgvector" },
+    { name = "pinecone" },
+    { name = "playwright" },
+    { name = "psycopg2-binary" },
+    { name = "pymilvus" },
+    { name = "pymongo" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-docker" },
+    { name = "qdrant-client" },
+    { name = "unstructured" },
+    { name = "weaviate-client" },
+]
+mariadb = [
+    { name = "mariadb" },
+]
+postgres = [
+    { name = "pgvector" },
+    { name = "psycopg2-binary" },
+]
+unstructured = [
+    { name = "unstructured" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "accelerate", specifier = "==1.13.0" },
+    { name = "aiocache", specifier = "==0.12.3" },
+    { name = "aiodns", specifier = "==4.0.4" },
+    { name = "aiofiles", specifier = "==25.1.0" },
+    { name = "aiohttp", specifier = "==3.13.5" },
+    { name = "aiosmtplib", specifier = "==3.0.2" },
+    { name = "aiosqlite", specifier = "==0.22.1" },
+    { name = "alembic", specifier = "==1.18.4" },
+    { name = "anthropic", specifier = "==0.86.0" },
+    { name = "apscheduler", specifier = "==3.11.2" },
+    { name = "argon2-cffi", specifier = "==25.1.0" },
+    { name = "asgiref", specifier = "==3.11.1" },
+    { name = "async-timeout", specifier = "==5.0.1" },
+    { name = "authlib", specifier = "==1.7.2" },
+    { name = "azure-ai-documentintelligence", specifier = "==1.0.2" },
+    { name = "azure-identity", specifier = "==1.25.3" },
+    { name = "azure-search-documents", marker = "extra == 'all'", specifier = "==12.0.0" },
+    { name = "azure-storage-blob", specifier = "==12.29.0" },
+    { name = "bcrypt", specifier = "==5.0.0" },
+    { name = "beautifulsoup4", specifier = "==4.14.3" },
+    { name = "black", specifier = "==26.5.1" },
+    { name = "boto3", specifier = "==1.42.62" },
+    { name = "brotli", specifier = "==1.2.0" },
+    { name = "brotlicffi", specifier = "==1.2.0.1" },
+    { name = "certifi", specifier = ">=2026.10.19" },
+    { name = "chardet", specifier = "==7.4.3" },
+    { name = "chromadb", specifier = "==1.5.9" },
+    { name = "colbert-ai", marker = "extra == 'all'", specifier = "==0.2.22" },
+    { name = "cryptography", specifier = "==48.0.0" },
+    { name = "ddgs", specifier = "==9.14.4" },
+    { name = "docker", marker = "extra == 'all'", specifier = "~=7.1.0" },
+    { name = "docx2txt", specifier = "==0.9" },
+    { name = "einops", specifier = "==0.8.2" },
+    { name = "elasticsearch", marker = "extra == 'all'", specifier = "==9.4.1" },
+    { name = "email-validator", specifier = "==2.2.0" },
+    { name = "fake-useragent", specifier = "==2.2.0" },
+    { name = "fastapi", specifier = "==0.136.3" },
+    { name = "faster-whisper", specifier = "==1.2.1" },
+    { name = "fpdf2", specifier = "==2.8.7" },
+    { name = "ftfy", specifier = "==6.3.1" },
+    { name = "gcp-storage-emulator", marker = "extra == 'all'", specifier = "==2024.8.3" },
+    { name = "google-api-python-client", specifier = "==2.197.0" },
+    { name = "google-auth-httplib2", specifier = "==0.4.0" },
+    { name = "google-auth-oauthlib", specifier = "==1.4.0" },
+    { name = "google-cloud-storage", specifier = "==3.9.0" },
+    { name = "google-genai", specifier = "==1.66.0" },
+    { name = "googleapis-common-protos", specifier = "==1.75.0" },
+    { name = "hiredis", specifier = "==3.4.0" },
+    { name = "httpx", extras = ["brotli", "cli", "http2", "socks", "zstd"], specifier = "==0.28.1" },
+    { name = "itsdangerous", specifier = "==2.2.0" },
+    { name = "joserfc", specifier = "==1.7.4" },
+    { name = "langchain", specifier = "==1.2.10" },
+    { name = "langchain-classic", specifier = "==1.0.7" },
+    { name = "langchain-community", specifier = "==0.4.2" },
+    { name = "langchain-text-splitters", specifier = "==1.1.2" },
+    { name = "ldap3", specifier = "==2.9.1" },
+    { name = "loguru", specifier = "==0.7.3" },
+    { name = "lxml", specifier = "==6.1.1" },
+    { name = "mariadb", marker = "extra == 'mariadb'", specifier = "==1.1.14" },
+    { name = "markdown", specifier = "==3.10.2" },
+    { name = "mcp", specifier = "==1.27.2" },
+    { name = "moto", extras = ["s3"], marker = "extra == 'all'", specifier = ">=5.0.26" },
+    { name = "msoffcrypto-tool", specifier = "==6.0.0" },
+    { name = "nltk", specifier = "==3.9.4" },
+    { name = "onnxruntime", specifier = "==1.26.0" },
+    { name = "openai", specifier = "==2.29.0" },
+    { name = "opencv-python-headless", specifier = "==4.13.0.92" },
+    { name = "openpyxl", specifier = "==3.1.5" },
+    { name = "opensearch-py", specifier = "==3.2.0" },
+    { name = "oracledb", marker = "extra == 'all'", specifier = "==3.4.2" },
+    { name = "orjson", specifier = "==3.11.9" },
+    { name = "pandas", specifier = "==3.0.3" },
+    { name = "pgvector", marker = "extra == 'all'", specifier = "==0.4.2" },
+    { name = "pgvector", marker = "extra == 'postgres'", specifier = "==0.4.2" },
+    { name = "pillow", specifier = "==12.2.0" },
+    { name = "pinecone", marker = "extra == 'all'", specifier = "==6.0.2" },
+    { name = "playwright", marker = "extra == 'all'", specifier = "==1.60.0" },
+    { name = "psutil", specifier = "==7.2.2" },
+    { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
+    { name = "psycopg2-binary", marker = "extra == 'all'", specifier = "==2.9.12" },
+    { name = "psycopg2-binary", marker = "extra == 'postgres'", specifier = "==2.9.12" },
+    { name = "pyarrow", specifier = "==20.0.0" },
+    { name = "pycrdt", specifier = "==0.13.1" },
+    { name = "pydantic", specifier = "==2.13.4" },
+    { name = "pydub", specifier = "==0.25.1" },
+    { name = "pyjwt", extras = ["crypto"], specifier = "==2.13.0" },
+    { name = "pymdown-extensions", specifier = "==10.21.3" },
+    { name = "pymilvus", marker = "extra == 'all'", specifier = "==2.6.14" },
+    { name = "pymongo", marker = "extra == 'all'", specifier = "==4.17.0" },
+    { name = "pymysql", specifier = "==1.2.0" },
+    { name = "pypandoc", specifier = "==1.17" },
+    { name = "pypdf", specifier = "==6.7.5" },
+    { name = "pytest", marker = "extra == 'all'", specifier = "~=8.4.1" },
+    { name = "pytest-asyncio", marker = "extra == 'all'", specifier = "~=1.3.0" },
+    { name = "pytest-docker", marker = "extra == 'all'", specifier = "~=3.2.5" },
+    { name = "python-mimeparse", specifier = "==2.0.0" },
+    { name = "python-multipart", specifier = "==0.0.32" },
+    { name = "python-pptx", specifier = "==1.0.2" },
+    { name = "python-socketio", specifier = "==5.16.2" },
+    { name = "pytube", specifier = "==15.0.0" },
+    { name = "pytz", specifier = "==2026.2" },
+    { name = "pyxlsb", specifier = "==1.0.10" },
+    { name = "qdrant-client", marker = "extra == 'all'", specifier = "==1.18.0" },
+    { name = "rank-bm25", specifier = "==0.2.2" },
+    { name = "rapidocr", specifier = "==3.9.2" },
+    { name = "redis", specifier = "==8.0.1" },
+    { name = "regex", specifier = "==2026.5.9" },
+    { name = "requests", specifier = "==2.34.2" },
+    { name = "restrictedpython", specifier = "==8.2" },
+    { name = "sentence-transformers", specifier = "==5.5.1" },
+    { name = "sentencepiece", specifier = "==0.2.1" },
+    { name = "soundfile", specifier = "==0.13.1" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.50" },
+    { name = "starlette-compress", specifier = "==1.7.1" },
+    { name = "starsessions", extras = ["redis"], specifier = "==2.2.1" },
+    { name = "tiktoken", specifier = "==0.13.0" },
+    { name = "transformers", specifier = "==5.5.4" },
+    { name = "unstructured", marker = "extra == 'all'", specifier = "==0.22.31" },
+    { name = "unstructured", marker = "extra == 'unstructured'", specifier = "==0.22.31" },
+    { name = "uvicorn", extras = ["standard"], specifier = "==0.51.0" },
+    { name = "validators", specifier = "==0.35.0" },
+    { name = "weaviate-client", marker = "extra == 'all'", specifier = "==4.20.3" },
+    { name = "xlrd", specifier = "==2.0.2" },
+    { name = "youtube-transcript-api", specifier = "==1.2.4" },
+]
+provides-extras = ["all", "mariadb", "postgres", "unstructured"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest-asyncio", specifier = ">=1.0.0" },
+    { name = "ruff", specifier = ">=0.15.5" },
 ]
 
 [[package]]
@@ -208,6 +498,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1c/b5/001890774a9552aff22502b8da382593109ce0c95314abaebbb116567545/anyio-4.14.0.tar.gz", hash = "sha256:b47c1f9ccf73e67021df785332508f99379c68fa7d0684e8e3492cb1d4b23f89", size = 253586, upload-time = "2026-06-15T22:00:49.021Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/16/9826f089383c593cdfc4a6e5aca94d9e91ae1692c57af82c3b2aa5e810f7/anyio-4.14.0-py3-none-any.whl", hash = "sha256:dd9b7a2a9799ed6552fde617b2c5df02b7fdd7d88392fc48101e51bae46164d9", size = 123506, upload-time = "2026-06-15T22:00:47.595Z" },
+]
+
+[[package]]
+name = "appdirs"
+version = "1.4.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/d8/05696357e0311f5b5c316d7b95f46c669dd9c15aaeecbb48c7d0aeb88c40/appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41", size = 13470, upload-time = "2020-05-11T07:59:51.037Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl", hash = "sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128", size = 9566, upload-time = "2020-05-11T07:59:49.499Z" },
 ]
 
 [[package]]
@@ -656,11 +955,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2026.6.17"
+version = "2026.10.23"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c9/c7/424b75da314c1045981bd9777432fad05a9e0c69daa4ed7e308bbaffe405/certifi-2026.6.17.tar.gz", hash = "sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432", size = 134594, upload-time = "2026-06-17T10:31:07.894Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/11/b524cbd9bbdaca58608e4cf4053fd463417549e1959fa8d3aa18319f9555/certifi-2026.10.23.tar.gz", hash = "sha256:a9895e6e2758b371e0545e321a3a8fd1fcfd9829ada8824a936dfb16aaaf36cd", size = 136225, upload-time = "2026-10-23T11:36:16.478Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/2f/c5464532e965badff2f4c4c1a3a83f5697f0d7c407ed0cda44aaa99bb451/certifi-2026.6.17-py3-none-any.whl", hash = "sha256:2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db", size = 133289, upload-time = "2026-06-17T10:31:06.348Z" },
+    { url = "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl", hash = "sha256:e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1", size = 135082, upload-time = "2026-10-23T11:36:14.763Z" },
 ]
 
 [[package]]
@@ -1198,6 +1497,19 @@ wheels = [
 ]
 
 [[package]]
+name = "email-validator"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dnspython" },
+    { name = "idna" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/ce/13508a1ec3f8bb981ae4ca79ea40384becc868bfae97fd1c942bb3a001b1/email_validator-2.2.0.tar.gz", hash = "sha256:cb690f344c617a714f22e66ae771445a1ceb46821152df8e165c5f9a364582b7", size = 48967, upload-time = "2024-06-20T11:30:30.034Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/ee/bf0adb559ad3c786f12bcbc9296b3f5675f529199bef03e2df281fa1fadb/email_validator-2.2.0-py3-none-any.whl", hash = "sha256:561977c2d73ce3611850a06fa56b414621e0c8faa9d66f2611407d87465da631", size = 33521, upload-time = "2024-06-20T11:30:28.248Z" },
+]
+
+[[package]]
 name = "emoji"
 version = "2.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1388,6 +1700,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fs"
+version = "2.4.16"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "appdirs" },
+    { name = "setuptools" },
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5d/a9/af5bfd5a92592c16cdae5c04f68187a309be8a146b528eac3c6e30edbad2/fs-2.4.16.tar.gz", hash = "sha256:ae97c7d51213f4b70b6a958292530289090de3a7e15841e108fbe144f069d313", size = 187441, upload-time = "2022-05-02T09:25:54.22Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b9/5c/a3d95dc1ec6cdeb032d789b552ecc76effa3557ea9186e1566df6aac18df/fs-2.4.16-py2.py3-none-any.whl", hash = "sha256:660064febbccda264ae0b6bace80a8d1be9e089e0a5eb2427b7d517f9a91545c", size = 135261, upload-time = "2022-05-02T09:25:52.363Z" },
+]
+
+[[package]]
 name = "fsspec"
 version = "2025.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1411,6 +1737,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a5/d3/8650919bc3c7c6e90ee3fa7fd618bf373cbbe55dff043bd67353dbb20cd8/ftfy-6.3.1.tar.gz", hash = "sha256:9b3c3d90f84fb267fe64d375a07b7f8912d817cf86009ae134aa03e1819506ec", size = 308927, upload-time = "2024-10-26T00:50:35.149Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ab/6e/81d47999aebc1b155f81eca4477a616a70f238a2549848c38983f3c22a82/ftfy-6.3.1-py3-none-any.whl", hash = "sha256:7c70eb532015cd2f9adb53f101fb6c7945988d023a085d127d1573dc49dd0083", size = 44821, upload-time = "2024-10-26T00:50:33.425Z" },
+]
+
+[[package]]
+name = "gcp-storage-emulator"
+version = "2024.8.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fs" },
+    { name = "google-crc32c" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/17/c2/a0b0e1e54fdd9453603d90939faf652e2488b617c8752edc4ebcd89f1686/gcp_storage_emulator-2024.8.3.tar.gz", hash = "sha256:e5d45e5c23a0344c1c4c44b8f8c36f7e8975ca1fcc5134cab608b96ddccd9225", size = 24928, upload-time = "2024-08-03T19:13:58.073Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/bf/b6c717bd7a5b59244388057d36789e72c28bfaa5e51f3a494563a4e3028e/gcp_storage_emulator-2024.8.3-py3-none-any.whl", hash = "sha256:1dc4ea56a0caf50fc6092898b9461d08b494824bfbbcca168e2af5da89c053ce", size = 19385, upload-time = "2024-08-03T19:13:56.296Z" },
 ]
 
 [[package]]
@@ -3004,277 +3343,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7c/43/2a4e04f8dbeffad19bbcced4bcd4289bf478921518437404d6b92bdf213b/onnxruntime-1.26.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9b6dd70599005bd1bf29779f04a91978b92b5e719c11a20068a8f8e535f725b6", size = 18185439, upload-time = "2026-05-08T19:07:36.299Z" },
     { url = "https://files.pythonhosted.org/packages/44/fc/026d0a7162b9c2153dac292baea9e027c42304dc1d9dc6f8ff5b4cfbaedd/onnxruntime-1.26.0-cp312-cp312-win_amd64.whl", hash = "sha256:a26374dc7fbcaae593601086b242120e13f2310558df0991da6dd8b8fac00414", size = 13026427, upload-time = "2026-05-08T19:08:03.503Z" },
     { url = "https://files.pythonhosted.org/packages/3e/27/1dcf88e45e4c69db5f7b106f2dacc3801ba98994e082ca03e1dfdf7bfe57/onnxruntime-1.26.0-cp312-cp312-win_arm64.whl", hash = "sha256:54a8053410fd31fd66469bd754fcfe8a4df9f7eb44756b4b5479bf50c842d948", size = 12796647, upload-time = "2026-05-08T19:07:52.108Z" },
-]
-
-[[package]]
-name = "open-webui"
-source = { editable = "." }
-dependencies = [
-    { name = "accelerate" },
-    { name = "aiocache" },
-    { name = "aiodns" },
-    { name = "aiofiles" },
-    { name = "aiohttp" },
-    { name = "aiosqlite" },
-    { name = "alembic" },
-    { name = "anthropic" },
-    { name = "apscheduler" },
-    { name = "argon2-cffi" },
-    { name = "asgiref" },
-    { name = "async-timeout" },
-    { name = "authlib" },
-    { name = "azure-ai-documentintelligence" },
-    { name = "azure-identity" },
-    { name = "azure-storage-blob" },
-    { name = "bcrypt" },
-    { name = "beautifulsoup4" },
-    { name = "black" },
-    { name = "boto3" },
-    { name = "brotli" },
-    { name = "brotlicffi" },
-    { name = "chardet" },
-    { name = "chromadb" },
-    { name = "cryptography" },
-    { name = "ddgs" },
-    { name = "docx2txt" },
-    { name = "einops" },
-    { name = "fake-useragent" },
-    { name = "fastapi" },
-    { name = "faster-whisper" },
-    { name = "fpdf2" },
-    { name = "ftfy" },
-    { name = "google-api-python-client" },
-    { name = "google-auth-httplib2" },
-    { name = "google-auth-oauthlib" },
-    { name = "google-cloud-storage" },
-    { name = "google-genai" },
-    { name = "googleapis-common-protos" },
-    { name = "hiredis" },
-    { name = "httpx", extra = ["brotli", "cli", "http2", "socks", "zstd"] },
-    { name = "itsdangerous" },
-    { name = "joserfc" },
-    { name = "langchain" },
-    { name = "langchain-classic" },
-    { name = "langchain-community" },
-    { name = "langchain-text-splitters" },
-    { name = "ldap3" },
-    { name = "loguru" },
-    { name = "lxml" },
-    { name = "markdown" },
-    { name = "mcp" },
-    { name = "msoffcrypto-tool" },
-    { name = "nltk" },
-    { name = "onnxruntime" },
-    { name = "openai" },
-    { name = "opencv-python-headless" },
-    { name = "openpyxl" },
-    { name = "opensearch-py" },
-    { name = "orjson" },
-    { name = "pandas" },
-    { name = "pillow" },
-    { name = "psutil" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "pyarrow" },
-    { name = "pycrdt" },
-    { name = "pydantic" },
-    { name = "pydub" },
-    { name = "pyjwt", extra = ["crypto"] },
-    { name = "pymdown-extensions" },
-    { name = "pymysql" },
-    { name = "pypandoc" },
-    { name = "pypdf" },
-    { name = "python-mimeparse" },
-    { name = "python-multipart" },
-    { name = "python-pptx" },
-    { name = "python-socketio" },
-    { name = "pytube" },
-    { name = "pytz" },
-    { name = "pyxlsb" },
-    { name = "rank-bm25" },
-    { name = "rapidocr" },
-    { name = "redis" },
-    { name = "regex" },
-    { name = "requests" },
-    { name = "restrictedpython" },
-    { name = "sentence-transformers" },
-    { name = "sentencepiece" },
-    { name = "soundfile" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "starlette-compress" },
-    { name = "starsessions", extra = ["redis"] },
-    { name = "tiktoken" },
-    { name = "transformers" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "validators" },
-    { name = "xlrd" },
-    { name = "youtube-transcript-api" },
-]
-
-[package.optional-dependencies]
-all = [
-    { name = "azure-search-documents" },
-    { name = "colbert-ai" },
-    { name = "docker" },
-    { name = "elasticsearch" },
-    { name = "moto", extra = ["s3"] },
-    { name = "oracledb" },
-    { name = "pgvector" },
-    { name = "pinecone" },
-    { name = "playwright" },
-    { name = "psycopg2-binary" },
-    { name = "pymilvus" },
-    { name = "pymongo" },
-    { name = "pytest" },
-    { name = "pytest-docker" },
-    { name = "qdrant-client" },
-    { name = "unstructured" },
-    { name = "weaviate-client" },
-]
-mariadb = [
-    { name = "mariadb" },
-]
-postgres = [
-    { name = "pgvector" },
-    { name = "psycopg2-binary" },
-]
-unstructured = [
-    { name = "unstructured" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "accelerate", specifier = "==1.13.0" },
-    { name = "aiocache", specifier = "==0.12.3" },
-    { name = "aiodns", specifier = "==4.0.4" },
-    { name = "aiofiles", specifier = "==25.1.0" },
-    { name = "aiohttp", specifier = "==3.13.5" },
-    { name = "aiosqlite", specifier = "==0.22.1" },
-    { name = "alembic", specifier = "==1.18.4" },
-    { name = "anthropic", specifier = "==0.86.0" },
-    { name = "apscheduler", specifier = "==3.11.2" },
-    { name = "argon2-cffi", specifier = "==25.1.0" },
-    { name = "asgiref", specifier = "==3.11.1" },
-    { name = "async-timeout", specifier = "==5.0.1" },
-    { name = "authlib", specifier = "==1.7.2" },
-    { name = "azure-ai-documentintelligence", specifier = "==1.0.2" },
-    { name = "azure-identity", specifier = "==1.25.3" },
-    { name = "azure-search-documents", marker = "extra == 'all'", specifier = "==12.0.0" },
-    { name = "azure-storage-blob", specifier = "==12.29.0" },
-    { name = "bcrypt", specifier = "==5.0.0" },
-    { name = "beautifulsoup4", specifier = "==4.14.3" },
-    { name = "black", specifier = "==26.5.1" },
-    { name = "boto3", specifier = "==1.42.62" },
-    { name = "brotli", specifier = "==1.2.0" },
-    { name = "brotlicffi", specifier = "==1.2.0.1" },
-    { name = "chardet", specifier = "==7.4.3" },
-    { name = "chromadb", specifier = "==1.5.9" },
-    { name = "colbert-ai", marker = "extra == 'all'", specifier = "==0.2.22" },
-    { name = "cryptography", specifier = "==48.0.0" },
-    { name = "ddgs", specifier = "==9.14.4" },
-    { name = "docker", marker = "extra == 'all'", specifier = "~=7.1.0" },
-    { name = "docx2txt", specifier = "==0.9" },
-    { name = "einops", specifier = "==0.8.2" },
-    { name = "elasticsearch", marker = "extra == 'all'", specifier = "==9.4.1" },
-    { name = "fake-useragent", specifier = "==2.2.0" },
-    { name = "fastapi", specifier = "==0.136.3" },
-    { name = "faster-whisper", specifier = "==1.2.1" },
-    { name = "fpdf2", specifier = "==2.8.7" },
-    { name = "ftfy", specifier = "==6.3.1" },
-    { name = "google-api-python-client", specifier = "==2.197.0" },
-    { name = "google-auth-httplib2", specifier = "==0.4.0" },
-    { name = "google-auth-oauthlib", specifier = "==1.4.0" },
-    { name = "google-cloud-storage", specifier = "==3.9.0" },
-    { name = "google-genai", specifier = "==1.66.0" },
-    { name = "googleapis-common-protos", specifier = "==1.75.0" },
-    { name = "hiredis", specifier = "==3.4.0" },
-    { name = "httpx", extras = ["brotli", "cli", "http2", "socks", "zstd"], specifier = "==0.28.1" },
-    { name = "itsdangerous", specifier = "==2.2.0" },
-    { name = "joserfc", specifier = "==1.7.4" },
-    { name = "langchain", specifier = "==1.2.10" },
-    { name = "langchain-classic", specifier = "==1.0.7" },
-    { name = "langchain-community", specifier = "==0.4.2" },
-    { name = "langchain-text-splitters", specifier = "==1.1.2" },
-    { name = "ldap3", specifier = "==2.9.1" },
-    { name = "loguru", specifier = "==0.7.3" },
-    { name = "lxml", specifier = "==6.1.1" },
-    { name = "mariadb", marker = "extra == 'mariadb'", specifier = "==1.1.14" },
-    { name = "markdown", specifier = "==3.10.2" },
-    { name = "mcp", specifier = "==1.27.2" },
-    { name = "moto", extras = ["s3"], marker = "extra == 'all'", specifier = ">=5.0.26" },
-    { name = "msoffcrypto-tool", specifier = "==6.0.0" },
-    { name = "nltk", specifier = "==3.9.4" },
-    { name = "onnxruntime", specifier = "==1.26.0" },
-    { name = "openai", specifier = "==2.29.0" },
-    { name = "opencv-python-headless", specifier = "==4.13.0.92" },
-    { name = "openpyxl", specifier = "==3.1.5" },
-    { name = "opensearch-py", specifier = "==3.2.0" },
-    { name = "oracledb", marker = "extra == 'all'", specifier = "==3.4.2" },
-    { name = "orjson", specifier = "==3.11.9" },
-    { name = "pandas", specifier = "==3.0.3" },
-    { name = "pgvector", marker = "extra == 'all'", specifier = "==0.4.2" },
-    { name = "pgvector", marker = "extra == 'postgres'", specifier = "==0.4.2" },
-    { name = "pillow", specifier = "==12.2.0" },
-    { name = "pinecone", marker = "extra == 'all'", specifier = "==6.0.2" },
-    { name = "playwright", marker = "extra == 'all'", specifier = "==1.60.0" },
-    { name = "psutil", specifier = "==7.2.2" },
-    { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
-    { name = "psycopg2-binary", marker = "extra == 'all'", specifier = "==2.9.12" },
-    { name = "psycopg2-binary", marker = "extra == 'postgres'", specifier = "==2.9.12" },
-    { name = "pyarrow", specifier = "==20.0.0" },
-    { name = "pycrdt", specifier = "==0.13.1" },
-    { name = "pydantic", specifier = "==2.13.4" },
-    { name = "pydub", specifier = "==0.25.1" },
-    { name = "pyjwt", extras = ["crypto"], specifier = "==2.13.0" },
-    { name = "pymdown-extensions", specifier = "==10.21.3" },
-    { name = "pymilvus", marker = "extra == 'all'", specifier = "==2.6.14" },
-    { name = "pymongo", marker = "extra == 'all'", specifier = "==4.17.0" },
-    { name = "pymysql", specifier = "==1.2.0" },
-    { name = "pypandoc", specifier = "==1.17" },
-    { name = "pypdf", specifier = "==6.7.5" },
-    { name = "pytest", marker = "extra == 'all'", specifier = "~=8.4.1" },
-    { name = "pytest-docker", marker = "extra == 'all'", specifier = "~=3.2.5" },
-    { name = "python-mimeparse", specifier = "==2.0.0" },
-    { name = "python-multipart", specifier = "==0.0.32" },
-    { name = "python-pptx", specifier = "==1.0.2" },
-    { name = "python-socketio", specifier = "==5.16.2" },
-    { name = "pytube", specifier = "==15.0.0" },
-    { name = "pytz", specifier = "==2026.2" },
-    { name = "pyxlsb", specifier = "==1.0.10" },
-    { name = "qdrant-client", marker = "extra == 'all'", specifier = "==1.18.0" },
-    { name = "rank-bm25", specifier = "==0.2.2" },
-    { name = "rapidocr", specifier = "==3.9.2" },
-    { name = "redis", specifier = "==8.0.1" },
-    { name = "regex", specifier = "==2026.5.9" },
-    { name = "requests", specifier = "==2.34.2" },
-    { name = "restrictedpython", specifier = "==8.2" },
-    { name = "sentence-transformers", specifier = "==5.5.1" },
-    { name = "sentencepiece", specifier = "==0.2.1" },
-    { name = "soundfile", specifier = "==0.13.1" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.50" },
-    { name = "starlette-compress", specifier = "==1.7.1" },
-    { name = "starsessions", extras = ["redis"], specifier = "==2.2.1" },
-    { name = "tiktoken", specifier = "==0.13.0" },
-    { name = "transformers", specifier = "==5.5.4" },
-    { name = "unstructured", marker = "extra == 'all'", specifier = "==0.22.31" },
-    { name = "unstructured", marker = "extra == 'unstructured'", specifier = "==0.22.31" },
-    { name = "uvicorn", extras = ["standard"], specifier = "==0.51.0" },
-    { name = "validators", specifier = "==0.35.0" },
-    { name = "weaviate-client", marker = "extra == 'all'", specifier = "==4.20.3" },
-    { name = "xlrd", specifier = "==2.0.2" },
-    { name = "youtube-transcript-api", specifier = "==1.2.4" },
-]
-provides-extras = ["all", "mariadb", "postgres", "unstructured"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest-asyncio", specifier = ">=1.0.0" },
-    { name = "ruff", specifier = ">=0.15.5" },
 ]
 
 [[package]]
